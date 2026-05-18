@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AlertCardDemo from "./AlertCardDemo";
+import SocialProof from "./SocialProof";
 
 export default function Hero() {
   return (
@@ -41,7 +42,7 @@ export default function Hero() {
 
         <AlertCardDemo />
 
-        {/* SocialProof wird hier eingefügt */}
+        <SocialProof />
       </div>
     </section>
   );
