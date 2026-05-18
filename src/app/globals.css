@@ -37,6 +37,11 @@
   --color-obsidian-900: #1f1828;
   --color-obsidian-950: #16101e;
 
+  /* Top-level brand tokens (no scale) */
+  --color-mist: #c4b5fd;            /* Secondary text */
+  --color-obsidian: #16101e;        /* Background */
+  --color-obsidian-light: #1f1731;  /* Cards */
+
   /* Semantic tokens */
   --color-primary: #6d28d9;
   --color-primary-foreground: #ffffff;
@@ -49,12 +54,9 @@
   --color-border: #2d2638;
   --color-ring: #6d28d9;
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
