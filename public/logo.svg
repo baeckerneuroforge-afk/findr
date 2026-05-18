@@ -8,7 +8,7 @@
   <!-- Wordmark -->
   <text x="44" y="23"
         font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif"
-        font-size="22"
+        font-size="19"
         font-weight="500"
         fill="#FFFFFF"
         letter-spacing="-0.8px">findr</text>

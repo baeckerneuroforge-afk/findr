@@ -1,8 +1,9 @@
 import Link from "next/link";
+import AlertCardDemo from "./AlertCardDemo";
 
 export default function Hero() {
   return (
-    <section className="px-6 pt-24 pb-16">
+    <section className="px-6 pt-16 pb-16 md:pt-20">
       <div className="mx-auto max-w-6xl text-center">
         {/* Eyebrow pill */}
         <div className="inline-flex items-center gap-2 rounded-full bg-alert-500/10 px-3 py-1.5 text-xs font-medium text-alert-400">
@@ -11,7 +12,7 @@ export default function Hero() {
         </div>
 
         {/* H1 */}
-        <h1 className="mx-auto mt-6 max-w-2xl text-5xl font-medium leading-[1.05] tracking-[-2px] text-white md:text-6xl">
+        <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-medium leading-[1.05] tracking-[-2px] text-white md:text-5xl lg:text-6xl">
           Stop losing deals you should win.
         </h1>
 
@@ -38,7 +39,7 @@ export default function Hero() {
           </Link>
         </div>
 
-        {/* AlertCardDemo wird hier eingefügt */}
+        <AlertCardDemo />
 
         {/* SocialProof wird hier eingefügt */}
       </div>
