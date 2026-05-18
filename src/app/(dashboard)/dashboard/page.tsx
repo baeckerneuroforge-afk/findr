@@ -1,60 +1,77 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import EmptyState from "@/components/dashboard/EmptyState";
+
+const STATS: { label: string; value: string; subtitle?: string }[] = [
+  { label: "Active Deals", value: "—", subtitle: "Connect CRM to see" },
+  { label: "At Risk", value: "—" },
+  { label: "Saved by Findr", value: "—" },
+  { label: "Loss Patterns", value: "—" },
+];
+
+function LinkIcon() {
+  return (
+    <svg
+      className="h-12 w-12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
+      />
+    </svg>
+  );
+}
 
 export default async function DashboardPage() {
-  const { orgId, orgSlug } = await auth();
-  const user = await currentUser();
+  // Defense-in-depth: middleware already protects /dashboard, but verify here too.
+  const { userId } = await auth();
+  if (!userId) {
+    redirect("/sign-in");
+  }
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-border bg-obsidian-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <span className="text-xl font-semibold tracking-tight">Findr</span>
-            <OrganizationSwitcher
-              hidePersonal={false}
-              afterCreateOrganizationUrl="/dashboard"
-              afterSelectOrganizationUrl="/dashboard"
-            />
+    <div className="min-h-screen bg-obsidian text-white">
+      <DashboardSidebar />
+      <DashboardHeader title="Dashboard" />
+
+      <main className="min-h-screen pl-60 pt-16">
+        <div className="p-8">
+          {/* Stats row */}
+          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+            {STATS.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-lg border border-mist/15 bg-mist/5 p-5"
+              >
+                <p className="text-xs uppercase tracking-wider text-mist">
+                  {stat.label}
+                </p>
+                <p className="mt-2 text-3xl font-medium text-white">
+                  {stat.value}
+                </p>
+                {stat.subtitle && (
+                  <p className="mt-1 text-xs text-mist">{stat.subtitle}</p>
+                )}
+              </div>
+            ))}
           </div>
-          <UserButton />
+
+          {/* Empty state */}
+          <EmptyState
+            icon={<LinkIcon />}
+            title="Connect your CRM to start"
+            description="Findr analyzes your deals and sales calls to detect loss-risk patterns. Connect Hubspot or Salesforce to begin."
+            cta={{ label: "Connect Hubspot", href: "#connect-hubspot" }}
+          />
         </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-6 py-12">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Welcome, {user?.firstName ?? "there"}
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          {orgId
-            ? `Active organization: ${orgSlug ?? orgId}`
-            : "No active organization. Create one to get started."}
-        </p>
-
-        <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-lg border border-border bg-obsidian-900 p-6">
-            <h2 className="text-sm font-medium text-muted-foreground">
-              User ID
-            </h2>
-            <p className="mt-2 font-mono text-sm break-all">{user?.id}</p>
-          </div>
-          <div className="rounded-lg border border-border bg-obsidian-900 p-6">
-            <h2 className="text-sm font-medium text-muted-foreground">
-              Org ID
-            </h2>
-            <p className="mt-2 font-mono text-sm break-all">
-              {orgId ?? "—"}
-            </p>
-          </div>
-          <div className="rounded-lg border border-border bg-obsidian-900 p-6">
-            <h2 className="text-sm font-medium text-muted-foreground">
-              Email
-            </h2>
-            <p className="mt-2 text-sm break-all">
-              {user?.primaryEmailAddress?.emailAddress}
-            </p>
-          </div>
-        </section>
       </main>
     </div>
   );
