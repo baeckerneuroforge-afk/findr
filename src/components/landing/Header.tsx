@@ -23,12 +23,13 @@ export function Header() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center relative overflow-hidden">
-            <span className="text-white font-bold text-sm relative z-10">f</span>
-            <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse-glow" />
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="relative">
+            <span className="text-white font-bold text-2xl tracking-tight">
+              findr
+            </span>
+            <div className="absolute -top-0.5 -right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse-glow" />
           </div>
-          <span className="text-white font-semibold tracking-tight">findr</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
