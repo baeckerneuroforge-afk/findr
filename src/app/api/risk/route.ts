@@ -4,6 +4,7 @@ import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
 import { analyzeDealRisk } from "@/lib/risk/classifier";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { maybeTriggerAlert, getPreviousScore } from "@/lib/alerts/trigger";
 
 const FINDR_DEV_ORG_ID = "4909c8ee-017f-4d9a-bdb6-d3b90f0806a0";
 
@@ -28,10 +29,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const calls = await getCallsByDealId(dealId);
+    const previousScore = await getPreviousScore(dealId);
     const result = await analyzeDealRisk(deal, calls);
 
     const supabase = createAdminSupabaseClient();
-    const { error: insertError } = await supabase
+    const { data: inserted, error: insertError } = await supabase
       .from("risk_scores" as never)
       .insert({
         org_id: FINDR_DEV_ORG_ID,
@@ -41,13 +43,29 @@ export async function POST(req: NextRequest) {
         overall_reasoning: result.overallReasoning,
         recommendations: result.recommendations ?? [],
         signals: result.signals,
-      } as never);
+      } as never)
+      .select()
+      .single();
 
     if (insertError) {
       console.error("Failed to persist risk_score:", insertError.message);
     }
 
-    return NextResponse.json({ success: true, result });
+    const riskScoreId = (inserted as { id: string } | null)?.id ?? null;
+
+    let alert: { triggered: boolean; reason?: string } = { triggered: false };
+    if (riskScoreId) {
+      alert = await maybeTriggerAlert(
+        FINDR_DEV_ORG_ID,
+        dealId,
+        deal.name,
+        riskScoreId,
+        result,
+        previousScore,
+      );
+    }
+
+    return NextResponse.json({ success: true, result, alert });
   } catch (error) {
     return NextResponse.json(
       {
