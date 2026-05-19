@@ -51,3 +51,30 @@ export async function getRiskScoreHistory(
   if (error || !data) return [];
   return data as unknown as RiskScoreRecord[];
 }
+
+/**
+ * Fetch the latest risk_score for each of the given deal IDs.
+ * Returns a Map keyed by deal_id; deals without a stored score are absent.
+ */
+export async function getLatestRiskScoresForDeals(
+  dealIds: string[],
+): Promise<Map<string, RiskScoreRecord>> {
+  if (dealIds.length === 0) return new Map();
+
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("risk_scores" as never)
+    .select("*")
+    .in("deal_id", dealIds)
+    .order("analyzed_at", { ascending: false });
+
+  if (error || !data) return new Map();
+
+  const latest = new Map<string, RiskScoreRecord>();
+  for (const row of data as unknown as RiskScoreRecord[]) {
+    if (!latest.has(row.deal_id)) {
+      latest.set(row.deal_id, row);
+    }
+  }
+  return latest;
+}
