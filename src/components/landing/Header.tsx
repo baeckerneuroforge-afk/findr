@@ -32,10 +32,10 @@ export function Header() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="#platform" className="text-mist/70 hover:text-white text-sm transition-colors">Plattform</Link>
-          <Link href="#modules" className="text-mist/70 hover:text-white text-sm transition-colors">Module</Link>
+          <Link href="#platform" className="text-mist/70 hover:text-white text-sm transition-colors">Platform</Link>
+          <Link href="#modules" className="text-mist/70 hover:text-white text-sm transition-colors">Modules</Link>
           <Link href="/pricing" className="text-mist/70 hover:text-white text-sm transition-colors">Pricing</Link>
-          <Link href="#why" className="text-mist/70 hover:text-white text-sm transition-colors">Warum Findr</Link>
+          <Link href="#why" className="text-mist/70 hover:text-white text-sm transition-colors">Why Findr</Link>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -46,7 +46,7 @@ export function Header() {
             <Link href="/sign-up" className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-red-500 rounded-lg blur-sm opacity-50 group-hover:opacity-100 transition-opacity" />
               <button className="relative bg-violet-500 hover:bg-violet-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                Demo buchen
+                Book a demo
               </button>
             </Link>
           </Show>

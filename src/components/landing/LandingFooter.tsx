@@ -15,27 +15,27 @@ export function LandingFooter() {
             <p className="text-xs text-mist/50">Conversation Intelligence Platform for European B2B SaaS.</p>
           </div>
           <div>
-            <div className="text-xs text-white font-semibold mb-3 tracking-wide">PRODUKT</div>
+            <div className="text-xs text-white font-semibold mb-3 tracking-wide">PRODUCT</div>
             <div className="space-y-2">
-              <Link href="#modules" className="block text-sm text-mist/60 hover:text-white">Module</Link>
-              <Link href="#platform" className="block text-sm text-mist/60 hover:text-white">Plattform</Link>
+              <Link href="#modules" className="block text-sm text-mist/60 hover:text-white">Modules</Link>
+              <Link href="#platform" className="block text-sm text-mist/60 hover:text-white">Platform</Link>
               <Link href="/pricing" className="block text-sm text-mist/60 hover:text-white">Pricing</Link>
             </div>
           </div>
           <div>
             <div className="text-xs text-white font-semibold mb-3 tracking-wide">COMPANY</div>
             <div className="space-y-2">
-              <Link href="#" className="block text-sm text-mist/60 hover:text-white">Über uns</Link>
+              <Link href="#" className="block text-sm text-mist/60 hover:text-white">About</Link>
               <Link href="#" className="block text-sm text-mist/60 hover:text-white">Blog</Link>
-              <Link href="#" className="block text-sm text-mist/60 hover:text-white">Kontakt</Link>
+              <Link href="#" className="block text-sm text-mist/60 hover:text-white">Contact</Link>
             </div>
           </div>
           <div>
             <div className="text-xs text-white font-semibold mb-3 tracking-wide">LEGAL</div>
             <div className="space-y-2">
               <Link href="#" className="block text-sm text-mist/60 hover:text-white">Impressum</Link>
-              <Link href="#" className="block text-sm text-mist/60 hover:text-white">Datenschutz</Link>
-              <Link href="#" className="block text-sm text-mist/60 hover:text-white">AGB</Link>
+              <Link href="#" className="block text-sm text-mist/60 hover:text-white">Privacy</Link>
+              <Link href="#" className="block text-sm text-mist/60 hover:text-white">Terms</Link>
             </div>
           </div>
         </div>

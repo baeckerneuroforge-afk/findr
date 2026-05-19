@@ -4,10 +4,10 @@ import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 
 const steps = [
-  { n: "01", title: "Connect", desc: "Hubspot, Salesforce, Gong, Chorus, Zoom. 5 Minuten Setup, zero Friction." },
-  { n: "02", title: "Listen", desc: "Findr analysiert jeden Sales-Call, jeden CS-Touchpoint, jedes CRM-Update — automatisch und real-time." },
-  { n: "03", title: "Predict", desc: "Risk-Scores für jeden Deal. Churn-Risk für jeden Customer. Insights für jede Decision." },
-  { n: "04", title: "Act", desc: "Slack-Alerts bei Risk-Spike. Auto-Interviews nach Closed-Lost. Coaching-Briefings für Sales-Manager." },
+  { n: "01", title: "Connect", desc: "Hubspot, Salesforce, Gong, Chorus, Zoom. 5-minute setup, zero friction." },
+  { n: "02", title: "Listen", desc: "Findr analyzes every sales call, every CS touchpoint, every CRM update — automatically and in real time." },
+  { n: "03", title: "Predict", desc: "Risk scores for every deal. Churn risk for every customer. Insights for every decision." },
+  { n: "04", title: "Act", desc: "Slack alerts on risk spikes. Auto-interviews after closed-lost. Coaching briefings for sales managers." },
 ];
 
 export function HowItWorks() {
@@ -24,10 +24,10 @@ export function HowItWorks() {
           className="text-center mb-16"
         >
           <div className="inline-block px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-medium tracking-wide mb-4">
-            SO FUNKTIONIERT ES
+            HOW IT WORKS
           </div>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
-            Vier Schritte. Stundenmäßig live.
+            Four steps. Live in hours.
           </h2>
         </motion.div>
 

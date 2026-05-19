@@ -5,28 +5,28 @@ import { useRef } from "react";
 
 const reasons = [
   {
-    title: "AI-Native, nicht AI-Bolt-on",
-    desc: "Clari + Gong wurden 2015 gebaut. Keyword-Matching, kein Context. Findr ist von Tag 1 GenAI-native.",
+    title: "AI-native, not AI bolt-on",
+    desc: "Clari + Gong were built in 2015. Keyword matching, no context. Findr is GenAI-native from day one.",
     metric: "10x",
-    metricLabel: "präziser",
+    metricLabel: "more accurate",
   },
   {
-    title: "EU-Native, nicht Translation",
-    desc: "Hosting in Frankfurt. DSGVO + EU AI Act compliant by default. Deutsche AI-Models für DACH-Sales-Sprache.",
+    title: "EU-native, not translated",
+    desc: "Hosted in Frankfurt. GDPR + EU AI Act compliant by default. German AI models trained on DACH sales language.",
     metric: "100%",
     metricLabel: "compliant",
   },
   {
-    title: "One Platform, nicht Tool-Stack",
-    desc: "Companies geben €450/User für Clari+Gong aus. Findr ersetzt 4 Tools mit einem Core. Brutal effizient.",
+    title: "One platform, not a tool stack",
+    desc: "Companies spend €450/user on Clari+Gong stacks. Findr replaces 4 tools with one core. Brutally efficient.",
     metric: "60%",
-    metricLabel: "günstiger",
+    metricLabel: "cheaper",
   },
   {
-    title: "DACH-First, nicht US-Bias",
-    desc: "Wir verstehen deutsche Buyer-Patterns. Längere Cycles. Mehr Stakeholder. Compliance-Heavy. Findr ist dafür gebaut.",
+    title: "DACH-first, not US-biased",
+    desc: "We understand German buyer patterns. Longer cycles. More stakeholders. Compliance-heavy. Findr is built for it.",
     metric: "5x",
-    metricLabel: "Founder-Market-Fit",
+    metricLabel: "founder-market fit",
   },
 ];
 
@@ -47,13 +47,13 @@ export function WhyFindr() {
           className="text-center mb-16"
         >
           <div className="inline-block px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium tracking-wide mb-4">
-            WARUM FINDR
+            WHY FINDR
           </div>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
-            Vier strukturelle Wedges.
+            Four structural wedges.
           </h2>
           <p className="text-lg text-mist/70 max-w-2xl mx-auto">
-            Nicht Features. Nicht Marketing. Echte Architektur-Entscheidungen die unsere Konkurrenz nicht kopieren kann.
+            Not features. Not marketing. Real architecture decisions our competition can't copy.
           </p>
         </motion.div>
 

@@ -43,15 +43,13 @@ export function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="text-5xl md:text-7xl font-bold tracking-tight text-gradient mb-6 leading-[1.05]"
+          className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-[1.05]"
         >
           One AI brain.
           <br />
           Four products.
           <br />
-          <span className="bg-gradient-to-r from-violet-400 via-violet-300 to-red-400 bg-clip-text text-transparent">
-            Zero data silos.
-          </span>
+          Zero data silos.
         </motion.h1>
 
         <div className="h-8 mb-10 relative">
@@ -76,11 +74,11 @@ export function Hero() {
           <Link href="/sign-up" className="relative group w-full sm:w-auto">
             <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-violet-400 to-red-500 rounded-xl blur-md opacity-60 group-hover:opacity-100 transition-opacity animate-pulse-glow" />
             <button className="relative w-full sm:w-auto bg-violet-500 hover:bg-violet-400 text-white font-semibold px-8 py-4 rounded-xl transition-all">
-              Demo buchen → 30 Min
+              Book a demo — 30 min
             </button>
           </Link>
           <Link href="#platform" className="text-mist/70 hover:text-white px-6 py-4 transition-colors">
-            Wie es funktioniert →
+            See how it works →
           </Link>
         </motion.div>
 
@@ -90,7 +88,7 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="text-xs text-mist/40 tracking-wider uppercase"
         >
-          Built for B2B SaaS · EU-Hosted · DSGVO + EU AI Act compliant
+          Built for B2B SaaS · EU-hosted · GDPR + EU AI Act compliant
         </motion.div>
       </div>
     </section>

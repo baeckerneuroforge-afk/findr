@@ -9,9 +9,14 @@ const modules = [
     name: "Sales Intelligence",
     tagline: "Stop losing deals you should win.",
     buyer: "VP Sales, RevOps",
-    pain: "Forecast-Accuracy ist 60%. Verlorene Deals = 'Pricing' im CRM. Niemand weiß den echten Grund.",
-    features: ["Real-time Deal Risk Scoring", "AI Post-Loss Voice Interviews", "Pipeline Forecasting (90% Accuracy)", "Auto Loss-Reason Detection"],
-    pricing: "ab €499/Monat",
+    pain: "Forecast accuracy stuck at 60%. Lost deals tagged 'Pricing' in CRM. No one knows the real reason.",
+    features: [
+      "Real-time deal risk scoring",
+      "AI post-loss voice interviews",
+      "Pipeline forecasting (90% accuracy)",
+      "Auto loss-reason detection",
+    ],
+    pricing: "from €499/month",
     accent: "violet",
   },
   {
@@ -19,9 +24,14 @@ const modules = [
     name: "Customer Success Health",
     tagline: "Know your customers before they churn.",
     buyer: "VP Customer Success",
-    pain: "Du erfährst beim Renewal-Call dass Customer unglücklich ist. Zu spät. 60-90 Tage zu spät.",
-    features: ["Health Score Cross-Source", "Churn-Risk-Prediction 60-90 Tage", "Sales-to-CS Bridge", "Expansion-Opportunity-Detection"],
-    pricing: "+€499/Monat",
+    pain: "You find out your customer is unhappy at the renewal call. Too late. 60–90 days too late.",
+    features: [
+      "Cross-source health score",
+      "Churn risk prediction 60–90 days out",
+      "Sales-to-CS bridge",
+      "Expansion opportunity detection",
+    ],
+    pricing: "+€499/month",
     accent: "violet",
   },
   {
@@ -29,9 +39,14 @@ const modules = [
     name: "Product Discovery",
     tagline: "Build what users actually need.",
     buyer: "VP Product",
-    pain: "Du baust Features die niemand will. User-Interviews sind 1-on-1, langsam, expensive.",
-    features: ["AI-Moderated Interviews at Scale", "Continuous Discovery Pipeline", "Sales-Lost-to-Product-Backlog Link", "Auto Persona-Builder"],
-    pricing: "+€499/Monat",
+    pain: "You build features no one wants. User interviews are 1-on-1, slow, expensive.",
+    features: [
+      "AI-moderated interviews at scale",
+      "Continuous discovery pipeline",
+      "Sales-lost-to-product-backlog link",
+      "Auto persona builder",
+    ],
+    pricing: "+€499/month",
     accent: "violet",
   },
   {
@@ -39,9 +54,14 @@ const modules = [
     name: "Market Research",
     tagline: "Insights at the speed of decision.",
     buyer: "CMO, Insights",
-    pain: "Market-Research dauert 8 Wochen, kostet €50k pro Studie. Du brauchst Antworten in 48h.",
-    features: ["1000 parallele Interviews", "Auto-Synthesis Reports in 2h", "Brand-Perception-Tracking", "Visual Intelligence"],
-    pricing: "+€999/Monat",
+    pain: "Market research takes 8 weeks, costs €50k per study. You need answers in 48 hours.",
+    features: [
+      "1000 parallel interviews",
+      "Auto-synthesis reports in 2h",
+      "Brand perception tracking",
+      "Visual intelligence",
+    ],
+    pricing: "+€999/month",
     accent: "violet",
   },
 ];
@@ -63,13 +83,13 @@ export function ModuleShowcase() {
           className="text-center mb-16"
         >
           <div className="inline-block px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-medium tracking-wide mb-4">
-            DIE VIER MODULE
+            THE FOUR MODULES
           </div>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
             Land with one. Expand to four.
           </h2>
           <p className="text-lg text-mist/70 max-w-2xl mx-auto">
-            Start mit Sales Intelligence. Schalte CS Health frei wenn bereit. Wachse organisch zu Discovery + Research.
+            Start with Sales Intelligence. Activate CS Health when ready. Grow organically into Discovery + Research.
             Net Revenue Retention: 130–150%.
           </p>
         </motion.div>
@@ -108,13 +128,13 @@ export function ModuleShowcase() {
           >
             <div className="absolute -top-20 -right-20 w-64 h-64 bg-violet-500/20 rounded-full blur-3xl" />
             <div className="relative">
-              <div className="text-xs text-mist/50 mb-1 tracking-wide">FÜR</div>
+              <div className="text-xs text-mist/50 mb-1 tracking-wide">FOR</div>
               <div className="text-white font-semibold mb-6">{modules[active].buyer}</div>
 
-              <div className="text-xs text-mist/50 mb-1 tracking-wide">DER PAIN</div>
+              <div className="text-xs text-mist/50 mb-1 tracking-wide">THE PAIN</div>
               <div className="text-mist/80 mb-6 leading-relaxed">{modules[active].pain}</div>
 
-              <div className="text-xs text-mist/50 mb-3 tracking-wide">WAS FINDR LIEFERT</div>
+              <div className="text-xs text-mist/50 mb-3 tracking-wide">WHAT FINDR DELIVERS</div>
               <div className="space-y-2">
                 {modules[active].features.map((f, i) => (
                   <motion.div

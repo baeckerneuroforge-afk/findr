@@ -32,14 +32,14 @@ export function PlatformVisualization() {
           className="text-center mb-16"
         >
           <div className="inline-block px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-medium tracking-wide mb-4">
-            DIE PLATTFORM
+            THE PLATFORM
           </div>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
-            Ein Gehirn. Vier Anwendungen.
+            One brain. Four applications.
           </h2>
           <p className="text-lg text-mist/70 max-w-2xl mx-auto">
-            Statt 4 disconnected Tools baut Findr eine Plattform mit shared Conversation Intelligence Core.
-            Daten compounden. Insights cross-flowen. NRR explodiert.
+            Instead of 4 disconnected tools, Findr builds one platform with a shared Conversation Intelligence Core.
+            Data compounds. Insights cross-flow. NRR explodes.
           </p>
         </motion.div>
 
@@ -83,7 +83,7 @@ export function PlatformVisualization() {
           <div className="relative">
             <div className="text-center mb-8">
               <div className="text-xs text-violet-400 tracking-wide mb-2">CONVERSATION INTELLIGENCE CORE</div>
-              <h3 className="text-2xl md:text-3xl font-bold text-white">Ein geteiltes AI-Gehirn</h3>
+              <h3 className="text-2xl md:text-3xl font-bold text-white">One shared AI brain</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

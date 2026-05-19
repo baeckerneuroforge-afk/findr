@@ -20,7 +20,7 @@ export function FinalCTA() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-6xl font-bold text-gradient mb-6 tracking-tight"
         >
-          Bereit, deine Conversations zu verstehen?
+          Ready to understand your conversations?
         </motion.h2>
 
         <motion.p
@@ -29,8 +29,8 @@ export function FinalCTA() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-lg text-mist/70 mb-10 max-w-2xl mx-auto"
         >
-          30 Min Discovery-Call. Wir zeigen dir Findr live an deinen echten Daten.
-          Keine Pitches, kein Sales-Druck.
+          30-minute discovery call. We show you Findr live on your real data.
+          No pitches, no sales pressure.
         </motion.p>
 
         <motion.div
@@ -41,7 +41,7 @@ export function FinalCTA() {
           <Link href="/sign-up" className="relative group inline-block">
             <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-violet-400 to-red-500 rounded-xl blur-lg opacity-70 group-hover:opacity-100 transition-opacity animate-pulse-glow" />
             <button className="relative bg-violet-500 hover:bg-violet-400 text-white font-semibold px-10 py-5 rounded-xl text-lg transition-all">
-              Demo buchen →
+              Book a demo →
             </button>
           </Link>
         </motion.div>
