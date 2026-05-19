@@ -2,6 +2,10 @@
  * Seed-Script: generates Claude-based risk analyses for every Deal in MOCK_DEALS
  * and writes them to the `risk_scores` table.
  *
+ * Uses inline supabase queries + a direct Anthropic call instead of importing
+ * @/lib/calls/service or @/lib/risk/classifier — both carry "server-only" which
+ * throws when imported outside the Next.js server runtime (i.e. under tsx).
+ *
  * Prerequisites:
  *   1. Run supabase/migrations/20260520000000_risk_drilldown.sql
  *   2. Have rows in `calls` (from seed-calls.ts) so the classifier sees transcripts
@@ -13,9 +17,14 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
+import Anthropic from "@anthropic-ai/sdk";
 import { MOCK_DEALS } from "@/lib/deals/mock-data";
-import { getCallsByDealId } from "@/lib/calls/service";
-import { analyzeDealRisk } from "@/lib/risk/classifier";
+import {
+  RISK_CLASSIFIER_SYSTEM_PROMPT,
+  buildRiskClassifierPrompt,
+  type CallForPrompt,
+} from "@/lib/risk/prompts";
+import type { RiskAnalysisResult } from "@/lib/deals/types";
 
 loadEnv({ path: ".env.local" });
 loadEnv();
@@ -24,6 +33,7 @@ const FINDR_DEV_ORG_ID = "4909c8ee-017f-4d9a-bdb6-d3b90f0806a0";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error(
@@ -31,18 +41,55 @@ if (!supabaseUrl || !supabaseServiceKey) {
   );
   process.exit(1);
 }
+if (!anthropicKey) {
+  console.error("Missing ANTHROPIC_API_KEY. Set it in .env.local.");
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
+
+const anthropic = new Anthropic({ apiKey: anthropicKey });
+
+async function analyzeDeal(
+  deal: (typeof MOCK_DEALS)[number],
+  calls: CallForPrompt[],
+): Promise<RiskAnalysisResult> {
+  const userPrompt = buildRiskClassifierPrompt(deal, calls);
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 2048,
+    system: RISK_CLASSIFIER_SYSTEM_PROMPT,
+    messages: [{ role: "user", content: userPrompt }],
+  });
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error("Anthropic returned no text response");
+  }
+
+  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error(`No JSON found in response: ${textBlock.text}`);
+  }
+
+  return JSON.parse(jsonMatch[0]) as RiskAnalysisResult;
+}
 
 async function seedRiskScores() {
   console.log(`Generating risk scores for ${MOCK_DEALS.length} deals...`);
 
   for (const deal of MOCK_DEALS) {
     try {
-      const calls = await getCallsByDealId(deal.id);
-      const result = await analyzeDealRisk(deal, calls);
+      const { data: calls } = await supabase
+        .from("calls")
+        .select("*, call_speakers(*), transcript_segments(*)")
+        .eq("deal_id", deal.id)
+        .order("recorded_at", { ascending: false });
+
+      const result = await analyzeDeal(deal, (calls ?? []) as CallForPrompt[]);
 
       const { error } = await supabase
         .from("risk_scores")
