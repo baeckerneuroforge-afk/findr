@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Deal, RiskAnalysisResult } from "@/lib/deals/types";
 import DealRow from "./DealRow";
+import { RiskDrilldownPanel } from "./RiskDrilldownPanel";
 
 type ApiResponse =
   | { success: true; result: RiskAnalysisResult }
@@ -16,6 +17,13 @@ export default function DealList({ deals: initialDeals }: DealListProps) {
   const [localDeals, setLocalDeals] = useState<Deal[]>(initialDeals);
   const [analyzing, setAnalyzing] = useState<Set<string>>(new Set());
   const [analyzingAll, setAnalyzingAll] = useState(false);
+  const [drilldownDealId, setDrilldownDealId] = useState<string | null>(null);
+  const [drilldownDealName, setDrilldownDealName] = useState<string>("");
+
+  function openDrilldown(dealId: string, dealName: string) {
+    setDrilldownDealId(dealId);
+    setDrilldownDealName(dealName);
+  }
 
   async function analyzeDeal(dealId: string): Promise<void> {
     setAnalyzing((prev) => new Set(prev).add(dealId));
@@ -124,11 +132,19 @@ export default function DealList({ deals: initialDeals }: DealListProps) {
                 deal={deal}
                 analyzing={analyzing.has(deal.id)}
                 onAnalyze={() => analyzeDeal(deal.id)}
+                onOpenDrilldown={() => openDrilldown(deal.id, deal.name)}
               />
             ))}
           </tbody>
         </table>
       </div>
+
+      <RiskDrilldownPanel
+        dealId={drilldownDealId}
+        dealName={drilldownDealName}
+        open={drilldownDealId !== null}
+        onClose={() => setDrilldownDealId(null)}
+      />
     </div>
   );
 }
