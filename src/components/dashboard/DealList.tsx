@@ -34,7 +34,7 @@ export default function DealList({ deals: initialDeals }: DealListProps) {
         return;
       }
 
-      const { riskScore, riskLevel, signals, reasoning } = data.result;
+      const { riskScore, riskLevel, signals, overallReasoning } = data.result;
       setLocalDeals((prev) =>
         prev.map((d) =>
           d.id === dealId
@@ -42,8 +42,8 @@ export default function DealList({ deals: initialDeals }: DealListProps) {
                 ...d,
                 riskScore,
                 riskLevel,
-                riskSignals: signals,
-                riskReasoning: reasoning,
+                riskSignals: signals.map((s) => s.type),
+                riskReasoning: overallReasoning,
                 lastRiskUpdate: new Date().toISOString(),
               }
             : d,

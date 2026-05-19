@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getDealById } from "@/lib/deals/service";
+import { getCallsByDealId } from "@/lib/calls/service";
 import { analyzeDealRisk } from "@/lib/risk/classifier";
 
 export async function POST(req: NextRequest) {
@@ -23,7 +24,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await analyzeDealRisk(deal);
+    const calls = await getCallsByDealId(dealId);
+    const result = await analyzeDealRisk(deal, calls);
     return NextResponse.json({ success: true, result });
   } catch (error) {
     return NextResponse.json(

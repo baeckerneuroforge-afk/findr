@@ -1,3 +1,6 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import type { Deal, DealStage } from "@/lib/deals/types";
 import RiskBadge from "./RiskBadge";
 
@@ -25,11 +28,15 @@ function formatAmount(amount: number, currency: "USD" | "EUR"): string {
 }
 
 export default function DealRow({ deal, analyzing, onAnalyze }: DealRowProps) {
+  const router = useRouter();
   const stale = deal.daysSinceLastActivity > 14;
   const alreadyScored = deal.riskScore !== undefined;
 
   return (
-    <tr className="border-b border-mist/10 last:border-b-0">
+    <tr
+      onClick={() => router.push(`/dashboard/deals/${deal.id}`)}
+      className="border-b border-mist/10 last:border-b-0 cursor-pointer transition-colors hover:bg-white/[0.02]"
+    >
       {/* Deal name + company */}
       <td className="px-4 py-4">
         <p className="font-medium text-white">{deal.name}</p>
@@ -66,26 +73,21 @@ export default function DealRow({ deal, analyzing, onAnalyze }: DealRowProps) {
 
       {/* Risk badge */}
       <td className="px-4 py-4">
-        <RiskBadge
-          score={deal.riskScore}
-          level={deal.riskLevel}
-          size="sm"
-        />
+        <RiskBadge score={deal.riskScore} level={deal.riskLevel} size="sm" />
       </td>
 
-      {/* Action */}
+      {/* Action — stop row click when pressing button */}
       <td className="px-4 py-4 text-right">
         <button
           type="button"
-          onClick={onAnalyze}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAnalyze();
+          }}
           disabled={analyzing}
           className="rounded bg-violet-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {analyzing
-            ? "Analyzing…"
-            : alreadyScored
-              ? "Re-analyze"
-              : "Analyze"}
+          {analyzing ? "Analyzing…" : alreadyScored ? "Re-analyze" : "Analyze"}
         </button>
       </td>
     </tr>

@@ -3,7 +3,7 @@ import type { RiskLevel } from "@/lib/deals/types";
 interface RiskBadgeProps {
   score?: number;
   level?: RiskLevel;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "large";
 }
 
 function deriveLevel(score: number): RiskLevel {
@@ -23,9 +23,10 @@ const LEVEL_STYLES: Record<RiskLevel, string> = {
 const SIZE_STYLES = {
   sm: "px-2 py-0.5 text-xs",
   md: "px-3 py-1 text-sm",
+  large: "px-4 py-2 text-base",
 } as const;
 
-export default function RiskBadge({
+export function RiskBadge({
   score,
   level,
   size = "md",
@@ -57,3 +58,5 @@ export default function RiskBadge({
     </span>
   );
 }
+
+export default RiskBadge;

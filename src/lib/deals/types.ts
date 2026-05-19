@@ -33,9 +33,17 @@ export interface Deal {
   lastRiskUpdate?: string;
 }
 
+export interface RiskSignal {
+  type: string;
+  confidence: number;
+  reasoning: string;
+  quotes?: string[];
+}
+
 export interface RiskAnalysisResult {
   riskScore: number;
   riskLevel: RiskLevel;
-  signals: string[];
-  reasoning: string;
+  signals: RiskSignal[];
+  overallReasoning: string;
+  recommendations?: string[];
 }
