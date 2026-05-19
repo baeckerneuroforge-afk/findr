@@ -1,172 +1,163 @@
+"use client";
+
+import { motion, useInView } from "framer-motion";
 import Link from "next/link";
+import { useRef } from "react";
 
-interface PricingTier {
-  name: string;
-  price: string;
-  priceUnit?: string;
-  subtitle: string;
-  features: string[];
-  cta: { label: string; href: string };
-  highlighted: boolean;
-}
-
-const PRICING_TIERS: PricingTier[] = [
-  {
-    name: "Free",
-    price: "$0",
-    priceUnit: "/ month",
-    subtitle: "For solo founders exploring loss-risk",
-    features: [
-      "5 calls analyzed per month",
-      "Basic risk-score detection",
-      "Email alerts",
-      "1 user seat",
-    ],
-    cta: { label: "Start free", href: "/sign-up" },
-    highlighted: false,
-  },
+const tiers = [
   {
     name: "Starter",
-    price: "$99",
-    priceUnit: "/ month",
-    subtitle: "For small B2B SaaS sales teams",
+    price: "€499",
+    period: "/month",
+    description: "For small sales teams getting started with AI-powered intelligence",
+    seats: "Up to 5 sales reps",
     features: [
-      "50 calls analyzed per month",
-      "Predictive risk-scoring",
-      "Hubspot integration",
+      "Real-time deal risk scoring",
+      "AI loss-reason detection",
+      "Hubspot or Salesforce integration",
+      "Gong, Chorus, or Zoom integration",
       "Slack alerts",
-      "3 user seats",
+      "Email support",
+      "GDPR + EU AI Act compliant",
     ],
-    cta: { label: "Start trial", href: "/sign-up" },
+    cta: "Start free trial",
+    href: "/sign-up?plan=starter",
     highlighted: false,
   },
   {
     name: "Growth",
-    price: "$499",
-    priceUnit: "/ month",
-    subtitle: "Most popular for scaling sales teams",
+    price: "€999",
+    period: "/month",
+    description: "For scaling sales teams that need predictive intelligence and coaching",
+    seats: "Up to 15 sales reps",
     features: [
-      "250 calls analyzed per month",
-      "All integrations (Hubspot, Salesforce, Gong)",
-      "Post-loss AI interviews",
-      "Pipeline-health dashboard",
-      "Slack + Teams alerts",
-      "10 user seats",
+      "Everything in Starter",
+      "AI post-loss voice interviews",
+      "Pipeline forecasting (90% accuracy)",
+      "Coaching recommendations",
+      "Multi-CRM + multi-call-source",
+      "MS Teams integration",
+      "Priority support",
+      "Founding customer eligible",
     ],
-    cta: { label: "Start trial", href: "/sign-up" },
+    cta: "Book a demo",
+    href: "/sign-up?plan=growth",
     highlighted: true,
+    badge: "Most popular",
   },
   {
     name: "Scale",
-    price: "$1,499",
-    priceUnit: "/ month",
-    subtitle: "For revenue teams at scale",
+    price: "€1,999",
+    period: "/month",
+    description: "For high-velocity revenue teams running 30+ reps and complex deal flows",
+    seats: "Up to 30 sales reps",
     features: [
-      "1,000 calls analyzed per month",
-      "Custom risk-models",
-      "Multi-team analytics",
-      "Outcome-based pricing option",
-      "Salesforce AppExchange native app",
-      "Unlimited user seats",
+      "Everything in Growth",
+      "Custom risk-signal models",
+      "Quarterly competitor intelligence reports",
+      "Dedicated customer success manager",
+      "SLA-backed uptime",
+      "Custom integrations on request",
+      "Quarterly business reviews",
     ],
-    cta: { label: "Start trial", href: "/sign-up" },
-    highlighted: false,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    subtitle: "For 500+ FTE companies with custom needs",
-    features: [
-      "Unlimited calls",
-      "Custom AI personas trained on your ICP",
-      "SSO (SAML, Okta, Azure AD)",
-      "Dedicated Customer Success Manager",
-      "Custom contract terms",
-      "SLA guarantees",
-    ],
-    cta: { label: "Contact sales", href: "#contact" },
+    cta: "Book a demo",
+    href: "/sign-up?plan=scale",
     highlighted: false,
   },
 ];
 
-function CheckIcon({ highlighted }: { highlighted: boolean }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      className={`mt-0.5 h-4 w-4 shrink-0 ${
-        highlighted ? "text-white" : "text-violet-400"
-      }`}
-      aria-hidden="true"
-    >
-      <path
-        fillRule="evenodd"
-        d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
-}
-
-function PricingCard({ tier }: { tier: PricingTier }) {
-  const cardClasses = tier.highlighted
-    ? "bg-obsidian-light border-2 border-violet-600 xl:scale-105"
-    : "bg-mist/5 border border-mist/15";
-
-  const ctaClasses = tier.highlighted
-    ? "bg-violet-600 text-white hover:bg-violet-700"
-    : "bg-mist/10 text-white border border-mist/20 hover:bg-mist/20";
+export function PricingTable() {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <div className={`relative flex h-full flex-col rounded-xl p-6 ${cardClasses}`}>
-      {tier.highlighted && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-violet-600 px-3 py-1 text-xs font-medium uppercase tracking-wider text-white">
-          Most Popular
-        </span>
-      )}
+    <section className="relative py-16">
+      <div className="max-w-7xl mx-auto px-6" ref={ref}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {tiers.map((tier, i) => (
+            <motion.div
+              key={tier.name}
+              initial={{ opacity: 0, y: 30 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, delay: 0.1 * i }}
+              className={`relative rounded-2xl p-8 ${
+                tier.highlighted
+                  ? "glow-border"
+                  : "glass-card glass-card-hover"
+              }`}
+            >
+              {tier.highlighted && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <div className="bg-gradient-to-r from-violet-500 to-red-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                    {tier.badge}
+                  </div>
+                </div>
+              )}
 
-      <h3 className="text-lg font-medium text-white">{tier.name}</h3>
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-white mb-2">{tier.name}</h3>
+                <p className="text-sm text-mist/60 leading-relaxed">{tier.description}</p>
+              </div>
 
-      <div className="mt-3 flex items-baseline gap-1">
-        <span className="text-3xl font-medium text-white">{tier.price}</span>
-        {tier.priceUnit && (
-          <span className="text-sm text-mist">{tier.priceUnit}</span>
-        )}
-      </div>
+              <div className="mb-6 pb-6 border-b border-violet-500/10">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-5xl font-bold text-white">{tier.price}</span>
+                  <span className="text-mist/50 text-sm">{tier.period}</span>
+                </div>
+                <div className="text-xs text-mist/50 mt-2">{tier.seats}</div>
+              </div>
 
-      <p className="mt-3 min-h-[2.5rem] text-sm text-mist">{tier.subtitle}</p>
+              <ul className="space-y-3 mb-8">
+                {tier.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-violet-400 mt-0.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm text-mist/80">{feature}</span>
+                  </li>
+                ))}
+              </ul>
 
-      <div className="mt-6 mb-6 border-t border-mist/10" />
+              <Link href={tier.href} className="block">
+                {tier.highlighted ? (
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-red-500 rounded-xl blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
+                    <button className="relative w-full bg-violet-500 hover:bg-violet-400 text-white font-semibold py-3 rounded-xl transition-colors">
+                      {tier.cta}
+                    </button>
+                  </div>
+                ) : (
+                  <button className="w-full border border-violet-500/30 hover:border-violet-500/60 hover:bg-violet-500/5 text-white font-medium py-3 rounded-xl transition-all">
+                    {tier.cta}
+                  </button>
+                )}
+              </Link>
+            </motion.div>
+          ))}
+        </div>
 
-      <ul className="space-y-3">
-        {tier.features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2">
-            <CheckIcon highlighted={tier.highlighted} />
-            <span className="text-sm leading-relaxed text-mist">{feature}</span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-auto pt-8">
-        <Link
-          href={tier.cta.href}
-          className={`block w-full rounded-lg py-2.5 text-center text-sm font-medium transition-colors ${ctaClasses}`}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-8 glass-card rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6"
         >
-          {tier.cta.label}
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-export default function PricingTable() {
-  return (
-    <section className="mx-auto mt-20 max-w-7xl px-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {PRICING_TIERS.map((tier) => (
-          <PricingCard key={tier.name} tier={tier} />
-        ))}
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="text-xs text-red-400 tracking-wide font-medium">ENTERPRISE</div>
+              <div className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-xs">Custom</div>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Need more? Let&apos;s talk.</h3>
+            <p className="text-sm text-mist/70 leading-relaxed">
+              Custom seats · Multi-module bundles · Outcome-based pricing · SOC 2 · ISO 27001 · BYOK · Custom AI models · Dedicated CSM · 24/7 SLA support
+            </p>
+          </div>
+          <Link href="/sign-up?plan=enterprise" className="shrink-0">
+            <button className="bg-white/5 hover:bg-white/10 border border-violet-500/30 hover:border-violet-500/60 text-white font-semibold px-6 py-3 rounded-xl transition-all whitespace-nowrap">
+              Talk to sales →
+            </button>
+          </Link>
+        </motion.div>
       </div>
     </section>
   );

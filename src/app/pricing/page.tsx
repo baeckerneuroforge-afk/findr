@@ -1,42 +1,31 @@
-import type { Metadata } from "next";
 import { Header } from "@/components/landing/Header";
 import { LandingFooter } from "@/components/landing/LandingFooter";
-import PricingTable from "@/components/pricing/PricingTable";
-import OutcomePricingCallout from "@/components/pricing/OutcomePricingCallout";
-import PricingFAQ from "@/components/pricing/PricingFAQ";
+import { PricingHero } from "@/components/pricing/PricingHero";
+import { PricingTable } from "@/components/pricing/PricingTable";
+import { PlatformRoadmap } from "@/components/pricing/PlatformRoadmap";
+import { OutcomePricing } from "@/components/pricing/OutcomePricing";
+import { FoundingCustomer } from "@/components/pricing/FoundingCustomer";
+import { PricingFAQ } from "@/components/pricing/PricingFAQ";
+import { PricingFinalCTA } from "@/components/pricing/PricingFinalCTA";
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "Pricing — Findr",
   description:
-    "Simple, transparent pricing. Pay only for what you analyze. Outcome-based pricing available on all paid tiers.",
+    "Transparent pricing for European B2B SaaS. Start with Sales Intelligence, expand to a full conversation intelligence platform.",
 };
 
 export default function PricingPage() {
   return (
-    <>
+    <main className="min-h-screen bg-obsidian text-white overflow-x-hidden">
       <Header />
-      <main>
-        <section className="mt-16 px-6">
-          <div className="mx-auto max-w-6xl text-center">
-            <p className="text-sm font-medium uppercase tracking-wider text-violet-400">
-              Pricing
-            </p>
-            <h1 className="mx-auto mt-4 max-w-3xl text-5xl font-medium tracking-tight text-white md:text-6xl">
-              Simple, transparent pricing.
-            </h1>
-            <p className="mx-auto mt-6 max-w-xl text-lg text-mist">
-              Pay only for what you analyze. Outcome-based pricing available on
-              all paid tiers.
-            </p>
-          </div>
-        </section>
-
-        <PricingTable />
-        <OutcomePricingCallout />
-        <PricingFAQ />
-      </main>
-
+      <PricingHero />
+      <PricingTable />
+      <FoundingCustomer />
+      <PlatformRoadmap />
+      <OutcomePricing />
+      <PricingFAQ />
+      <PricingFinalCTA />
       <LandingFooter />
-    </>
+    </main>
   );
 }
