@@ -1,17 +1,24 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { getSlackIntegration } from "@/lib/slack/service";
 import { SlackSettingsForm } from "@/components/dashboard/SlackSettingsForm";
 
-const FINDR_DEV_ORG_ID = "4909c8ee-017f-4d9a-bdb6-d3b90f0806a0";
-
 export default async function SlackIntegrationPage() {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch (err) {
+    if (err instanceof OrgResolutionError) {
+      if (err.code === "no_auth") redirect("/sign-in");
+      if (err.code === "no_org") redirect("/sign-in");
+      redirect("/sign-in");
+    }
+    throw err;
+  }
 
-  const integration = await getSlackIntegration(FINDR_DEV_ORG_ID);
+  const integration = await getSlackIntegration(orgId);
 
   return (
     <div className="min-h-screen bg-obsidian text-white">

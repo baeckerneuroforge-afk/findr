@@ -80,12 +80,14 @@ export async function maybeTriggerAlert(
  * only one or zero stored scores.
  */
 export async function getPreviousScore(
+  orgId: string,
   dealId: string,
 ): Promise<number | null> {
   const supabase = createAdminSupabaseClient();
   const { data } = await supabase
     .from("risk_scores" as never)
     .select("risk_score, analyzed_at")
+    .eq("org_id", orgId)
     .eq("deal_id", dealId)
     .order("analyzed_at", { ascending: false })
     .limit(2);

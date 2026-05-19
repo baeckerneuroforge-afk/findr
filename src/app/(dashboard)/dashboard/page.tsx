@@ -1,5 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DealList from "@/components/dashboard/DealList";
@@ -7,13 +7,22 @@ import { getDealsByOrg } from "@/lib/deals/service";
 import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
 
 export default async function DashboardPage() {
-  const { userId, orgId } = await auth();
-  if (!userId) {
-    redirect("/sign-in");
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch (err) {
+    if (err instanceof OrgResolutionError) {
+      if (err.code === "no_auth") redirect("/sign-in");
+      // TODO: build /onboarding/create-org route; for now fall back to sign-in
+      if (err.code === "no_org") redirect("/sign-in");
+      redirect("/sign-in");
+    }
+    throw err;
   }
 
-  const baseDeals = await getDealsByOrg(orgId ?? "mock");
+  const baseDeals = await getDealsByOrg(orgId);
   const riskMap = await getLatestRiskScoresForDeals(
+    orgId,
     baseDeals.map((d) => d.id),
   );
 

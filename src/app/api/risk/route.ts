@@ -1,18 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
 import { analyzeDealRisk } from "@/lib/risk/classifier";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { maybeTriggerAlert, getPreviousScore } from "@/lib/alerts/trigger";
 
-const FINDR_DEV_ORG_ID = "4909c8ee-017f-4d9a-bdb6-d3b90f0806a0";
-
 export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const orgOrError = await requireOrgIdOrError();
+  if ("error" in orgOrError) return orgOrError.error;
+  const orgId = orgOrError.orgId;
 
   const body = (await req.json().catch(() => null)) as
     | { dealId?: string }
@@ -22,21 +19,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "dealId required" }, { status: 400 });
   }
 
-  const deal = await getDealById(dealId);
+  const deal = await getDealById(orgId, dealId);
   if (!deal) {
     return NextResponse.json({ error: "deal not found" }, { status: 404 });
   }
 
   try {
-    const calls = await getCallsByDealId(dealId);
-    const previousScore = await getPreviousScore(dealId);
+    const calls = await getCallsByDealId(orgId, dealId);
+    const previousScore = await getPreviousScore(orgId, dealId);
     const result = await analyzeDealRisk(deal, calls);
 
     const supabase = createAdminSupabaseClient();
     const { data: inserted, error: insertError } = await supabase
       .from("risk_scores" as never)
       .insert({
-        org_id: FINDR_DEV_ORG_ID,
+        org_id: orgId,
         deal_id: dealId,
         risk_score: result.riskScore,
         risk_level: result.riskLevel,
@@ -56,7 +53,7 @@ export async function POST(req: NextRequest) {
     let alert: { triggered: boolean; reason?: string } = { triggered: false };
     if (riskScoreId) {
       alert = await maybeTriggerAlert(
-        FINDR_DEV_ORG_ID,
+        orgId,
         dealId,
         deal.name,
         riskScoreId,

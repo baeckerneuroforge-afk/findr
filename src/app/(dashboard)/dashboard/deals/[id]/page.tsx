@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
 import { CallDetail } from "@/components/dashboard/CallDetail";
@@ -11,14 +11,23 @@ export default async function DealDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch (err) {
+    if (err instanceof OrgResolutionError) {
+      if (err.code === "no_auth") redirect("/sign-in");
+      if (err.code === "no_org") redirect("/sign-in");
+      redirect("/sign-in");
+    }
+    throw err;
+  }
 
   const { id } = await params;
-  const deal = await getDealById(id);
+  const deal = await getDealById(orgId, id);
   if (!deal) notFound();
 
-  const calls = await getCallsByDealId(id);
+  const calls = await getCallsByDealId(orgId, id);
 
   return (
     <div className="min-h-screen bg-obsidian text-white">

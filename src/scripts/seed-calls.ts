@@ -15,6 +15,7 @@ import { createClient } from "@supabase/supabase-js";
 import { config as loadEnv } from "dotenv";
 import { MOCK_DEALS } from "@/lib/deals/mock-data";
 import { generateCallsForDeal } from "@/lib/calls/mock-call-generator";
+import { DEV_ORG_ID } from "@/lib/auth/dev-org";
 
 loadEnv({ path: ".env.local" });
 loadEnv();
@@ -43,7 +44,7 @@ async function seedCalls() {
       const { data: callRecord, error: callError } = await supabase
         .from("calls")
         .insert({
-          org_id: '4909c8ee-017f-4d9a-bdb6-d3b90f0806a0',
+          org_id: DEV_ORG_ID,
           deal_id: mockCall.deal_id,
           transcript: mockCall.transcript,
           transcript_summary: mockCall.transcript_summary,

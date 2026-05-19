@@ -34,7 +34,10 @@ export interface CallRow {
   transcript_segments: TranscriptSegmentRow[];
 }
 
-export async function getCallsByDealId(dealId: string): Promise<CallRow[]> {
+export async function getCallsByDealId(
+  orgId: string,
+  dealId: string,
+): Promise<CallRow[]> {
   const supabase = createAdminSupabaseClient();
 
   const { data, error } = await supabase
@@ -47,6 +50,7 @@ export async function getCallsByDealId(dealId: string): Promise<CallRow[]> {
       transcript_segments(*)
     `,
     )
+    .eq("org_id", orgId)
     .eq("deal_id", dealId)
     .order("recorded_at", { ascending: false });
 
@@ -58,7 +62,10 @@ export async function getCallsByDealId(dealId: string): Promise<CallRow[]> {
   return (data ?? []) as unknown as CallRow[];
 }
 
-export async function getCallById(callId: string): Promise<CallRow | null> {
+export async function getCallById(
+  orgId: string,
+  callId: string,
+): Promise<CallRow | null> {
   const supabase = createAdminSupabaseClient();
 
   const { data, error } = await supabase
@@ -71,6 +78,7 @@ export async function getCallById(callId: string): Promise<CallRow | null> {
       transcript_segments(*)
     `,
     )
+    .eq("org_id", orgId)
     .eq("id", callId)
     .single();
 

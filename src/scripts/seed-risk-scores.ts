@@ -25,11 +25,10 @@ import {
   type CallForPrompt,
 } from "@/lib/risk/prompts";
 import type { RiskAnalysisResult } from "@/lib/deals/types";
+import { DEV_ORG_ID } from "@/lib/auth/dev-org";
 
 loadEnv({ path: ".env.local" });
 loadEnv();
-
-const FINDR_DEV_ORG_ID = "4909c8ee-017f-4d9a-bdb6-d3b90f0806a0";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -86,6 +85,7 @@ async function seedRiskScores() {
       const { data: calls } = await supabase
         .from("calls")
         .select("*, call_speakers(*), transcript_segments(*)")
+        .eq("org_id", DEV_ORG_ID)
         .eq("deal_id", deal.id)
         .order("recorded_at", { ascending: false });
 
@@ -94,7 +94,7 @@ async function seedRiskScores() {
       const { error } = await supabase
         .from("risk_scores")
         .insert({
-          org_id: FINDR_DEV_ORG_ID,
+          org_id: DEV_ORG_ID,
           deal_id: deal.id,
           risk_score: result.riskScore,
           risk_level: result.riskLevel,

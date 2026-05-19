@@ -11,6 +11,7 @@ export interface RiskSignal {
 
 export interface RiskScoreRecord {
   id: string;
+  org_id: string;
   deal_id: string;
   risk_score: number;
   risk_level: "low" | "medium" | "high" | "critical";
@@ -21,12 +22,14 @@ export interface RiskScoreRecord {
 }
 
 export async function getLatestRiskScore(
+  orgId: string,
   dealId: string,
 ): Promise<RiskScoreRecord | null> {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("risk_scores" as never)
     .select("*")
+    .eq("org_id", orgId)
     .eq("deal_id", dealId)
     .order("analyzed_at", { ascending: false })
     .limit(1)
@@ -37,6 +40,7 @@ export async function getLatestRiskScore(
 }
 
 export async function getRiskScoreHistory(
+  orgId: string,
   dealId: string,
   limit = 10,
 ): Promise<RiskScoreRecord[]> {
@@ -44,6 +48,7 @@ export async function getRiskScoreHistory(
   const { data, error } = await supabase
     .from("risk_scores" as never)
     .select("*")
+    .eq("org_id", orgId)
     .eq("deal_id", dealId)
     .order("analyzed_at", { ascending: false })
     .limit(limit);
@@ -57,6 +62,7 @@ export async function getRiskScoreHistory(
  * Returns a Map keyed by deal_id; deals without a stored score are absent.
  */
 export async function getLatestRiskScoresForDeals(
+  orgId: string,
   dealIds: string[],
 ): Promise<Map<string, RiskScoreRecord>> {
   if (dealIds.length === 0) return new Map();
@@ -65,6 +71,7 @@ export async function getLatestRiskScoresForDeals(
   const { data, error } = await supabase
     .from("risk_scores" as never)
     .select("*")
+    .eq("org_id", orgId)
     .in("deal_id", dealIds)
     .order("analyzed_at", { ascending: false });
 

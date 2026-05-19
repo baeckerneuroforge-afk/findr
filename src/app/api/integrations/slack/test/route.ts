@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getSlackIntegration, sendSlackAlert } from "@/lib/slack/service";
 
-const FINDR_DEV_ORG_ID = "4909c8ee-017f-4d9a-bdb6-d3b90f0806a0";
-
 export async function POST() {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const orgOrError = await requireOrgIdOrError();
+  if ("error" in orgOrError) return orgOrError.error;
+  const orgId = orgOrError.orgId;
 
-  const integration = await getSlackIntegration(FINDR_DEV_ORG_ID);
+  const integration = await getSlackIntegration(orgId);
   if (!integration) {
     return NextResponse.json(
       { success: false, error: "No Slack integration configured" },
