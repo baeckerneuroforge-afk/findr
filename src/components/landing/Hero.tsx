@@ -1,48 +1,97 @@
+"use client";
+
+import { motion } from "framer-motion";
 import Link from "next/link";
-import AlertCardDemo from "./AlertCardDemo";
-import SocialProof from "./SocialProof";
+import { useEffect, useState } from "react";
 
-export default function Hero() {
+const taglines = [
+  "Stop losing deals you should win.",
+  "Know your customers before they churn.",
+  "Build what users actually need.",
+  "Get insights at the speed of decision.",
+];
+
+export function Hero() {
+  const [taglineIndex, setTaglineIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTaglineIndex((prev) => (prev + 1) % taglines.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <section className="px-6 pt-16 pb-16 md:pt-20">
-      <div className="mx-auto max-w-6xl text-center">
-        {/* Eyebrow pill */}
-        <div className="inline-flex items-center gap-2 rounded-full bg-alert-500/10 px-3 py-1.5 text-xs font-medium text-alert-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-alert-500" aria-hidden="true" />
-          Now in private beta
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 pb-16">
+      <div className="absolute inset-0 gradient-mesh" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-obsidian/50 to-obsidian" />
+
+      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-8"
+        >
+          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse-glow" />
+          <span className="text-xs text-mist/80 font-medium tracking-wide">
+            Conversation Intelligence Platform — Built for Europe
+          </span>
+        </motion.div>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.1 }}
+          className="text-5xl md:text-7xl font-bold tracking-tight text-gradient mb-6 leading-[1.05]"
+        >
+          One AI brain.
+          <br />
+          Four products.
+          <br />
+          <span className="bg-gradient-to-r from-violet-400 via-violet-300 to-red-400 bg-clip-text text-transparent">
+            Zero data silos.
+          </span>
+        </motion.h1>
+
+        <div className="h-8 mb-10 relative">
+          <motion.p
+            key={taglineIndex}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.4 }}
+            className="text-lg md:text-xl text-mist/70 italic absolute inset-0"
+          >
+            {taglines[taglineIndex]}
+          </motion.p>
         </div>
 
-        {/* H1 */}
-        <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-medium leading-[1.05] tracking-[-2px] text-white md:text-5xl lg:text-6xl">
-          Stop losing deals you should win.
-        </h1>
-
-        {/* Subheadline */}
-        <p className="mx-auto mt-6 max-w-xl text-xl text-mist">
-          Findr listens to every sales call, flags loss-risk before the deal
-          slips, and interviews lost prospects so you stop losing the same way
-          twice.
-        </p>
-
-        {/* CTAs */}
-        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href="/sign-up"
-            className="inline-flex items-center justify-center rounded-lg bg-violet-600 px-6 py-[13px] text-base font-medium text-white transition-colors hover:bg-violet-700"
-          >
-            Start free trial
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
+        >
+          <Link href="/sign-up" className="relative group w-full sm:w-auto">
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-violet-400 to-red-500 rounded-xl blur-md opacity-60 group-hover:opacity-100 transition-opacity animate-pulse-glow" />
+            <button className="relative w-full sm:w-auto bg-violet-500 hover:bg-violet-400 text-white font-semibold px-8 py-4 rounded-xl transition-all">
+              Demo buchen → 30 Min
+            </button>
           </Link>
-          <Link
-            href="#book-demo"
-            className="inline-flex items-center justify-center rounded-lg border border-mist/30 px-6 py-[13px] text-base font-medium text-white transition-colors hover:bg-mist/5"
-          >
-            Book a demo
+          <Link href="#platform" className="text-mist/70 hover:text-white px-6 py-4 transition-colors">
+            Wie es funktioniert →
           </Link>
-        </div>
+        </motion.div>
 
-        <AlertCardDemo />
-
-        <SocialProof />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="text-xs text-mist/40 tracking-wider uppercase"
+        >
+          Built for B2B SaaS · EU-Hosted · DSGVO + EU AI Act compliant
+        </motion.div>
       </div>
     </section>
   );

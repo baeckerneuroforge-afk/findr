@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Header from "@/components/landing/Header";
-import LandingFooter from "@/components/landing/LandingFooter";
+import { Header } from "@/components/landing/Header";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 import PricingTable from "@/components/pricing/PricingTable";
 import OutcomePricingCallout from "@/components/pricing/OutcomePricingCallout";
 import PricingFAQ from "@/components/pricing/PricingFAQ";

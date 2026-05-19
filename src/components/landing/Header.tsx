@@ -1,89 +1,62 @@
+"use client";
+
 import Link from "next/link";
-import { Show, UserButton } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
+import { Show } from "@clerk/nextjs";
+import { motion } from "framer-motion";
 
-export default function Header() {
+export function Header() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-mist/10 bg-obsidian/80 backdrop-blur-md">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" aria-label="Findr home" className="flex items-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Findr" className="h-[30px] w-auto" />
-          </Link>
-
-          {/* Center nav (desktop) */}
-          <nav className="hidden items-center gap-8 md:flex">
-            <Link
-              href="/product"
-              className="text-sm text-mist transition-colors hover:text-white"
-            >
-              Product
-            </Link>
-            <Link
-              href="/pricing"
-              className="text-sm text-mist transition-colors hover:text-white"
-            >
-              Pricing
-            </Link>
-            <Link
-              href="/customers"
-              className="text-sm text-mist transition-colors hover:text-white"
-            >
-              Customers
-            </Link>
-          </nav>
-
-          {/* Right (auth, desktop) */}
-          <div className="hidden items-center gap-3 md:flex">
-            <Show when="signed-out">
-              <Link
-                href="/sign-in"
-                className="text-sm text-mist transition-colors hover:text-white"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/sign-up"
-                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700"
-              >
-                Get started
-              </Link>
-            </Show>
-            <Show when="signed-in">
-              <Link
-                href="/dashboard"
-                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700"
-              >
-                Dashboard
-              </Link>
-              <UserButton />
-            </Show>
+    <motion.header
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        scrolled ? "bg-obsidian/80 backdrop-blur-xl border-b border-violet-500/10" : "bg-transparent"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center relative overflow-hidden">
+            <span className="text-white font-bold text-sm relative z-10">f</span>
+            <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse-glow" />
           </div>
+          <span className="text-white font-semibold tracking-tight">findr</span>
+        </Link>
 
-          {/* Mobile hamburger (skeleton, not wired up) */}
-          <button
-            type="button"
-            aria-label="Open menu"
-            className="inline-flex items-center justify-center rounded-md p-2 text-mist hover:text-white md:hidden"
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path
-                d="M4 6h16M4 12h16M4 18h16"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+        <nav className="hidden md:flex items-center gap-8">
+          <Link href="#platform" className="text-mist/70 hover:text-white text-sm transition-colors">Plattform</Link>
+          <Link href="#modules" className="text-mist/70 hover:text-white text-sm transition-colors">Module</Link>
+          <Link href="/pricing" className="text-mist/70 hover:text-white text-sm transition-colors">Pricing</Link>
+          <Link href="#why" className="text-mist/70 hover:text-white text-sm transition-colors">Warum Findr</Link>
+        </nav>
+
+        <div className="flex items-center gap-3">
+          <Show when="signed-out">
+            <Link href="/sign-in" className="hidden md:block text-mist/70 hover:text-white text-sm transition-colors">
+              Sign in
+            </Link>
+            <Link href="/sign-up" className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-red-500 rounded-lg blur-sm opacity-50 group-hover:opacity-100 transition-opacity" />
+              <button className="relative bg-violet-500 hover:bg-violet-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                Demo buchen
+              </button>
+            </Link>
+          </Show>
+          <Show when="signed-in">
+            <Link href="/dashboard" className="bg-violet-500 hover:bg-violet-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              Dashboard
+            </Link>
+          </Show>
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 }
