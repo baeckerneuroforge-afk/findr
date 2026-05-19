@@ -8,6 +8,7 @@ interface DealRowProps {
   deal: Deal;
   analyzing: boolean;
   onAnalyze: () => void;
+  onOpenDrilldown?: () => void;
 }
 
 const STAGE_LABELS: Record<DealStage, string> = {
@@ -27,7 +28,12 @@ function formatAmount(amount: number, currency: "USD" | "EUR"): string {
   }).format(amount);
 }
 
-export default function DealRow({ deal, analyzing, onAnalyze }: DealRowProps) {
+export default function DealRow({
+  deal,
+  analyzing,
+  onAnalyze,
+  onOpenDrilldown,
+}: DealRowProps) {
   const router = useRouter();
   const stale = deal.daysSinceLastActivity > 14;
   const alreadyScored = deal.riskScore !== undefined;
@@ -71,9 +77,18 @@ export default function DealRow({ deal, analyzing, onAnalyze }: DealRowProps) {
           : `${deal.daysSinceLastActivity} days ago`}
       </td>
 
-      {/* Risk badge */}
+      {/* Risk badge — click to open drilldown panel */}
       <td className="px-4 py-4">
-        <RiskBadge score={deal.riskScore} level={deal.riskLevel} size="sm" />
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenDrilldown?.();
+          }}
+          className="hover:opacity-80 transition-opacity"
+        >
+          <RiskBadge score={deal.riskScore} level={deal.riskLevel} size="sm" />
+        </button>
       </td>
 
       {/* Action — stop row click when pressing button */}

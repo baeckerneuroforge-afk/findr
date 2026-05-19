@@ -4,6 +4,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DealList from "@/components/dashboard/DealList";
 import { getDealsByOrg } from "@/lib/deals/service";
+import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
 
 export default async function DashboardPage() {
   const { userId, orgId } = await auth();
@@ -11,7 +12,24 @@ export default async function DashboardPage() {
     redirect("/sign-in");
   }
 
-  const deals = await getDealsByOrg(orgId ?? "mock");
+  const baseDeals = await getDealsByOrg(orgId ?? "mock");
+  const riskMap = await getLatestRiskScoresForDeals(
+    baseDeals.map((d) => d.id),
+  );
+
+  const deals = baseDeals.map((deal) => {
+    const risk = riskMap.get(deal.id);
+    if (!risk) return deal;
+    return {
+      ...deal,
+      riskScore: risk.risk_score,
+      riskLevel: risk.risk_level,
+      riskSignals: risk.signals.map((s) => s.type),
+      riskReasoning: risk.overall_reasoning,
+      lastRiskUpdate: risk.analyzed_at,
+    };
+  });
+
   const atRiskCount = deals.filter(
     (d) => d.riskScore !== undefined && d.riskScore > 60,
   ).length;

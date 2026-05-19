@@ -6,12 +6,14 @@ export function LandingFooter() {
       <div className="max-w-6xl mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center">
-                <span className="text-white font-bold text-xs">f</span>
+            <Link href="/" className="inline-flex items-center mb-4 group">
+              <div className="relative">
+                <span className="text-white font-bold text-lg tracking-tight">
+                  findr
+                </span>
+                <div className="absolute -top-0.5 -right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse-glow" />
               </div>
-              <span className="text-white font-semibold">findr</span>
-            </div>
+            </Link>
             <p className="text-xs text-mist/50">Conversation Intelligence Platform for European B2B SaaS.</p>
           </div>
           <div>
