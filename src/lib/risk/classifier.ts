@@ -72,7 +72,31 @@ async function callClaude(
     );
   }
 
-  return result.data;
+  const filteredSignals = result.data.signals.filter(
+    (signal) =>
+      signal.confidence >= 0.65 &&
+      signal.quotes.some((quote) => quote.trim().length > 0),
+  );
+
+  const adjustedScore =
+    filteredSignals.length === 0
+      ? Math.min(35, result.data.riskScore)
+      : Math.max(40, result.data.riskScore);
+  const adjustedLevel: RiskAnalysisResult["riskLevel"] =
+    adjustedScore < 40
+      ? "low"
+      : adjustedScore < 60
+        ? "medium"
+        : adjustedScore < 80
+          ? "high"
+          : "critical";
+
+  return {
+    ...result.data,
+    signals: filteredSignals,
+    riskScore: adjustedScore,
+    riskLevel: adjustedLevel,
+  };
 }
 
 export async function analyzeDealRisk(

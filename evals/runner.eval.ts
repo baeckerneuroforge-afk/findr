@@ -296,6 +296,9 @@ function printReport(report: EvalReport) {
       console.log(
         `    Actual:   ${failure.actual.riskLevel} (${failure.actual.riskScore})`,
       );
+      console.log(
+        `    Signals:  ${failure.actual.detectedSignals.join(", ") || "none"}`,
+      );
       for (const error of failure.errors) {
         console.log(chalk.gray(`    - ${error}`));
       }
