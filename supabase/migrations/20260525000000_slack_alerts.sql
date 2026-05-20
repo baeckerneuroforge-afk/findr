@@ -7,7 +7,7 @@ create table if not exists slack_alerts (
   alert_type text not null check (
     alert_type in ('risk_spike', 'champion_lost', 'deal_lost', 'forecast_change')
   ),
-  deal_id text references deals(id) on delete set null,
+  deal_id uuid references deals(id) on delete set null,
   severity text not null check (severity in ('info', 'warning', 'critical')),
   title text not null,
   body text not null,
