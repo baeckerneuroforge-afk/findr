@@ -13,6 +13,7 @@ interface DealRowProps {
 
 const STAGE_LABELS: Record<DealStage, string> = {
   qualified: "Qualified",
+  demo: "Demo",
   proposal_sent: "Proposal sent",
   negotiation: "Negotiation",
   verbal_commit: "Verbal commit",

@@ -1,5 +1,6 @@
 export type DealStage =
   | "qualified"
+  | "demo"
   | "proposal_sent"
   | "negotiation"
   | "verbal_commit"

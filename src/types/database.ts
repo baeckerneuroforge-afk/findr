@@ -206,13 +206,20 @@ export type Database = {
         Row: {
           amount: number | null
           closed_at: string | null
+          company_name: string | null
           created_at: string
+          currency: string
+          data_source: string
           external_id: string
+          hubspot_deal_id: string | null
+          hubspot_last_synced_at: string | null
           id: string
+          last_activity_at: string | null
           loss_reason: string | null
           name: string
           org_id: string
           owner_email: string | null
+          owner_name: string | null
           raw_data: Json | null
           source: string
           stage: string | null
@@ -221,13 +228,20 @@ export type Database = {
         Insert: {
           amount?: number | null
           closed_at?: string | null
+          company_name?: string | null
           created_at?: string
+          currency?: string
+          data_source?: string
           external_id: string
+          hubspot_deal_id?: string | null
+          hubspot_last_synced_at?: string | null
           id?: string
+          last_activity_at?: string | null
           loss_reason?: string | null
           name: string
           org_id: string
           owner_email?: string | null
+          owner_name?: string | null
           raw_data?: Json | null
           source: string
           stage?: string | null
@@ -236,13 +250,20 @@ export type Database = {
         Update: {
           amount?: number | null
           closed_at?: string | null
+          company_name?: string | null
           created_at?: string
+          currency?: string
+          data_source?: string
           external_id?: string
+          hubspot_deal_id?: string | null
+          hubspot_last_synced_at?: string | null
           id?: string
+          last_activity_at?: string | null
           loss_reason?: string | null
           name?: string
           org_id?: string
           owner_email?: string | null
+          owner_name?: string | null
           raw_data?: Json | null
           source?: string
           stage?: string | null
@@ -311,6 +332,62 @@ export type Database = {
             foreignKeyName: "findings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hubspot_integrations: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          enabled: boolean
+          hubspot_portal_id: string
+          hubspot_user_id: string | null
+          id: string
+          last_synced_at: string | null
+          org_id: string
+          refresh_token: string
+          sync_error: string | null
+          sync_status: "idle" | "syncing" | "failed"
+          token_expires_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          enabled?: boolean
+          hubspot_portal_id: string
+          hubspot_user_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          org_id: string
+          refresh_token: string
+          sync_error?: string | null
+          sync_status?: "idle" | "syncing" | "failed"
+          token_expires_at: string
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          enabled?: boolean
+          hubspot_portal_id?: string
+          hubspot_user_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          org_id?: string
+          refresh_token?: string
+          sync_error?: string | null
+          sync_status?: "idle" | "syncing" | "failed"
+          token_expires_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hubspot_integrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -402,6 +479,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      oauth_states: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          org_id: string
+          provider: string
+          state: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          org_id: string
+          provider: string
+          state: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          org_id?: string
+          provider?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_states_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       risk_scores: {
         Row: {
