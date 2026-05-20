@@ -58,17 +58,27 @@ const SIGNAL_META: Record<
   },
 };
 
-function getSeverityColor(severity: number): string {
-  if (severity >= 4) return "from-red-500 to-red-600";
-  if (severity >= 3) return "from-orange-500 to-orange-600";
-  return "from-yellow-500 to-yellow-600";
+function getSeverityFill(severity: number): string {
+  if (severity >= 4) return "bg-danger-500";
+  if (severity >= 3) return "bg-warning-500";
+  return "bg-success-500";
 }
 
-function getRiskBgGradient(level: string): string {
-  if (level === "critical") return "from-red-500/20 to-red-700/10";
-  if (level === "high") return "from-orange-500/20 to-orange-700/10";
-  if (level === "medium") return "from-yellow-500/20 to-yellow-700/10";
-  return "from-emerald-500/20 to-emerald-700/10";
+function getRiskHeaderStyle(level: string): string {
+  if (level === "critical") return "bg-danger-50 border-danger-500/30";
+  if (level === "high") return "bg-orange-50 border-orange-500/30";
+  if (level === "medium") return "bg-warning-50 border-warning-500/30";
+  return "bg-success-50 border-success-500/30";
+}
+
+function getRiskBadgeStyle(level: string): string {
+  if (level === "critical")
+    return "bg-danger-500 text-white";
+  if (level === "high")
+    return "bg-orange-500 text-white";
+  if (level === "medium")
+    return "bg-warning-500 text-white";
+  return "bg-success-500 text-white";
 }
 
 export function RiskSignalDrilldown({
@@ -90,52 +100,37 @@ export function RiskSignalDrilldown({
   return (
     <div className="space-y-6">
       <div
-        className={`relative rounded-2xl p-6 bg-gradient-to-br ${getRiskBgGradient(
-          riskLevel,
-        )} border border-white/10 overflow-hidden`}
+        className={`relative overflow-hidden rounded-lg border p-6 ${getRiskHeaderStyle(riskLevel)}`}
       >
-        <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
-        <div className="relative">
-          <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
-            <div>
-              <div className="text-xs text-mist/60 uppercase tracking-wider mb-1">
-                Risk Assessment
-              </div>
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-5xl font-bold text-white">
-                  {riskScore}
-                </span>
-                <span className="text-sm text-mist/50">/ 100</span>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full border ${
-                    riskLevel === "critical"
-                      ? "bg-red-500/20 text-red-300 border-red-500/40"
-                      : riskLevel === "high"
-                      ? "bg-orange-500/20 text-orange-300 border-orange-500/40"
-                      : riskLevel === "medium"
-                      ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
-                      : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                  }`}
-                >
-                  {riskLevel.toUpperCase()}
-                </span>
-              </div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="mb-1 text-caption uppercase tracking-wider text-neutral-500">
+              Risk assessment
             </div>
-            {analyzedAt && (
-              <div className="text-xs text-mist/50">
-                Analyzed {new Date(analyzedAt).toLocaleString("de-DE")}
-              </div>
-            )}
+            <div className="flex flex-wrap items-baseline gap-3">
+              <span className="text-display text-neutral-900">{riskScore}</span>
+              <span className="text-small text-neutral-500">/ 100</span>
+              <span
+                className={`rounded-md px-2 py-0.5 text-caption font-semibold uppercase ${getRiskBadgeStyle(riskLevel)}`}
+              >
+                {riskLevel}
+              </span>
+            </div>
           </div>
-          <p className="text-sm text-mist/80 leading-relaxed">
-            {overallReasoning}
-          </p>
+          {analyzedAt && (
+            <div className="text-caption text-neutral-500">
+              Analyzed {new Date(analyzedAt).toLocaleString("de-DE")}
+            </div>
+          )}
         </div>
+        <p className="mt-4 text-body leading-relaxed text-neutral-700">
+          {overallReasoning}
+        </p>
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-white mb-3 uppercase tracking-wider">
-          Detected Signals ({signals.length})
+        <h3 className="mb-3 text-h3 uppercase tracking-wider text-neutral-500">
+          Detected signals ({signals.length})
         </h3>
         <div className="space-y-2">
           {sortedSignals.map((signal) => {
@@ -150,10 +145,10 @@ export function RiskSignalDrilldown({
             return (
               <div
                 key={signal.type}
-                className={`rounded-xl border transition-all ${
+                className={`rounded-lg border transition-all ${
                   isExpanded
-                    ? "bg-white/[0.03] border-violet-500/30"
-                    : "bg-white/[0.01] border-white/5 hover:border-white/10"
+                    ? "border-primary-200 bg-primary-50/50"
+                    : "border-neutral-200 bg-white hover:border-neutral-300"
                 }`}
               >
                 <button
@@ -161,28 +156,26 @@ export function RiskSignalDrilldown({
                   onClick={() =>
                     setExpandedSignal(isExpanded ? null : signal.type)
                   }
-                  className="w-full px-4 py-3 flex items-center gap-4 text-left"
+                  className="flex w-full items-center gap-4 px-4 py-3 text-left"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-white font-medium">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <span className="text-body-strong text-neutral-900">
                         {meta.label}
                       </span>
-                      <span className="text-xs text-mist/40">
+                      <span className="text-caption text-neutral-500">
                         {confidencePct}% confidence
                       </span>
                     </div>
-                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
                       <div
-                        className={`h-full bg-gradient-to-r ${getSeverityColor(
-                          meta.severity,
-                        )} rounded-full transition-all`}
+                        className={`h-full rounded-full transition-all ${getSeverityFill(meta.severity)}`}
                         style={{ width: `${confidencePct}%` }}
                       />
                     </div>
                   </div>
                   <svg
-                    className={`w-4 h-4 text-mist/40 transition-transform shrink-0 ${
+                    className={`h-4 w-4 shrink-0 text-neutral-400 transition-transform ${
                       isExpanded ? "rotate-180" : ""
                     }`}
                     viewBox="0 0 20 20"
@@ -193,32 +186,32 @@ export function RiskSignalDrilldown({
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
+                  <div className="space-y-3 border-t border-neutral-200 px-4 pb-4 pt-3">
                     {meta.description && (
-                      <p className="text-xs text-mist/60 italic">
+                      <p className="text-caption italic text-neutral-500">
                         {meta.description}
                       </p>
                     )}
                     <div>
-                      <div className="text-xs text-mist/50 uppercase tracking-wider mb-1">
+                      <div className="mb-1 text-caption uppercase tracking-wider text-neutral-500">
                         Reasoning
                       </div>
-                      <p className="text-sm text-mist/80 leading-relaxed">
+                      <p className="text-body leading-relaxed text-neutral-700">
                         {signal.reasoning}
                       </p>
                     </div>
                     {signal.quotes && signal.quotes.length > 0 && (
                       <div>
-                        <div className="text-xs text-mist/50 uppercase tracking-wider mb-2">
-                          Triggering Quotes ({signal.quotes.length})
+                        <div className="mb-2 text-caption uppercase tracking-wider text-neutral-500">
+                          Triggering quotes ({signal.quotes.length})
                         </div>
                         <div className="space-y-2">
                           {signal.quotes.map((quote, i) => (
                             <div
                               key={i}
-                              className="bg-black/20 rounded-lg px-3 py-2 border-l-2 border-violet-500/40"
+                              className="rounded-md border-l-2 border-primary-500 bg-neutral-100 px-3 py-2"
                             >
-                              <p className="text-sm text-mist/80 italic leading-relaxed">
+                              <p className="text-body italic leading-relaxed text-neutral-700">
                                 &ldquo;{quote}&rdquo;
                               </p>
                             </div>
@@ -236,19 +229,21 @@ export function RiskSignalDrilldown({
 
       {recommendations.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-white mb-3 uppercase tracking-wider">
-            Recommended Actions
+          <h3 className="mb-3 text-h3 uppercase tracking-wider text-neutral-500">
+            Recommended actions
           </h3>
           <div className="space-y-2">
             {recommendations.map((rec, i) => (
               <div
                 key={i}
-                className="flex items-start gap-3 bg-violet-500/5 border border-violet-500/20 rounded-lg px-4 py-3"
+                className="flex items-start gap-3 rounded-lg border border-primary-100 bg-primary-50 px-4 py-3"
               >
-                <div className="w-6 h-6 rounded-full bg-violet-500/20 text-violet-300 text-xs font-semibold flex items-center justify-center shrink-0">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-500 text-caption font-semibold text-white">
                   {i + 1}
                 </div>
-                <p className="text-sm text-mist/80 leading-relaxed">{rec}</p>
+                <p className="text-body leading-relaxed text-neutral-900">
+                  {rec}
+                </p>
               </div>
             ))}
           </div>

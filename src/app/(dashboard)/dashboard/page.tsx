@@ -4,11 +4,14 @@ import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card } from "@/components/ui/Card";
-import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/Badge";
 import { Table, THead, TH, TBody, TR, TD } from "@/components/ui/Table";
+import { RiskBadge } from "@/components/dashboard/RiskBadge";
+import { AnalyzeButton } from "@/components/dashboard/AnalyzeButton";
+import { AnalyzeAllButton } from "@/components/dashboard/AnalyzeAllButton";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
-import type { DealStage, RiskLevel } from "@/lib/deals/types";
+import type { DealStage } from "@/lib/deals/types";
 
 const STAGE_LABELS: Record<DealStage, string> = {
   qualified: "Qualified",
@@ -45,23 +48,6 @@ function PlugIcon() {
       />
     </svg>
   );
-}
-
-function riskVariant(level: RiskLevel | undefined): BadgeVariant {
-  if (!level) return "default";
-  return level;
-}
-
-function formatRelative(dateStr: string | undefined): string {
-  if (!dateStr) return "—";
-  const date = new Date(dateStr);
-  const days = Math.floor(
-    (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (days <= 0) return "Today";
-  if (days === 1) return "1 day ago";
-  if (days < 30) return `${days} days ago`;
-  return date.toLocaleDateString("de-DE");
 }
 
 export default async function DashboardPage() {
@@ -140,6 +126,7 @@ export default async function DashboardPage() {
             active pipeline
           </p>
         </div>
+        <AnalyzeAllButton deals={deals.map((d) => ({ id: d.id, name: d.name }))} />
       </div>
 
       {/* Stats */}
@@ -165,6 +152,7 @@ export default async function DashboardPage() {
               <TH className="text-right">Amount</TH>
               <TH>Risk</TH>
               <TH>Last activity</TH>
+              <TH className="text-right">Action</TH>
             </TR>
           </THead>
           <TBody>
@@ -195,18 +183,22 @@ export default async function DashboardPage() {
                   }).format(deal.amount)}
                 </TD>
                 <TD>
-                  {deal.riskLevel && deal.riskScore !== undefined ? (
-                    <Badge variant={riskVariant(deal.riskLevel)}>
-                      {deal.riskScore} · {deal.riskLevel}
-                    </Badge>
-                  ) : (
-                    <span className="text-small text-neutral-400">—</span>
-                  )}
+                  <RiskBadge
+                    score={deal.riskScore}
+                    level={deal.riskLevel}
+                    size="sm"
+                  />
                 </TD>
                 <TD className="text-small text-neutral-500 whitespace-nowrap">
                   {deal.daysSinceLastActivity === 0
                     ? "Today"
                     : `${deal.daysSinceLastActivity}d ago`}
+                </TD>
+                <TD className="text-right">
+                  <AnalyzeButton
+                    dealId={deal.id}
+                    hasScore={deal.riskScore !== undefined}
+                  />
                 </TD>
               </TR>
             ))}

@@ -14,27 +14,23 @@ function deriveLevel(score: number): RiskLevel {
 }
 
 const LEVEL_STYLES: Record<RiskLevel, string> = {
-  low: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
-  medium: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
-  high: "bg-orange-500/15 text-orange-400 border border-orange-500/30",
-  critical: "bg-alert-500/20 text-alert-400 border border-alert-500/40",
+  low: "bg-success-50 text-success-700 border-success-500/30",
+  medium: "bg-warning-50 text-warning-700 border-warning-500/30",
+  high: "bg-orange-50 text-orange-700 border-orange-500/40",
+  critical: "bg-danger-50 text-danger-700 border-danger-500/40",
 };
 
 const SIZE_STYLES = {
-  sm: "px-2 py-0.5 text-xs",
-  md: "px-3 py-1 text-sm",
-  large: "px-4 py-2 text-base",
+  sm: "px-2 py-0.5 text-caption",
+  md: "px-2.5 py-1 text-small",
+  large: "px-3 py-1.5 text-body-strong",
 } as const;
 
-export function RiskBadge({
-  score,
-  level,
-  size = "md",
-}: RiskBadgeProps) {
+export function RiskBadge({ score, level, size = "md" }: RiskBadgeProps) {
   if (score === undefined) {
     return (
       <span
-        className={`inline-flex items-center rounded-md border border-mist/15 bg-mist/5 font-medium text-mist ${SIZE_STYLES[size]}`}
+        className={`inline-flex items-center rounded-md border border-neutral-200 bg-neutral-50 font-medium text-neutral-400 ${SIZE_STYLES[size]}`}
       >
         —
       </span>
@@ -46,12 +42,15 @@ export function RiskBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md font-medium ${LEVEL_STYLES[resolvedLevel]} ${SIZE_STYLES[size]}`}
+      className={`inline-flex items-center gap-1.5 rounded-md border font-medium ${LEVEL_STYLES[resolvedLevel]} ${SIZE_STYLES[size]}`}
     >
       {isCritical && (
-        <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-alert-500 opacity-75" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-alert-500" />
+        <span
+          className="relative flex h-1.5 w-1.5"
+          aria-hidden="true"
+        >
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger-500 opacity-60" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-danger-500" />
         </span>
       )}
       {score} / 100

@@ -20,8 +20,8 @@ export function CreateOrganizationForm() {
 
   if (!isLoaded || !createOrganization || !setActive) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-mist/50">
-        Loading...
+      <div className="rounded-lg border border-neutral-200 bg-white p-8 text-center text-body text-neutral-500">
+        Loading…
       </div>
     );
   }
@@ -72,10 +72,10 @@ export function CreateOrganizationForm() {
   return (
     <form
       onSubmit={handleCreate}
-      className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-6"
+      className="space-y-4 rounded-lg border border-neutral-200 bg-white p-6"
     >
       <div>
-        <label className="mb-2 block text-sm font-medium text-white">
+        <label className="mb-1 block text-h3 text-neutral-900">
           Organization name
         </label>
         <input
@@ -83,16 +83,16 @@ export function CreateOrganizationForm() {
           value={orgName}
           onChange={(event) => setOrgName(event.target.value)}
           placeholder="My Company"
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white outline-none placeholder:text-mist/30 focus:border-violet-500/40"
+          className="w-full rounded-md border border-neutral-200 bg-white px-3 py-2.5 text-body text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors"
           disabled={creating}
         />
-        <p className="mt-2 text-xs text-mist/50">
+        <p className="mt-2 text-small text-neutral-500">
           Use your company name or team name. You can change this later.
         </p>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+        <div className="rounded-md border border-danger-500/30 bg-danger-50 p-3 text-small text-danger-700">
           {error}
         </div>
       )}
@@ -100,9 +100,9 @@ export function CreateOrganizationForm() {
       <button
         type="submit"
         disabled={creating || !orgName.trim()}
-        className="w-full rounded-lg bg-violet-500 px-5 py-2.5 font-medium text-white transition-colors hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex h-9 w-full items-center justify-center rounded-md bg-neutral-900 px-3 text-body-strong font-medium text-white transition-colors hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {creating ? "Creating..." : "Create organization"}
+        {creating ? "Creating…" : "Create organization"}
       </button>
     </form>
   );

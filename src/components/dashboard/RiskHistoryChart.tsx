@@ -14,7 +14,7 @@ interface RiskHistoryChartProps {
 
 const LEVEL_COLORS = {
   low: "#10b981",
-  medium: "#eab308",
+  medium: "#f59e0b",
   high: "#f97316",
   critical: "#ef4444",
 };
@@ -47,7 +47,7 @@ export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
 
   if (history.length === 0) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center text-mist/50">
+      <div className="rounded-lg border border-dashed border-neutral-200 bg-white p-8 text-center text-body text-neutral-500">
         No history yet. Risk scores are tracked over time once daily analysis runs.
       </div>
     );
@@ -55,7 +55,7 @@ export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
 
   if (history.length === 1) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center text-mist/50">
+      <div className="rounded-lg border border-dashed border-neutral-200 bg-white p-8 text-center text-body text-neutral-500">
         Only one data point so far. The chart will appear after the next analysis.
       </div>
     );
@@ -75,26 +75,26 @@ export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
       : chartData.points;
   const trendColor =
     trend > 0
-      ? "text-red-400"
+      ? "text-danger-700"
       : trend < 0
-        ? "text-emerald-400"
-        : "text-mist/50";
+        ? "text-success-700"
+        : "text-neutral-500";
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-      <div className="flex items-center justify-between mb-4 gap-4">
+    <div className="rounded-lg border border-neutral-200 bg-white p-6">
+      <div className="mb-4 flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-white font-semibold text-sm">
-            Risk Score Over Time
-          </h3>
-          <p className="text-xs text-mist/50 mt-1">
-            {chartData.points.length} data points - Trend{" "}
+          <h3 className="text-h2 text-neutral-900">Risk score over time</h3>
+          <p className="mt-1 text-small text-neutral-500">
+            {chartData.points.length} data points · Trend{" "}
             <span className={trendColor}>{trendLabel} points</span>
           </p>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold text-white">{latest.score}</div>
-          <div className="text-xs text-mist/50">current</div>
+          <div className="text-display text-neutral-900">{latest.score}</div>
+          <div className="text-caption text-neutral-500 uppercase tracking-wider">
+            Current
+          </div>
         </div>
       </div>
 
@@ -117,13 +117,13 @@ export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
                 y1={y}
                 x2={chartData.width - chartData.padding.right}
                 y2={y}
-                stroke="rgba(255,255,255,0.05)"
+                stroke="#e4e4e7"
                 strokeWidth="1"
               />
               <text
                 x={chartData.padding.left - 8}
                 y={y + 4}
-                fill="rgba(255,255,255,0.3)"
+                fill="#a1a1aa"
                 fontSize="10"
                 textAnchor="end"
               >
@@ -149,13 +149,13 @@ export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
           stroke="#ef4444"
           strokeWidth="1"
           strokeDasharray="4,4"
-          opacity="0.4"
+          opacity="0.35"
         />
 
         <path
           d={chartData.pathD}
           fill="none"
-          stroke="#8b5cf6"
+          stroke="#6366f1"
           strokeWidth="2"
         />
 
@@ -166,11 +166,11 @@ export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
               cy={point.y}
               r="4"
               fill={LEVEL_COLORS[point.level]}
-              stroke="#0a0a1f"
+              stroke="#ffffff"
               strokeWidth="2"
             />
             <title>
-              {new Date(point.date).toLocaleDateString("de-DE")} -{" "}
+              {new Date(point.date).toLocaleDateString("de-DE")} ·{" "}
               {point.score}/100 ({point.level})
             </title>
           </g>
@@ -181,7 +181,7 @@ export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
             key={`${point.date}-${i}`}
             x={point.x}
             y={chartData.height - 8}
-            fill="rgba(255,255,255,0.4)"
+            fill="#71717a"
             fontSize="10"
             textAnchor={
               i === 0 ? "start" : i === labels.length - 1 ? "end" : "middle"

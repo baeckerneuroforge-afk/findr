@@ -30,15 +30,21 @@ interface CallDetailProps {
   };
 }
 
-const SIGNAL_LABELS: Record<string, { label: string; color: string }> = {
-  CHAMPION_LOSS: { label: "Champion Loss", color: "bg-red-500/20 text-red-300 border-red-500/30" },
-  COMPETITOR_PRESSURE: { label: "Competitor", color: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
-  STALLING_PATTERN: { label: "Stalling", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" },
-  BUDGET_FRICTION: { label: "Budget", color: "bg-amber-500/20 text-amber-300 border-amber-500/30" },
-  CHAMPION_DISENGAGEMENT: { label: "Disengagement", color: "bg-pink-500/20 text-pink-300 border-pink-500/30" },
-  LATE_DECISION_MAKER: { label: "Late DM", color: "bg-purple-500/20 text-purple-300 border-purple-500/30" },
-  STAKEHOLDER_CHURN: { label: "Stakeholder Churn", color: "bg-red-500/20 text-red-300 border-red-500/30" },
-  ENGAGEMENT_DROP: { label: "Engagement Drop", color: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
+const SIGNAL_LABELS: Record<string, { label: string; tone: string }> = {
+  CHAMPION_LOSS: { label: "Champion Loss", tone: "danger" },
+  COMPETITOR_PRESSURE: { label: "Competitor", tone: "warning" },
+  STALLING_PATTERN: { label: "Stalling", tone: "warning" },
+  BUDGET_FRICTION: { label: "Budget", tone: "warning" },
+  CHAMPION_DISENGAGEMENT: { label: "Disengagement", tone: "danger" },
+  LATE_DECISION_MAKER: { label: "Late DM", tone: "warning" },
+  STAKEHOLDER_CHURN: { label: "Stakeholder Churn", tone: "danger" },
+  ENGAGEMENT_DROP: { label: "Engagement Drop", tone: "warning" },
+};
+
+const TONE_STYLES: Record<string, string> = {
+  danger: "bg-danger-50 text-danger-700 border-danger-500/30",
+  warning: "bg-warning-50 text-warning-700 border-warning-500/30",
+  default: "bg-neutral-100 text-neutral-700 border-neutral-200",
 };
 
 function formatTime(seconds: number): string {
@@ -59,41 +65,41 @@ export function CallDetail({ call }: CallDetailProps) {
       : call.transcript_segments;
 
   return (
-    <div className="bg-white/[0.02] border border-violet-500/20 rounded-2xl p-6">
-      <div className="flex items-start justify-between mb-4 gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="text-xs uppercase tracking-wide text-violet-300">
+    <div className="rounded-lg border border-neutral-200 bg-white p-6">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <span className="text-caption uppercase tracking-wide text-primary-700 font-medium">
               {call.call_type ?? "call"}
             </span>
-            <span className="text-xs text-mist/50">·</span>
-            <span className="text-xs text-mist/50">
+            <span className="text-caption text-neutral-400">·</span>
+            <span className="text-caption text-neutral-500">
               {formatTime(call.duration_seconds ?? 0)}
             </span>
             {call.recorded_at && (
               <>
-                <span className="text-xs text-mist/50">·</span>
-                <span className="text-xs text-mist/50">
+                <span className="text-caption text-neutral-400">·</span>
+                <span className="text-caption text-neutral-500">
                   {new Date(call.recorded_at).toLocaleDateString("de-DE")}
                 </span>
               </>
             )}
           </div>
           {call.transcript_summary && (
-            <p className="text-sm text-mist/80 leading-relaxed">
+            <p className="text-body leading-relaxed text-neutral-700">
               {call.transcript_summary}
             </p>
           )}
         </div>
 
-        <div className="flex gap-1 shrink-0">
+        <div className="flex shrink-0 gap-1">
           <button
             type="button"
             onClick={() => setFilter("all")}
-            className={`text-xs px-3 py-1 rounded-md transition-colors ${
+            className={`rounded-md px-2.5 py-1 text-caption font-medium transition-colors ${
               filter === "all"
-                ? "bg-violet-500/20 text-violet-200"
-                : "text-mist/60 hover:text-white"
+                ? "bg-neutral-100 text-neutral-900"
+                : "text-neutral-500 hover:text-neutral-900"
             }`}
           >
             All
@@ -101,20 +107,20 @@ export function CallDetail({ call }: CallDetailProps) {
           <button
             type="button"
             onClick={() => setFilter("signals")}
-            className={`text-xs px-3 py-1 rounded-md transition-colors ${
+            className={`rounded-md px-2.5 py-1 text-caption font-medium transition-colors ${
               filter === "signals"
-                ? "bg-red-500/20 text-red-300"
-                : "text-mist/60 hover:text-white"
+                ? "bg-danger-50 text-danger-700"
+                : "text-neutral-500 hover:text-neutral-900"
             }`}
           >
-            Risk Signals
+            Risk signals
           </button>
         </div>
       </div>
 
-      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+      <div className="max-h-[500px] space-y-3 overflow-y-auto pr-2">
         {segments.length === 0 ? (
-          <p className="text-center text-sm text-mist/40 py-8">
+          <p className="py-8 text-center text-small text-neutral-400">
             No segments matching this filter.
           </p>
         ) : (
@@ -126,52 +132,44 @@ export function CallDetail({ call }: CallDetailProps) {
             return (
               <div
                 key={segment.id}
-                className={`p-3 rounded-lg border ${
+                className={`rounded-lg border p-3 ${
                   hasSignals
-                    ? "bg-red-500/5 border-red-500/20"
-                    : "bg-white/[0.02] border-white/5"
+                    ? "border-danger-500/30 bg-danger-50/40"
+                    : "border-neutral-200 bg-white"
                 }`}
               >
-                <div className="flex items-start justify-between mb-1 gap-2">
+                <div className="mb-1 flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-xs font-medium ${
-                        isSalesRep ? "text-violet-300" : "text-emerald-300"
+                      className={`text-caption font-medium ${
+                        isSalesRep ? "text-primary-700" : "text-success-700"
                       }`}
                     >
                       {speaker?.name ?? "Unknown"}
                     </span>
-                    <span className="text-xs text-mist/40">
+                    <span className="text-caption text-neutral-400">
                       {formatTime(segment.start_seconds)}
                     </span>
                   </div>
                   {hasSignals && (
-                    <div className="flex gap-1 flex-wrap justify-end">
+                    <div className="flex flex-wrap justify-end gap-1">
                       {segment.signals.map((sig) => {
                         const meta = SIGNAL_LABELS[sig];
-                        if (!meta) {
-                          return (
-                            <span
-                              key={sig}
-                              className="text-[10px] px-2 py-0.5 rounded-full border bg-violet-500/15 text-violet-300 border-violet-500/30"
-                            >
-                              {sig}
-                            </span>
-                          );
-                        }
+                        const tone = meta?.tone ?? "default";
+                        const label = meta?.label ?? sig;
                         return (
                           <span
                             key={sig}
-                            className={`text-[10px] px-2 py-0.5 rounded-full border ${meta.color}`}
+                            className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${TONE_STYLES[tone]}`}
                           >
-                            {meta.label}
+                            {label}
                           </span>
                         );
                       })}
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-mist/80 leading-relaxed">
+                <p className="text-body leading-relaxed text-neutral-700">
                   {segment.text}
                 </p>
               </div>

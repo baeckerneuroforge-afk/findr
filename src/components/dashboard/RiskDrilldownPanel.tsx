@@ -47,25 +47,26 @@ export function RiskDrilldownPanel({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
+        className="fixed inset-0 z-40 bg-neutral-900/20 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
-      <div className="fixed top-0 right-0 bottom-0 w-full max-w-2xl bg-obsidian border-l border-violet-500/20 z-50 overflow-y-auto">
-        <div className="sticky top-0 bg-obsidian/80 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex items-center justify-between z-10">
+      <div className="fixed bottom-0 right-0 top-0 z-50 w-full max-w-2xl overflow-y-auto border-l border-neutral-200 bg-white">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-white/95 backdrop-blur-xl px-6 py-4">
           <div className="min-w-0">
-            <div className="text-xs text-mist/50 uppercase tracking-wider mb-0.5">
-              Risk Drilldown
+            <div className="mb-0.5 text-caption uppercase tracking-wider text-neutral-500">
+              Risk drilldown
             </div>
-            <div className="text-lg font-semibold text-white truncate max-w-md">
+            <div className="max-w-md truncate text-h2 text-neutral-900">
               {dealName ?? "Deal"}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-mist/60 hover:text-white transition-colors shrink-0"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+            aria-label="Close drilldown"
           >
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
             </svg>
           </button>
@@ -74,12 +75,12 @@ export function RiskDrilldownPanel({
         <div className="p-6">
           {loading && (
             <div className="space-y-4" aria-label="Loading risk analysis">
-              <Skeleton className="h-32 w-full rounded-2xl" />
+              <Skeleton className="h-32 w-full rounded-lg" />
               <Skeleton className="h-5 w-40" />
               <div className="space-y-2">
-                <Skeleton className="h-14 w-full rounded-xl" />
-                <Skeleton className="h-14 w-full rounded-xl" />
-                <Skeleton className="h-14 w-full rounded-xl" />
+                <Skeleton className="h-14 w-full rounded-lg" />
+                <Skeleton className="h-14 w-full rounded-lg" />
+                <Skeleton className="h-14 w-full rounded-lg" />
               </div>
             </div>
           )}

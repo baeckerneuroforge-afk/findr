@@ -4,10 +4,14 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { SlackIntegration } from "@/lib/slack/service";
 import { SlackIntegrationConfigSchema } from "@/lib/schemas/slack";
+import { Button } from "@/components/ui/Button";
 
 interface SlackSettingsFormProps {
   initialIntegration: SlackIntegration | null;
 }
+
+const INPUT_BASE =
+  "w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-body text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors";
 
 export function SlackSettingsForm({
   initialIntegration,
@@ -34,7 +38,6 @@ export function SlackSettingsForm({
     setSaving(true);
     setFeedback(null);
 
-    // Client-side validation first — same schema as the API uses.
     const parsed = SlackIntegrationConfigSchema.safeParse(form);
     if (!parsed.success) {
       const errors = parsed.error.flatten().fieldErrors;
@@ -88,9 +91,9 @@ export function SlackSettingsForm({
 
   return (
     <div className="space-y-6">
-      <div className="bg-violet-500/5 border border-violet-500/20 rounded-xl p-5">
-        <h3 className="text-white font-semibold mb-2">How to set up</h3>
-        <ol className="text-sm text-mist/70 space-y-1 list-decimal list-inside">
+      <div className="rounded-lg border border-primary-100 bg-primary-50 p-5">
+        <h3 className="mb-2 text-h3 text-neutral-900">How to set up</h3>
+        <ol className="list-inside list-decimal space-y-1 text-body text-neutral-700">
           <li>Go to api.slack.com/apps → Create New App → From Scratch</li>
           <li>Add &ldquo;Incoming Webhooks&rdquo; feature, enable it</li>
           <li>
@@ -113,20 +116,20 @@ export function SlackSettingsForm({
               setForm({ ...form, workspace_name: e.target.value })
             }
             placeholder="My Company Slack"
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-mist/30 focus:border-violet-500/40 outline-none"
+            className={INPUT_BASE}
           />
         </Field>
 
         <Field
           label="Channel name"
-          hint="The Slack channel name where alerts go"
+          hint="The Slack channel where alerts go"
         >
           <input
             type="text"
             value={form.channel_name}
             onChange={(e) => setForm({ ...form, channel_name: e.target.value })}
             placeholder="#sales-alerts"
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-mist/30 focus:border-violet-500/40 outline-none"
+            className={INPUT_BASE}
           />
         </Field>
 
@@ -139,7 +142,7 @@ export function SlackSettingsForm({
             value={form.channel_id}
             onChange={(e) => setForm({ ...form, channel_id: e.target.value })}
             placeholder="C01234ABCDE"
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-mist/30 focus:border-violet-500/40 outline-none"
+            className={INPUT_BASE}
           />
         </Field>
 
@@ -152,7 +155,7 @@ export function SlackSettingsForm({
             value={form.webhook_url}
             onChange={(e) => setForm({ ...form, webhook_url: e.target.value })}
             placeholder="https://hooks.slack.com/services/..."
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-mist/30 focus:border-violet-500/40 outline-none font-mono text-sm"
+            className={`${INPUT_BASE} font-mono text-small`}
           />
         </Field>
 
@@ -166,73 +169,74 @@ export function SlackSettingsForm({
             max={100}
             value={form.alert_threshold}
             onChange={(e) =>
-              setForm({ ...form, alert_threshold: parseInt(e.target.value, 10) })
+              setForm({
+                ...form,
+                alert_threshold: parseInt(e.target.value, 10),
+              })
             }
-            className="w-full"
+            className="w-full accent-primary-500"
             disabled={form.alert_on_critical_only}
           />
         </Field>
 
-        <label className="flex items-start gap-3 cursor-pointer">
+        <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
             checked={form.alert_on_critical_only}
             onChange={(e) =>
               setForm({ ...form, alert_on_critical_only: e.target.checked })
             }
-            className="mt-1"
+            className="mt-1 accent-primary-500"
           />
           <div>
-            <div className="text-white font-medium text-sm">
+            <div className="text-body-strong text-neutral-900">
               Only alert on CRITICAL risk
             </div>
-            <div className="text-xs text-mist/50">
-              Override the threshold, only send when risk_level = critical
+            <div className="text-caption text-neutral-500">
+              Override the threshold; only send when risk_level = critical.
             </div>
           </div>
         </label>
 
-        <label className="flex items-start gap-3 cursor-pointer">
+        <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
             checked={form.enabled}
             onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
-            className="mt-1"
+            className="mt-1 accent-primary-500"
           />
           <div>
-            <div className="text-white font-medium text-sm">Enabled</div>
-            <div className="text-xs text-mist/50">
-              Toggle off to pause all alerts without losing settings
+            <div className="text-body-strong text-neutral-900">Enabled</div>
+            <div className="text-caption text-neutral-500">
+              Toggle off to pause all alerts without losing settings.
             </div>
           </div>
         </label>
       </div>
 
-      <div className="flex items-center gap-3 pt-4 border-t border-white/5 flex-wrap">
-        <button
-          type="button"
+      <div className="flex flex-wrap items-center gap-3 border-t border-neutral-200 pt-5">
+        <Button
+          variant="primary"
           onClick={handleSave}
           disabled={saving}
-          className="bg-violet-500 hover:bg-violet-400 disabled:opacity-50 text-white font-medium px-5 py-2 rounded-lg transition-colors"
         >
-          {saving ? "Saving..." : "Save settings"}
-        </button>
+          {saving ? "Saving…" : "Save settings"}
+        </Button>
 
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={handleTest}
           disabled={testing || !form.webhook_url}
-          className="border border-violet-500/30 hover:border-violet-500/60 disabled:opacity-50 text-white font-medium px-5 py-2 rounded-lg transition-colors"
         >
-          {testing ? "Sending..." : "Send test alert"}
-        </button>
+          {testing ? "Sending…" : "Send test alert"}
+        </Button>
 
         {feedback && (
           <span
-            className={`text-sm ${
+            className={`rounded-md px-2.5 py-1 text-small font-medium ${
               feedback.type === "success"
-                ? "text-emerald-400"
-                : "text-red-400"
+                ? "bg-success-50 text-success-700"
+                : "bg-danger-50 text-danger-700"
             }`}
           >
             {feedback.msg}
@@ -254,10 +258,8 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-white mb-1">
-        {label}
-      </label>
-      {hint && <p className="text-xs text-mist/50 mb-2">{hint}</p>}
+      <label className="mb-1 block text-h3 text-neutral-900">{label}</label>
+      {hint && <p className="mb-2 text-small text-neutral-500">{hint}</p>}
       {children}
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { RepCoachingProfile } from "@/lib/coaching/service";
+import { StatCard } from "@/components/ui/StatCard";
 
 const SIGNAL_LABELS: Record<string, string> = {
   CHAMPION_LOSS: "Champion Loss",
@@ -25,7 +26,7 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
 
   if (profiles.length === 0) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-12 text-center text-mist/50">
+      <div className="rounded-lg border border-dashed border-neutral-200 bg-white p-12 text-center text-body text-neutral-500">
         No coaching data yet. Run risk analysis on deals to generate insights.
       </div>
     );
@@ -43,9 +44,13 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
   return (
     <div className="space-y-4">
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard label="Reps Tracked" value={profiles.length} />
-        <StatCard label="Total Active Deals" value={activeDeals} />
-        <StatCard label="At Risk" value={dealsAtRisk} highlight />
+        <StatCard label="Reps tracked" value={profiles.length} />
+        <StatCard label="Total active deals" value={activeDeals} />
+        <StatCard
+          label="Deals at risk"
+          value={dealsAtRisk}
+          status={dealsAtRisk > 0 ? "critical" : "default"}
+        />
       </div>
 
       {profiles.map((profile) => {
@@ -63,30 +68,43 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
             : 0;
         const patternRatio =
           profile.topPattern && profile.totalDeals > 0
-            ? Math.round((profile.topPattern.frequency / profile.totalDeals) * 100)
+            ? Math.round(
+                (profile.topPattern.frequency / profile.totalDeals) * 100,
+              )
             : 0;
+
+        const ratioStyle =
+          profile.dealsAtRisk === 0
+            ? "bg-neutral-100 text-neutral-500"
+            : atRiskRatio >= 50
+              ? "bg-danger-50 text-danger-700"
+              : atRiskRatio >= 30
+                ? "bg-warning-50 text-warning-700"
+                : "bg-success-50 text-success-700";
 
         return (
           <div
             key={profile.repName}
-            className="overflow-hidden rounded-xl border border-white/10 bg-white/5"
+            className="overflow-hidden rounded-lg border border-neutral-200 bg-white"
           >
             <button
               type="button"
-              onClick={() => setExpandedRep(isExpanded ? null : profile.repName)}
-              className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-white/5"
+              onClick={() =>
+                setExpandedRep(isExpanded ? null : profile.repName)
+              }
+              className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-neutral-50"
             >
               <div className="flex min-w-0 items-center gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/20 text-sm font-semibold text-white">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary-100 bg-primary-50 text-small font-semibold text-primary-700">
                   {getInitials(profile.repName)}
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate font-semibold text-white">
+                  <div className="truncate text-body-strong text-neutral-900">
                     {profile.repName}
                   </div>
-                  <div className="mt-0.5 text-xs text-mist/50">
-                    {profile.activeDeals} active - {profile.dealsAtRisk} at risk
-                    - avg risk {profile.avgRiskScore}
+                  <div className="mt-0.5 text-small text-neutral-500">
+                    {profile.activeDeals} active · {profile.dealsAtRisk} at risk ·
+                    avg risk {profile.avgRiskScore}
                   </div>
                 </div>
               </div>
@@ -94,26 +112,22 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
               <div className="flex shrink-0 items-center gap-4">
                 {profile.topPattern && (
                   <div className="hidden text-right sm:block">
-                    <div className="mb-1 text-xs text-mist/50">Top pattern</div>
-                    <div className="text-sm font-medium text-orange-400">
+                    <div className="mb-1 text-caption text-neutral-500">
+                      Top pattern
+                    </div>
+                    <div className="text-small font-medium text-warning-700">
                       {SIGNAL_LABELS[profile.topPattern.type] ??
                         profile.topPattern.type}
                     </div>
                   </div>
                 )}
                 <div
-                  className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
-                    atRiskRatio >= 50
-                      ? "bg-red-500/20 text-red-400"
-                      : atRiskRatio >= 30
-                        ? "bg-orange-500/20 text-orange-400"
-                        : "bg-emerald-500/20 text-emerald-400"
-                  }`}
+                  className={`rounded-md px-3 py-1.5 text-small font-semibold ${ratioStyle}`}
                 >
                   {atRiskRatio}% at risk
                 </div>
                 <svg
-                  className={`h-5 w-5 text-mist/50 transition-transform ${
+                  className={`h-4 w-4 text-neutral-400 transition-transform ${
                     isExpanded ? "rotate-180" : ""
                   }`}
                   fill="none"
@@ -132,13 +146,13 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
             </button>
 
             {isExpanded && (
-              <div className="space-y-5 border-t border-white/5 px-5 pb-5 pt-5">
+              <div className="space-y-5 border-t border-neutral-200 px-5 pb-5 pt-5">
                 {profile.topPattern && (
-                  <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
-                    <div className="mb-1 text-xs font-medium uppercase tracking-wider text-orange-300/80">
-                      Manager Insight
+                  <div className="rounded-lg border border-warning-500/30 bg-warning-50 p-4">
+                    <div className="mb-1 text-caption font-medium uppercase tracking-wider text-warning-700">
+                      Manager insight
                     </div>
-                    <p className="text-sm leading-relaxed text-white/90">
+                    <p className="text-body leading-relaxed text-neutral-900">
                       {profile.repName} shows{" "}
                       {SIGNAL_LABELS[profile.topPattern.type] ??
                         profile.topPattern.type}{" "}
@@ -148,32 +162,34 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
                 )}
 
                 <div>
-                  <h4 className="mb-3 text-sm font-semibold text-white">
-                    Loss Pattern Frequency
+                  <h4 className="mb-3 text-h3 text-neutral-900">
+                    Loss pattern frequency
                   </h4>
                   {signalEntries.length === 0 ? (
-                    <p className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-mist/50">
+                    <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-body text-neutral-500">
                       No loss patterns detected yet for this rep.
                     </p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {signalEntries.map(([type, count]) => {
                         const widthPct =
-                          maxSignalCount > 0 ? (count / maxSignalCount) * 100 : 0;
+                          maxSignalCount > 0
+                            ? (count / maxSignalCount) * 100
+                            : 0;
 
                         return (
                           <div key={type}>
                             <div className="mb-1 flex items-center justify-between gap-3">
-                              <span className="truncate text-xs text-mist/70">
+                              <span className="truncate text-small text-neutral-700">
                                 {SIGNAL_LABELS[type] ?? type}
                               </span>
-                              <span className="shrink-0 text-xs text-mist/50">
-                                {count}x detected
+                              <span className="shrink-0 text-caption text-neutral-500">
+                                {count}× detected
                               </span>
                             </div>
-                            <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+                            <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
                               <div
-                                className="h-full bg-violet-500/60"
+                                className="h-full bg-primary-500"
                                 style={{ width: `${widthPct}%` }}
                               />
                             </div>
@@ -186,10 +202,10 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
 
                 {profile.recommendations.length > 0 && (
                   <div>
-                    <h4 className="mb-3 text-sm font-semibold text-white">
-                      Coaching Recommendations
+                    <h4 className="mb-3 text-h3 text-neutral-900">
+                      Coaching recommendations
                     </h4>
-                    <p className="mb-3 text-xs text-mist/50">
+                    <p className="mb-3 text-small text-neutral-500">
                       Based on top pattern:{" "}
                       {SIGNAL_LABELS[profile.topPattern?.type ?? ""] ?? ""}
                     </p>
@@ -197,12 +213,12 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
                       {profile.recommendations.map((recommendation, i) => (
                         <div
                           key={recommendation}
-                          className="flex items-start gap-3 rounded-lg border border-violet-500/20 bg-violet-500/5 p-3"
+                          className="flex items-start gap-3 rounded-lg border border-primary-100 bg-primary-50 p-3"
                         >
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/20 text-xs font-semibold text-violet-400">
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-500 text-caption font-semibold text-white">
                             {i + 1}
                           </div>
-                          <p className="text-sm leading-relaxed text-white/90">
+                          <p className="text-body leading-relaxed text-neutral-900">
                             {recommendation}
                           </p>
                         </div>
@@ -215,33 +231,6 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value: number;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-xl border bg-white/5 p-5 ${
-        highlight ? "border-red-500/30" : "border-white/10"
-      }`}
-    >
-      <div className="mb-2 text-xs text-mist/50">{label}</div>
-      <div
-        className={`text-3xl font-bold ${
-          highlight ? "text-red-400" : "text-white"
-        }`}
-      >
-        {value}
-      </div>
     </div>
   );
 }

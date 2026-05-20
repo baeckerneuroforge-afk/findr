@@ -39,12 +39,18 @@ export default function RootLayout({
       signUpFallbackRedirectUrl="/onboarding/create-org"
       appearance={{
         variables: {
-          colorPrimary: "#6d28d9",
-          colorBackground: "#16101e",
-          colorText: "#f6f4f8",
-          colorInputBackground: "#1f1731",
-          colorInputText: "#f6f4f8",
-          colorNeutral: "#c4b5fd",
+          colorPrimary: "#4f46e5",
+          colorBackground: "#ffffff",
+          colorText: "#18181b",
+          colorTextSecondary: "#71717a",
+          colorInputBackground: "#ffffff",
+          colorInputText: "#18181b",
+          colorNeutral: "#71717a",
+          fontFamily: "var(--font-geist-sans), system-ui",
+        },
+        elements: {
+          organizationSwitcherTrigger:
+            "px-2 py-1.5 hover:bg-neutral-50 rounded-md transition-colors text-neutral-900",
         },
       }}
     >
