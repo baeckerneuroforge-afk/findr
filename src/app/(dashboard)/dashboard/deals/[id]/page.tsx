@@ -7,6 +7,26 @@ import { getRiskScoreHistory } from "@/lib/risk/service";
 import { CallDetail } from "@/components/dashboard/CallDetail";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { RiskHistoryChart } from "@/components/dashboard/RiskHistoryChart";
+import { EmptyState } from "@/components/ui/EmptyState";
+
+function PhoneIcon() {
+  return (
+    <svg
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"
+      />
+    </svg>
+  );
+}
 
 export default async function DealDetailPage({
   params,
@@ -39,20 +59,29 @@ export default async function DealDetailPage({
 
   return (
     <div className="min-h-screen bg-obsidian text-white">
-      <div className="p-8 max-w-6xl mx-auto">
-        <Link
-          href="/dashboard"
-          className="text-sm text-mist/60 hover:text-white mb-4 inline-block"
+      <div className="mx-auto max-w-6xl p-8">
+        {/* Breadcrumb */}
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-6 flex items-center gap-2 text-sm text-mist/50"
         >
-          ← Back to dashboard
-        </Link>
+          <Link
+            href="/dashboard"
+            className="transition-colors hover:text-white"
+          >
+            Dashboard
+          </Link>
+          <span aria-hidden="true">/</span>
+          <span className="truncate text-white">{deal.name}</span>
+        </nav>
 
-        <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">{deal.name}</h1>
-            <div className="flex items-center gap-3 text-sm text-mist/60 flex-wrap">
+        {/* Header */}
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="mb-2 text-3xl font-bold text-white">{deal.name}</h1>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-mist/60">
               <span>{deal.stage}</span>
-              <span>·</span>
+              <span aria-hidden="true">·</span>
               <span>
                 {new Intl.NumberFormat("de-DE", {
                   style: "currency",
@@ -60,37 +89,37 @@ export default async function DealDetailPage({
                   maximumFractionDigits: 0,
                 }).format(deal.amount)}
               </span>
-              <span>·</span>
+              <span aria-hidden="true">·</span>
               <span>Champion: {deal.championName}</span>
             </div>
           </div>
           <RiskBadge level={deal.riskLevel} score={deal.riskScore} size="large" />
         </div>
 
+        {/* Risk history chart — has its own empty-state when no history */}
         <div className="mb-6">
           <RiskHistoryChart history={historyPoints} />
         </div>
 
+        {/* Calls */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4">
+          <h2 className="mb-4 text-lg font-semibold text-white">
             Call History ({calls.length})
           </h2>
-          <div className="space-y-4">
-            {calls.length === 0 ? (
-              <div className="text-center py-12 text-mist/40 border border-white/5 rounded-2xl">
-                No calls yet for this deal.
-                <p className="text-xs text-mist/30 mt-2">
-                  Run{" "}
-                  <code className="text-violet-300">
-                    pnpm tsx src/scripts/seed-calls.ts
-                  </code>{" "}
-                  to populate.
-                </p>
-              </div>
-            ) : (
-              calls.map((call) => <CallDetail key={call.id} call={call} />)
-            )}
-          </div>
+          {calls.length === 0 ? (
+            <EmptyState
+              icon={<PhoneIcon />}
+              title="No calls recorded yet"
+              description="Once you connect a calling provider (Gong, Chorus, Zoom) or upload transcripts, Findr will analyze every conversation for risk signals."
+              variant="default"
+            />
+          ) : (
+            <div className="space-y-4">
+              {calls.map((call) => (
+                <CallDetail key={call.id} call={call} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
