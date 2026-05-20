@@ -14,13 +14,13 @@ export default async function CreateOrgPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-obsidian p-6 text-white">
+    <div className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="mb-2 text-3xl font-bold text-white">
+          <h1 className="text-display text-neutral-900 mb-2">
             Welcome to Findr
           </h1>
-          <p className="text-sm text-mist/70">
+          <p className="text-body text-neutral-500">
             Create your organization to get started. This is your team&apos;s
             workspace in Findr.
           </p>
@@ -28,7 +28,7 @@ export default async function CreateOrgPage() {
 
         <CreateOrganizationForm />
 
-        <p className="mt-6 text-center text-xs text-mist/40">
+        <p className="mt-6 text-center text-small text-neutral-400">
           You can invite team members later.
         </p>
       </div>

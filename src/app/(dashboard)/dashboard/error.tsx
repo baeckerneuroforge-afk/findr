@@ -15,17 +15,15 @@ export default function DashboardError({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-obsidian text-white">
-      <div className="mx-auto max-w-3xl p-8">
-        <ErrorState
-          title="Dashboard couldn't load"
-          message={
-            error.message ||
-            "An unexpected error occurred while loading the dashboard. Try refreshing — if it keeps happening, check the server logs."
-          }
-          onRetry={reset}
-        />
-      </div>
+    <div className="mx-auto max-w-3xl">
+      <ErrorState
+        title="Dashboard couldn't load"
+        message={
+          error.message ||
+          "An unexpected error occurred while loading the dashboard. Try refreshing — if it keeps happening, check the server logs."
+        }
+        onRetry={reset}
+      />
     </div>
   );
 }

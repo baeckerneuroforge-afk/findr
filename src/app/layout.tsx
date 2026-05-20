@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
@@ -49,7 +50,7 @@ export default function RootLayout({
     >
       <html
         lang="en"
-        className={`${inter.variable} h-full antialiased`}
+        className={`${inter.variable} ${GeistSans.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col bg-obsidian text-white">
           {children}

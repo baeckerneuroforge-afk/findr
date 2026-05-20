@@ -1,21 +1,32 @@
-import { UserButton } from "@clerk/nextjs";
+"use client";
 
-interface DashboardHeaderProps {
-  title: string;
-}
+import { UserButton, OrganizationSwitcher } from "@clerk/nextjs";
 
-export default function DashboardHeader({ title }: DashboardHeaderProps) {
+export default function DashboardHeader() {
   return (
-    <header className="fixed left-60 right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-mist/10 bg-obsidian/80 px-6 backdrop-blur-md">
-      <h1 className="text-base font-medium text-white">{title}</h1>
+    <header className="sticky top-0 z-30 h-14 bg-white border-b border-neutral-200 px-6 flex items-center justify-between">
+      <div className="flex items-center">
+        <OrganizationSwitcher
+          hidePersonal={false}
+          afterCreateOrganizationUrl="/dashboard"
+          afterSelectOrganizationUrl="/dashboard"
+          appearance={{
+            elements: {
+              rootBox: "flex items-center",
+              organizationSwitcherTrigger:
+                "px-2 py-1 hover:bg-neutral-50 rounded-md text-body text-neutral-900",
+            },
+          }}
+        />
+      </div>
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
-        >
-          Connect Hubspot
-        </button>
-        <UserButton />
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: "w-8 h-8",
+            },
+          }}
+        />
       </div>
     </header>
   );

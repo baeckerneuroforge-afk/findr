@@ -58,69 +58,67 @@ export default async function DealDetailPage({
   }));
 
   return (
-    <div className="min-h-screen bg-obsidian text-white">
-      <div className="mx-auto max-w-6xl p-8">
-        {/* Breadcrumb */}
-        <nav
-          aria-label="Breadcrumb"
-          className="mb-6 flex items-center gap-2 text-sm text-mist/50"
+    <div>
+      {/* Breadcrumb */}
+      <nav
+        aria-label="Breadcrumb"
+        className="mb-6 flex items-center gap-2 text-small text-neutral-500"
+      >
+        <Link
+          href="/dashboard"
+          className="transition-colors hover:text-neutral-900"
         >
-          <Link
-            href="/dashboard"
-            className="transition-colors hover:text-white"
-          >
-            Dashboard
-          </Link>
-          <span aria-hidden="true">/</span>
-          <span className="truncate text-white">{deal.name}</span>
-        </nav>
+          Pipeline
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span className="truncate text-neutral-900">{deal.name}</span>
+      </nav>
 
-        {/* Header */}
-        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="mb-2 text-3xl font-bold text-white">{deal.name}</h1>
-            <div className="flex flex-wrap items-center gap-3 text-sm text-mist/60">
-              <span>{deal.stage}</span>
-              <span aria-hidden="true">·</span>
-              <span>
-                {new Intl.NumberFormat("de-DE", {
-                  style: "currency",
-                  currency: deal.currency,
-                  maximumFractionDigits: 0,
-                }).format(deal.amount)}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>Champion: {deal.championName}</span>
-            </div>
+      {/* Header */}
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-display text-neutral-900 mb-2">{deal.name}</h1>
+          <div className="flex flex-wrap items-center gap-3 text-body text-neutral-500">
+            <span>{deal.stage}</span>
+            <span aria-hidden="true">·</span>
+            <span>
+              {new Intl.NumberFormat("de-DE", {
+                style: "currency",
+                currency: deal.currency,
+                maximumFractionDigits: 0,
+              }).format(deal.amount)}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>Champion: {deal.championName}</span>
           </div>
-          <RiskBadge level={deal.riskLevel} score={deal.riskScore} size="large" />
         </div>
+        <RiskBadge level={deal.riskLevel} score={deal.riskScore} size="large" />
+      </div>
 
-        {/* Risk history chart — has its own empty-state when no history */}
-        <div className="mb-6">
-          <RiskHistoryChart history={historyPoints} />
-        </div>
+      {/* Risk history chart */}
+      <div className="mb-6">
+        <RiskHistoryChart history={historyPoints} />
+      </div>
 
-        {/* Calls */}
-        <div className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-white">
-            Call History ({calls.length})
-          </h2>
-          {calls.length === 0 ? (
-            <EmptyState
-              icon={<PhoneIcon />}
-              title="No calls recorded yet"
-              description="Once you connect a calling provider (Gong, Chorus, Zoom) or upload transcripts, Findr will analyze every conversation for risk signals."
-              variant="default"
-            />
-          ) : (
-            <div className="space-y-4">
-              {calls.map((call) => (
-                <CallDetail key={call.id} call={call} />
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Calls */}
+      <div className="mb-8">
+        <h2 className="mb-4 text-h2 text-neutral-900">
+          Call history ({calls.length})
+        </h2>
+        {calls.length === 0 ? (
+          <EmptyState
+            icon={<PhoneIcon />}
+            title="No calls recorded yet"
+            description="Once you connect a calling provider (Gong, Chorus, Zoom) or upload transcripts, Findr will analyze every conversation for risk signals."
+            variant="default"
+          />
+        ) : (
+          <div className="space-y-4">
+            {calls.map((call) => (
+              <CallDetail key={call.id} call={call} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

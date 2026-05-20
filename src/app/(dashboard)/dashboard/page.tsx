@@ -1,11 +1,32 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
-import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import DealList from "@/components/dashboard/DealList";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { StatCard } from "@/components/ui/StatCard";
+import { Card } from "@/components/ui/Card";
+import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { Table, THead, TH, TBody, TR, TD } from "@/components/ui/Table";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
+import type { DealStage, RiskLevel } from "@/lib/deals/types";
+
+const STAGE_LABELS: Record<DealStage, string> = {
+  qualified: "Qualified",
+  demo: "Demo",
+  proposal_sent: "Proposal sent",
+  negotiation: "Negotiation",
+  verbal_commit: "Verbal commit",
+  closed_won: "Closed won",
+  closed_lost: "Closed lost",
+};
+
+const ACTIVE_STAGES: ReadonlySet<DealStage> = new Set([
+  "qualified",
+  "demo",
+  "proposal_sent",
+  "negotiation",
+  "verbal_commit",
+]);
 
 function PlugIcon() {
   return (
@@ -24,6 +45,23 @@ function PlugIcon() {
       />
     </svg>
   );
+}
+
+function riskVariant(level: RiskLevel | undefined): BadgeVariant {
+  if (!level) return "default";
+  return level;
+}
+
+function formatRelative(dateStr: string | undefined): string {
+  if (!dateStr) return "—";
+  const date = new Date(dateStr);
+  const days = Math.floor(
+    (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  if (days <= 0) return "Today";
+  if (days === 1) return "1 day ago";
+  if (days < 30) return `${days} days ago`;
+  return date.toLocaleDateString("de-DE");
 }
 
 export default async function DashboardPage() {
@@ -58,76 +96,129 @@ export default async function DashboardPage() {
     };
   });
 
-  const atRiskCount = deals.filter(
-    (d) => d.riskScore !== undefined && d.riskScore > 60,
+  const atRisk = deals.filter(
+    (d) => d.riskScore !== undefined && d.riskScore >= 60,
   ).length;
-  const allAnalyzedClear =
-    deals.length > 0 &&
-    deals.every((d) => d.riskScore !== undefined) &&
-    atRiskCount === 0;
+  const active = deals.filter((d) => ACTIVE_STAGES.has(d.stage)).length;
+  const closingSoon = deals.filter((d) => {
+    if (!ACTIVE_STAGES.has(d.stage)) return false;
+    const close = new Date(d.closeDate).getTime();
+    const days = (close - Date.now()) / (1000 * 60 * 60 * 24);
+    return days >= 0 && days <= 30;
+  }).length;
 
-  const stats: { label: string; value: string; subtitle?: string }[] = [
-    { label: "Active Deals", value: String(deals.length) },
-    {
-      label: "Deals at Risk",
-      value: String(atRiskCount),
-      subtitle: allAnalyzedClear
-        ? "All clear"
-        : atRiskCount === 0
-          ? "Run Analyze to score deals"
-          : undefined,
-    },
-    { label: "Saved by Findr", value: "0" },
-    { label: "Loss Patterns", value: "0" },
-  ];
+  if (deals.length === 0) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-display text-neutral-900">Pipeline</h1>
+          <p className="text-body text-neutral-500 mt-1">
+            Connect Hubspot to start importing deals.
+          </p>
+        </div>
+        <EmptyState
+          icon={<PlugIcon />}
+          title="No deals yet"
+          description="Connect Hubspot to start importing your pipeline. Once deals land, Findr begins analyzing risk signals from calls and CRM activity."
+          action={{
+            label: "Connect Hubspot",
+            href: "/dashboard/integrations/hubspot",
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-obsidian text-white">
-      <DashboardSidebar />
-      <DashboardHeader title="Dashboard" />
-
-      <main className="min-h-screen pl-60 pt-16">
-        <div className="p-8">
-          {deals.length === 0 ? (
-            <div className="mx-auto max-w-3xl">
-              <EmptyState
-                icon={<PlugIcon />}
-                title="No deals yet"
-                description="Connect Hubspot to start importing your pipeline. Once deals land, Findr begins analyzing risk signals from your calls and CRM activity."
-                action={{
-                  label: "Connect Hubspot",
-                  href: "/dashboard/integrations/hubspot",
-                }}
-              />
-            </div>
-          ) : (
-            <>
-              {/* Stats row */}
-              <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
-                {stats.map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="rounded-lg border border-mist/15 bg-mist/5 p-5"
-                  >
-                    <p className="text-xs uppercase tracking-wider text-mist">
-                      {stat.label}
-                    </p>
-                    <p className="mt-2 text-3xl font-medium text-white">
-                      {stat.value}
-                    </p>
-                    {stat.subtitle && (
-                      <p className="mt-1 text-xs text-mist">{stat.subtitle}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Deals table */}
-              <DealList deals={deals} />
-            </>
-          )}
+    <div className="space-y-8">
+      {/* Page header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-display text-neutral-900">Pipeline</h1>
+          <p className="text-body text-neutral-500 mt-1">
+            {deals.length} {deals.length === 1 ? "deal" : "deals"} in your
+            active pipeline
+          </p>
         </div>
-      </main>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <StatCard label="Total deals" value={deals.length} />
+        <StatCard
+          label="Deals at risk"
+          value={atRisk}
+          status={atRisk > 0 ? "critical" : "default"}
+        />
+        <StatCard label="Active" value={active} />
+        <StatCard label="Closing in 30d" value={closingSoon} />
+      </div>
+
+      {/* Deal table */}
+      <Card>
+        <Table>
+          <THead>
+            <TR>
+              <TH>Deal</TH>
+              <TH>Stage</TH>
+              <TH>Owner</TH>
+              <TH className="text-right">Amount</TH>
+              <TH>Risk</TH>
+              <TH>Last activity</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {deals.map((deal) => (
+              <TR key={deal.id}>
+                <TD>
+                  <Link
+                    href={`/dashboard/deals/${deal.id}`}
+                    className="block -mx-4 -my-3 px-4 py-3 hover:bg-neutral-50"
+                  >
+                    <div className="text-body-strong text-neutral-900">
+                      {deal.name}
+                    </div>
+                    <div className="text-small text-neutral-500">
+                      {deal.companyName}
+                    </div>
+                  </Link>
+                </TD>
+                <TD>
+                  <Badge>{STAGE_LABELS[deal.stage]}</Badge>
+                </TD>
+                <TD className="text-neutral-700">{deal.ownerName}</TD>
+                <TD className="text-right font-medium text-neutral-900 whitespace-nowrap">
+                  {new Intl.NumberFormat("de-DE", {
+                    style: "currency",
+                    currency: deal.currency,
+                    maximumFractionDigits: 0,
+                  }).format(deal.amount)}
+                </TD>
+                <TD>
+                  {deal.riskLevel && deal.riskScore !== undefined ? (
+                    <Badge variant={riskVariant(deal.riskLevel)}>
+                      {deal.riskScore} · {deal.riskLevel}
+                    </Badge>
+                  ) : (
+                    <span className="text-small text-neutral-400">—</span>
+                  )}
+                </TD>
+                <TD className="text-small text-neutral-500 whitespace-nowrap">
+                  {deal.daysSinceLastActivity === 0
+                    ? "Today"
+                    : `${deal.daysSinceLastActivity}d ago`}
+                </TD>
+              </TR>
+            ))}
+          </TBody>
+        </Table>
+      </Card>
+
+      {/* Hint */}
+      <p className="text-small text-neutral-500">
+        Click a deal to view call history, risk-score timeline, and run a fresh
+        analysis. Risk signals are recalculated daily by the background cron.
+      </p>
     </div>
   );
 }

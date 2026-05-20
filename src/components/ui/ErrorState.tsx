@@ -12,8 +12,8 @@ export function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   return (
-    <div className="flex flex-col items-center rounded-xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10 text-red-400">
+    <div className="flex flex-col items-center rounded-lg border border-danger-500/30 bg-danger-50 p-8 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-danger-500/30 bg-white text-danger-500">
         <svg
           className="h-6 w-6"
           viewBox="0 0 24 24"
@@ -29,13 +29,15 @@ export function ErrorState({
           />
         </svg>
       </div>
-      <h3 className="mt-4 text-lg font-semibold text-white">{title}</h3>
-      <p className="mx-auto mt-2 max-w-md text-sm text-mist/60">{message}</p>
+      <h3 className="mt-4 text-h1 text-neutral-900">{title}</h3>
+      <p className="mx-auto mt-2 max-w-md text-body text-neutral-700">
+        {message}
+      </p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="mt-6 inline-flex items-center gap-2 rounded-lg border border-white/10 px-5 py-2.5 font-medium text-white transition-colors hover:border-white/20"
+          className="mt-6 inline-flex h-8 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-body-strong font-medium text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
         >
           <svg
             className="h-4 w-4"

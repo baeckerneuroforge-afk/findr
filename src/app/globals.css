@@ -55,6 +55,48 @@
   --color-ring: #6d28d9;
 
   --font-sans: var(--font-inter);
+  --font-geist: var(--font-geist-sans);
+
+  /* ────────────────────────────────────────────────────────────────
+     Platform Design System v2 — light-mode tokens for /dashboard
+     and /onboarding. Landing-page tokens above are untouched. */
+
+  /* Neutrals (gray-scale) */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f4f4f5;
+  --color-neutral-200: #e4e4e7;
+  --color-neutral-300: #d4d4d8;
+  --color-neutral-400: #a1a1aa;
+  --color-neutral-500: #71717a;
+  --color-neutral-700: #3f3f46;
+  --color-neutral-900: #18181b;
+
+  /* Primary accent — indigo (calmer than the brand violet) */
+  --color-primary-50: #f5f3ff;
+  --color-primary-100: #ede9fe;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+
+  /* Status colors */
+  --color-success-50: #f0fdf4;
+  --color-success-500: #10b981;
+  --color-success-700: #047857;
+
+  --color-warning-50: #fffbeb;
+  --color-warning-500: #f59e0b;
+  --color-warning-700: #b45309;
+
+  --color-danger-50: #fef2f2;
+  --color-danger-500: #ef4444;
+  --color-danger-700: #b91c1c;
+
+  /* Risk-level mapping (Findr-specific) */
+  --color-risk-low: #10b981;
+  --color-risk-medium: #f59e0b;
+  --color-risk-high: #f97316;
+  --color-risk-critical: #ef4444;
 
   /* Animations (Tailwind v4 — exposed as utilities animate-*) */
   --animate-gradient-slow: gradient 15s ease infinite;
@@ -87,6 +129,25 @@
 
 body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Platform typography utilities. Apply Geist Sans via the .font-geist
+   class on the route-group root (dashboard/onboarding) — landing keeps
+   Inter via the body default. */
+@layer utilities {
+  .font-geist {
+    font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .text-display { font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.02em; }
+  .text-h1      { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; }
+  .text-h2      { font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .text-h3      { font-size: 14px; line-height: 20px; font-weight: 600; }
+  .text-body          { font-size: 14px; line-height: 22px; font-weight: 400; }
+  .text-body-strong   { font-size: 14px; line-height: 22px; font-weight: 500; }
+  .text-small         { font-size: 13px; line-height: 18px; font-weight: 400; }
+  .text-caption       { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0.01em; }
 }
 
 @layer utilities {
