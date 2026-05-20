@@ -5,6 +5,7 @@ import { getCallsByDealId } from "@/lib/calls/service";
 import { analyzeDealRisk } from "@/lib/risk/classifier";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { maybeTriggerAlert, getPreviousScore } from "@/lib/alerts/trigger";
+import { AnalyzeRiskRequestSchema } from "@/lib/schemas/risk";
 import type { Json } from "@/types/database";
 
 export async function POST(req: NextRequest) {
@@ -12,13 +13,15 @@ export async function POST(req: NextRequest) {
   if ("error" in orgOrError) return orgOrError.error;
   const orgId = orgOrError.orgId;
 
-  const body = (await req.json().catch(() => null)) as
-    | { dealId?: string }
-    | null;
-  const dealId = body?.dealId;
-  if (!dealId) {
-    return NextResponse.json({ error: "dealId required" }, { status: 400 });
+  const rawBody = await req.json().catch(() => null);
+  const parsed = AnalyzeRiskRequestSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid request body", details: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
+  const { dealId } = parsed.data;
 
   const deal = await getDealById(orgId, dealId);
   if (!deal) {

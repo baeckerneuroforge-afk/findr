@@ -1,9 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
-import {
-  upsertSlackIntegration,
-  type SlackIntegrationConfig,
-} from "@/lib/slack/service";
+import { upsertSlackIntegration } from "@/lib/slack/service";
+import { SlackIntegrationConfigSchema } from "@/lib/schemas/slack";
 
 export async function POST(req: NextRequest) {
   const orgOrError = await requireOrgIdOrError();
@@ -11,18 +9,20 @@ export async function POST(req: NextRequest) {
   const orgId = orgOrError.orgId;
 
   try {
-    const body = (await req.json()) as SlackIntegrationConfig;
-    if (!body.channel_id || !body.channel_name || !body.webhook_url) {
+    const rawBody = await req.json();
+    const parsed = SlackIntegrationConfigSchema.safeParse(rawBody);
+    if (!parsed.success) {
       return NextResponse.json(
         {
           success: false,
-          error: "channel_id, channel_name and webhook_url are required",
+          error: "Invalid configuration",
+          details: parsed.error.flatten(),
         },
         { status: 400 },
       );
     }
 
-    await upsertSlackIntegration(orgId, body);
+    await upsertSlackIntegration(orgId, parsed.data);
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json(

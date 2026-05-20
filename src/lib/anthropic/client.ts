@@ -31,6 +31,10 @@ export function getAnthropicClient(): Anthropic {
     throw new Error("ANTHROPIC_API_KEY is not set.");
   }
 
-  _client = new Anthropic({ apiKey });
+  _client = new Anthropic({
+    apiKey,
+    timeout: 30_000,
+    maxRetries: 2,
+  });
   return _client;
 }

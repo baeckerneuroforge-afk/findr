@@ -2,13 +2,9 @@ import "server-only";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
+import type { RiskSignal } from "@/lib/schemas/risk";
 
-export interface RiskSignal {
-  type: string;
-  confidence: number;
-  reasoning: string;
-  quotes: string[];
-}
+export type { RiskSignal };
 
 export interface RiskScoreRecord {
   id: string;

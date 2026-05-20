@@ -33,17 +33,7 @@ export interface Deal {
   lastRiskUpdate?: string;
 }
 
-export interface RiskSignal {
-  type: string;
-  confidence: number;
-  reasoning: string;
-  quotes?: string[];
-}
-
-export interface RiskAnalysisResult {
-  riskScore: number;
-  riskLevel: RiskLevel;
-  signals: RiskSignal[];
-  overallReasoning: string;
-  recommendations?: string[];
-}
+// RiskSignal / RiskAnalysisResult are canonical in @/lib/schemas/risk
+// (single source of truth, Zod-validated). Re-exported here for backward
+// compatibility of import paths.
+export type { RiskSignal, RiskAnalysisResult } from "@/lib/schemas/risk";

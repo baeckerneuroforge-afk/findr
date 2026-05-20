@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { SlackIntegration } from "@/lib/slack/service";
+import { SlackIntegrationConfigSchema } from "@/lib/schemas/slack";
 
 interface SlackSettingsFormProps {
   initialIntegration: SlackIntegration | null;
@@ -33,10 +34,27 @@ export function SlackSettingsForm({
     setSaving(true);
     setFeedback(null);
 
+    // Client-side validation first — same schema as the API uses.
+    const parsed = SlackIntegrationConfigSchema.safeParse(form);
+    if (!parsed.success) {
+      const errors = parsed.error.flatten().fieldErrors;
+      const firstError = Object.entries(errors).find(
+        ([, msgs]) => msgs && msgs.length > 0,
+      );
+      setFeedback({
+        type: "error",
+        msg: firstError
+          ? `${firstError[0]}: ${firstError[1]?.[0]}`
+          : "Invalid form data",
+      });
+      setSaving(false);
+      return;
+    }
+
     const res = await fetch("/api/integrations/slack", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(parsed.data),
     });
 
     const data = (await res.json()) as { success: boolean; error?: string };

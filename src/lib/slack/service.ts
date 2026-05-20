@@ -2,6 +2,12 @@ import "server-only";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
+import {
+  SlackWebhookUrlSchema,
+  type SlackIntegrationConfig,
+} from "@/lib/schemas/slack";
+
+export type { SlackIntegrationConfig };
 
 export interface SlackIntegration {
   id: string;
@@ -55,16 +61,6 @@ export async function getSlackIntegration(
 
   if (error || !data) return null;
   return toIntegration(data);
-}
-
-export interface SlackIntegrationConfig {
-  workspace_name?: string;
-  channel_id: string;
-  channel_name: string;
-  webhook_url: string;
-  alert_threshold?: number;
-  alert_on_critical_only?: boolean;
-  enabled?: boolean;
 }
 
 export async function upsertSlackIntegration(
@@ -185,6 +181,16 @@ export async function sendSlackAlert(
   integration: SlackIntegration,
   payload: SlackAlertPayload,
 ): Promise<{ success: boolean; error?: string }> {
+  // Defense-in-depth: re-validate URL before fetch. Catches rows persisted
+  // before this validation existed, or any future bypass of the API layer.
+  const urlCheck = SlackWebhookUrlSchema.safeParse(integration.webhook_url);
+  if (!urlCheck.success) {
+    return {
+      success: false,
+      error: "Stored webhook URL is invalid (not a Slack webhook URL)",
+    };
+  }
+
   const blocks = buildSlackBlocks(payload);
 
   try {
@@ -195,6 +201,7 @@ export async function sendSlackAlert(
         blocks,
         text: `${payload.dealName} — Risk ${payload.riskScore}/100`,
       }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {
@@ -207,6 +214,9 @@ export async function sendSlackAlert(
 
     return { success: true };
   } catch (err) {
+    if (err instanceof Error && err.name === "TimeoutError") {
+      return { success: false, error: "Slack webhook timeout after 10s" };
+    }
     return {
       success: false,
       error: err instanceof Error ? err.message : "Unknown error",
