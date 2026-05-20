@@ -5,7 +5,11 @@ import { maybeTriggerForecastChange } from "@/lib/alerts/triggers";
 import { getCallsByDealId } from "@/lib/calls/service";
 import { getDealsByOrg } from "@/lib/deals/service";
 import type { Deal } from "@/lib/deals/types";
-import { analyzeDealRisk } from "@/lib/risk/classifier";
+import {
+  buildDetectorInput,
+  riskAnalysisToLegacyResult,
+} from "@/lib/risk/adapters";
+import { analyzeRisk } from "@/lib/risk/orchestrator";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
 
@@ -46,6 +50,30 @@ async function getRiskAdjustedPipelineValue(
   }, 0);
 }
 
+interface OrgDeals {
+  org: { id: string; name: string | null };
+  activeDeals: Deal[];
+}
+
+export function isRealActiveDeal(
+  deal: Pick<Deal, "stage" | "dataSource">,
+): boolean {
+  return (
+    !["closed_won", "closed_lost"].includes(deal.stage) &&
+    deal.dataSource !== "mock"
+  );
+}
+
+export function getCronAnalysisMode(
+  env: { ANTHROPIC_API_KEY?: string } = {
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  },
+): "heuristic_only" | "heuristic_with_ai_available" {
+  return env.ANTHROPIC_API_KEY
+    ? "heuristic_with_ai_available"
+    : "heuristic_only";
+}
+
 export async function GET(request: Request) {
   if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -61,6 +89,50 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Failed to fetch orgs" }, { status: 500 });
   }
 
+  if (getCronAnalysisMode() === "heuristic_only") {
+    console.log("Cron running in heuristic-only mode");
+  }
+
+  const orgDealGroups: OrgDeals[] = [];
+  let skippedNonRealDeals = 0;
+
+  for (const org of orgs) {
+    try {
+      const deals = await getDealsByOrg(org.id);
+      const realDeals = deals.filter(isRealActiveDeal);
+      const skippedDeals = deals.length - realDeals.length;
+      skippedNonRealDeals += skippedDeals;
+      orgDealGroups.push({
+        org,
+        activeDeals: realDeals,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "unknown";
+      orgDealGroups.push({
+        org,
+        activeDeals: [],
+      });
+      console.error(`Failed to fetch deals for org ${org.id}: ${msg}`);
+    }
+  }
+
+  const totalRealDeals = orgDealGroups.reduce(
+    (sum, group) => sum + group.activeDeals.length,
+    0,
+  );
+
+  if (totalRealDeals === 0) {
+    return NextResponse.json({
+      success: true,
+      processed: 0,
+      skipped: true,
+      reason: "no_real_deals",
+      total_orgs: orgs.length,
+      skipped_deals: skippedNonRealDeals,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   const results = {
     total_orgs: orgs.length,
     total_deals: 0,
@@ -71,29 +143,19 @@ export async function GET(request: Request) {
     errors: [] as string[],
   };
 
-  for (const org of orgs) {
+  results.skipped += skippedNonRealDeals;
+
+  for (const { org, activeDeals } of orgDealGroups) {
     try {
-      const deals = await getDealsByOrg(org.id);
-      const activeDeals = deals.filter(
-        (deal) => !["closed_won", "closed_lost"].includes(deal.stage),
-      );
-      const forecastDeals = activeDeals.filter(
-        (deal) => deal.dataSource !== "mock",
-      );
       const oldPipelineValue = await getRiskAdjustedPipelineValue(
         org.id,
-        forecastDeals,
+        activeDeals,
       );
 
       results.total_deals += activeDeals.length;
 
       for (const deal of activeDeals) {
         try {
-          if (deal.dataSource === "mock") {
-            results.skipped++;
-            continue;
-          }
-
           const calls = await getCallsByDealId(org.id, deal.id);
 
           if (calls.length === 0) {
@@ -102,7 +164,14 @@ export async function GET(request: Request) {
           }
 
           const previousScore = await getPreviousScore(org.id, deal.id);
-          const result = await analyzeDealRisk(deal, calls, org.id);
+          const analysis = await analyzeRisk(
+            buildDetectorInput({
+              orgId: org.id,
+              deal,
+              calls,
+            }),
+          );
+          const result = riskAnalysisToLegacyResult(analysis);
 
           const { data: inserted, error: insertError } = await supabase
             .from("risk_scores")
@@ -156,7 +225,7 @@ export async function GET(request: Request) {
 
       const newPipelineValue = await getRiskAdjustedPipelineValue(
         org.id,
-        forecastDeals,
+        activeDeals,
       );
       const preferences = await getSlackAlertPreferences(org.id);
       const forecastAlertResult = await maybeTriggerForecastChange({

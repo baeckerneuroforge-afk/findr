@@ -11,6 +11,7 @@ import {
   type HubspotOwner,
 } from "@/lib/schemas/hubspot";
 import { maybeTriggerDealLost } from "@/lib/alerts/triggers";
+import { analyzeAndPersistLossReason } from "@/lib/loss/service";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database";
 
@@ -482,6 +483,10 @@ export async function syncHubspotDeals(orgId: string): Promise<{
             normalizedStage === "closed_lost" &&
             syncedDeal
           ) {
+            const lossResult = await analyzeAndPersistLossReason(
+              orgId,
+              syncedDeal.id,
+            );
             await maybeTriggerDealLost({
               orgId,
               dealId: syncedDeal.id,
@@ -491,6 +496,12 @@ export async function syncHubspotDeals(orgId: string): Promise<{
                 deal_name: syncedDeal.name,
                 deal_amount: syncedDeal.amount ?? undefined,
                 deal_owner: syncedDeal.owner_name ?? "Unassigned",
+                metadata: lossResult
+                  ? {
+                      primary_reason: lossResult.analysis.primary_reason,
+                      confidence: lossResult.analysis.confidence,
+                    }
+                  : undefined,
               },
             });
           }

@@ -643,6 +643,143 @@ export type Database = {
           },
         ]
       }
+      loss_reasons: {
+        Row: {
+          confidence: number
+          created_at: string
+          deal_id: string
+          evidence_quotes: Json | null
+          extracted_at: string
+          extraction_method: "heuristic" | "ai" | "manual"
+          id: string
+          manually_corrected: boolean
+          notes: string | null
+          org_id: string
+          primary_reason:
+            | "pricing"
+            | "compliance"
+            | "competitor"
+            | "timing"
+            | "budget"
+            | "champion_lost"
+            | "feature_gap"
+            | "no_decision"
+            | "internal_priority"
+            | "other"
+          secondary_reasons: string[] | null
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          deal_id: string
+          evidence_quotes?: Json | null
+          extracted_at?: string
+          extraction_method?: "heuristic" | "ai" | "manual"
+          id?: string
+          manually_corrected?: boolean
+          notes?: string | null
+          org_id: string
+          primary_reason:
+            | "pricing"
+            | "compliance"
+            | "competitor"
+            | "timing"
+            | "budget"
+            | "champion_lost"
+            | "feature_gap"
+            | "no_decision"
+            | "internal_priority"
+            | "other"
+          secondary_reasons?: string[] | null
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          deal_id?: string
+          evidence_quotes?: Json | null
+          extracted_at?: string
+          extraction_method?: "heuristic" | "ai" | "manual"
+          id?: string
+          manually_corrected?: boolean
+          notes?: string | null
+          org_id?: string
+          primary_reason?:
+            | "pricing"
+            | "compliance"
+            | "competitor"
+            | "timing"
+            | "budget"
+            | "champion_lost"
+            | "feature_gap"
+            | "no_decision"
+            | "internal_priority"
+            | "other"
+          secondary_reasons?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loss_reasons_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loss_reasons_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loss_reports: {
+        Row: {
+          breakdown: Json
+          created_at: string
+          generated_at: string
+          id: string
+          org_id: string
+          pdf_url: string | null
+          period_end: string
+          period_start: string
+          total_lost_deals: number
+          total_lost_value: number
+        }
+        Insert: {
+          breakdown?: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          org_id: string
+          pdf_url?: string | null
+          period_end: string
+          period_start: string
+          total_lost_deals?: number
+          total_lost_value?: number
+        }
+        Update: {
+          breakdown?: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          org_id?: string
+          pdf_url?: string | null
+          period_end?: string
+          period_start?: string
+          total_lost_deals?: number
+          total_lost_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loss_reports_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           clerk_org_id: string

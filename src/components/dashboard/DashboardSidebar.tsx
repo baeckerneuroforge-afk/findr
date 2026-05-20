@@ -11,6 +11,7 @@ interface NavItem {
 const PRIMARY_NAV: NavItem[] = [
   { href: "/dashboard", label: "Pipeline" },
   { href: "/dashboard/coaching", label: "Team Coaching" },
+  { href: "/dashboard/loss-analysis", label: "Loss Analysis" },
 ];
 
 const INTEGRATIONS_NAV: NavItem[] = [
