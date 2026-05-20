@@ -34,6 +34,8 @@ export default function RootLayout({
   return (
     <ClerkProvider
       afterSignOutUrl="/"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/onboarding/create-org"
       appearance={{
         variables: {
           colorPrimary: "#6d28d9",

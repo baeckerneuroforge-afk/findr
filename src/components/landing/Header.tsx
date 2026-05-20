@@ -10,12 +10,8 @@ export function Header() {
   const { isLoaded, isSignedIn } = useAuth();
   const { isLoaded: isOrganizationLoaded, organization } = useOrganization();
 
-  const dashboardHref = isOrganizationLoaded && !organization
-    ? "/onboarding/create-org"
-    : "/dashboard";
-  const dashboardLabel = isOrganizationLoaded && !organization
-    ? "Complete setup"
-    : "Dashboard";
+  const dashboardHref = organization ? "/dashboard" : "/onboarding/create-org";
+  const dashboardLabel = organization ? "Dashboard" : "Complete setup";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -49,7 +45,12 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {isLoaded && isSignedIn ? (
+          {!isLoaded || (isSignedIn && !isOrganizationLoaded) ? (
+            <span
+              aria-hidden="true"
+              className="h-9 w-32 rounded-lg bg-white/5"
+            />
+          ) : isSignedIn ? (
             <Link
               href={dashboardHref}
               className="bg-violet-500 hover:bg-violet-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"

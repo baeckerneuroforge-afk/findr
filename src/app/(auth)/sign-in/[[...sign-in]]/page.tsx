@@ -10,7 +10,11 @@ export default function SignInPage() {
         <img src="/logo.svg" alt="Findr" className="h-[30px] w-auto" />
       </Link>
 
-      <SignIn appearance={findrAuthAppearance} />
+      <SignIn
+        appearance={findrAuthAppearance}
+        fallbackRedirectUrl="/dashboard"
+        signUpFallbackRedirectUrl="/onboarding/create-org"
+      />
 
       <p className="mt-8 text-sm text-mist">
         Don&rsquo;t have an account?{" "}

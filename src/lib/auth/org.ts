@@ -1,6 +1,6 @@
 import "server-only";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { getDevOrgId } from "./dev-org";
@@ -17,13 +17,59 @@ export class OrgResolutionError extends Error {
   }
 }
 
+function canUseDevOrgFallback(): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    (process.env.ALLOW_DEV_ORG_FALLBACK === "true" ||
+      process.env.NEXT_PUBLIC_ALLOW_DEV_ORG_FALLBACK === "true")
+  );
+}
+
+async function syncClerkOrgToSupabase(clerkOrgId: string): Promise<string> {
+  try {
+    const client = await clerkClient();
+    const clerkOrg = await client.organizations.getOrganization({
+      organizationId: clerkOrgId,
+    });
+    const supabase = createAdminSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("organizations")
+      .upsert(
+        {
+          clerk_org_id: clerkOrgId,
+          name: clerkOrg.name,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "clerk_org_id" },
+      )
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      throw new OrgResolutionError(
+        `Clerk org ${clerkOrgId} could not be synced to organizations table`,
+        "org_not_in_db",
+      );
+    }
+
+    return (data as { id: string }).id;
+  } catch (err) {
+    if (err instanceof OrgResolutionError) throw err;
+    throw new OrgResolutionError(
+      `Clerk org ${clerkOrgId} could not be synced to organizations table`,
+      "org_not_in_db",
+    );
+  }
+}
+
 /**
  * Resolves the current Clerk org to an internal organizations.id (UUID).
  * Throws OrgResolutionError if the user is not authenticated or has no
  * active org.
  *
- * If NEXT_PUBLIC_ALLOW_DEV_ORG_FALLBACK=true and the user is authenticated
- * but has no Clerk org selected, falls back to the dev org UUID.
+ * In local development only, ALLOW_DEV_ORG_FALLBACK=true can fall back to the
+ * demo org UUID for signed-in users with no active Clerk org.
  */
 export async function requireOrgId(): Promise<string> {
   const { userId, orgId: clerkOrgId } = await auth();
@@ -33,7 +79,7 @@ export async function requireOrgId(): Promise<string> {
   }
 
   if (!clerkOrgId) {
-    if (process.env.NEXT_PUBLIC_ALLOW_DEV_ORG_FALLBACK === "true") {
+    if (canUseDevOrgFallback()) {
       return getDevOrgId();
     }
     throw new OrgResolutionError("No active organization", "no_org");
@@ -46,11 +92,15 @@ export async function requireOrgId(): Promise<string> {
     .eq("clerk_org_id", clerkOrgId)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
     throw new OrgResolutionError(
       `Clerk org ${clerkOrgId} not found in organizations table`,
       "org_not_in_db",
     );
+  }
+
+  if (!data) {
+    return syncClerkOrgToSupabase(clerkOrgId);
   }
 
   return (data as { id: string }).id;
