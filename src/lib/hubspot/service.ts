@@ -334,7 +334,9 @@ export async function fetchHubspotOwners(
   return result;
 }
 
-function normalizeStage(hubspotStage: string | null | undefined): string {
+export function normalizeHubspotStage(
+  hubspotStage: string | null | undefined,
+): string {
   if (!hubspotStage) return "qualified";
   const lower = hubspotStage.toLowerCase();
 
@@ -437,7 +439,7 @@ export async function syncHubspotDeals(orgId: string): Promise<{
             hubspot_deal_id: deal.id,
             name: deal.properties.dealname ?? `Deal #${deal.id}`,
             company_name: company?.properties.name ?? "Unknown Company",
-            stage: normalizeStage(deal.properties.dealstage),
+            stage: normalizeHubspotStage(deal.properties.dealstage),
             amount: parseAmount(deal.properties.amount),
             currency,
             owner_name: ownerDisplayName(owner),
