@@ -5,6 +5,7 @@ import { getCallsByDealId } from "@/lib/calls/service";
 import { analyzeDealRisk } from "@/lib/risk/classifier";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { maybeTriggerAlert, getPreviousScore } from "@/lib/alerts/trigger";
+import type { Json } from "@/types/database";
 
 export async function POST(req: NextRequest) {
   const orgOrError = await requireOrgIdOrError();
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminSupabaseClient();
     const { data: inserted, error: insertError } = await supabase
-      .from("risk_scores" as never)
+      .from("risk_scores")
       .insert({
         org_id: orgId,
         deal_id: dealId,
@@ -39,8 +40,8 @@ export async function POST(req: NextRequest) {
         risk_level: result.riskLevel,
         overall_reasoning: result.overallReasoning,
         recommendations: result.recommendations ?? [],
-        signals: result.signals,
-      } as never)
+        signals: result.signals as unknown as Json,
+      })
       .select()
       .single();
 
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       console.error("Failed to persist risk_score:", insertError.message);
     }
 
-    const riskScoreId = (inserted as { id: string } | null)?.id ?? null;
+    const riskScoreId = inserted?.id ?? null;
 
     let alert: { triggered: boolean; reason?: string } = { triggered: false };
     if (riskScoreId) {

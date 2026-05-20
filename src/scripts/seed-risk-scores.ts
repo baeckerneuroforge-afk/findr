@@ -26,6 +26,7 @@ import {
 } from "@/lib/risk/prompts";
 import type { RiskAnalysisResult } from "@/lib/deals/types";
 import { DEV_ORG_ID } from "@/lib/auth/dev-org";
+import type { Database, Json } from "@/types/database";
 
 loadEnv({ path: ".env.local" });
 loadEnv();
@@ -45,7 +46,7 @@ if (!anthropicKey) {
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
@@ -100,8 +101,8 @@ async function seedRiskScores() {
           risk_level: result.riskLevel,
           overall_reasoning: result.overallReasoning,
           recommendations: result.recommendations ?? [],
-          signals: result.signals,
-        } as never);
+          signals: result.signals as unknown as Json,
+        });
 
       if (error) {
         console.error(`✗ ${deal.name}: ${error.message}`);

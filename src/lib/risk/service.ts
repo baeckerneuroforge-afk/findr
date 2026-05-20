@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
 
 export interface RiskSignal {
   type: string;
@@ -21,13 +22,35 @@ export interface RiskScoreRecord {
   analyzed_at: string;
 }
 
+type RiskScoreRow = Database["public"]["Tables"]["risk_scores"]["Row"];
+
+/**
+ * Map a raw Supabase row to our typed RiskScoreRecord. Two narrowing casts
+ * remain by design: `signals` is stored as JSONB (Database type: `Json`) and
+ * `risk_level` is stored as text with a check-constraint enforcing the union
+ * shape — TypeScript can't see the constraint, so we trust the DB here.
+ */
+function toRecord(row: RiskScoreRow): RiskScoreRecord {
+  return {
+    id: row.id,
+    org_id: row.org_id,
+    deal_id: row.deal_id,
+    risk_score: row.risk_score,
+    risk_level: row.risk_level as RiskScoreRecord["risk_level"],
+    overall_reasoning: row.overall_reasoning,
+    recommendations: row.recommendations ?? [],
+    signals: (row.signals as unknown as RiskSignal[]) ?? [],
+    analyzed_at: row.analyzed_at ?? new Date(0).toISOString(),
+  };
+}
+
 export async function getLatestRiskScore(
   orgId: string,
   dealId: string,
 ): Promise<RiskScoreRecord | null> {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
-    .from("risk_scores" as never)
+    .from("risk_scores")
     .select("*")
     .eq("org_id", orgId)
     .eq("deal_id", dealId)
@@ -36,7 +59,7 @@ export async function getLatestRiskScore(
     .maybeSingle();
 
   if (error || !data) return null;
-  return data as unknown as RiskScoreRecord;
+  return toRecord(data);
 }
 
 export async function getRiskScoreHistory(
@@ -46,7 +69,7 @@ export async function getRiskScoreHistory(
 ): Promise<RiskScoreRecord[]> {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
-    .from("risk_scores" as never)
+    .from("risk_scores")
     .select("*")
     .eq("org_id", orgId)
     .eq("deal_id", dealId)
@@ -54,7 +77,7 @@ export async function getRiskScoreHistory(
     .limit(limit);
 
   if (error || !data) return [];
-  return data as unknown as RiskScoreRecord[];
+  return data.map(toRecord);
 }
 
 /**
@@ -69,7 +92,7 @@ export async function getLatestRiskScoresForDeals(
 
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
-    .from("risk_scores" as never)
+    .from("risk_scores")
     .select("*")
     .eq("org_id", orgId)
     .in("deal_id", dealIds)
@@ -78,9 +101,9 @@ export async function getLatestRiskScoresForDeals(
   if (error || !data) return new Map();
 
   const latest = new Map<string, RiskScoreRecord>();
-  for (const row of data as unknown as RiskScoreRecord[]) {
+  for (const row of data) {
     if (!latest.has(row.deal_id)) {
-      latest.set(row.deal_id, row);
+      latest.set(row.deal_id, toRecord(row));
     }
   }
   return latest;

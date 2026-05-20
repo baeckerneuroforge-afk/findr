@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
 
 export interface SlackIntegration {
   id: string;
@@ -25,19 +26,35 @@ export interface SlackAlertPayload {
   dashboardUrl: string;
 }
 
+type SlackIntegrationRow = Database["public"]["Tables"]["slack_integrations"]["Row"];
+
+function toIntegration(row: SlackIntegrationRow): SlackIntegration {
+  return {
+    id: row.id,
+    org_id: row.org_id,
+    workspace_name: row.workspace_name,
+    channel_id: row.channel_id,
+    channel_name: row.channel_name,
+    webhook_url: row.webhook_url,
+    alert_threshold: row.alert_threshold,
+    alert_on_critical_only: row.alert_on_critical_only,
+    enabled: row.enabled,
+  };
+}
+
 export async function getSlackIntegration(
   orgId: string,
 ): Promise<SlackIntegration | null> {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
-    .from("slack_integrations" as never)
+    .from("slack_integrations")
     .select("*")
     .eq("org_id", orgId)
     .eq("enabled", true)
     .maybeSingle();
 
   if (error || !data) return null;
-  return data as unknown as SlackIntegration;
+  return toIntegration(data);
 }
 
 export interface SlackIntegrationConfig {
@@ -56,13 +73,13 @@ export async function upsertSlackIntegration(
 ) {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
-    .from("slack_integrations" as never)
+    .from("slack_integrations")
     .upsert(
       {
         org_id: orgId,
         ...config,
         updated_at: new Date().toISOString(),
-      } as never,
+      },
       { onConflict: "org_id" },
     )
     .select()
@@ -208,14 +225,14 @@ export async function logAlert(
   errorMessage?: string,
 ): Promise<void> {
   const supabase = createAdminSupabaseClient();
-  await supabase.from("alert_history" as never).insert({
+  await supabase.from("alert_history").insert({
     org_id: orgId,
     deal_id: dealId,
     risk_score_id: riskScoreId,
     alert_type: alertType,
     channel_id: channelId,
-    payload,
+    payload: payload as unknown as Database["public"]["Tables"]["alert_history"]["Insert"]["payload"],
     status,
     error_message: errorMessage ?? null,
-  } as never);
+  });
 }

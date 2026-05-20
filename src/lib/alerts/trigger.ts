@@ -85,7 +85,7 @@ export async function getPreviousScore(
 ): Promise<number | null> {
   const supabase = createAdminSupabaseClient();
   const { data } = await supabase
-    .from("risk_scores" as never)
+    .from("risk_scores")
     .select("risk_score, analyzed_at")
     .eq("org_id", orgId)
     .eq("deal_id", dealId)
@@ -93,5 +93,5 @@ export async function getPreviousScore(
     .limit(2);
 
   if (!data || data.length < 2) return null;
-  return (data[1] as { risk_score: number }).risk_score;
+  return data[1].risk_score;
 }

@@ -59,7 +59,7 @@ export async function getCallsByDealId(
     return [];
   }
 
-  return (data ?? []) as unknown as CallRow[];
+  return (data ?? []) as CallRow[];
 }
 
 export async function getCallById(
@@ -87,5 +87,5 @@ export async function getCallById(
     return null;
   }
 
-  return data as unknown as CallRow;
+  return data as CallRow;
 }

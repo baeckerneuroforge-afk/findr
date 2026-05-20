@@ -16,6 +16,7 @@ import { config as loadEnv } from "dotenv";
 import { MOCK_DEALS } from "@/lib/deals/mock-data";
 import { generateCallsForDeal } from "@/lib/calls/mock-call-generator";
 import { DEV_ORG_ID } from "@/lib/auth/dev-org";
+import type { Database } from "@/types/database";
 
 loadEnv({ path: ".env.local" });
 loadEnv();
@@ -30,7 +31,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
@@ -52,7 +53,7 @@ async function seedCalls() {
           recorded_at: mockCall.recorded_at,
           source: "mock",
           call_type: mockCall.call_type,
-        } as never)
+        })
         .select()
         .single();
 
@@ -64,14 +65,14 @@ async function seedCalls() {
       const speakerIds: string[] = [];
       for (const speaker of mockCall.speakers) {
         const { data: speakerRecord, error: speakerErr } = await supabase
-          .from("call_speakers" as never)
+          .from("call_speakers")
           .insert({
-            call_id: (callRecord as { id: string }).id,
+            call_id: callRecord.id,
             name: speaker.name,
             role: speaker.role,
             organization: speaker.organization,
             speaker_type: speaker.speaker_type,
-          } as never)
+          })
           .select()
           .single();
 
@@ -79,11 +80,11 @@ async function seedCalls() {
           console.error(`  ✗ speaker insert failed:`, speakerErr?.message);
           continue;
         }
-        speakerIds.push((speakerRecord as { id: string }).id);
+        speakerIds.push(speakerRecord.id);
       }
 
       const segmentsToInsert = mockCall.segments.map((s) => ({
-        call_id: (callRecord as { id: string }).id,
+        call_id: callRecord.id,
         speaker_id: speakerIds[s.speaker_index],
         start_seconds: s.start_seconds,
         end_seconds: s.end_seconds,
@@ -92,8 +93,8 @@ async function seedCalls() {
       }));
 
       const { error: segErr } = await supabase
-        .from("transcript_segments" as never)
-        .insert(segmentsToInsert as never);
+        .from("transcript_segments")
+        .insert(segmentsToInsert);
 
       if (segErr) {
         console.error(`  ✗ segment insert failed:`, segErr.message);
