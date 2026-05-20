@@ -3,8 +3,10 @@ import Link from "next/link";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
+import { getRiskScoreHistory } from "@/lib/risk/service";
 import { CallDetail } from "@/components/dashboard/CallDetail";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
+import { RiskHistoryChart } from "@/components/dashboard/RiskHistoryChart";
 
 export default async function DealDetailPage({
   params,
@@ -28,6 +30,12 @@ export default async function DealDetailPage({
   if (!deal) notFound();
 
   const calls = await getCallsByDealId(orgId, id);
+  const history = await getRiskScoreHistory(orgId, id, 30);
+  const historyPoints = history.map((point) => ({
+    date: point.analyzed_at,
+    score: point.risk_score,
+    level: point.risk_level,
+  }));
 
   return (
     <div className="min-h-screen bg-obsidian text-white">
@@ -57,6 +65,10 @@ export default async function DealDetailPage({
             </div>
           </div>
           <RiskBadge level={deal.riskLevel} score={deal.riskScore} size="large" />
+        </div>
+
+        <div className="mb-6">
+          <RiskHistoryChart history={historyPoints} />
         </div>
 
         <div className="mb-8">

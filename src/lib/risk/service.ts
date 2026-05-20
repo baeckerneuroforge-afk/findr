@@ -61,7 +61,7 @@ export async function getLatestRiskScore(
 export async function getRiskScoreHistory(
   orgId: string,
   dealId: string,
-  limit = 10,
+  limit = 30,
 ): Promise<RiskScoreRecord[]> {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
@@ -73,7 +73,7 @@ export async function getRiskScoreHistory(
     .limit(limit);
 
   if (error || !data) return [];
-  return data.map(toRecord);
+  return data.map(toRecord).reverse();
 }
 
 /**
