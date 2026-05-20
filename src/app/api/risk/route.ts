@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
-import { analyzeDealRisk } from "@/lib/risk/classifier";
+import { buildDetectorInput, riskAnalysisToLegacyResult } from "@/lib/risk/adapters";
+import { analyzeRisk } from "@/lib/risk/orchestrator";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { maybeTriggerAlert, getPreviousScore } from "@/lib/alerts/trigger";
 import { AnalyzeRiskRequestSchema } from "@/lib/schemas/risk";
@@ -104,7 +104,14 @@ export async function POST(req: NextRequest) {
   try {
     const calls = await getCallsByDealId(orgId, dealId);
     const previousScore = await getPreviousScore(orgId, dealId);
-    const result = await analyzeDealRisk(deal, calls);
+    const analysis = await analyzeRisk(
+      buildDetectorInput({
+        orgId,
+        deal,
+        calls,
+      }),
+    );
+    const result = riskAnalysisToLegacyResult(analysis);
 
     const { data: inserted, error: insertError } = await supabase
       .from("risk_scores")
@@ -140,17 +147,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, result, alert });
   } catch (error) {
-    if (error instanceof Anthropic.APIError && error.status === 401) {
-      return NextResponse.json(
-        {
-          error: "AI analysis temporarily unavailable",
-          detail: "Authentication issue with AI provider. Contact admin.",
-          code: "INVALID_API_KEY",
-        },
-        { status: 503 },
-      );
-    }
-
     return NextResponse.json(
       {
         error: "Risk analysis failed",

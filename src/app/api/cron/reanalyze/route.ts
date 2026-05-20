@@ -63,7 +63,7 @@ export async function GET(request: Request) {
           }
 
           const previousScore = await getPreviousScore(org.id, deal.id);
-          const result = await analyzeDealRisk(deal, calls);
+          const result = await analyzeDealRisk(deal, calls, org.id);
 
           const { data: inserted, error: insertError } = await supabase
             .from("risk_scores")
