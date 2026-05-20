@@ -15,6 +15,7 @@ const PRIMARY_NAV: NavItem[] = [
 
 const INTEGRATIONS_NAV: NavItem[] = [
   { href: "/dashboard/integrations/hubspot", label: "Hubspot" },
+  { href: "/dashboard/integrations/gong", label: "Gong" },
   { href: "/dashboard/integrations/slack", label: "Slack" },
 ];
 

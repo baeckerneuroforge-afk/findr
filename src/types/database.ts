@@ -102,13 +102,85 @@ export type Database = {
           },
         ]
       }
+      call_segments: {
+        Row: {
+          call_id: string
+          created_at: string | null
+          embedding: string | null
+          end_seconds: number
+          gong_call_id: string
+          id: string
+          org_id: string
+          raw_data: Json | null
+          speaker_email: string | null
+          speaker_id: string | null
+          speaker_name: string | null
+          speaker_role: string | null
+          start_seconds: number
+          text: string
+        }
+        Insert: {
+          call_id: string
+          created_at?: string | null
+          embedding?: string | null
+          end_seconds?: number
+          gong_call_id: string
+          id?: string
+          org_id: string
+          raw_data?: Json | null
+          speaker_email?: string | null
+          speaker_id?: string | null
+          speaker_name?: string | null
+          speaker_role?: string | null
+          start_seconds?: number
+          text: string
+        }
+        Update: {
+          call_id?: string
+          created_at?: string | null
+          embedding?: string | null
+          end_seconds?: number
+          gong_call_id?: string
+          id?: string
+          org_id?: string
+          raw_data?: Json | null
+          speaker_email?: string | null
+          speaker_id?: string | null
+          speaker_name?: string | null
+          speaker_role?: string | null
+          start_seconds?: number
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_segments_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_segments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calls: {
         Row: {
           analyzed_at: string | null
           call_type: string | null
           created_at: string
+          deal_mapping_confidence: number | null
+          deal_mapping_method: string | null
           deal_id: string | null
           duration_seconds: number | null
+          gong_call_id: string | null
+          gong_primary_user_id: string | null
+          gong_url: string | null
+          gong_workspace_id: string | null
           id: string
           org_id: string
           participants: Json | null
@@ -122,8 +194,14 @@ export type Database = {
           analyzed_at?: string | null
           call_type?: string | null
           created_at?: string
+          deal_mapping_confidence?: number | null
+          deal_mapping_method?: string | null
           deal_id?: string | null
           duration_seconds?: number | null
+          gong_call_id?: string | null
+          gong_primary_user_id?: string | null
+          gong_url?: string | null
+          gong_workspace_id?: string | null
           id?: string
           org_id: string
           participants?: Json | null
@@ -137,8 +215,14 @@ export type Database = {
           analyzed_at?: string | null
           call_type?: string | null
           created_at?: string
+          deal_mapping_confidence?: number | null
+          deal_mapping_method?: string | null
           deal_id?: string | null
           duration_seconds?: number | null
+          gong_call_id?: string | null
+          gong_primary_user_id?: string | null
+          gong_url?: string | null
+          gong_workspace_id?: string | null
           id?: string
           org_id?: string
           participants?: Json | null
@@ -330,6 +414,112 @@ export type Database = {
           },
           {
             foreignKeyName: "findings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gong_integrations: {
+        Row: {
+          access_token: string
+          api_base_url: string
+          created_at: string | null
+          enabled: boolean
+          gong_company_id: string | null
+          id: string
+          last_synced_at: string | null
+          org_id: string
+          refresh_token: string
+          scope: string | null
+          sync_error: string | null
+          sync_status: "idle" | "syncing" | "failed"
+          token_expires_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          access_token: string
+          api_base_url: string
+          created_at?: string | null
+          enabled?: boolean
+          gong_company_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          org_id: string
+          refresh_token: string
+          scope?: string | null
+          sync_error?: string | null
+          sync_status?: "idle" | "syncing" | "failed"
+          token_expires_at: string
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string
+          api_base_url?: string
+          created_at?: string | null
+          enabled?: boolean
+          gong_company_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          org_id?: string
+          refresh_token?: string
+          scope?: string | null
+          sync_error?: string | null
+          sync_status?: "idle" | "syncing" | "failed"
+          token_expires_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gong_integrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gong_users: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          gong_user_id: string
+          id: string
+          last_synced_at: string | null
+          name: string | null
+          org_id: string
+          raw_data: Json | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          gong_user_id: string
+          id?: string
+          last_synced_at?: string | null
+          name?: string | null
+          org_id: string
+          raw_data?: Json | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          gong_user_id?: string
+          id?: string
+          last_synced_at?: string | null
+          name?: string | null
+          org_id?: string
+          raw_data?: Json | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gong_users_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
