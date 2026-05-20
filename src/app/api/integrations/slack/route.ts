@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
+import { ensureSlackAlertPreferences } from "@/lib/alerts/service";
 import { upsertSlackIntegration } from "@/lib/slack/service";
 import { SlackIntegrationConfigSchema } from "@/lib/schemas/slack";
 
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     await upsertSlackIntegration(orgId, parsed.data);
+    await ensureSlackAlertPreferences(orgId);
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json(

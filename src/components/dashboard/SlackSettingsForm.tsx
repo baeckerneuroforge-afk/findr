@@ -2,12 +2,14 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import type { AlertPreferences } from "@/lib/alerts/types";
 import type { SlackIntegration } from "@/lib/slack/service";
 import { SlackIntegrationConfigSchema } from "@/lib/schemas/slack";
 import { Button } from "@/components/ui/Button";
 
 interface SlackSettingsFormProps {
   initialIntegration: SlackIntegration | null;
+  initialPreferences: AlertPreferences;
 }
 
 const INPUT_BASE =
@@ -15,6 +17,7 @@ const INPUT_BASE =
 
 export function SlackSettingsForm({
   initialIntegration,
+  initialPreferences,
 }: SlackSettingsFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -32,6 +35,17 @@ export function SlackSettingsForm({
     alert_threshold: initialIntegration?.alert_threshold ?? 70,
     alert_on_critical_only: initialIntegration?.alert_on_critical_only ?? false,
     enabled: initialIntegration?.enabled ?? true,
+  });
+  const [preferences, setPreferences] = useState({
+    risk_spike_enabled: initialPreferences.risk_spike_enabled,
+    risk_spike_threshold: initialPreferences.risk_spike_threshold,
+    champion_lost_enabled: initialPreferences.champion_lost_enabled,
+    deal_lost_enabled: initialPreferences.deal_lost_enabled,
+    forecast_change_enabled: initialPreferences.forecast_change_enabled,
+    forecast_change_threshold: initialPreferences.forecast_change_threshold,
+    quiet_hours_start: initialPreferences.quiet_hours_start ?? "",
+    quiet_hours_end: initialPreferences.quiet_hours_end ?? "",
+    timezone: initialPreferences.timezone,
   });
 
   async function handleSave() {
@@ -61,14 +75,39 @@ export function SlackSettingsForm({
     });
 
     const data = (await res.json()) as { success: boolean; error?: string };
+
+    if (!data.success) {
+      setSaving(false);
+      setFeedback({ type: "error", msg: data.error ?? "Failed to save." });
+      return;
+    }
+
+    const prefsRes = await fetch("/api/integrations/slack/preferences", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...preferences,
+        quiet_hours_start: preferences.quiet_hours_start || null,
+        quiet_hours_end: preferences.quiet_hours_end || null,
+      }),
+    });
+    const prefsData = (await prefsRes.json()) as {
+      success: boolean;
+      error?: string;
+    };
+
     setSaving(false);
 
-    if (data.success) {
-      setFeedback({ type: "success", msg: "Settings saved." });
-      router.refresh();
-    } else {
-      setFeedback({ type: "error", msg: data.error ?? "Failed to save." });
+    if (!prefsData.success) {
+      setFeedback({
+        type: "error",
+        msg: prefsData.error ?? "Failed to save alert preferences.",
+      });
+      return;
     }
+
+    setFeedback({ type: "success", msg: "Settings saved." });
+    router.refresh();
   }
 
   async function handleTest() {
@@ -104,7 +143,14 @@ export function SlackSettingsForm({
         </ol>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
+        <div>
+          <h3 className="text-h3 text-neutral-900">Webhook configuration</h3>
+          <p className="text-small text-neutral-500">
+            Incoming webhook used for all Findr alerts.
+          </p>
+        </div>
+
         <Field
           label="Workspace name"
           hint="Optional, just for your reference"
@@ -159,45 +205,6 @@ export function SlackSettingsForm({
           />
         </Field>
 
-        <Field
-          label={`Alert threshold: ${form.alert_threshold}/100`}
-          hint="Send alert when risk score exceeds this value"
-        >
-          <input
-            type="range"
-            min={50}
-            max={100}
-            value={form.alert_threshold}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                alert_threshold: parseInt(e.target.value, 10),
-              })
-            }
-            className="w-full accent-primary-500"
-            disabled={form.alert_on_critical_only}
-          />
-        </Field>
-
-        <label className="flex cursor-pointer items-start gap-3">
-          <input
-            type="checkbox"
-            checked={form.alert_on_critical_only}
-            onChange={(e) =>
-              setForm({ ...form, alert_on_critical_only: e.target.checked })
-            }
-            className="mt-1 accent-primary-500"
-          />
-          <div>
-            <div className="text-body-strong text-neutral-900">
-              Only alert on CRITICAL risk
-            </div>
-            <div className="text-caption text-neutral-500">
-              Override the threshold; only send when risk_level = critical.
-            </div>
-          </div>
-        </label>
-
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
@@ -212,6 +219,135 @@ export function SlackSettingsForm({
             </div>
           </div>
         </label>
+      </div>
+
+      <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
+        <div>
+          <h3 className="text-h3 text-neutral-900">Alert types</h3>
+          <p className="text-small text-neutral-500">
+            Choose which automated alerts should be sent to Slack.
+          </p>
+        </div>
+
+        <ToggleRow
+          label="Risk Spike"
+          hint="Send when risk score jumps within a short period."
+          checked={preferences.risk_spike_enabled}
+          onChange={(checked) =>
+            setPreferences({ ...preferences, risk_spike_enabled: checked })
+          }
+        >
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={preferences.risk_spike_threshold}
+              onChange={(e) =>
+                setPreferences({
+                  ...preferences,
+                  risk_spike_threshold: parseInt(e.target.value, 10),
+                })
+              }
+              className="w-20 rounded-md border border-neutral-200 px-2 py-1 text-small text-neutral-900"
+            />
+            <span className="text-small text-neutral-500">points</span>
+          </div>
+        </ToggleRow>
+
+        <ToggleRow
+          label="Champion Lost"
+          hint="Send when the Champion-Loss detector finds strong evidence."
+          checked={preferences.champion_lost_enabled}
+          onChange={(checked) =>
+            setPreferences({ ...preferences, champion_lost_enabled: checked })
+          }
+        />
+
+        <ToggleRow
+          label="Deal Lost"
+          hint="Send when a synced CRM deal changes to Closed-Lost."
+          checked={preferences.deal_lost_enabled}
+          onChange={(checked) =>
+            setPreferences({ ...preferences, deal_lost_enabled: checked })
+          }
+        />
+
+        <ToggleRow
+          label="Forecast Change"
+          hint="Send when risk-adjusted pipeline value moves materially."
+          checked={preferences.forecast_change_enabled}
+          onChange={(checked) =>
+            setPreferences({ ...preferences, forecast_change_enabled: checked })
+          }
+        >
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={preferences.forecast_change_threshold}
+              onChange={(e) =>
+                setPreferences({
+                  ...preferences,
+                  forecast_change_threshold: parseFloat(e.target.value),
+                })
+              }
+              className="w-20 rounded-md border border-neutral-200 px-2 py-1 text-small text-neutral-900"
+            />
+            <span className="text-small text-neutral-500">%</span>
+          </div>
+        </ToggleRow>
+      </div>
+
+      <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
+        <div>
+          <h3 className="text-h3 text-neutral-900">Quiet hours</h3>
+          <p className="text-small text-neutral-500">
+            Optional pause window for non-urgent Slack noise.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Field label="Start">
+            <input
+              type="time"
+              value={preferences.quiet_hours_start}
+              onChange={(e) =>
+                setPreferences({
+                  ...preferences,
+                  quiet_hours_start: e.target.value,
+                })
+              }
+              className={INPUT_BASE}
+            />
+          </Field>
+
+          <Field label="End">
+            <input
+              type="time"
+              value={preferences.quiet_hours_end}
+              onChange={(e) =>
+                setPreferences({
+                  ...preferences,
+                  quiet_hours_end: e.target.value,
+                })
+              }
+              className={INPUT_BASE}
+            />
+          </Field>
+
+          <Field label="Timezone">
+            <input
+              type="text"
+              value={preferences.timezone}
+              onChange={(e) =>
+                setPreferences({ ...preferences, timezone: e.target.value })
+              }
+              className={INPUT_BASE}
+            />
+          </Field>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 border-t border-neutral-200 pt-5">
@@ -243,6 +379,38 @@ export function SlackSettingsForm({
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+function ToggleRow({
+  label,
+  hint,
+  checked,
+  onChange,
+  children,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-neutral-100 p-3">
+      <label className="flex cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="mt-1 accent-primary-500"
+        />
+        <div>
+          <div className="text-body-strong text-neutral-900">{label}</div>
+          <div className="text-caption text-neutral-500">{hint}</div>
+        </div>
+      </label>
+      {children}
     </div>
   );
 }

@@ -1,13 +1,13 @@
 import "server-only";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
-import {
-  getSlackIntegration,
-  sendSlackAlert,
-  logAlert,
-  type SlackAlertPayload,
-} from "@/lib/slack/service";
 import type { RiskAnalysisResult } from "@/lib/deals/types";
+import { getSlackAlertPreferences } from "./service";
+import {
+  maybeTriggerChampionLost,
+  maybeTriggerRiskSpike,
+} from "./triggers";
+import type { AlertContext } from "./types";
 
 export async function maybeTriggerAlert(
   orgId: string,
@@ -16,69 +16,63 @@ export async function maybeTriggerAlert(
   riskScoreId: string,
   result: RiskAnalysisResult,
   previousScore: number | null,
+  dealContext: Partial<AlertContext> = {},
 ): Promise<{ triggered: boolean; reason?: string }> {
-  const integration = await getSlackIntegration(orgId);
-  if (!integration) {
-    return { triggered: false, reason: "no_integration" };
-  }
+  void riskScoreId;
 
-  if (integration.alert_on_critical_only && result.riskLevel !== "critical") {
-    return { triggered: false, reason: "below_critical_threshold" };
-  }
-
-  if (
-    !integration.alert_on_critical_only &&
-    result.riskScore < integration.alert_threshold
-  ) {
-    return { triggered: false, reason: "below_score_threshold" };
-  }
-
-  let alertType: "threshold_crossed" | "critical_signal" | "score_spike" =
-    "threshold_crossed";
-  if (result.riskLevel === "critical") alertType = "critical_signal";
-  if (previousScore !== null && result.riskScore - previousScore >= 20) {
-    alertType = "score_spike";
-  }
-
-  const topSignals = [...result.signals]
-    .sort((a, b) => b.confidence - a.confidence)
-    .slice(0, 3)
-    .map((s) => ({ type: s.type, confidence: s.confidence }));
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-  const payload: SlackAlertPayload = {
-    dealName,
-    dealId,
-    riskScore: result.riskScore,
-    riskLevel: result.riskLevel,
-    topSignals,
-    overallReasoning: result.overallReasoning,
-    topRecommendation: result.recommendations?.[0],
-    dashboardUrl: `${baseUrl}/dashboard?deal=${dealId}`,
+  const preferences = await getSlackAlertPreferences(orgId);
+  const context: AlertContext = {
+    org_id: orgId,
+    deal_id: dealId,
+    deal_name: dealContext.deal_name ?? dealName,
+    deal_amount: dealContext.deal_amount,
+    deal_owner: dealContext.deal_owner,
+    metadata: dealContext.metadata,
   };
 
-  const sendResult = await sendSlackAlert(integration, payload);
+  const topSignal = [...result.signals].sort(
+    (a, b) => b.confidence - a.confidence,
+  )[0];
+  const triggered: string[] = [];
+  const skipped: string[] = [];
 
-  await logAlert(
+  const riskSpikeResult = await maybeTriggerRiskSpike({
     orgId,
     dealId,
-    riskScoreId,
-    alertType,
-    integration.channel_id,
-    payload,
-    sendResult.success ? "sent" : "failed",
-    sendResult.error,
-  );
+    oldScore: previousScore,
+    newScore: result.riskScore,
+    threshold: preferences.risk_spike_threshold,
+    topSignalDescription:
+      topSignal?.reasoning ?? topSignal?.quotes[0] ?? result.overallReasoning,
+    dealContext: context,
+  });
+  if (riskSpikeResult.triggered) triggered.push("risk_spike");
+  else if (riskSpikeResult.reason) skipped.push(riskSpikeResult.reason);
 
-  return { triggered: sendResult.success, reason: sendResult.error };
+  const championSignal = result.signals.find(
+    (signal) => signal.type === "CHAMPION_LOSS",
+  );
+  if (championSignal) {
+    const championResult = await maybeTriggerChampionLost({
+      orgId,
+      dealId,
+      championName: String(context.metadata?.champion_name ?? "Champion"),
+      evidence:
+        championSignal.quotes.find((quote) => quote.trim().length > 0) ??
+        championSignal.reasoning,
+      dealContext: context,
+    });
+    if (championResult.triggered) triggered.push("champion_lost");
+    else if (championResult.reason) skipped.push(championResult.reason);
+  }
+
+  if (triggered.length > 0) {
+    return { triggered: true, reason: triggered.join(",") };
+  }
+
+  return { triggered: false, reason: skipped[0] ?? "no_alert_conditions_met" };
 }
 
-/**
- * Returns the second-most-recent risk_score for the deal (i.e. the score
- * immediately before the one we're about to insert). Returns null if there's
- * only one or zero stored scores.
- */
 export async function getPreviousScore(
   orgId: string,
   dealId: string,
@@ -90,8 +84,8 @@ export async function getPreviousScore(
     .eq("org_id", orgId)
     .eq("deal_id", dealId)
     .order("analyzed_at", { ascending: false })
-    .limit(2);
+    .limit(1);
 
-  if (!data || data.length < 2) return null;
-  return data[1].risk_score;
+  if (!data || data.length === 0) return null;
+  return data[0].risk_score;
 }

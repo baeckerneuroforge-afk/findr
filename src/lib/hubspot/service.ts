@@ -10,6 +10,7 @@ import {
   type HubspotDeal,
   type HubspotOwner,
 } from "@/lib/schemas/hubspot";
+import { maybeTriggerDealLost } from "@/lib/alerts/triggers";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database";
 
@@ -426,43 +427,73 @@ export async function syncHubspotDeals(orgId: string): Promise<{
         const ownerId = deal.properties.hubspot_owner_id;
         const owner = ownerId ? owners.get(ownerId) : null;
         const syncedAt = new Date().toISOString();
+        const normalizedStage = normalizeHubspotStage(deal.properties.dealstage);
         const lastActivityAt = deal.properties.hs_lastmodifieddate
           ? new Date(deal.properties.hs_lastmodifieddate).toISOString()
           : syncedAt;
         const currency = normalizeCurrency(deal.properties.deal_currency_code);
+        const { data: existingDeal } = await supabase
+          .from("deals")
+          .select("id, stage")
+          .eq("org_id", orgId)
+          .eq("source", "hubspot")
+          .eq("external_id", deal.id)
+          .maybeSingle();
 
-        const { error: upsertError } = await supabase.from("deals").upsert(
-          {
-            org_id: orgId,
-            external_id: deal.id,
-            source: "hubspot",
-            hubspot_deal_id: deal.id,
-            name: deal.properties.dealname ?? `Deal #${deal.id}`,
-            company_name: company?.properties.name ?? "Unknown Company",
-            stage: normalizeHubspotStage(deal.properties.dealstage),
-            amount: parseAmount(deal.properties.amount),
-            currency,
-            owner_name: ownerDisplayName(owner),
-            owner_email: owner?.email ?? null,
-            data_source: "hubspot",
-            hubspot_last_synced_at: syncedAt,
-            last_activity_at: lastActivityAt,
-            closed_at: deal.properties.closedate
-              ? new Date(deal.properties.closedate).toISOString()
-              : null,
-            raw_data: {
-              hubspotDeal: deal,
-              company,
-              owner,
-            } as Json,
-          },
-          { onConflict: "org_id,source,external_id" },
-        );
+        const { data: syncedDeal, error: upsertError } = await supabase
+          .from("deals")
+          .upsert(
+            {
+              org_id: orgId,
+              external_id: deal.id,
+              source: "hubspot",
+              hubspot_deal_id: deal.id,
+              name: deal.properties.dealname ?? `Deal #${deal.id}`,
+              company_name: company?.properties.name ?? "Unknown Company",
+              stage: normalizedStage,
+              amount: parseAmount(deal.properties.amount),
+              currency,
+              owner_name: ownerDisplayName(owner),
+              owner_email: owner?.email ?? null,
+              data_source: "hubspot",
+              hubspot_last_synced_at: syncedAt,
+              last_activity_at: lastActivityAt,
+              closed_at: deal.properties.closedate
+                ? new Date(deal.properties.closedate).toISOString()
+                : null,
+              raw_data: {
+                hubspotDeal: deal,
+                company,
+                owner,
+              } as Json,
+            },
+            { onConflict: "org_id,source,external_id" },
+          )
+          .select("id, name, amount, owner_name")
+          .single();
 
         if (upsertError) {
           result.errors.push(`Deal ${deal.id}: ${upsertError.message}`);
         } else {
           result.synced++;
+          if (
+            existingDeal &&
+            existingDeal.stage !== "closed_lost" &&
+            normalizedStage === "closed_lost" &&
+            syncedDeal
+          ) {
+            await maybeTriggerDealLost({
+              orgId,
+              dealId: syncedDeal.id,
+              dealContext: {
+                org_id: orgId,
+                deal_id: syncedDeal.id,
+                deal_name: syncedDeal.name,
+                deal_amount: syncedDeal.amount ?? undefined,
+                deal_owner: syncedDeal.owner_name ?? "Unassigned",
+              },
+            });
+          }
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "unknown";

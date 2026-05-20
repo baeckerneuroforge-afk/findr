@@ -51,17 +51,34 @@ export async function POST(req: NextRequest) {
   if (dealRow?.data_source === "mock") {
     const latest = await getLatestRiskScore(orgId, dealId);
     if (latest) {
+      const result = {
+        riskScore: latest.risk_score,
+        riskLevel: latest.risk_level,
+        signals: latest.signals,
+        overallReasoning: latest.overall_reasoning,
+        recommendations: latest.recommendations,
+      };
+      const alert = await maybeTriggerAlert(
+        orgId,
+        dealId,
+        deal.name,
+        latest.id,
+        result,
+        null,
+        {
+          deal_amount: deal.amount,
+          deal_owner: deal.ownerName,
+          metadata: {
+            champion_name: deal.championName,
+          },
+        },
+      );
+
       return NextResponse.json({
         success: true,
         source: "demo_snapshot",
-        result: {
-          riskScore: latest.risk_score,
-          riskLevel: latest.risk_level,
-          signals: latest.signals,
-          overallReasoning: latest.overall_reasoning,
-          recommendations: latest.recommendations,
-        },
-        alert: { triggered: false, reason: "demo_snapshot" },
+        result,
+        alert,
       });
     }
 
@@ -69,11 +86,27 @@ export async function POST(req: NextRequest) {
       getMockDealId(dealRow.raw_data, dealRow.external_id),
     );
     if (snapshot) {
+      const alert = await maybeTriggerAlert(
+        orgId,
+        dealId,
+        deal.name,
+        "demo_snapshot",
+        snapshot,
+        null,
+        {
+          deal_amount: deal.amount,
+          deal_owner: deal.ownerName,
+          metadata: {
+            champion_name: deal.championName,
+          },
+        },
+      );
+
       return NextResponse.json({
         success: true,
         source: "demo_snapshot",
         result: snapshot,
-        alert: { triggered: false, reason: "demo_snapshot" },
+        alert,
       });
     }
   }
@@ -81,24 +114,29 @@ export async function POST(req: NextRequest) {
   if (!dealRow) {
     const snapshot = getDemoRiskSnapshot(dealId);
     if (snapshot) {
+      const alert = await maybeTriggerAlert(
+        orgId,
+        dealId,
+        deal.name,
+        "demo_snapshot",
+        snapshot,
+        null,
+        {
+          deal_amount: deal.amount,
+          deal_owner: deal.ownerName,
+          metadata: {
+            champion_name: deal.championName,
+          },
+        },
+      );
+
       return NextResponse.json({
         success: true,
         source: "demo_snapshot",
         result: snapshot,
-        alert: { triggered: false, reason: "demo_snapshot" },
+        alert,
       });
     }
-  }
-
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      {
-        error: "AI analysis unavailable",
-        detail: "Anthropic API key not configured. Contact your administrator.",
-        code: "MISSING_API_KEY",
-      },
-      { status: 503 },
-    );
   }
 
   try {
@@ -142,6 +180,13 @@ export async function POST(req: NextRequest) {
         riskScoreId,
         result,
         previousScore,
+        {
+          deal_amount: deal.amount,
+          deal_owner: deal.ownerName,
+          metadata: {
+            champion_name: deal.championName,
+          },
+        },
       );
     }
 

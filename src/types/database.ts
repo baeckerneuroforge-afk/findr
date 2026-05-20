@@ -794,6 +794,125 @@ export type Database = {
           },
         ]
       }
+      slack_alert_preferences: {
+        Row: {
+          champion_lost_enabled: boolean
+          created_at: string
+          deal_lost_enabled: boolean
+          forecast_change_enabled: boolean
+          forecast_change_threshold: number
+          org_id: string
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          risk_spike_enabled: boolean
+          risk_spike_threshold: number
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          champion_lost_enabled?: boolean
+          created_at?: string
+          deal_lost_enabled?: boolean
+          forecast_change_enabled?: boolean
+          forecast_change_threshold?: number
+          org_id: string
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          risk_spike_enabled?: boolean
+          risk_spike_threshold?: number
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          champion_lost_enabled?: boolean
+          created_at?: string
+          deal_lost_enabled?: boolean
+          forecast_change_enabled?: boolean
+          forecast_change_threshold?: number
+          org_id?: string
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          risk_spike_enabled?: boolean
+          risk_spike_threshold?: number
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slack_alert_preferences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      slack_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: "risk_spike" | "champion_lost" | "deal_lost" | "forecast_change"
+          body: string
+          created_at: string
+          deal_id: string | null
+          id: string
+          metadata: Json | null
+          org_id: string
+          sent_at: string
+          severity: "info" | "warning" | "critical"
+          slack_message_ts: string | null
+          snoozed_until: string | null
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: "risk_spike" | "champion_lost" | "deal_lost" | "forecast_change"
+          body: string
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          metadata?: Json | null
+          org_id: string
+          sent_at?: string
+          severity: "info" | "warning" | "critical"
+          slack_message_ts?: string | null
+          snoozed_until?: string | null
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: "risk_spike" | "champion_lost" | "deal_lost" | "forecast_change"
+          body?: string
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          metadata?: Json | null
+          org_id?: string
+          sent_at?: string
+          severity?: "info" | "warning" | "critical"
+          slack_message_ts?: string | null
+          snoozed_until?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slack_alerts_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slack_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcript_segments: {
         Row: {
           call_id: string

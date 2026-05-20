@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
+import {
+  getSlackAlertHistory,
+  getSlackAlertPreferences,
+} from "@/lib/alerts/service";
 import { getSlackIntegration } from "@/lib/slack/service";
+import { AlertHistoryPanel } from "@/components/dashboard/AlertHistoryPanel";
 import { SlackSettingsForm } from "@/components/dashboard/SlackSettingsForm";
 
 export default async function SlackIntegrationPage() {
@@ -17,6 +22,10 @@ export default async function SlackIntegrationPage() {
   }
 
   const integration = await getSlackIntegration(orgId);
+  const [preferences, alertHistory] = await Promise.all([
+    getSlackAlertPreferences(orgId),
+    getSlackAlertHistory(orgId, 20),
+  ]);
 
   return (
     <div className="max-w-3xl">
@@ -26,7 +35,13 @@ export default async function SlackIntegrationPage() {
           Push risk alerts to a Slack channel when deals are at risk.
         </p>
       </div>
-      <SlackSettingsForm initialIntegration={integration} />
+      <div className="space-y-8">
+        <SlackSettingsForm
+          initialIntegration={integration}
+          initialPreferences={preferences}
+        />
+        <AlertHistoryPanel alerts={alertHistory} />
+      </div>
     </div>
   );
 }
