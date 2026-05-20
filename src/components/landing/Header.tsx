@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Show } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
+  const { isLoaded, isSignedIn } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -40,22 +41,29 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Show when="signed-out">
-            <Link href="/sign-in" className="hidden md:block text-mist/70 hover:text-white text-sm transition-colors">
-              Sign in
-            </Link>
-            <Link href="/sign-up" className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-red-500 rounded-lg blur-sm opacity-50 group-hover:opacity-100 transition-opacity" />
-              <button className="relative bg-violet-500 hover:bg-violet-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                Book a demo
-              </button>
-            </Link>
-          </Show>
-          <Show when="signed-in">
-            <Link href="/dashboard" className="bg-violet-500 hover:bg-violet-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+          {isLoaded && isSignedIn ? (
+            <Link
+              href="/dashboard"
+              className="bg-violet-500 hover:bg-violet-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
               Dashboard
             </Link>
-          </Show>
+          ) : (
+            <>
+              <Link
+                href="/sign-in"
+                className="hidden md:block text-mist/70 hover:text-white text-sm transition-colors"
+              >
+                Sign in
+              </Link>
+              <Link href="/sign-up" className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-red-500 rounded-lg blur-sm opacity-50 group-hover:opacity-100 transition-opacity" />
+                <button className="relative bg-violet-500 hover:bg-violet-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                  Book a demo
+                </button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </motion.header>
