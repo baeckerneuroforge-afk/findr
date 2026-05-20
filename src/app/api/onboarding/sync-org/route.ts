@@ -1,7 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { seedDemoData } from "@/lib/seed/demo-data";
 
 const SyncOrgSchema = z.object({
   clerk_org_id: z.string().min(1),
@@ -43,6 +44,22 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    const org = data as { id: string };
+    const { count: dealCount } = await supabase
+      .from("deals")
+      .select("*", { count: "exact", head: true })
+      .eq("org_id", org.id);
+
+    if (dealCount === 0) {
+      after(async () => {
+        try {
+          await seedDemoData(org.id);
+        } catch (seedError) {
+          console.error("Demo seed failed:", seedError);
+        }
+      });
     }
 
     return NextResponse.json({ success: true, org: data });

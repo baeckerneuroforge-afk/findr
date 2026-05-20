@@ -26,6 +26,7 @@ export interface Deal {
   competitorsMentioned: string[];
   closeDate: string;
   createdAt: string;
+  dataSource?: string;
   // Risk-fields, populated after classifier runs:
   riskScore?: number;
   riskLevel?: RiskLevel;

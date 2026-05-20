@@ -58,13 +58,34 @@ function getRawDataObject(rawData: Json | null): Record<string, Json | undefined
   return rawData;
 }
 
+function getRawString(rawData: Record<string, Json | undefined>, key: string) {
+  const value = rawData[key];
+  return typeof value === "string" ? value : null;
+}
+
+function getRawNumber(rawData: Record<string, Json | undefined>, key: string) {
+  const value = rawData[key];
+  return typeof value === "number" ? value : null;
+}
+
+function getRawStringArray(
+  rawData: Record<string, Json | undefined>,
+  key: string,
+) {
+  const value = rawData[key];
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
+    ? value
+    : [];
+}
+
 function mapDbDealToDeal(row: DealRow): Deal {
   const lastActivity = row.last_activity_at ?? row.updated_at ?? row.created_at;
   const rawData = getRawDataObject(row.raw_data);
   const companyName =
     row.company_name ??
-    (typeof rawData.companyName === "string" ? rawData.companyName : null) ??
+    getRawString(rawData, "companyName") ??
     "Unknown Company";
+  const closeDate = getRawString(rawData, "closeDate") ?? fallbackCloseDate(row);
 
   return {
     id: row.id,
@@ -74,15 +95,20 @@ function mapDbDealToDeal(row: DealRow): Deal {
     currency: toCurrency(row.currency),
     stage: toDealStage(row.stage),
     ownerName: row.owner_name ?? row.owner_email ?? "Unassigned",
-    championName: row.owner_name ?? row.owner_email ?? "Unknown",
-    championTitle: "Unknown",
+    championName:
+      getRawString(rawData, "championName") ??
+      row.owner_name ??
+      row.owner_email ??
+      "Unknown",
+    championTitle: getRawString(rawData, "championTitle") ?? "Unknown",
     daysSinceLastActivity: daysSince(lastActivity),
-    callsCompleted: 0,
-    emailsSent: 0,
-    stakeholdersCount: 0,
-    competitorsMentioned: [],
-    closeDate: fallbackCloseDate(row),
+    callsCompleted: getRawNumber(rawData, "callsCompleted") ?? 0,
+    emailsSent: getRawNumber(rawData, "emailsSent") ?? 0,
+    stakeholdersCount: getRawNumber(rawData, "stakeholdersCount") ?? 0,
+    competitorsMentioned: getRawStringArray(rawData, "competitorsMentioned"),
+    closeDate,
     createdAt: row.created_at,
+    dataSource: row.data_source,
   };
 }
 
@@ -99,7 +125,17 @@ export async function getDealsByOrg(orgId: string): Promise<Deal[]> {
     return data.map(mapDbDealToDeal);
   }
 
-  return MOCK_DEALS;
+  const { data: seededDeals, error: seededError } = await supabase
+    .from("deals")
+    .select("*")
+    .eq("org_id", orgId)
+    .order("last_activity_at", { ascending: false });
+
+  if (!seededError && seededDeals && seededDeals.length > 0) {
+    return seededDeals.map(mapDbDealToDeal);
+  }
+
+  return MOCK_DEALS.map((deal) => ({ ...deal, dataSource: "mock" }));
 }
 
 export async function getDealById(
@@ -113,7 +149,6 @@ export async function getDealById(
       .select("*")
       .eq("org_id", orgId)
       .eq("id", dealId)
-      .eq("data_source", "hubspot")
       .maybeSingle();
 
     if (data) {
@@ -121,5 +156,6 @@ export async function getDealById(
     }
   }
 
-  return MOCK_DEALS.find((deal) => deal.id === dealId) ?? null;
+  const mockDeal = MOCK_DEALS.find((deal) => deal.id === dealId);
+  return mockDeal ? { ...mockDeal, dataSource: "mock" } : null;
 }

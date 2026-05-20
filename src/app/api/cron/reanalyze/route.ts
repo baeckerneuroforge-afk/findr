@@ -50,6 +50,11 @@ export async function GET(request: Request) {
 
       for (const deal of activeDeals) {
         try {
+          if (deal.dataSource === "mock") {
+            results.skipped++;
+            continue;
+          }
+
           const calls = await getCallsByDealId(org.id, deal.id);
 
           if (calls.length === 0) {

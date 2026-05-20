@@ -85,6 +85,13 @@ export default async function DashboardPage() {
   const atRisk = deals.filter(
     (d) => d.riskScore !== undefined && d.riskScore >= 60,
   ).length;
+  const analyzed = deals.filter((d) => d.riskScore !== undefined).length;
+  const atRiskSubtitle =
+    analyzed === 0
+      ? "No deals analyzed yet"
+      : atRisk === 0
+        ? "All clear"
+        : `${analyzed} analyzed`;
   const active = deals.filter((d) => ACTIVE_STAGES.has(d.stage)).length;
   const closingSoon = deals.filter((d) => {
     if (!ACTIVE_STAGES.has(d.stage)) return false;
@@ -135,6 +142,7 @@ export default async function DashboardPage() {
         <StatCard
           label="Deals at risk"
           value={atRisk}
+          subtitle={atRiskSubtitle}
           status={atRisk > 0 ? "critical" : "default"}
         />
         <StatCard label="Active" value={active} />
