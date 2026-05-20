@@ -34,7 +34,7 @@ export default async function DashboardPage() {
     if (err instanceof OrgResolutionError) {
       if (err.code === "no_auth") redirect("/sign-in");
       // TODO: build /onboarding/create-org route; for now fall back to sign-in
-      if (err.code === "no_org") redirect("/sign-in");
+      if (err.code === "no_org") redirect("/?need_org=1");
       redirect("/sign-in");
     }
     throw err;

@@ -12,7 +12,7 @@ export default async function CoachingPage() {
   } catch (err) {
     if (err instanceof OrgResolutionError) {
       if (err.code === "no_auth") redirect("/sign-in");
-      if (err.code === "no_org") redirect("/sign-in");
+      if (err.code === "no_org") redirect("/?need_org=1");
       redirect("/sign-in");
     }
     throw err;
