@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useOrganization } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isOrganizationLoaded, organization } = useOrganization();
+
+  const dashboardHref = isOrganizationLoaded && !organization
+    ? "/onboarding/create-org"
+    : "/dashboard";
+  const dashboardLabel = isOrganizationLoaded && !organization
+    ? "Complete setup"
+    : "Dashboard";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -43,10 +51,10 @@ export function Header() {
         <div className="flex items-center gap-3">
           {isLoaded && isSignedIn ? (
             <Link
-              href="/dashboard"
+              href={dashboardHref}
               className="bg-violet-500 hover:bg-violet-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
             >
-              Dashboard
+              {dashboardLabel}
             </Link>
           ) : (
             <>

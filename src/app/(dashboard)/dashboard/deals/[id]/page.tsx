@@ -39,7 +39,7 @@ export default async function DealDetailPage({
   } catch (err) {
     if (err instanceof OrgResolutionError) {
       if (err.code === "no_auth") redirect("/sign-in");
-      if (err.code === "no_org") redirect("/?need_org=1");
+      if (err.code === "no_org") redirect("/onboarding/create-org");
       redirect("/sign-in");
     }
     throw err;
