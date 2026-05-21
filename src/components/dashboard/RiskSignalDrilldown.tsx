@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ConfidenceIndicator } from "@/components/dashboard/ConfidenceIndicator";
+import { EvidenceQuote } from "@/components/dashboard/EvidenceQuote";
 import type { RiskSignal } from "@/lib/risk/service";
 
 interface RiskSignalDrilldownProps {
@@ -10,6 +12,7 @@ interface RiskSignalDrilldownProps {
   recommendations: string[];
   signals: RiskSignal[];
   analyzedAt?: string;
+  sourceCallCount?: number;
 }
 
 const SIGNAL_META: Record<
@@ -60,25 +63,68 @@ const SIGNAL_META: Record<
 
 function getSeverityFill(severity: number): string {
   if (severity >= 4) return "bg-danger-500";
-  if (severity >= 3) return "bg-warning-500";
+  if (severity >= 3) return "bg-primary-500";
   return "bg-success-500";
 }
 
 function getRiskHeaderStyle(level: string): string {
   if (level === "critical") return "bg-danger-50 border-danger-500/30";
-  if (level === "high") return "bg-orange-50 border-orange-500/30";
-  if (level === "medium") return "bg-warning-50 border-warning-500/30";
+  if (level === "high") return "bg-neutral-50 border-primary-500/25";
+  if (level === "medium") return "bg-neutral-50 border-neutral-200";
   return "bg-success-50 border-success-500/30";
 }
 
 function getRiskBadgeStyle(level: string): string {
   if (level === "critical")
-    return "bg-danger-500 text-white";
+    return "border-danger-500 bg-danger-500 text-white";
   if (level === "high")
-    return "bg-orange-500 text-white";
+    return "border-primary-200 bg-primary-50 text-primary-700";
   if (level === "medium")
-    return "bg-warning-500 text-white";
-  return "bg-success-500 text-white";
+    return "border-neutral-200 bg-white text-neutral-700";
+  return "border-success-500/30 bg-success-50 text-success-700";
+}
+
+function getSeverityBadge(severity: number): {
+  label: string;
+  className: string;
+} {
+  if (severity >= 4) {
+    return {
+      label: "Critical",
+      className: "border-danger-500/30 bg-danger-50 text-danger-700",
+    };
+  }
+  if (severity >= 3) {
+    return {
+      label: "Elevated",
+      className: "border-primary-200 bg-primary-50 text-primary-700",
+    };
+  }
+  return {
+    label: "Informational",
+    className: "border-neutral-200 bg-white text-neutral-600",
+  };
+}
+
+function formatSignalCount(count: number): string {
+  return `${count} risk ${count === 1 ? "signal" : "signals"} detected`;
+}
+
+function parseEvidenceQuote(quote: string): {
+  quote: string;
+  speaker?: string;
+  speakerRole?: string;
+  context?: string;
+} {
+  const match = quote.match(/^\[([^|\]]+)(?:\|([^|\]]+))?(?:\|([^\]]+))?\]\s*(.*)$/);
+  if (!match) return { quote };
+
+  return {
+    speaker: match[1]?.trim(),
+    speakerRole: match[2]?.trim(),
+    context: match[3]?.trim(),
+    quote: match[4]?.trim() || quote,
+  };
 }
 
 export function RiskSignalDrilldown({
@@ -88,6 +134,7 @@ export function RiskSignalDrilldown({
   recommendations,
   signals,
   analyzedAt,
+  sourceCallCount,
 }: RiskSignalDrilldownProps) {
   const [expandedSignal, setExpandedSignal] = useState<string | null>(
     signals[0]?.type ?? null,
@@ -96,6 +143,11 @@ export function RiskSignalDrilldown({
   const sortedSignals = [...signals].sort(
     (a, b) => b.confidence - a.confidence,
   );
+  const averageConfidence =
+    signals.length > 0
+      ? signals.reduce((sum, signal) => sum + signal.confidence, 0) /
+        signals.length
+      : null;
 
   return (
     <div className="space-y-6">
@@ -111,10 +163,22 @@ export function RiskSignalDrilldown({
               <span className="text-display text-neutral-900">{riskScore}</span>
               <span className="text-small text-neutral-500">/ 100</span>
               <span
-                className={`rounded-md px-2 py-0.5 text-caption font-semibold uppercase ${getRiskBadgeStyle(riskLevel)}`}
+                className={`rounded-md border px-2 py-0.5 text-caption font-semibold uppercase ${getRiskBadgeStyle(riskLevel)}`}
               >
                 {riskLevel}
               </span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-neutral-500">
+              {averageConfidence !== null && (
+                <ConfidenceIndicator confidence={averageConfidence} size="md" />
+              )}
+              {sourceCallCount !== undefined && (
+                <span>
+                  Based on {sourceCallCount}{" "}
+                  {sourceCallCount === 1 ? "call" : "calls"}
+                </span>
+              )}
+              <span>{formatSignalCount(signals.length)}</span>
             </div>
           </div>
           {analyzedAt && (
@@ -141,6 +205,7 @@ export function RiskSignalDrilldown({
             };
             const isExpanded = expandedSignal === signal.type;
             const confidencePct = Math.round(signal.confidence * 100);
+            const severityBadge = getSeverityBadge(meta.severity);
 
             return (
               <div
@@ -159,12 +224,20 @@ export function RiskSignalDrilldown({
                   className="flex w-full items-center gap-4 px-4 py-3 text-left"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
                       <span className="text-body-strong text-neutral-900">
                         {meta.label}
                       </span>
-                      <span className="text-caption text-neutral-500">
-                        {confidencePct}% confidence
+                      <span
+                        className={`rounded-md border px-1.5 py-0.5 text-caption font-medium ${severityBadge.className}`}
+                      >
+                        {severityBadge.label}
+                      </span>
+                      <span className="ml-auto">
+                        <ConfidenceIndicator
+                          confidence={signal.confidence}
+                          size="md"
+                        />
                       </span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
@@ -206,16 +279,18 @@ export function RiskSignalDrilldown({
                           Triggering quotes ({signal.quotes.length})
                         </div>
                         <div className="space-y-2">
-                          {signal.quotes.map((quote, i) => (
-                            <div
-                              key={i}
-                              className="rounded-md border-l-2 border-primary-500 bg-neutral-100 px-3 py-2"
-                            >
-                              <p className="text-body italic leading-relaxed text-neutral-700">
-                                &ldquo;{quote}&rdquo;
-                              </p>
-                            </div>
-                          ))}
+                          {signal.quotes.map((quote, i) => {
+                            const evidence = parseEvidenceQuote(quote);
+                            return (
+                              <EvidenceQuote
+                                key={i}
+                                quote={evidence.quote}
+                                speaker={evidence.speaker}
+                                speakerRole={evidence.speakerRole}
+                                context={evidence.context ?? signal.reasoning}
+                              />
+                            );
+                          })}
                         </div>
                       </div>
                     )}

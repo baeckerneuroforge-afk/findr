@@ -5,6 +5,7 @@ import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
 import { getRiskScoreHistory } from "@/lib/risk/service";
 import { CallDetail } from "@/components/dashboard/CallDetail";
+import { RiskSignalDrilldown } from "@/components/dashboard/RiskSignalDrilldown";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { RiskHistoryChart } from "@/components/dashboard/RiskHistoryChart";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -51,6 +52,7 @@ export default async function DealDetailPage({
 
   const calls = await getCallsByDealId(orgId, id);
   const history = await getRiskScoreHistory(orgId, id, 30);
+  const latestRisk = history[history.length - 1] ?? null;
   const historyPoints = history.map((point) => ({
     date: point.analyzed_at,
     score: point.risk_score,
@@ -92,13 +94,31 @@ export default async function DealDetailPage({
             <span>Champion: {deal.championName}</span>
           </div>
         </div>
-        <RiskBadge level={deal.riskLevel} score={deal.riskScore} size="large" />
+        <RiskBadge
+          level={latestRisk?.risk_level ?? deal.riskLevel}
+          score={latestRisk?.risk_score ?? deal.riskScore}
+          size="large"
+        />
       </div>
 
       {/* Risk history chart */}
       <div className="mb-6">
         <RiskHistoryChart history={historyPoints} />
       </div>
+
+      {latestRisk && (
+        <div className="mb-8">
+          <RiskSignalDrilldown
+            riskScore={latestRisk.risk_score}
+            riskLevel={latestRisk.risk_level}
+            overallReasoning={latestRisk.overall_reasoning}
+            recommendations={latestRisk.recommendations}
+            signals={latestRisk.signals}
+            analyzedAt={latestRisk.analyzed_at}
+            sourceCallCount={calls.length}
+          />
+        </div>
+      )}
 
       {/* Calls */}
       <div className="mb-8">

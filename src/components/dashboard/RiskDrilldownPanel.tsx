@@ -108,14 +108,16 @@ export function RiskDrilldownPanel({
             />
           )}
           {!loading && data && (
-            <RiskSignalDrilldown
-              riskScore={data.risk_score}
-              riskLevel={data.risk_level}
-              overallReasoning={data.overall_reasoning}
-              recommendations={data.recommendations}
-              signals={data.signals}
-              analyzedAt={data.analyzed_at}
-            />
+            <div className="animate-fade-in-panel">
+              <RiskSignalDrilldown
+                riskScore={data.risk_score}
+                riskLevel={data.risk_level}
+                overallReasoning={data.overall_reasoning}
+                recommendations={data.recommendations}
+                signals={data.signals}
+                analyzedAt={data.analyzed_at}
+              />
+            </div>
           )}
         </div>
       </div>

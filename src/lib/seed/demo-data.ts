@@ -39,21 +39,27 @@ export const DEMO_RISK_SCORES: DemoRiskScore[] = [
         confidence: 0.86,
         reasoning:
           "The buyer repeatedly pushes the decision back without a concrete next step.",
-        quotes: ["Wir müssen das nochmal intern besprechen, wir melden uns."],
+        quotes: [
+          "[Anna Keller|champion|Kein konkreter Owner oder Termin für den nächsten Schritt] Wir müssen das nochmal intern besprechen. Ich will nichts versprechen, wir melden uns dann wieder.",
+        ],
       },
       {
         type: "LATE_DECISION_MAKER",
         confidence: 0.78,
         reasoning:
           "The CFO entered after the commercial process was already in negotiation.",
-        quotes: ["Unser CFO hat noch ein paar Fragen zur Datensicherheit."],
+        quotes: [
+          "[Thomas Becker|decision_maker|Neue Compliance-Anforderung spät im Prozess eingebracht] Ehrlich gesagt, unser CFO hat da nochmal Fragen zur Datensicherheit. Das müssen wir intern klären bevor wir weitermachen.",
+        ],
       },
       {
         type: "COMPETITOR_PRESSURE",
         confidence: 0.73,
         reasoning:
           "Salesforce and Hubspot are being evaluated as active alternatives.",
-        quotes: ["Salesforce ist preislich aggressiver, Hubspot kennen wir schon."],
+        quotes: [
+          "[Anna Keller|champion|Konkurrenz wird als kommerzieller Benchmark genutzt] Salesforce ist preislich ziemlich aggressiv reingegangen, und Hubspot kennen wir aus einem anderen Team schon.",
+        ],
       },
     ],
   },
@@ -86,21 +92,27 @@ export const DEMO_RISK_SCORES: DemoRiskScore[] = [
         confidence: 0.9,
         reasoning:
           "Procurement explicitly says the current quarter budget is below the proposal.",
-        quotes: ["Für dieses Quartal ist das Budget eigentlich schon verplant."],
+        quotes: [
+          "[Martina Schmid|buyer|Budget-Freigabe ist nicht für dieses Quartal gesichert] Für dieses Quartal ist das Budget eigentlich schon verplant. Wenn wir das machen, müssten wir an anderer Stelle kürzen.",
+        ],
       },
       {
         type: "COMPETITOR_PRESSURE",
         confidence: 0.88,
         reasoning:
           "The buyer is comparing Salesforce, Microsoft Dynamics, and SAP as alternatives.",
-        quotes: ["SAP und Microsoft liegen uns auch vor, beide sind günstiger im Paket."],
+        quotes: [
+          "[Jens Richter|decision_maker|Mehrere Alternativen liegen in der finalen Auswahl] SAP und Microsoft liegen uns auch vor. Beide sind im Paket günstiger, auch wenn sie fachlich nicht ganz so tief gehen.",
+        ],
       },
       {
         type: "ENGAGEMENT_DROP",
         confidence: 0.8,
         reasoning:
           "The account has not responded for more than three weeks near the close date.",
-        quotes: ["Ich war die letzten Wochen nicht dazu gekommen, das intern zu treiben."],
+        quotes: [
+          "[Martina Schmid|champion|Champion bestätigt nachlassende interne Aktivität] Sorry, ich war die letzten Wochen nicht dazu gekommen, das intern wirklich zu treiben. Es ist gerade sehr viel parallel.",
+        ],
       },
     ],
   },
@@ -120,7 +132,9 @@ export const DEMO_RISK_SCORES: DemoRiskScore[] = [
         confidence: 0.68,
         reasoning:
           "Hubspot remains a comparison point, though the buyer prefers Findr's depth.",
-        quotes: ["Hubspot hat uns auch was gezeigt, aber ihr seid da tiefer."],
+        quotes: [
+          "[Florian Neumann|buyer|Hubspot ist noch im Vergleich, aber nicht klar führend] Hubspot hat uns auch was gezeigt. Ihr seid da tiefer, aber ich muss den Unterschied noch sauber erklären können.",
+        ],
       },
     ],
   },
@@ -140,14 +154,18 @@ export const DEMO_RISK_SCORES: DemoRiskScore[] = [
         confidence: 0.72,
         reasoning:
           "A manager with approval influence is only being introduced after discovery.",
-        quotes: ["Ich muss meinen Vorgesetzten überzeugen, der ist beim nächsten Termin dabei."],
+        quotes: [
+          "[Petra Vogel|champion|Approver wird erst nach Discovery in den Prozess geholt] Ich muss meinen Vorgesetzten noch überzeugen. Der ist beim nächsten Termin dabei und wird wahrscheinlich ziemlich kritisch fragen.",
+        ],
       },
       {
         type: "COMPETITOR_PRESSURE",
         confidence: 0.67,
         reasoning:
           "Gong and Chorus are active reference points in the evaluation.",
-        quotes: ["Wir vergleichen gerade auch Gong und Chorus für Conversation Intelligence."],
+        quotes: [
+          "[Petra Vogel|champion|Gong und Chorus werden als fachliche Alternativen geprüft] Wir vergleichen gerade auch Gong und Chorus für Conversation Intelligence. Da geht es vor allem um Reporting und Coaching-Workflows.",
+        ],
       },
     ],
   },
@@ -179,28 +197,36 @@ export const DEMO_RISK_SCORES: DemoRiskScore[] = [
         confidence: 0.92,
         reasoning:
           "The original champion is no longer driving the buying process.",
-        quotes: ["Lukas ist nicht mehr im Projekt, ich übernehme das erstmal kommissarisch."],
+        quotes: [
+          "[Miriam Hartmann|buyer|Originaler Champion ist nicht mehr im Projekt aktiv] Lukas ist nicht mehr im Projekt, ich übernehme das erstmal kommissarisch. Ich kenne aber nicht alle Details aus den letzten Gesprächen.",
+        ],
       },
       {
         type: "STAKEHOLDER_CHURN",
         confidence: 0.86,
         reasoning:
           "Ownership of the project shifted during negotiation, forcing re-discovery.",
-        quotes: ["Der neue Verantwortliche muss sich erst in die Historie einarbeiten."],
+        quotes: [
+          "[Miriam Hartmann|buyer_team|Neuer Stakeholder muss Deal-Historie neu aufarbeiten] Der neue Verantwortliche muss sich erst in die Historie einarbeiten. Wir sollten nicht davon ausgehen, dass er die Entscheidung so mitträgt.",
+        ],
       },
       {
         type: "COMPETITOR_PRESSURE",
         confidence: 0.88,
         reasoning:
           "Four CRM vendors are active in the final evaluation.",
-        quotes: ["Wir haben Angebote von Salesforce, Pipedrive, Zoho und Microsoft auf dem Tisch."],
+        quotes: [
+          "[Karsten Lehmann|decision_maker|Finale Auswahl ist breit und kommerziell offen] Wir haben Angebote von Salesforce, Pipedrive, Zoho und Microsoft auf dem Tisch. Ich will das nochmal nebeneinander sehen.",
+        ],
       },
       {
         type: "STALLING_PATTERN",
         confidence: 0.82,
         reasoning:
           "The buyer is delaying signature until leadership re-validates the initiative.",
-        quotes: ["Vor der neuen Geschäftsleitung unterschreiben wir hier nichts."],
+        quotes: [
+          "[Karsten Lehmann|decision_maker|Unterschrift wird bis zur neuen Geschäftsleitung blockiert] Vor der neuen Geschäftsleitung unterschreiben wir hier nichts. Die wollen erst verstehen, warum das jetzt Priorität hat.",
+        ],
       },
     ],
   },
@@ -220,14 +246,18 @@ export const DEMO_RISK_SCORES: DemoRiskScore[] = [
         confidence: 0.7,
         reasoning:
           "Response cadence slowed after proposal, though the buyer remains engaged.",
-        quotes: ["Sorry für die Funkstille, bei uns war die Woche komplett voll."],
+        quotes: [
+          "[Nadine Krüger|champion|Antwortkadenz fällt nach Proposal sichtbar ab] Sorry für die Funkstille, bei uns war die Woche komplett voll. Ich habe es noch nicht geschafft, Feedback einzusammeln.",
+        ],
       },
       {
         type: "CHAMPION_DISENGAGEMENT",
         confidence: 0.66,
         reasoning:
           "The champion is still responsive but is no longer actively driving internal momentum.",
-        quotes: ["Ich habe es noch nicht geschafft, das intern weiterzutragen."],
+        quotes: [
+          "[Nadine Krüger|champion|Champion ist erreichbar, treibt aber intern nicht mehr aktiv] Ich habe es noch nicht geschafft, das intern weiterzutragen. Wenn ich ehrlich bin, fehlt mir gerade ein bisschen die Zeit dafür.",
+        ],
       },
     ],
   },
@@ -248,14 +278,18 @@ export const DEMO_RISK_SCORES: DemoRiskScore[] = [
         confidence: 0.8,
         reasoning:
           "Salesforce and Hubspot are being used as late-stage commercial benchmarks.",
-        quotes: ["Salesforce gibt uns Enterprise-Rabatt, Hubspot wäre im Bundle günstiger."],
+        quotes: [
+          "[Oliver Brandt|buyer|Konkurrenz setzt spät im Prozess Preisanker] Salesforce gibt uns Enterprise-Rabatt, Hubspot wäre im Bundle günstiger. Das müssen wir intern schon begründen.",
+        ],
       },
       {
         type: "BUDGET_FRICTION",
         confidence: 0.71,
         reasoning:
           "Finance is asking for a board-level justification before approval.",
-        quotes: ["Finance braucht eine Board-taugliche ROI-Begründung vor Freigabe."],
+        quotes: [
+          "[Katrin Wolf|decision_maker|Finance verlangt Board-fähigen Business Case vor Freigabe] Finance braucht eine Board-taugliche ROI-Begründung vor Freigabe. Ohne die Zahlen wird das nicht durchgehen.",
+        ],
       },
     ],
   },
