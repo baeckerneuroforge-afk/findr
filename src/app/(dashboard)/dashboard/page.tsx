@@ -10,6 +10,7 @@ import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { AnalyzeButton } from "@/components/dashboard/AnalyzeButton";
 import { AnalyzeAllButton } from "@/components/dashboard/AnalyzeAllButton";
 import { getDealsByOrg } from "@/lib/deals/service";
+import { buildForecastSummary } from "@/lib/forecast/service";
 import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
 import type { DealStage } from "@/lib/deals/types";
 
@@ -30,6 +31,14 @@ const ACTIVE_STAGES: ReadonlySet<DealStage> = new Set([
   "negotiation",
   "verbal_commit",
 ]);
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
 function PlugIcon() {
   return (
@@ -82,6 +91,7 @@ export default async function DashboardPage() {
     };
   });
 
+  const forecast = buildForecastSummary(deals);
   const atRisk = deals.filter(
     (d) => d.riskScore !== undefined && d.riskScore >= 60,
   ).length;
@@ -133,11 +143,21 @@ export default async function DashboardPage() {
             active pipeline
           </p>
         </div>
-        <AnalyzeAllButton deals={deals.map((d) => ({ id: d.id, name: d.name }))} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/dashboard/forecast"
+            className="text-body-strong text-neutral-700 hover:text-neutral-900"
+          >
+            View full forecast -&gt;
+          </Link>
+          <AnalyzeAllButton
+            deals={deals.map((d) => ({ id: d.id, name: d.name }))}
+          />
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Total deals" value={deals.length} />
         <StatCard
           label="Deals at risk"
@@ -146,6 +166,12 @@ export default async function DashboardPage() {
           status={atRisk > 0 ? "critical" : "default"}
         />
         <StatCard label="Active" value={active} />
+        <StatCard
+          label="Weighted forecast"
+          value={formatCurrency(forecast.weighted_pipeline_value)}
+          subtitle="Risk-adjusted"
+          status="success"
+        />
         <StatCard label="Closing in 30d" value={closingSoon} />
       </div>
 
