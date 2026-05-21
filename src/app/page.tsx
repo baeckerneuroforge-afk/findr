@@ -4,6 +4,7 @@ import { PlatformVisualization } from "@/components/landing/PlatformVisualizatio
 import { ModuleShowcase } from "@/components/landing/ModuleShowcase";
 import { WhyFindr } from "@/components/landing/WhyFindr";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+import { GetsBetter } from "@/components/landing/GetsBetter";
 import { FinalCTA } from "@/components/landing/FinalCTA";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
@@ -16,6 +17,7 @@ export default function HomePage() {
       <ModuleShowcase />
       <WhyFindr />
       <HowItWorks />
+      <GetsBetter />
       <FinalCTA />
       <LandingFooter />
     </main>
