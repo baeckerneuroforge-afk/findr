@@ -50,6 +50,8 @@ async function callClaude(
   const response = await client.messages.create({
     model: ANALYSIS_MODEL,
     max_tokens: 2048,
+    // temperature: 0 for reproducible, consistent risk scoring — same transcript should yield the same assessment. Critical for a scoring tool and for meaningful evals.
+    temperature: 0,
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
   });
