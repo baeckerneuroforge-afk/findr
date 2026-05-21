@@ -50,8 +50,8 @@ async function callClaude(
   const response = await client.messages.create({
     model: ANALYSIS_MODEL,
     max_tokens: 2048,
-    // temperature: 0 for reproducible, consistent risk scoring — same transcript should yield the same assessment. Critical for a scoring tool and for meaningful evals.
-    temperature: 0,
+    // Note: Opus 4.7 does not accept the temperature parameter (400 error).
+    // Determinism is not configurable here; rely on the low-variance nature of the structured prompt + schema validation.
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
   });
