@@ -38,6 +38,7 @@ export class LLMUnavailableError extends Error {
 async function callClaude(
   userPrompt: string,
   attempt: number,
+  model: string,
 ): Promise<RiskAnalysisResult> {
   const client = getAnthropicClient();
 
@@ -48,7 +49,7 @@ async function callClaude(
       : RISK_CLASSIFIER_SYSTEM_PROMPT;
 
   const response = await client.messages.create({
-    model: ANALYSIS_MODEL,
+    model,
     max_tokens: 2048,
     // Note: Opus 4.7 does not accept the temperature parameter (400 error).
     // Determinism is not configurable here; rely on the low-variance nature of the structured prompt + schema validation.
@@ -117,11 +118,14 @@ async function callClaude(
 export async function analyzeDealRiskLLM(
   deal: Deal,
   calls: CallForPrompt[] = [],
+  // Optional model override. Production (/api/risk) omits this and stays on
+  // ANALYSIS_MODEL (Opus). Only the eval runner passes a cheaper model.
+  model: string = ANALYSIS_MODEL,
 ): Promise<RiskAnalysisResult> {
   const userPrompt = buildRiskClassifierPrompt(deal, calls);
 
   try {
-    return await callClaude(userPrompt, 0);
+    return await callClaude(userPrompt, 0, model);
   } catch (err) {
     if (!(err instanceof LLMSchemaError)) {
       throw new LLMUnavailableError("Claude risk analysis failed", err);
@@ -133,7 +137,7 @@ export async function analyzeDealRiskLLM(
   }
 
   try {
-    return await callClaude(userPrompt, 1);
+    return await callClaude(userPrompt, 1, model);
   } catch (err) {
     if (err instanceof LLMSchemaError) {
       console.error(

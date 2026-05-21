@@ -1,7 +1,11 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import chalk from "chalk";
 import { config } from "dotenv";
-import { analyzeDealRisk } from "@/lib/risk/classifier";
+import {
+  analyzeDealRiskLLM,
+  ANALYSIS_MODEL,
+  LLMUnavailableError,
+} from "@/lib/risk/llm-classifier";
 import type { Deal, DealStage } from "@/lib/deals/types";
 import type { CallForPrompt } from "@/lib/risk/prompts";
 import { EVAL_CASES } from "./dataset";
@@ -10,6 +14,10 @@ import type { EvalCase, EvalReport, EvalResult } from "./types";
 config({ path: ".env.local" });
 
 const COST_PER_CALL_USD = 0.02;
+// Eval measures the pure LLM path (no heuristic fallback). Model is overridable
+// via EVAL_MODEL for cheap tuning (e.g. Haiku/Sonnet); defaults to the
+// production ANALYSIS_MODEL (Opus).
+const ACTIVE_MODEL = process.env.EVAL_MODEL ?? ANALYSIS_MODEL;
 const results: EvalResult[] = [];
 const startTime = Date.now();
 
@@ -19,6 +27,7 @@ beforeAll(() => {
   }
 
   console.log(chalk.cyan("\n... Findr Eval Suite ..."));
+  console.log(chalk.gray(`Running eval with model: ${ACTIVE_MODEL}`));
   console.log(
     chalk.gray(
       `Running ${EVAL_CASES.length} cases (~$${(
@@ -38,6 +47,7 @@ describe("Risk Classifier Eval Suite", () => {
     it(`${evalCase.id}: ${evalCase.description}`, async () => {
       const caseStart = Date.now();
       const errors: string[] = [];
+      let errored = false;
       let actual: EvalResult["actual"] = {
         riskScore: 0,
         riskLevel: "unknown",
@@ -45,9 +55,13 @@ describe("Risk Classifier Eval Suite", () => {
       };
 
       try {
-        const result = await analyzeDealRisk(
+        // Pure LLM path — NO heuristic fallback. If the LLM call fails, the
+        // case is flagged as errored so a broken model surfaces loudly instead
+        // of being silently scored against heuristic output.
+        const result = await analyzeDealRiskLLM(
           toClassifierDeal(evalCase),
           toClassifierCalls(evalCase),
+          ACTIVE_MODEL,
         );
 
         actual = {
@@ -83,12 +97,20 @@ describe("Risk Classifier Eval Suite", () => {
           }
         }
       } catch (err) {
-        errors.push(err instanceof Error ? err.message : "unknown classifier error");
+        errored = true;
+        const detail =
+          err instanceof LLMUnavailableError
+            ? `${err.message}${err.cause instanceof Error ? `: ${err.cause.message}` : ""}`
+            : err instanceof Error
+              ? err.message
+              : "unknown error";
+        errors.push(`LLM ERROR (analysis did not run): ${detail}`);
       }
 
       const evalResult: EvalResult = {
         caseId: evalCase.id,
         passed: errors.length === 0,
+        errored,
         actual,
         expected: evalCase.expected,
         errors,
@@ -97,7 +119,10 @@ describe("Risk Classifier Eval Suite", () => {
 
       results.push(evalResult);
 
-      if (errors.length > 0) {
+      if (errored) {
+        console.log(chalk.bgRed.white(`  ERR ${evalCase.id}: LLM did not run`));
+        errors.forEach((error) => console.log(chalk.red(`    - ${error}`)));
+      } else if (errors.length > 0) {
         console.log(chalk.red(`  x ${evalCase.id}: ${errors.length} error(s)`));
         errors.forEach((error) => console.log(chalk.gray(`    - ${error}`)));
       } else {
@@ -254,8 +279,22 @@ function buildReport(results: EvalResult[], totalDurationMs: number): EvalReport
 function printReport(report: EvalReport) {
   console.log(chalk.cyan("\n... Eval Report ...\n"));
 
+  const erroredCases = report.failures.filter((failure) => failure.errored);
+  if (erroredCases.length > 0) {
+    console.log(
+      chalk.bgRed.white(
+        `  LLM ERRORS: ${erroredCases.length}/${report.totalCases} cases — the model did not run. Metrics below are NOT trustworthy.`,
+      ),
+    );
+    for (const errored of erroredCases.slice(0, 5)) {
+      console.log(chalk.red(`    ${errored.caseId}: ${errored.errors[0] ?? ""}`));
+    }
+    console.log("");
+  }
+
   console.log(chalk.bold("Overall:"));
   console.log(`  Total cases:      ${report.totalCases}`);
+  console.log(`  LLM errors:       ${chalk.red(erroredCases.length)}`);
   console.log(
     `  Passed:           ${chalk.green(report.passedCases)} (${report.accuracyPct.toFixed(1)}%)`,
   );

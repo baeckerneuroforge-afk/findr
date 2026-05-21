@@ -33,6 +33,10 @@ export interface EvalCase {
 export interface EvalResult {
   caseId: string;
   passed: boolean;
+  // True when the LLM call itself failed (e.g. LLMUnavailableError) rather than
+  // the analysis running but scoring wrong. Distinguishes "LLM didn't run" from
+  // "LLM ran but missed" so a broken model never hides behind metrics.
+  errored: boolean;
   actual: {
     riskScore: number;
     riskLevel: string;
