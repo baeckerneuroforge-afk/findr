@@ -104,5 +104,42 @@ describe("risk adapters", () => {
     expect(result.signals[0]?.type).toBe("COMPETITOR_PRESSURE");
     expect(result.recommendations[0]).toContain("competitor-differentiation");
   });
-});
 
+  it("preserves multi_threading_failure as its own legacy signal type", () => {
+    const analysis: RiskAnalysis = {
+      deal_id: "deal_1",
+      overall_risk_score: 66,
+      overall_severity: "high",
+      signals: [
+        {
+          type: "multi_threading_failure",
+          confidence: 0.76,
+          severity: "high",
+          evidence: [
+            {
+              quote: "Nur Anna ist im Loop, CFO und Legal haben wir noch nicht gesprochen.",
+              context_summary: "Champion is the only engaged buyer-side stakeholder.",
+            },
+          ],
+          detected_at: "2026-04-01T00:00:00.000Z",
+        },
+      ],
+      recommendations: [],
+      analyzed_at: "2026-04-01T00:00:00.000Z",
+      detector_versions: {
+        champion_loss: "1.0.0",
+        competitor_pressure: "1.0.0",
+        stalling: "1.0.0",
+        budget_friction: "1.0.0",
+        late_decision_maker: "1.0.0",
+        stakeholder_churn: "1.0.0",
+        engagement_drop: "1.0.0",
+        multi_threading_failure: "1.0.0",
+      },
+    };
+
+    const result = riskAnalysisToLegacyResult(analysis);
+
+    expect(result.signals[0]?.type).toBe("MULTI_THREADING_FAILURE");
+  });
+});

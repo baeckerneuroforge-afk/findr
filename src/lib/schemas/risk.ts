@@ -9,6 +9,7 @@ export const RISK_SIGNAL_TYPES = [
   "LATE_DECISION_MAKER",
   "STAKEHOLDER_CHURN",
   "ENGAGEMENT_DROP",
+  "MULTI_THREADING_FAILURE",
 ] as const;
 
 export const RiskSignalSchema = z.object({

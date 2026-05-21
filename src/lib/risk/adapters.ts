@@ -21,7 +21,7 @@ const SIGNAL_TO_LEGACY: Record<SignalType, RiskSignal["type"]> = {
   late_decision_maker: "LATE_DECISION_MAKER",
   stakeholder_churn: "STAKEHOLDER_CHURN",
   engagement_drop: "ENGAGEMENT_DROP",
-  multi_threading_failure: "LATE_DECISION_MAKER",
+  multi_threading_failure: "MULTI_THREADING_FAILURE",
 };
 
 function speakerRoleFromCall(

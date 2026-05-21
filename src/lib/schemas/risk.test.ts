@@ -145,13 +145,15 @@ describe("AnalyzeRiskRequestSchema", () => {
 });
 
 describe("RISK_SIGNAL_TYPES constant", () => {
-  it("has exactly 8 signal types", () => {
-    expect(RISK_SIGNAL_TYPES).toHaveLength(8);
+  it("has 9 backward-compatible signal types", () => {
+    expect(RISK_SIGNAL_TYPES).toHaveLength(9);
   });
 
   it("contains expected types", () => {
     expect(RISK_SIGNAL_TYPES).toContain("CHAMPION_LOSS");
     expect(RISK_SIGNAL_TYPES).toContain("COMPETITOR_PRESSURE");
     expect(RISK_SIGNAL_TYPES).toContain("STALLING_PATTERN");
+    expect(RISK_SIGNAL_TYPES).toContain("CHAMPION_DISENGAGEMENT");
+    expect(RISK_SIGNAL_TYPES).toContain("MULTI_THREADING_FAILURE");
   });
 });

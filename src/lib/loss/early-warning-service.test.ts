@@ -8,6 +8,9 @@ describe("normalizeSignalType", () => {
       "competitor_pressure",
     );
     expect(normalizeSignalType("STALLING_PATTERN")).toBe("stalling");
+    expect(normalizeSignalType("MULTI_THREADING_FAILURE")).toBe(
+      "multi_threading_failure",
+    );
   });
 
   it("normalizes hyphenated and compact signal names", () => {
