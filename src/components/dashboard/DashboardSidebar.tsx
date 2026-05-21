@@ -13,16 +13,18 @@ const PRIMARY_NAV: NavItem[] = [
   { href: "/dashboard/forecast", label: "Forecast" },
   { href: "/dashboard/coaching", label: "Team Coaching" },
   { href: "/dashboard/loss-analysis", label: "Loss Analysis" },
-];
-
-const INTEGRATIONS_NAV: NavItem[] = [
-  { href: "/dashboard/integrations/hubspot", label: "Hubspot" },
-  { href: "/dashboard/integrations/gong", label: "Gong" },
-  { href: "/dashboard/integrations/slack", label: "Slack" },
+  { href: "/dashboard/data-sources", label: "Data Sources" },
 ];
 
 function isActive(href: string, pathname: string): boolean {
   if (href === "/dashboard") return pathname === "/dashboard";
+  if (href === "/dashboard/data-sources") {
+    return (
+      pathname === href ||
+      pathname.startsWith(`${href}/`) ||
+      pathname.startsWith("/dashboard/integrations/")
+    );
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -75,13 +77,6 @@ export default function DashboardSidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
         <NavList items={PRIMARY_NAV} pathname={pathname} />
-
-        <div>
-          <div className="px-3 mb-2 text-caption text-neutral-400 uppercase tracking-wider font-medium">
-            Integrations
-          </div>
-          <NavList items={INTEGRATIONS_NAV} pathname={pathname} />
-        </div>
       </nav>
 
       <div className="border-t border-neutral-200 px-3 py-4">

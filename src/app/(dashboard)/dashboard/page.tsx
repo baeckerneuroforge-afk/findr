@@ -142,17 +142,17 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-display text-neutral-900">Pipeline</h1>
           <p className="text-body text-neutral-500 mt-1">
-            Connect Hubspot to start importing deals.
+            Connect a data source or import a deal manually to start analyzing.
           </p>
         </div>
         <OnboardingChecklist status={onboardingStatus} />
         <EmptyState
           icon={<PlugIcon />}
           title="No deals yet"
-          description="Connect Hubspot or wait for your first sync. Once deals land, Findr will show risk signals, weighted forecast, and deal-level recommendations here."
+          description="Connect Hubspot, Gong, or create a manual deal with pasted transcripts. Once deals land, Findr will show risk signals, weighted forecast, and deal-level recommendations here."
           action={{
-            label: "Connect Hubspot",
-            href: "/dashboard/integrations/hubspot",
+            label: "Open Data Sources",
+            href: "/dashboard/data-sources",
           }}
         />
       </div>

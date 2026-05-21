@@ -11,9 +11,9 @@ const STEPS: OnboardingStep[] = [
     id: "connect_data",
     title: "Connect your CRM or call source",
     description:
-      "Sync deals from Hubspot or import calls from Gong to start analyzing.",
-    href: "/dashboard/integrations/hubspot",
-    cta_label: "Connect Hubspot",
+      "Sync from Hubspot or Gong, or add a manual deal with pasted transcripts.",
+    href: "/dashboard/data-sources",
+    cta_label: "Open Data Sources",
   },
   {
     id: "first_analysis",
