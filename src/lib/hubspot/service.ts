@@ -386,6 +386,25 @@ function ownerDisplayName(owner: HubspotOwner | null | undefined): string {
   );
 }
 
+export function getClosedLostLossHandling(
+  existingDeal: { stage: string | null } | null,
+  normalizedStage: string,
+): { analyze: boolean; alert: boolean } {
+  if (normalizedStage !== "closed_lost") {
+    return { analyze: false, alert: false };
+  }
+
+  if (!existingDeal) {
+    return { analyze: true, alert: false };
+  }
+
+  if (existingDeal.stage !== "closed_lost") {
+    return { analyze: true, alert: true };
+  }
+
+  return { analyze: false, alert: false };
+}
+
 export async function syncHubspotDeals(orgId: string): Promise<{
   synced: number;
   errors: string[];
@@ -477,33 +496,36 @@ export async function syncHubspotDeals(orgId: string): Promise<{
           result.errors.push(`Deal ${deal.id}: ${upsertError.message}`);
         } else {
           result.synced++;
-          if (
-            existingDeal &&
-            existingDeal.stage !== "closed_lost" &&
-            normalizedStage === "closed_lost" &&
-            syncedDeal
-          ) {
+          const closedLostHandling = getClosedLostLossHandling(
+            existingDeal,
+            normalizedStage,
+          );
+
+          if (closedLostHandling.analyze && syncedDeal) {
             const lossResult = await analyzeAndPersistLossReason(
               orgId,
               syncedDeal.id,
             );
-            await maybeTriggerDealLost({
-              orgId,
-              dealId: syncedDeal.id,
-              dealContext: {
-                org_id: orgId,
-                deal_id: syncedDeal.id,
-                deal_name: syncedDeal.name,
-                deal_amount: syncedDeal.amount ?? undefined,
-                deal_owner: syncedDeal.owner_name ?? "Unassigned",
-                metadata: lossResult
-                  ? {
-                      primary_reason: lossResult.analysis.primary_reason,
-                      confidence: lossResult.analysis.confidence,
-                    }
-                  : undefined,
-              },
-            });
+
+            if (closedLostHandling.alert) {
+              await maybeTriggerDealLost({
+                orgId,
+                dealId: syncedDeal.id,
+                dealContext: {
+                  org_id: orgId,
+                  deal_id: syncedDeal.id,
+                  deal_name: syncedDeal.name,
+                  deal_amount: syncedDeal.amount ?? undefined,
+                  deal_owner: syncedDeal.owner_name ?? "Unassigned",
+                  metadata: lossResult
+                    ? {
+                        primary_reason: lossResult.analysis.primary_reason,
+                        confidence: lossResult.analysis.confidence,
+                      }
+                    : undefined,
+                },
+              });
+            }
           }
         }
       } catch (err) {

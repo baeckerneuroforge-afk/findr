@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeHubspotStage } from "./service";
+import { getClosedLostLossHandling, normalizeHubspotStage } from "./service";
 
 describe("normalizeHubspotStage", () => {
   it("normalizes common Hubspot stage names", () => {
@@ -26,5 +26,39 @@ describe("normalizeHubspotStage", () => {
         "unknown": "qualified",
       }
     `);
+  });
+});
+
+describe("getClosedLostLossHandling", () => {
+  it("analyzes and alerts when an existing deal transitions to closed-lost", () => {
+    expect(
+      getClosedLostLossHandling({ stage: "negotiation" }, "closed_lost"),
+    ).toEqual({
+      analyze: true,
+      alert: true,
+    });
+  });
+
+  it("backfills analysis without alerting when a new imported deal is already closed-lost", () => {
+    expect(getClosedLostLossHandling(null, "closed_lost")).toEqual({
+      analyze: true,
+      alert: false,
+    });
+  });
+
+  it("does not re-analyze deals that were already closed-lost", () => {
+    expect(
+      getClosedLostLossHandling({ stage: "closed_lost" }, "closed_lost"),
+    ).toEqual({
+      analyze: false,
+      alert: false,
+    });
+  });
+
+  it("ignores deals that are not closed-lost", () => {
+    expect(getClosedLostLossHandling(null, "proposal_sent")).toEqual({
+      analyze: false,
+      alert: false,
+    });
   });
 });
