@@ -4,31 +4,28 @@ interface WinProbabilityBarProps {
 }
 
 function getProbabilityTone(probability: number) {
-  if (probability > 75) {
+  if (probability >= 75) {
     return {
       bar: "bg-success-500",
+      dot: "bg-success-500",
       text: "text-success-700",
       label: "Strong",
     };
   }
-  if (probability >= 50) {
+  if (probability < 25) {
     return {
-      bar: "bg-primary-500",
-      text: "text-primary-700",
-      label: "Likely",
+      bar: "bg-danger-500",
+      dot: "bg-danger-500",
+      text: "text-danger-700",
+      label: "Unlikely",
     };
   }
-  if (probability >= 25) {
-    return {
-      bar: "bg-warning-500",
-      text: "text-warning-700",
-      label: "Watch",
-    };
-  }
+
   return {
-    bar: "bg-danger-500",
-    text: "text-danger-700",
-    label: "Weak",
+    bar: "bg-primary-500",
+    dot: "bg-neutral-300",
+    text: "text-neutral-700",
+    label: probability >= 50 ? "Likely" : "Possible",
   };
 }
 
@@ -42,12 +39,15 @@ export function WinProbabilityBar({
   return (
     <div className="min-w-[160px]">
       <div className="mb-1 flex items-center justify-between gap-3">
-        <span className={`text-small font-medium ${tone.text}`}>
-          {clamped}%
+        <span className={`inline-flex items-center gap-1.5 text-small font-medium ${tone.text}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+          <span>{clamped}%</span>
         </span>
         <span className="text-caption text-neutral-500">
           {tone.label}
-          {confidence ? ` · ${confidence}` : ""}
+          {confidence ? (
+            <span className="text-neutral-400"> · {confidence}</span>
+          ) : null}
         </span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">

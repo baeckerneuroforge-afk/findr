@@ -2,11 +2,12 @@ interface StatCardProps {
   label: string;
   value: string | number;
   subtitle?: string;
-  status?: "default" | "warning" | "critical" | "success";
+  status?: "default" | "primary" | "warning" | "critical" | "success";
 }
 
 const STATUS_VALUE_STYLES: Record<NonNullable<StatCardProps["status"]>, string> = {
   default: "text-neutral-900",
+  primary: "text-primary-700",
   warning: "text-warning-700",
   critical: "text-danger-700",
   success: "text-success-700",

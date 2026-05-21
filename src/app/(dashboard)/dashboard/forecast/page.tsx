@@ -5,7 +5,7 @@ import { getForecast } from "@/lib/forecast/service";
 import { ForecastScenarios } from "@/components/dashboard/ForecastScenarios";
 import { StageBreakdownChart } from "@/components/dashboard/StageBreakdownChart";
 import { WinProbabilityBar } from "@/components/dashboard/WinProbabilityBar";
-import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
@@ -27,13 +27,6 @@ function formatCurrency(value: number) {
     currency: "EUR",
     maximumFractionDigits: 0,
   }).format(value);
-}
-
-function probabilityVariant(probability: number): BadgeVariant {
-  if (probability > 75) return "success";
-  if (probability >= 50) return "default";
-  if (probability >= 25) return "medium";
-  return "critical";
 }
 
 export default async function ForecastPage() {
@@ -71,7 +64,7 @@ export default async function ForecastPage() {
           label="Weighted forecast"
           value={formatCurrency(forecast.weighted_pipeline_value)}
           subtitle="Likely case"
-          status="success"
+          status="primary"
         />
         <StatCard
           label="At-risk value"
@@ -124,15 +117,10 @@ export default async function ForecastPage() {
                   {formatCurrency(deal.amount)}
                 </TD>
                 <TD>
-                  <div className="flex items-center gap-3">
-                    <WinProbabilityBar
-                      probability={deal.win_probability}
-                      confidence={deal.confidence}
-                    />
-                    <Badge variant={probabilityVariant(deal.win_probability)}>
-                      {deal.win_probability}%
-                    </Badge>
-                  </div>
+                  <WinProbabilityBar
+                    probability={deal.win_probability}
+                    confidence={deal.confidence}
+                  />
                 </TD>
                 <TD className="text-right font-medium text-neutral-900 whitespace-nowrap">
                   {formatCurrency(deal.weighted_value)}

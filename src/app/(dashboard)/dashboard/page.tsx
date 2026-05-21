@@ -170,7 +170,7 @@ export default async function DashboardPage() {
           label="Weighted forecast"
           value={formatCurrency(forecast.weighted_pipeline_value)}
           subtitle="Risk-adjusted"
-          status="success"
+          status="primary"
         />
         <StatCard label="Closing in 30d" value={closingSoon} />
       </div>
