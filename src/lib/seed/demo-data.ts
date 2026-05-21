@@ -4,11 +4,13 @@ import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { MOCK_DEALS } from "@/lib/deals/mock-data";
 import { generateCallsForDeal } from "@/lib/calls/mock-call-generator";
 import type { Deal, RiskLevel } from "@/lib/deals/types";
+import type { LossReasonEvidence, LossReasonType } from "@/lib/loss/extractor";
 import type { RiskAnalysisResult, RiskSignal } from "@/lib/schemas/risk";
 import type { Database, Json } from "@/types/database";
 
 type SupabaseClient = ReturnType<typeof createAdminSupabaseClient>;
 type DealInsert = Database["public"]["Tables"]["deals"]["Insert"];
+type LossReasonInsert = Database["public"]["Tables"]["loss_reasons"]["Insert"];
 
 interface DemoRiskScore {
   mockDealId: string;
@@ -19,7 +21,238 @@ interface DemoRiskScore {
   signals: RiskSignal[];
 }
 
+interface DemoLossReason {
+  mockDealId: string;
+  primaryReason: LossReasonType;
+  secondaryReasons: LossReasonType[];
+  confidence: number;
+  evidenceQuotes: LossReasonEvidence[];
+  extractedDaysAgo: number;
+  notes: string;
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const DEMO_LOST_DEALS: Deal[] = [
+  {
+    id: "deal_011",
+    name: "RheinWerk Banking — €92k ARR",
+    companyName: "RheinWerk Banking AG",
+    amount: 92000,
+    currency: "EUR",
+    stage: "closed_lost",
+    ownerName: "Sarah Mueller",
+    championName: "Claudia Neumann",
+    championTitle: "Head of Sales Operations",
+    daysSinceLastActivity: 24,
+    callsCompleted: 7,
+    emailsSent: 19,
+    stakeholdersCount: 5,
+    competitorsMentioned: ["Salesforce"],
+    closeDate: "2026-04-24",
+    createdAt: "2026-01-18",
+  },
+  {
+    id: "deal_012",
+    name: "AlpenKasse Analytics — €54k ARR",
+    companyName: "AlpenKasse eG",
+    amount: 54000,
+    currency: "EUR",
+    stage: "closed_lost",
+    ownerName: "Thomas Becker",
+    championName: "Nina Vogt",
+    championTitle: "VP Customer Success",
+    daysSinceLastActivity: 31,
+    callsCompleted: 5,
+    emailsSent: 16,
+    stakeholdersCount: 4,
+    competitorsMentioned: ["Hubspot"],
+    closeDate: "2026-04-17",
+    createdAt: "2026-02-03",
+  },
+  {
+    id: "deal_013",
+    name: "HanseMed Group — €76k ARR",
+    companyName: "HanseMed Group GmbH",
+    amount: 76000,
+    currency: "EUR",
+    stage: "closed_lost",
+    ownerName: "Klaus Brandt",
+    championName: "Markus Klein",
+    championTitle: "Revenue Operations Lead",
+    daysSinceLastActivity: 18,
+    callsCompleted: 6,
+    emailsSent: 21,
+    stakeholdersCount: 6,
+    competitorsMentioned: ["Gong"],
+    closeDate: "2026-05-03",
+    createdAt: "2026-02-12",
+  },
+  {
+    id: "deal_014",
+    name: "MittelstandCloud — €41k ARR",
+    companyName: "MittelstandCloud GmbH",
+    amount: 41000,
+    currency: "EUR",
+    stage: "closed_lost",
+    ownerName: "Rebecca Davis",
+    championName: "Tobias Winter",
+    championTitle: "COO",
+    daysSinceLastActivity: 29,
+    callsCompleted: 4,
+    emailsSent: 13,
+    stakeholdersCount: 3,
+    competitorsMentioned: ["Clari"],
+    closeDate: "2026-04-21",
+    createdAt: "2026-02-28",
+  },
+  {
+    id: "deal_015",
+    name: "Nordsee Retail — €63k ARR",
+    companyName: "Nordsee Retail GmbH",
+    amount: 63000,
+    currency: "EUR",
+    stage: "closed_lost",
+    ownerName: "Emily Chen",
+    championName: "Laura Petersen",
+    championTitle: "Sales Enablement Manager",
+    daysSinceLastActivity: 36,
+    callsCompleted: 8,
+    emailsSent: 22,
+    stakeholdersCount: 5,
+    competitorsMentioned: ["Salesforce", "Hubspot"],
+    closeDate: "2026-04-09",
+    createdAt: "2026-01-29",
+  },
+];
+
+const DEMO_DEALS: Deal[] = [...MOCK_DEALS, ...DEMO_LOST_DEALS];
+
+const DEMO_LOSS_REASONS: DemoLossReason[] = [
+  {
+    mockDealId: "deal_011",
+    primaryReason: "compliance",
+    secondaryReasons: ["budget", "timing"],
+    confidence: 0.88,
+    extractedDaysAgo: 27,
+    notes:
+      "Demo seed: compliance loss creates the top historical pattern for early-warning.",
+    evidenceQuotes: [
+      {
+        call_id: "demo_loss_deal_011_call_01",
+        speaker: "Dr. Martin Seidel",
+        quote:
+          "[Dr. Martin Seidel|decision_maker|Security Review blockiert Abschluss] Ohne ISO-27001-Nachweis und eine Freigabe unserer Datenschutzbeauftragten bekommen wir das dieses Quartal nicht durch.",
+        pattern_matched: "iso\\s*27001|datenschutz",
+      },
+      {
+        call_id: "demo_loss_deal_011_call_02",
+        speaker: "Claudia Neumann",
+        quote:
+          "[Claudia Neumann|champion|Champion kann Compliance-Blocker nicht auflösen] Ich finde Findr fachlich stark, aber Legal hat gerade die Hand drauf. Mir fehlt intern die Freigabe für die Datenverarbeitung.",
+        pattern_matched: "legal|datenverarbeitung",
+      },
+    ],
+  },
+  {
+    mockDealId: "deal_012",
+    primaryReason: "compliance",
+    secondaryReasons: ["no_decision", "timing"],
+    confidence: 0.84,
+    extractedDaysAgo: 34,
+    notes:
+      "Demo seed: second compliance loss makes compliance the clear top pattern.",
+    evidenceQuotes: [
+      {
+        call_id: "demo_loss_deal_012_call_01",
+        speaker: "Sven Hartwig",
+        quote:
+          "[Sven Hartwig|buyer|Betriebsrat stoppt Rollout] Der Betriebsrat möchte vor einer Entscheidung eine komplette Datenschutzfolgeabschätzung sehen. Das bekommen wir vor Q3 nicht sauber hin.",
+        pattern_matched: "betriebsrat|datenschutz",
+      },
+      {
+        call_id: "demo_loss_deal_012_call_02",
+        speaker: "Nina Vogt",
+        quote:
+          "[Nina Vogt|champion|Entscheidung wird wegen DSGVO vertagt] Fachlich würde ich gern weitermachen, aber DSGVO und Betriebsrat sind gerade die Showstopper.",
+        pattern_matched: "dsgvo|betriebsrat",
+      },
+    ],
+  },
+  {
+    mockDealId: "deal_013",
+    primaryReason: "compliance",
+    secondaryReasons: ["feature_gap", "internal_priority"],
+    confidence: 0.82,
+    extractedDaysAgo: 19,
+    notes:
+      "Demo seed: healthcare-specific compliance loss reinforces DACH regulated-industry pattern.",
+    evidenceQuotes: [
+      {
+        call_id: "demo_loss_deal_013_call_01",
+        speaker: "Anke Lorenz",
+        quote:
+          "[Anke Lorenz|decision_maker|Rechtsabteilung fordert Patientendaten-Pruefung] Unsere Rechtsabteilung sagt, dass wir ohne zusätzliche Prüfung der Patientendaten-Anbindung nicht live gehen dürfen.",
+        pattern_matched: "rechtsabteilung|prüfung",
+      },
+      {
+        call_id: "demo_loss_deal_013_call_02",
+        speaker: "Markus Klein",
+        quote:
+          "[Markus Klein|champion|Compliance-Aufwand kippt Business Case] Der Compliance-Aufwand ist für uns gerade größer als der erwartete Nutzen im ersten Halbjahr.",
+        pattern_matched: "compliance",
+      },
+    ],
+  },
+  {
+    mockDealId: "deal_014",
+    primaryReason: "pricing",
+    secondaryReasons: ["budget", "no_decision"],
+    confidence: 0.79,
+    extractedDaysAgo: 30,
+    notes: "Demo seed: pricing loss supports budget-friction early warnings.",
+    evidenceQuotes: [
+      {
+        call_id: "demo_loss_deal_014_call_01",
+        speaker: "Tobias Winter",
+        quote:
+          "[Tobias Winter|decision_maker|Preis liegt ueber Mittelstandsbudget] Preislich ist Findr für uns aktuell zu hoch. Wir müssten dafür ein anderes Tool streichen, und das bekomme ich nicht genehmigt.",
+        pattern_matched: "preislich|zu\\s+hoch",
+      },
+      {
+        call_id: "demo_loss_deal_014_call_02",
+        speaker: "Miriam Schulz",
+        quote:
+          "[Miriam Schulz|buyer|Rabatt reicht nicht fuer CFO-Freigabe] Selbst mit Rabatt sagt der CFO, dass das Budget für dieses Jahr nicht reicht.",
+        pattern_matched: "rabatt|budget",
+      },
+    ],
+  },
+  {
+    mockDealId: "deal_015",
+    primaryReason: "competitor",
+    secondaryReasons: ["pricing", "feature_gap"],
+    confidence: 0.86,
+    extractedDaysAgo: 42,
+    notes: "Demo seed: competitor loss provides a secondary pattern.",
+    evidenceQuotes: [
+      {
+        call_id: "demo_loss_deal_015_call_01",
+        speaker: "Laura Petersen",
+        quote:
+          "[Laura Petersen|champion|Salesforce gewinnt wegen Bundle-Preis] Wir haben uns am Ende für Salesforce entschieden, weil der Bundle-Preis mit dem bestehenden CRM intern leichter zu verkaufen war.",
+        pattern_matched: "entschieden|salesforce",
+      },
+      {
+        call_id: "demo_loss_deal_015_call_02",
+        speaker: "Kai Mertens",
+        quote:
+          "[Kai Mertens|decision_maker|Konkurrent deckt Einkaufskriterien ausreichend ab] Findr ist fachlich stärker, aber Salesforce erfüllt genug Kriterien und Procurement bevorzugt ein bestehendes Vendor-Setup.",
+        pattern_matched: "salesforce|konkurrent",
+      },
+    ],
+  },
+];
 
 export const DEMO_RISK_SCORES: DemoRiskScore[] = [
   {
@@ -379,6 +612,16 @@ async function insertCallsForDeal(
   deal: Deal,
   dbDealId: string,
 ) {
+  const { data: existingCalls } = await supabase
+    .from("calls")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("deal_id", dbDealId)
+    .eq("source", "mock")
+    .limit(1);
+
+  if (existingCalls && existingCalls.length > 0) return;
+
   const callCount = deal.riskLevel === "low" ? 2 : 3;
   const mockCalls = generateCallsForDeal(deal, callCount);
 
@@ -461,6 +704,15 @@ async function insertRiskHistory(
   dbDealId: string,
   score: DemoRiskScore,
 ) {
+  const { data: existingScores } = await supabase
+    .from("risk_scores")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("deal_id", dbDealId)
+    .limit(1);
+
+  if (existingScores && existingScores.length > 0) return;
+
   const historicalRows = [14, 12, 10, 8, 6, 4, 2].map((daysAgo, index) => {
     const riskScore = historicalScore(score.riskScore, 7 - index);
 
@@ -498,11 +750,45 @@ async function insertRiskHistory(
   }
 }
 
+async function insertDemoLossReasons(
+  supabase: SupabaseClient,
+  orgId: string,
+  idByMockDealId: Map<string, string>,
+) {
+  const rows = DEMO_LOSS_REASONS.map((reason): LossReasonInsert | null => {
+    const dbDealId = idByMockDealId.get(reason.mockDealId);
+    if (!dbDealId) return null;
+
+    return {
+      org_id: orgId,
+      deal_id: dbDealId,
+      primary_reason: reason.primaryReason,
+      secondary_reasons: reason.secondaryReasons,
+      confidence: reason.confidence,
+      evidence_quotes: reason.evidenceQuotes as unknown as Json,
+      extraction_method: "heuristic",
+      extracted_at: daysAgoIso(reason.extractedDaysAgo),
+      manually_corrected: false,
+      notes: reason.notes,
+    };
+  }).filter((row): row is LossReasonInsert => Boolean(row));
+
+  if (rows.length === 0) return;
+
+  const { error } = await supabase
+    .from("loss_reasons")
+    .upsert(rows, { onConflict: "deal_id" });
+
+  if (error) {
+    throw new Error(`Failed to seed demo loss reasons: ${error.message}`);
+  }
+}
+
 export async function seedDemoData(orgId: string): Promise<void> {
   const supabase = createAdminSupabaseClient();
   const idByMockDealId = new Map<string, string>();
 
-  for (const deal of MOCK_DEALS) {
+  for (const deal of DEMO_DEALS) {
     const { data, error } = await supabase
       .from("deals")
       .upsert(toDealInsert(orgId, deal), {
@@ -520,7 +806,7 @@ export async function seedDemoData(orgId: string): Promise<void> {
     idByMockDealId.set(deal.id, data.id);
   }
 
-  for (const deal of MOCK_DEALS) {
+  for (const deal of DEMO_DEALS) {
     const dbDealId = idByMockDealId.get(deal.id);
     if (!dbDealId) continue;
     await insertCallsForDeal(supabase, orgId, deal, dbDealId);
@@ -531,4 +817,6 @@ export async function seedDemoData(orgId: string): Promise<void> {
     if (!dbDealId) continue;
     await insertRiskHistory(supabase, orgId, dbDealId, score);
   }
+
+  await insertDemoLossReasons(supabase, orgId, idByMockDealId);
 }
