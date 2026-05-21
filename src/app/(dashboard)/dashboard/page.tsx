@@ -13,7 +13,10 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { buildForecastSummary } from "@/lib/forecast/service";
 import { getOnboardingStatus } from "@/lib/onboarding/status";
-import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
+import {
+  averageSignalConfidence,
+  getLatestRiskScoresForDeals,
+} from "@/lib/risk/service";
 import type { DealStage } from "@/lib/deals/types";
 
 const ACTIVE_STAGES: ReadonlySet<DealStage> = new Set([
@@ -100,6 +103,7 @@ export default async function DashboardPage() {
       riskSignals: risk.signals.map((s) => s.type),
       riskReasoning: risk.overall_reasoning,
       lastRiskUpdate: risk.analyzed_at,
+      avgSignalConfidence: averageSignalConfidence(risk.signals),
     };
   });
 

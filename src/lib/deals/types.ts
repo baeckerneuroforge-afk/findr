@@ -33,6 +33,9 @@ export interface Deal {
   riskSignals?: string[];
   riskReasoning?: string;
   lastRiskUpdate?: string;
+  // Mean confidence (0-1) across the deal's latest risk signals. Used to
+  // scale how strongly risk pulls down the forecast win-probability.
+  avgSignalConfidence?: number;
 }
 
 // RiskSignal / RiskAnalysisResult are canonical in @/lib/schemas/risk

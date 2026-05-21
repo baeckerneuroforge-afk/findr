@@ -17,6 +17,8 @@ export interface DealForecast {
   weighted_value: number;
   factors: WinProbabilityFactors;
   confidence: "high" | "medium" | "low";
+  // Mean signal confidence (0-1) that scaled the risk-adjustment, when known.
+  avg_confidence?: number;
 }
 
 export interface WinProbabilityInput {
@@ -26,6 +28,21 @@ export interface WinProbabilityInput {
   stage: DealStage | string;
   riskScore?: number;
   lastActivityDays?: number;
+  // Mean confidence (0-1) of the risk signals behind riskScore. When provided,
+  // it dampens the risk-adjustment so uncertain analysis moves the forecast
+  // less. Omitted → full risk effect (no regression).
+  signalConfidence?: number;
+}
+
+/**
+ * Map mean signal confidence (0-1) to a multiplier on the risk-adjustment.
+ * Undefined confidence → 1.0 (full effect). confidence 0 → 0.5 (half effect),
+ * confidence 1 → 1.0. So an uncertain risk signal pulls win-probability down
+ * at most half as hard as a fully-confident one.
+ */
+export function confidenceFactor(signalConfidence?: number): number {
+  if (signalConfidence === undefined) return 1;
+  return 0.5 + clamp(signalConfidence, 0, 1) * 0.5;
 }
 
 const STAGE_BASELINES: Record<string, number> = {
@@ -58,7 +75,8 @@ export function getStageBaseline(stage: DealStage | string): number {
 export function calculateWinProbability(deal: WinProbabilityInput): DealForecast {
   const stageBaseline = getStageBaseline(deal.stage);
   const riskScore = clamp(deal.riskScore ?? 0, 0, 100);
-  const riskAdjustment = -((riskScore / 100) * 50);
+  const factor = confidenceFactor(deal.signalConfidence);
+  const riskAdjustment = -((riskScore / 100) * 50) * factor;
   const daysSinceActivity = Math.max(0, deal.lastActivityDays ?? 30);
   const engagementBonus = getEngagementBonus(daysSinceActivity);
   const agePenalty = 0;
@@ -89,5 +107,6 @@ export function calculateWinProbability(deal: WinProbabilityInput): DealForecast
       agePenalty,
     },
     confidence,
+    avg_confidence: deal.signalConfidence,
   };
 }

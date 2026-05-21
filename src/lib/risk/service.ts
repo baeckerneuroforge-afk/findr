@@ -40,6 +40,19 @@ function toRecord(row: RiskScoreRow): RiskScoreRecord {
   };
 }
 
+/**
+ * Mean confidence (0-1) across a set of risk signals, or undefined when there
+ * are no signals. Callers use this to scale forecast risk-adjustment by how
+ * sure the analysis is.
+ */
+export function averageSignalConfidence(
+  signals: RiskSignal[],
+): number | undefined {
+  if (signals.length === 0) return undefined;
+  const sum = signals.reduce((acc, signal) => acc + signal.confidence, 0);
+  return sum / signals.length;
+}
+
 export async function getLatestRiskScore(
   orgId: string,
   dealId: string,

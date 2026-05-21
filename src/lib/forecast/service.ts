@@ -2,7 +2,10 @@ import "server-only";
 
 import { getDealsByOrg } from "@/lib/deals/service";
 import type { Deal, DealStage } from "@/lib/deals/types";
-import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
+import {
+  averageSignalConfidence,
+  getLatestRiskScoresForDeals,
+} from "@/lib/risk/service";
 import {
   calculateWinProbability,
   type DealForecast,
@@ -41,6 +44,7 @@ export function buildForecastSummary(deals: Deal[]): ForecastSummary {
         stage: deal.stage,
         riskScore: deal.riskScore,
         lastActivityDays: deal.daysSinceLastActivity,
+        signalConfidence: deal.avgSignalConfidence,
       }),
     )
     .sort((a, b) => b.weighted_value - a.weighted_value);
@@ -114,6 +118,7 @@ export async function getForecast(orgId: string): Promise<ForecastSummary> {
       riskSignals: risk.signals.map((signal) => signal.type),
       riskReasoning: risk.overall_reasoning,
       lastRiskUpdate: risk.analyzed_at,
+      avgSignalConfidence: averageSignalConfidence(risk.signals),
     };
   });
 
