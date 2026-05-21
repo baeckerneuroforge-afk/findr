@@ -1,22 +1,18 @@
 import { NextResponse } from "next/server";
-import { requireOrgIdOrError } from "@/lib/auth/org";
+import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getEarlyWarnings } from "@/lib/loss/early-warning-service";
 
 export async function GET() {
-  const orgOrError = await requireOrgIdOrError();
-  if ("error" in orgOrError) return orgOrError.error;
-  const orgId = orgOrError.orgId;
-
+  let orgId: string;
   try {
-    const report = await getEarlyWarnings(orgId);
-    return NextResponse.json(report);
+    orgId = await requireOrgId();
   } catch (err) {
-    return NextResponse.json(
-      {
-        error: "Failed to compute early warnings",
-        detail: err instanceof Error ? err.message : "unknown",
-      },
-      { status: 500 },
-    );
+    if (err instanceof OrgResolutionError) {
+      return NextResponse.json({ error: err.code }, { status: 401 });
+    }
+    throw err;
   }
+
+  const report = await getEarlyWarnings(orgId);
+  return NextResponse.json(report);
 }

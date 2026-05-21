@@ -1,130 +1,144 @@
 import "server-only";
 
-import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { getDealsByOrg } from "@/lib/deals/service";
-import { computeLossPatterns } from "./pattern-mapping";
-import {
-  findDealsAtLossRisk,
-  type DealLossWarning,
-} from "./early-warning";
+import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/database";
+import type { SignalType } from "@/lib/risk/types";
+import { computeLossPatterns, type LossPattern } from "./pattern-mapping";
+import { findDealsAtLossRisk, type DealLossWarning } from "./early-warning";
 import type { LossReasonType } from "./extractor";
-
-const MIN_LOSSES_FOR_PATTERNS = 3;
 
 export interface EarlyWarningReport {
   has_enough_data: boolean;
   total_losses_analyzed: number;
   top_loss_reason?: LossReasonType;
   top_loss_percentage?: number;
+  loss_patterns: LossPattern[];
   warnings: DealLossWarning[];
 }
 
-/**
- * Normalize signal-type strings to lowercase snake_case.
- * Handles two upstream formats:
- *   - Orchestrator detectors: "champion_loss" (already canonical)
- *   - Legacy LLM classifier: "CHAMPION_LOSS" (uppercase)
- */
-function normalizeSignalType(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  return raw.toLowerCase();
+type LossReasonRow = {
+  primary_reason: LossReasonType;
+  deals:
+    | {
+        amount: number | null;
+      }
+    | Array<{
+        amount: number | null;
+      }>
+    | null;
+};
+
+const SIGNAL_ALIASES: Record<string, SignalType> = {
+  champion_loss: "champion_loss",
+  champion_lost: "champion_loss",
+  championloss: "champion_loss",
+  competitor_pressure: "competitor_pressure",
+  competitorpressure: "competitor_pressure",
+  stalling: "stalling",
+  stalling_pattern: "stalling",
+  stallingpattern: "stalling",
+  budget_friction: "budget_friction",
+  budgetfriction: "budget_friction",
+  late_decision_maker: "late_decision_maker",
+  latedecisionmaker: "late_decision_maker",
+  stakeholder_churn: "stakeholder_churn",
+  stakeholderchurn: "stakeholder_churn",
+  engagement_drop: "engagement_drop",
+  engagementdrop: "engagement_drop",
+  champion_disengagement: "engagement_drop",
+  championdisengagement: "engagement_drop",
+  multi_threading_failure: "multi_threading_failure",
+  multithreadingfailure: "multi_threading_failure",
+};
+
+function dealAmount(row: LossReasonRow): number {
+  const deal = Array.isArray(row.deals) ? row.deals[0] : row.deals;
+  return deal?.amount ?? 0;
 }
 
-function extractSignalTypes(signals: unknown): string[] {
+export function normalizeSignalType(value: unknown): SignalType | null {
+  if (typeof value !== "string") return null;
+  const key = value
+    .trim()
+    .replaceAll("-", "_")
+    .replaceAll(" ", "_")
+    .toLowerCase();
+
+  return SIGNAL_ALIASES[key] ?? SIGNAL_ALIASES[key.replaceAll("_", "")] ?? null;
+}
+
+export function extractSignalTypes(signals: unknown): SignalType[] {
   if (!Array.isArray(signals)) return [];
-  return signals
-    .map((s): string | null => {
-      if (!s || typeof s !== "object") return null;
-      const record = s as Record<string, unknown>;
-      const raw = record.type ?? record.signal_type;
-      return normalizeSignalType(raw);
-    })
-    .filter((t): t is string => t !== null);
-}
 
-const CLOSED_STAGES = new Set(["closed_won", "closed_lost"]);
+  const normalized = signals
+    .map((signal) => {
+      if (!signal || typeof signal !== "object") return null;
+      const record = signal as Record<string, Json | undefined>;
+      return normalizeSignalType(record.type ?? record.signal_type);
+    })
+    .filter((signal): signal is SignalType => signal !== null);
+
+  return Array.from(new Set(normalized));
+}
 
 export async function getEarlyWarnings(
   orgId: string,
 ): Promise<EarlyWarningReport> {
   const supabase = createAdminSupabaseClient();
 
-  const { data: losses, error: lossError } = await supabase
+  const { data: losses, error } = await supabase
     .from("loss_reasons")
     .select("primary_reason, deals!inner(amount)")
     .eq("org_id", orgId);
 
-  if (lossError) {
-    console.error("Failed to fetch loss_reasons:", lossError.message);
-  }
+  const lossData = !error && losses
+    ? (losses as unknown as LossReasonRow[]).map((row) => ({
+        primary_reason: row.primary_reason,
+        deal_amount: dealAmount(row),
+      }))
+    : [];
 
-  const lossData = (losses ?? [])
-    .map((row) => {
-      const reason = (row as { primary_reason?: string }).primary_reason;
-      const dealsRel = (row as { deals?: { amount?: number } | { amount?: number }[] }).deals;
-      const amount = Array.isArray(dealsRel)
-        ? (dealsRel[0]?.amount ?? 0)
-        : (dealsRel?.amount ?? 0);
-      return {
-        primary_reason: reason as LossReasonType,
-        deal_amount: amount,
-      };
-    })
-    .filter((row) => Boolean(row.primary_reason));
-
-  if (lossData.length < MIN_LOSSES_FOR_PATTERNS) {
+  if (lossData.length < 3) {
     return {
       has_enough_data: false,
       total_losses_analyzed: lossData.length,
+      loss_patterns: [],
       warnings: [],
     };
   }
 
-  const patterns = computeLossPatterns(lossData);
-
+  const lossPatterns = computeLossPatterns(lossData);
   const deals = await getDealsByOrg(orgId);
-  const openDeals = deals.filter((d) => !CLOSED_STAGES.has(d.stage));
+  const openDeals = deals.filter(
+    (deal) => !["closed_won", "closed_lost"].includes(deal.stage),
+  );
+  const riskScores = await getLatestRiskScoresForDeals(
+    orgId,
+    openDeals.map((deal) => deal.id),
+  );
 
-  const dealIds = openDeals.map((d) => d.id);
-  const signalsByDeal = new Map<string, string[]>();
-
-  if (dealIds.length > 0) {
-    const { data: riskScores } = await supabase
-      .from("risk_scores")
-      .select("deal_id, signals, analyzed_at")
-      .eq("org_id", orgId)
-      .in("deal_id", dealIds)
-      .order("analyzed_at", { ascending: false });
-
-    for (const row of riskScores ?? []) {
-      const dealId = (row as { deal_id?: string }).deal_id;
-      if (!dealId || signalsByDeal.has(dealId)) continue;
-      const signalsValue = (row as { signals?: unknown }).signals;
-      signalsByDeal.set(dealId, extractSignalTypes(signalsValue));
-    }
-  }
-
-  const openDealsWithSignals = openDeals.map((d) => ({
-    id: d.id,
-    name: d.name,
-    amount: d.amount,
-    activeSignals: signalsByDeal.get(d.id) ?? [],
+  const openDealsWithSignals = openDeals.map((deal) => ({
+    id: deal.id,
+    name: deal.name,
+    amount: deal.amount,
+    activeSignals: extractSignalTypes(riskScores.get(deal.id)?.signals ?? []),
   }));
 
   const warnings = findDealsAtLossRisk({
-    lossPatterns: patterns,
+    lossPatterns,
     openDeals: openDealsWithSignals,
   });
 
-  // TODO: when a high-strength warning fires on a high-value deal, dispatch a
-  // Slack alert via the Sprint 5 dispatcher (alerts/trigger). Skipped for now
-  // to avoid unintended notifications during demo + initial rollout.
-
+  // TODO: Once alert deduplication rules are defined for this signal, high
+  // warnings can call the Sprint 5 Slack dispatcher here.
   return {
     has_enough_data: true,
     total_losses_analyzed: lossData.length,
-    top_loss_reason: patterns[0]?.reason,
-    top_loss_percentage: patterns[0]?.loss_percentage,
+    top_loss_reason: lossPatterns[0]?.reason,
+    top_loss_percentage: lossPatterns[0]?.loss_percentage,
+    loss_patterns: lossPatterns,
     warnings,
   };
 }

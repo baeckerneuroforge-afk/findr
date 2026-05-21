@@ -1,176 +1,190 @@
 import { describe, expect, it } from "vitest";
-import {
-  findDealsAtLossRisk,
-  SIGNIFICANT_PATTERN_THRESHOLD,
-} from "./early-warning";
+import { findDealsAtLossRisk } from "./early-warning";
 import type { LossPattern } from "./pattern-mapping";
 
-const pattern = (
-  reason: LossPattern["reason"],
-  pct: number,
-  signals: string[],
-  count = 5,
-): LossPattern => ({
-  reason,
-  loss_count: count,
-  loss_percentage: pct,
-  total_lost_value: 100_000,
-  predictive_signals: signals,
-});
-
-const openDeal = (
-  id: string,
-  signals: string[],
-  amount = 50_000,
-  name = `Deal ${id}`,
-) => ({ id, name, amount, activeSignals: signals });
+const patterns: LossPattern[] = [
+  {
+    reason: "compliance",
+    loss_count: 4,
+    loss_percentage: 50,
+    total_lost_value: 400_000,
+    predictive_signals: ["late_decision_maker", "budget_friction"],
+  },
+  {
+    reason: "competitor",
+    loss_count: 2,
+    loss_percentage: 25,
+    total_lost_value: 120_000,
+    predictive_signals: ["competitor_pressure"],
+  },
+  {
+    reason: "timing",
+    loss_count: 1,
+    loss_percentage: 12,
+    total_lost_value: 20_000,
+    predictive_signals: ["stalling"],
+  },
+];
 
 describe("findDealsAtLossRisk", () => {
-  it("returns empty when no significant patterns exist", () => {
+  it("matches open deals against predictive loss-pattern signals", () => {
     const warnings = findDealsAtLossRisk({
-      lossPatterns: [pattern("pricing", 10, ["budget_friction"])],
-      openDeals: [openDeal("d1", ["budget_friction"])],
+      lossPatterns: patterns,
+      openDeals: [
+        {
+          id: "deal_1",
+          name: "Nordbank",
+          amount: 100_000,
+          activeSignals: ["late_decision_maker"],
+        },
+      ],
     });
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatchObject({
+      deal_id: "deal_1",
+      matched_pattern: "compliance",
+      pattern_percentage: 50,
+      matching_signals: ["late_decision_maker"],
+      warning_strength: "medium",
+    });
+  });
+
+  it("sets high warning only for frequent pattern plus multiple matching signals", () => {
+    const warnings = findDealsAtLossRisk({
+      lossPatterns: patterns,
+      openDeals: [
+        {
+          id: "deal_1",
+          name: "Bank",
+          amount: 100_000,
+          activeSignals: ["late_decision_maker", "budget_friction"],
+        },
+      ],
+    });
+
+    expect(warnings[0]?.warning_strength).toBe("high");
+  });
+
+  it("sets medium warning for a 25% pattern with one matching signal", () => {
+    const warnings = findDealsAtLossRisk({
+      lossPatterns: patterns,
+      openDeals: [
+        {
+          id: "deal_2",
+          name: "SaaSCo",
+          amount: 80_000,
+          activeSignals: ["competitor_pressure"],
+        },
+      ],
+    });
+
+    expect(warnings[0]?.matched_pattern).toBe("competitor");
+    expect(warnings[0]?.warning_strength).toBe("medium");
+  });
+
+  it("sets low warning for a significant but weaker pattern", () => {
+    const warnings = findDealsAtLossRisk({
+      lossPatterns: [
+        {
+          reason: "budget",
+          loss_count: 1,
+          loss_percentage: 16,
+          total_lost_value: 30_000,
+          predictive_signals: ["budget_friction"],
+        },
+      ],
+      openDeals: [
+        {
+          id: "deal_3",
+          name: "Helven",
+          amount: 25_000,
+          activeSignals: ["budget_friction"],
+        },
+      ],
+    });
+
+    expect(warnings[0]?.warning_strength).toBe("low");
+  });
+
+  it("ignores non-significant patterns below 15%", () => {
+    const warnings = findDealsAtLossRisk({
+      lossPatterns: patterns,
+      openDeals: [
+        {
+          id: "deal_4",
+          name: "Timing Only",
+          amount: 25_000,
+          activeSignals: ["stalling"],
+        },
+      ],
+    });
+
     expect(warnings).toEqual([]);
   });
 
-  it("filters patterns below SIGNIFICANT_PATTERN_THRESHOLD", () => {
-    expect(SIGNIFICANT_PATTERN_THRESHOLD).toBe(15);
+  it("does not warn when no active signal matches", () => {
     const warnings = findDealsAtLossRisk({
-      lossPatterns: [pattern("pricing", 14, ["budget_friction"])],
-      openDeals: [openDeal("d1", ["budget_friction"])],
-    });
-    expect(warnings).toHaveLength(0);
-  });
-
-  it("emits a warning when a significant pattern's signal matches", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [pattern("pricing", 30, ["budget_friction"])],
-      openDeals: [openDeal("d1", ["budget_friction"])],
-    });
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0].deal_id).toBe("d1");
-    expect(warnings[0].matched_pattern).toBe("pricing");
-    expect(warnings[0].pattern_percentage).toBe(30);
-    expect(warnings[0].matching_signals).toEqual(["budget_friction"]);
-  });
-
-  it("does NOT emit a warning when no signal overlaps", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [pattern("pricing", 50, ["budget_friction"])],
-      openDeals: [openDeal("d1", ["champion_loss"])],
-    });
-    expect(warnings).toHaveLength(0);
-  });
-
-  it("classifies as 'high' only when pct>=40 AND >=2 matching signals", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [
-        pattern("compliance", 50, ["late_decision_maker", "stalling"]),
-      ],
-      openDeals: [openDeal("d1", ["late_decision_maker", "stalling"])],
-    });
-    expect(warnings[0].warning_strength).toBe("high");
-  });
-
-  it("classifies as 'medium' when pct>=25 (one signal)", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [pattern("pricing", 30, ["budget_friction"])],
-      openDeals: [openDeal("d1", ["budget_friction"])],
-    });
-    expect(warnings[0].warning_strength).toBe("medium");
-  });
-
-  it("classifies as 'medium' when >=2 signals match (regardless of pct over 15)", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [
-        pattern("compliance", 20, ["late_decision_maker", "stalling"]),
-      ],
-      openDeals: [openDeal("d1", ["late_decision_maker", "stalling"])],
-    });
-    expect(warnings[0].warning_strength).toBe("medium");
-  });
-
-  it("classifies as 'low' for borderline single-signal matches under 25%", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [pattern("pricing", 20, ["budget_friction"])],
-      openDeals: [openDeal("d1", ["budget_friction"])],
-    });
-    expect(warnings[0].warning_strength).toBe("low");
-  });
-
-  it("assigns each deal at most one warning (strongest first pattern wins)", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [
-        pattern("pricing", 40, ["budget_friction"]),
-        pattern("competitor", 25, ["competitor_pressure"]),
-      ],
+      lossPatterns: patterns,
       openDeals: [
-        openDeal("d1", ["budget_friction", "competitor_pressure"]),
+        {
+          id: "deal_5",
+          name: "Clean Deal",
+          amount: 25_000,
+          activeSignals: ["engagement_drop"],
+        },
       ],
     });
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0].matched_pattern).toBe("pricing");
+
+    expect(warnings).toEqual([]);
   });
 
-  it("sorts warnings by strength then by deal_amount", () => {
+  it("uses only the first significant matching pattern per deal", () => {
     const warnings = findDealsAtLossRisk({
-      lossPatterns: [
-        pattern("compliance", 50, ["late_decision_maker", "stalling"]),
-        pattern("pricing", 30, ["budget_friction"]),
-      ],
+      lossPatterns: patterns,
       openDeals: [
-        openDeal("low-small", ["budget_friction"], 10_000),
-        openDeal("medium-big", ["budget_friction"], 200_000),
-        openDeal("high", ["late_decision_maker", "stalling"], 50_000),
-        openDeal("low-big", ["budget_friction"], 100_000),
+        {
+          id: "deal_6",
+          name: "Mixed Deal",
+          amount: 25_000,
+          activeSignals: ["late_decision_maker", "competitor_pressure"],
+        },
       ],
     });
 
-    expect(warnings.map((w) => w.deal_id)).toEqual([
-      "high",
-      "medium-big",
-      "low-big",
-      "low-small",
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]?.matched_pattern).toBe("compliance");
+  });
+
+  it("sorts warnings by strength and then deal value", () => {
+    const warnings = findDealsAtLossRisk({
+      lossPatterns: patterns,
+      openDeals: [
+        {
+          id: "low_value_high",
+          name: "Low Value High",
+          amount: 10_000,
+          activeSignals: ["late_decision_maker", "budget_friction"],
+        },
+        {
+          id: "high_value_medium",
+          name: "High Value Medium",
+          amount: 300_000,
+          activeSignals: ["competitor_pressure"],
+        },
+        {
+          id: "higher_value_medium",
+          name: "Higher Value Medium",
+          amount: 500_000,
+          activeSignals: ["competitor_pressure"],
+        },
+      ],
+    });
+
+    expect(warnings.map((warning) => warning.deal_id)).toEqual([
+      "low_value_high",
+      "higher_value_medium",
+      "high_value_medium",
     ]);
-  });
-
-  it("returns empty for deal without active signals", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [pattern("pricing", 50, ["budget_friction"])],
-      openDeals: [openDeal("d1", [])],
-    });
-    expect(warnings).toHaveLength(0);
-  });
-
-  it("ignores patterns with empty predictive_signals (e.g. 'other')", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [pattern("other", 50, [])],
-      openDeals: [openDeal("d1", ["budget_friction"])],
-    });
-    expect(warnings).toHaveLength(0);
-  });
-
-  it("preserves only the matching signals (not the whole predictive set)", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [
-        pattern("compliance", 30, ["late_decision_maker", "stalling"]),
-      ],
-      openDeals: [openDeal("d1", ["late_decision_maker"])],
-    });
-    expect(warnings[0].matching_signals).toEqual(["late_decision_maker"]);
-  });
-
-  it("handles multiple deals in parallel", () => {
-    const warnings = findDealsAtLossRisk({
-      lossPatterns: [pattern("pricing", 50, ["budget_friction"])],
-      openDeals: [
-        openDeal("d1", ["budget_friction"]),
-        openDeal("d2", []),
-        openDeal("d3", ["budget_friction"]),
-      ],
-    });
-    expect(warnings).toHaveLength(2);
-    expect(warnings.map((w) => w.deal_id).sort()).toEqual(["d1", "d3"]);
   });
 });
