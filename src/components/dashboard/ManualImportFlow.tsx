@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ManualDealForm } from "./ManualDealForm";
 import { TranscriptImport } from "./TranscriptImport";
 import { RiskSignalDrilldown } from "./RiskSignalDrilldown";
+import { getAnalysisLoadingMessage } from "@/lib/manual-import/loading";
 import type { RiskAnalysisResult } from "@/lib/schemas/risk";
 
 type Step = 1 | 2 | 3;
@@ -39,7 +40,21 @@ export function ManualImportFlow() {
   const [callIds, setCallIds] = useState<string[]>([]);
   const [analysis, setAnalysis] = useState<RiskAnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysisStatusIndex, setAnalysisStatusIndex] = useState(0);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!analyzing) {
+      setAnalysisStatusIndex(0);
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setAnalysisStatusIndex((current) => current + 1);
+    }, 3500);
+
+    return () => window.clearInterval(intervalId);
+  }, [analyzing]);
 
   async function analyze() {
     if (!createdDeal) return;
@@ -144,17 +159,41 @@ export function ManualImportFlow() {
                     type="button"
                     onClick={analyze}
                     disabled={analyzing}
-                    className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-80"
                   >
-                    {analyzing ? "Analyzing call..." : "Analyze now"}
+                    {analyzing && (
+                      <span
+                        className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin motion-reduce:animate-none"
+                        aria-hidden="true"
+                      />
+                    )}
+                    {analyzing ? "Analyzing..." : "Analyze now"}
                   </button>
                 </div>
+                {analyzing && (
+                  <AnalysisLoadingState
+                    message={getAnalysisLoadingMessage(analysisStatusIndex)}
+                  />
+                )}
               </div>
             )}
 
             {analysisError && (
-              <div className="rounded-md border border-danger-500/20 bg-danger-50 px-3 py-2 text-small text-danger-700">
-                {analysisError}
+              <div className="rounded-lg border border-danger-500/20 bg-danger-50 p-4">
+                <div className="text-body-strong text-danger-700">
+                  Analysis failed — please try again.
+                </div>
+                <p className="mt-1 text-small text-danger-700/80">
+                  {analysisError}
+                </p>
+                <button
+                  type="button"
+                  onClick={analyze}
+                  disabled={analyzing}
+                  className="mt-3 inline-flex h-8 items-center justify-center rounded-md bg-white px-3 text-body-strong text-danger-700 ring-1 ring-danger-500/20 transition-colors hover:bg-danger-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Retry analysis
+                </button>
               </div>
             )}
 
@@ -195,6 +234,36 @@ export function ManualImportFlow() {
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function AnalysisLoadingState({ message }: { message: string }) {
+  return (
+    <div
+      className="mt-4 rounded-lg border border-primary-100 bg-white p-4"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-body-strong text-neutral-900">{message}</div>
+          <p className="mt-1 max-w-xl text-small leading-relaxed text-neutral-500">
+            Findr&apos;s AI is analyzing the call evidence. Opus is thorough, so
+            this can take a moment for the most accurate result.
+          </p>
+        </div>
+        <span className="rounded-md bg-primary-50 px-2 py-1 text-caption font-medium text-primary-700">
+          Live analysis
+        </span>
+      </div>
+      <div
+        className="mt-4 h-2 overflow-hidden rounded-full bg-primary-100"
+        aria-label="AI analysis in progress"
+        role="progressbar"
+      >
+        <div className="h-full w-1/3 rounded-full bg-primary-500 animate-analysis-progress motion-reduce:w-full motion-reduce:animate-none" />
+      </div>
     </div>
   );
 }

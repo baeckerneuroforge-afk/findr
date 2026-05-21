@@ -104,6 +104,7 @@
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-glow: pulse-glow 3s ease-in-out infinite;
   --animate-border-flow: border-flow 4s linear infinite;
+  --animate-analysis-progress: analysis-progress 1.8s ease-in-out infinite;
 
   @keyframes gradient {
     0%, 100% { background-position: 0% 50%; }
@@ -124,6 +125,11 @@
   @keyframes border-flow {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
+  }
+  @keyframes analysis-progress {
+    0% { transform: translateX(-120%); }
+    55% { transform: translateX(110%); }
+    100% { transform: translateX(320%); }
   }
 }
 
