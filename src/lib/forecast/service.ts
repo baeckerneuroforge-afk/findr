@@ -32,6 +32,43 @@ export interface ForecastSummary {
 
 const CLOSED_STAGES = new Set<DealStage>(["closed_won", "closed_lost"]);
 
+export interface ForecastRiskImpact {
+  /** Euros the weighting removes from raw pipeline (total − weighted). */
+  absolute: number;
+  /** That reduction as a share of total pipeline (0-100). */
+  percentage: number;
+}
+
+/**
+ * The gap between raw pipeline and the weighted forecast — the value that
+ * deal-stage, risk, and engagement weighting strips out. Surfaced as
+ * "forecast impact of risk" because risk is the lever sales can move; stage
+ * and engagement are also folded in. Uses only fields getForecast already
+ * returns (no recomputation).
+ */
+export function forecastRiskImpact(summary: {
+  total_pipeline_value: number;
+  weighted_pipeline_value: number;
+}): ForecastRiskImpact {
+  const absolute = Math.max(
+    0,
+    summary.total_pipeline_value - summary.weighted_pipeline_value,
+  );
+  const percentage =
+    summary.total_pipeline_value > 0
+      ? (absolute / summary.total_pipeline_value) * 100
+      : 0;
+  return { absolute, percentage };
+}
+
+/** Forecast value a single deal loses to weighting (amount − weighted_value). */
+export function dealRiskImpact(deal: {
+  amount: number;
+  weighted_value: number;
+}): number {
+  return Math.max(0, deal.amount - deal.weighted_value);
+}
+
 export function buildForecastSummary(deals: Deal[]): ForecastSummary {
   const openDeals = deals.filter((deal) => !CLOSED_STAGES.has(deal.stage));
 

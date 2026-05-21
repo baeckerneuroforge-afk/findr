@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
-import { getForecast } from "@/lib/forecast/service";
+import {
+  getForecast,
+  forecastRiskImpact,
+  dealRiskImpact,
+} from "@/lib/forecast/service";
 import { ForecastScenarios } from "@/components/dashboard/ForecastScenarios";
 import { StageBreakdownChart } from "@/components/dashboard/StageBreakdownChart";
 import { WinProbabilityBar } from "@/components/dashboard/WinProbabilityBar";
@@ -64,6 +68,8 @@ export default async function ForecastPage() {
   }
 
   const forecast = await getForecast(orgId);
+  const riskImpact = forecastRiskImpact(forecast);
+  const impactSignificant = riskImpact.percentage > 20;
 
   if (forecast.open_deal_count === 0) {
     return (
@@ -136,6 +142,35 @@ export default async function ForecastPage() {
         <StatCard label="Open deals" value={forecast.open_deal_count} />
       </div>
 
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div className="min-w-0">
+            <div className="text-caption uppercase tracking-wider text-neutral-500">
+              Forecast impact of risk
+            </div>
+            <p className="mt-1 text-body text-neutral-700">
+              Risk and stage weighting are reducing your forecast by{" "}
+              <span
+                className={`font-semibold ${
+                  impactSignificant ? "text-danger-700" : "text-neutral-900"
+                }`}
+              >
+                {formatCurrency(riskImpact.absolute)} (
+                {Math.round(riskImpact.percentage)}%)
+              </span>{" "}
+              versus raw pipeline.
+            </p>
+          </div>
+          <div
+            className={`text-display ${
+              impactSignificant ? "text-danger-700" : "text-neutral-900"
+            }`}
+          >
+            {Math.round(riskImpact.percentage)}%
+          </div>
+        </div>
+      </Card>
+
       <ForecastScenarios
         bestCase={forecast.best_case}
         likelyCase={forecast.likely_case}
@@ -158,6 +193,12 @@ export default async function ForecastPage() {
                 </span>
               </TH>
               <TH className="text-right">Weighted value</TH>
+              <TH className="text-right">
+                <span className="inline-flex items-center gap-1.5">
+                  Risk impact
+                  <InfoTooltip label="Forecast value this deal loses to weighting (amount minus weighted value)." />
+                </span>
+              </TH>
             </TR>
           </THead>
           <TBody>
@@ -190,6 +231,24 @@ export default async function ForecastPage() {
                 </TD>
                 <TD className="text-right font-medium text-neutral-900 whitespace-nowrap">
                   {formatCurrency(deal.weighted_value)}
+                </TD>
+                <TD className="text-right whitespace-nowrap">
+                  {(() => {
+                    const impact = dealRiskImpact(deal);
+                    const heavy =
+                      deal.amount > 0 && impact / deal.amount > 0.5;
+                    return (
+                      <span
+                        className={
+                          heavy
+                            ? "font-medium text-danger-700"
+                            : "text-neutral-500"
+                        }
+                      >
+                        −{formatCurrency(impact)}
+                      </span>
+                    );
+                  })()}
                 </TD>
               </TR>
             ))}
