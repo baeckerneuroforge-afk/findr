@@ -2,8 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
-import { buildDetectorInput, riskAnalysisToLegacyResult } from "@/lib/risk/adapters";
-import { analyzeRisk } from "@/lib/risk/orchestrator";
+import { analyzeDealRiskWithFallback } from "@/lib/risk/classifier";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { maybeTriggerAlert, getPreviousScore } from "@/lib/alerts/trigger";
 import { AnalyzeRiskRequestSchema } from "@/lib/schemas/risk";
@@ -142,14 +141,11 @@ export async function POST(req: NextRequest) {
   try {
     const calls = await getCallsByDealId(orgId, dealId);
     const previousScore = await getPreviousScore(orgId, dealId);
-    const analysis = await analyzeRisk(
-      buildDetectorInput({
-        orgId,
-        deal,
-        calls,
-      }),
+    const { result, source } = await analyzeDealRiskWithFallback(
+      deal,
+      calls,
+      orgId,
     );
-    const result = riskAnalysisToLegacyResult(analysis);
 
     const { data: inserted, error: insertError } = await supabase
       .from("risk_scores")
@@ -190,7 +186,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, result, alert });
+    return NextResponse.json({ success: true, result, alert, source });
   } catch (error) {
     return NextResponse.json(
       {
