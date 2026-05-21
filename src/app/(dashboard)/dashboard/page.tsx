@@ -1,28 +1,17 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatCard } from "@/components/ui/StatCard";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Table, THead, TH, TBody, TR, TD } from "@/components/ui/Table";
-import { RiskBadge } from "@/components/dashboard/RiskBadge";
-import { AnalyzeButton } from "@/components/dashboard/AnalyzeButton";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { AnalyzeAllButton } from "@/components/dashboard/AnalyzeAllButton";
+import { DealTableWithFilters } from "@/components/dashboard/DealTableWithFilters";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { buildForecastSummary } from "@/lib/forecast/service";
 import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
 import type { DealStage } from "@/lib/deals/types";
-
-const STAGE_LABELS: Record<DealStage, string> = {
-  qualified: "Qualified",
-  demo: "Demo",
-  proposal_sent: "Proposal sent",
-  negotiation: "Negotiation",
-  verbal_commit: "Verbal commit",
-  closed_won: "Closed won",
-  closed_lost: "Closed lost",
-};
 
 const ACTIVE_STAGES: ReadonlySet<DealStage> = new Set([
   "qualified",
@@ -31,6 +20,23 @@ const ACTIVE_STAGES: ReadonlySet<DealStage> = new Set([
   "negotiation",
   "verbal_commit",
 ]);
+
+function DealTableFallback() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-9 w-full rounded-md" />
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+      <div className="-mx-5 -mb-5 space-y-0 border-t border-neutral-200">
+        <Skeleton className="mx-5 my-3 h-10 rounded-md" />
+        <Skeleton className="mx-5 my-3 h-10 rounded-md" />
+        <Skeleton className="mx-5 my-3 h-10 rounded-md" />
+      </div>
+    </div>
+  );
+}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("de-DE", {
@@ -92,6 +98,16 @@ export default async function DashboardPage() {
   });
 
   const forecast = buildForecastSummary(deals);
+  const forecastByDealId = new Map(
+    forecast.forecasts.map((dealForecast) => [
+      dealForecast.deal_id,
+      dealForecast.win_probability,
+    ]),
+  );
+  const tableDeals = deals.map((deal) => ({
+    ...deal,
+    winProbability: forecastByDealId.get(deal.id),
+  }));
   const atRisk = deals.filter(
     (d) => d.riskScore !== undefined && d.riskScore >= 60,
   ).length;
@@ -177,67 +193,11 @@ export default async function DashboardPage() {
 
       {/* Deal table */}
       <Card>
-        <Table>
-          <THead>
-            <TR>
-              <TH>Deal</TH>
-              <TH>Stage</TH>
-              <TH>Owner</TH>
-              <TH className="text-right">Amount</TH>
-              <TH>Risk</TH>
-              <TH>Last activity</TH>
-              <TH className="text-right">Action</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {deals.map((deal) => (
-              <TR key={deal.id}>
-                <TD>
-                  <Link
-                    href={`/dashboard/deals/${deal.id}`}
-                    className="block -mx-4 -my-3 px-4 py-3 hover:bg-neutral-50"
-                  >
-                    <div className="text-body-strong text-neutral-900">
-                      {deal.name}
-                    </div>
-                    <div className="text-small text-neutral-500">
-                      {deal.companyName}
-                    </div>
-                  </Link>
-                </TD>
-                <TD>
-                  <Badge>{STAGE_LABELS[deal.stage]}</Badge>
-                </TD>
-                <TD className="text-neutral-700">{deal.ownerName}</TD>
-                <TD className="text-right font-medium text-neutral-900 whitespace-nowrap">
-                  {new Intl.NumberFormat("de-DE", {
-                    style: "currency",
-                    currency: deal.currency,
-                    maximumFractionDigits: 0,
-                  }).format(deal.amount)}
-                </TD>
-                <TD>
-                  <RiskBadge
-                    score={deal.riskScore}
-                    level={deal.riskLevel}
-                    size="sm"
-                  />
-                </TD>
-                <TD className="text-small text-neutral-500 whitespace-nowrap">
-                  {deal.daysSinceLastActivity === 0
-                    ? "Today"
-                    : `${deal.daysSinceLastActivity}d ago`}
-                </TD>
-                <TD className="text-right">
-                  <AnalyzeButton
-                    dealId={deal.id}
-                    hasScore={deal.riskScore !== undefined}
-                  />
-                </TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
+        <CardBody>
+          <Suspense fallback={<DealTableFallback />}>
+            <DealTableWithFilters deals={tableDeals} />
+          </Suspense>
+        </CardBody>
       </Card>
 
       {/* Hint */}
