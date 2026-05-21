@@ -86,9 +86,10 @@ export function LossReportPanel() {
 
         <a
           href={pdfUrl}
+          download
           className="inline-flex h-8 items-center justify-center rounded-md border border-neutral-200 bg-white px-3 text-body-strong text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
         >
-          PDF JSON
+          Download PDF
         </a>
       </div>
 

@@ -107,6 +107,25 @@ export async function requireOrgId(): Promise<string> {
 }
 
 /**
+ * Resolve the human-readable org name for an internal org UUID.
+ * Falls back to "Your Organization" if not found — never throws.
+ */
+export async function getOrgName(orgId: string): Promise<string> {
+  try {
+    const supabase = createAdminSupabaseClient();
+    const { data } = await supabase
+      .from("organizations")
+      .select("name")
+      .eq("id", orgId)
+      .maybeSingle();
+    const name = (data as { name?: string } | null)?.name;
+    return name && name.trim().length > 0 ? name : "Your Organization";
+  } catch {
+    return "Your Organization";
+  }
+}
+
+/**
  * Safe wrapper for API routes. Returns a discriminated union: either
  * `{ orgId }` on success, or `{ error }` containing a ready-to-return
  * NextResponse on failure.

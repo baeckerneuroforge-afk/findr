@@ -88,12 +88,21 @@ export default async function ForecastPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-display text-neutral-900">Forecast</h1>
-        <p className="text-body text-neutral-500 mt-1">
-          Risk-adjusted pipeline value from current deal stage, risk, and
-          engagement.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-display text-neutral-900">Forecast</h1>
+          <p className="text-body text-neutral-500 mt-1">
+            Risk-adjusted pipeline value from current deal stage, risk, and
+            engagement.
+          </p>
+        </div>
+        <a
+          href="/api/forecast/pdf"
+          download
+          className="inline-flex h-8 items-center justify-center rounded-md border border-neutral-200 bg-white px-3 text-body-strong text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+        >
+          Download PDF
+        </a>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
