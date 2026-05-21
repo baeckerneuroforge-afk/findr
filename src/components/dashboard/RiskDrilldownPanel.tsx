@@ -102,8 +102,8 @@ export function RiskDrilldownPanel({
                   />
                 </svg>
               }
-              title="Not yet analyzed"
-              description="Hit Analyze on the deal row to score it. The classifier reads the latest calls and CRM activity, then breaks the score into 8 signal categories."
+              title="Not analyzed yet"
+              description="Run analysis to see risk signals, confidence, evidence quotes, and recommended next steps for this deal."
               variant="subtle"
             />
           )}

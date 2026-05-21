@@ -119,6 +119,15 @@ export default async function DealDetailPage({
           />
         </div>
       )}
+      {!latestRisk && (
+        <div className="mb-8">
+          <EmptyState
+            title="Not analyzed yet"
+            description="Run analysis from the pipeline table to see risk signals, confidence, evidence quotes, and recommended next steps for this deal."
+            action={{ label: "Back to pipeline", href: "/dashboard" }}
+          />
+        </div>
+      )}
 
       {/* Calls */}
       <div className="mb-8">

@@ -1,5 +1,7 @@
+import type { ReactNode } from "react";
+
 interface StatCardProps {
-  label: string;
+  label: ReactNode;
   value: string | number;
   subtitle?: string;
   status?: "default" | "primary" | "warning" | "critical" | "success";
@@ -21,7 +23,7 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <div className="bg-white border border-neutral-200 rounded-lg p-5">
-      <div className="text-caption text-neutral-500 mb-2 uppercase tracking-wider font-medium">
+      <div className="mb-2 flex items-center gap-1.5 text-caption font-medium uppercase tracking-wider text-neutral-500">
         {label}
       </div>
       <div className={`text-display ${STATUS_VALUE_STYLES[status]}`}>

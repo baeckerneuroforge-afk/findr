@@ -5,6 +5,7 @@ import { LossReportPanel } from "@/components/dashboard/LossReportPanel";
 import { EarlyWarningPanel } from "@/components/dashboard/EarlyWarningPanel";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardBody } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { generateQuarterlyReport } from "@/lib/loss/reports";
 import { getEarlyWarnings } from "@/lib/loss/early-warning-service";
 
@@ -91,9 +92,12 @@ export default async function LossAnalysisPage() {
         <Card>
           <CardBody>
             {report.top_lost_companies.length === 0 ? (
-              <div className="text-body text-neutral-500">
-                No closed-lost companies found for this period.
-              </div>
+              <EmptyState
+                title="No lost companies in this period"
+                description="Closed-lost deals will appear here with amount, company, and extracted loss reason once Hubspot reports them."
+                cta={{ label: "Review pipeline", href: "/dashboard" }}
+                variant="subtle"
+              />
             ) : (
               <div className="divide-y divide-neutral-100">
                 {report.top_lost_companies.map((company) => (

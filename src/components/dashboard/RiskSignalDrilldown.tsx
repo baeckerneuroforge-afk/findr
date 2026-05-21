@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ConfidenceIndicator } from "@/components/dashboard/ConfidenceIndicator";
 import { EvidenceQuote } from "@/components/dashboard/EvidenceQuote";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import type { RiskSignal } from "@/lib/risk/service";
 
 interface RiskSignalDrilldownProps {
@@ -170,7 +171,13 @@ export function RiskSignalDrilldown({
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-neutral-500">
               {averageConfidence !== null && (
-                <ConfidenceIndicator confidence={averageConfidence} size="md" />
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 text-caption uppercase tracking-wider text-neutral-500">
+                    Confidence
+                    <InfoTooltip label="How certain the analysis is, based on available call evidence." />
+                  </span>
+                  <ConfidenceIndicator confidence={averageConfidence} size="md" />
+                </span>
               )}
               {sourceCallCount !== undefined && (
                 <span>

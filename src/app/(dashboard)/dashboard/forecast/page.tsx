@@ -7,6 +7,8 @@ import { StageBreakdownChart } from "@/components/dashboard/StageBreakdownChart"
 import { WinProbabilityBar } from "@/components/dashboard/WinProbabilityBar";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { StatCard } from "@/components/ui/StatCard";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 
@@ -29,6 +31,25 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function ForecastIcon() {
+  return (
+    <svg
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 13.5h4.5l3-7.5 4.5 12 3-4.5H21"
+      />
+    </svg>
+  );
+}
+
 export default async function ForecastPage() {
   let orgId: string;
   try {
@@ -43,6 +64,27 @@ export default async function ForecastPage() {
   }
 
   const forecast = await getForecast(orgId);
+
+  if (forecast.open_deal_count === 0) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-display text-neutral-900">Forecast</h1>
+          <p className="text-body text-neutral-500 mt-1">
+            Risk-adjusted pipeline value from current deal stage, risk, and
+            engagement.
+          </p>
+        </div>
+
+        <EmptyState
+          icon={<ForecastIcon />}
+          title="No open deals to forecast"
+          description="Once you have active pipeline, Findr will show weighted projections, best-case and worst-case scenarios, and deal-level win probabilities here."
+          cta={{ label: "Go to pipeline", href: "/dashboard" }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -61,13 +103,23 @@ export default async function ForecastPage() {
           subtitle={`${forecast.open_deal_count} open deals`}
         />
         <StatCard
-          label="Weighted forecast"
+          label={
+            <>
+              Weighted forecast
+              <InfoTooltip label="Pipeline value adjusted by each deal's win probability." />
+            </>
+          }
           value={formatCurrency(forecast.weighted_pipeline_value)}
           subtitle="Likely case"
           status="primary"
         />
         <StatCard
-          label="At-risk value"
+          label={
+            <>
+              At-risk value
+              <InfoTooltip label="Total value of deals with risk score 60 or higher." />
+            </>
+          }
           value={formatCurrency(forecast.deals_at_risk_value)}
           subtitle="Risk score 60+"
           status={forecast.deals_at_risk_value > 0 ? "critical" : "default"}
@@ -90,7 +142,12 @@ export default async function ForecastPage() {
               <TH>Deal</TH>
               <TH>Stage</TH>
               <TH className="text-right">Amount</TH>
-              <TH>Win probability</TH>
+              <TH>
+                <span className="inline-flex items-center gap-1.5">
+                  Win probability
+                  <InfoTooltip label="Estimated from deal stage, risk score, and recent engagement." />
+                </span>
+              </TH>
               <TH className="text-right">Weighted value</TH>
             </TR>
           </THead>

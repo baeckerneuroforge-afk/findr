@@ -8,8 +8,11 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AnalyzeAllButton } from "@/components/dashboard/AnalyzeAllButton";
 import { DealTableWithFilters } from "@/components/dashboard/DealTableWithFilters";
+import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { buildForecastSummary } from "@/lib/forecast/service";
+import { getOnboardingStatus } from "@/lib/onboarding/status";
 import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
 import type { DealStage } from "@/lib/deals/types";
 
@@ -78,7 +81,10 @@ export default async function DashboardPage() {
     throw err;
   }
 
-  const baseDeals = await getDealsByOrg(orgId);
+  const [baseDeals, onboardingStatus] = await Promise.all([
+    getDealsByOrg(orgId),
+    getOnboardingStatus(orgId),
+  ]);
   const riskMap = await getLatestRiskScoresForDeals(
     orgId,
     baseDeals.map((d) => d.id),
@@ -135,10 +141,11 @@ export default async function DashboardPage() {
             Connect Hubspot to start importing deals.
           </p>
         </div>
+        <OnboardingChecklist status={onboardingStatus} />
         <EmptyState
           icon={<PlugIcon />}
           title="No deals yet"
-          description="Connect Hubspot to start importing your pipeline. Once deals land, Findr begins analyzing risk signals from calls and CRM activity."
+          description="Connect Hubspot or wait for your first sync. Once deals land, Findr will show risk signals, weighted forecast, and deal-level recommendations here."
           action={{
             label: "Connect Hubspot",
             href: "/dashboard/integrations/hubspot",
@@ -172,6 +179,8 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      <OnboardingChecklist status={onboardingStatus} />
+
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Total deals" value={deals.length} />
@@ -183,7 +192,12 @@ export default async function DashboardPage() {
         />
         <StatCard label="Active" value={active} />
         <StatCard
-          label="Weighted forecast"
+          label={
+            <>
+              Weighted forecast
+              <InfoTooltip label="Pipeline value adjusted by each deal's win probability." />
+            </>
+          }
           value={formatCurrency(forecast.weighted_pipeline_value)}
           subtitle="Risk-adjusted"
           status="primary"

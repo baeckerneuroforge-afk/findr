@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { RepCoachingProfile } from "@/lib/coaching/service";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { StatCard } from "@/components/ui/StatCard";
 
 const SIGNAL_LABELS: Record<string, string> = {
@@ -26,9 +27,11 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
 
   if (profiles.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-neutral-200 bg-white p-12 text-center text-body text-neutral-500">
-        No coaching data yet. Run risk analysis on deals to generate insights.
-      </div>
+      <EmptyState
+        title="No coaching data yet"
+        description="Run risk analysis on a few deals to reveal team patterns, coaching recommendations, and rep-level risk trends."
+        cta={{ label: "Go to pipeline", href: "/dashboard" }}
+      />
     );
   }
 

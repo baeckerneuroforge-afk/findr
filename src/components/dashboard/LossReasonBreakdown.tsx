@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardBody } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { LossReportData } from "@/lib/loss/reports";
 import type { LossReasonType } from "@/lib/loss/extractor";
 
@@ -31,13 +32,11 @@ export function LossReasonBreakdown({
 }) {
   if (breakdown.length === 0) {
     return (
-      <Card>
-        <CardBody>
-          <div className="text-body text-neutral-500">
-            No loss reasons extracted for this period yet.
-          </div>
-        </CardBody>
-      </Card>
+      <EmptyState
+        title="No closed-lost deals yet"
+        description="When deals are lost, Findr extracts the real reasons here so you can spot patterns before they repeat."
+        cta={{ label: "Review pipeline", href: "/dashboard" }}
+      />
     );
   }
 

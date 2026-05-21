@@ -11,6 +11,7 @@ interface EmptyStateProps {
   icon?: ReactNode;
   title: string;
   description: string;
+  cta?: { label: string; href: string };
   action?: EmptyStateAction;
   variant?: "default" | "subtle";
 }
@@ -19,9 +20,11 @@ export function EmptyState({
   icon,
   title,
   description,
+  cta,
   action,
   variant = "default",
 }: EmptyStateProps) {
+  const visibleAction = action ?? cta;
   const container =
     variant === "default"
       ? "rounded-lg border border-dashed border-neutral-200 bg-white p-12 text-center"
@@ -38,23 +41,23 @@ export function EmptyState({
       <p className="mx-auto mt-2 max-w-md text-body text-neutral-500">
         {description}
       </p>
-      {action &&
-        (action.href ? (
+      {visibleAction &&
+        ("href" in visibleAction && visibleAction.href ? (
           <Link
-            href={action.href}
-            className="mt-6 inline-flex h-8 items-center justify-center rounded-md bg-neutral-900 px-3 text-body-strong font-medium text-white transition-colors hover:bg-neutral-700"
+            href={visibleAction.href}
+            className="mt-6 inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-700"
           >
-            {action.label}
+            {visibleAction.label}
           </Link>
-        ) : (
+        ) : "onClick" in visibleAction && visibleAction.onClick ? (
           <button
             type="button"
-            onClick={action.onClick}
-            className="mt-6 inline-flex h-8 items-center justify-center rounded-md bg-neutral-900 px-3 text-body-strong font-medium text-white transition-colors hover:bg-neutral-700"
+            onClick={visibleAction.onClick}
+            className="mt-6 inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-700"
           >
-            {action.label}
+            {visibleAction.label}
           </button>
-        ))}
+        ) : null)}
     </div>
   );
 }
