@@ -28,24 +28,13 @@ function actions(dealId?: string) {
 
   return {
     type: "actions",
+    // Interactive buttons (acknowledge/snooze) require a Slack interactivity endpoint with request signing - deferred until a customer uses Slack. See cohesion-check.md finding 2.
     elements: [
       {
         type: "button",
         text: { type: "plain_text", text: "View Deal" },
         url: dealUrl,
         style: "primary",
-      },
-      {
-        type: "button",
-        text: { type: "plain_text", text: "Acknowledge" },
-        value: dealId ?? "forecast",
-        action_id: "acknowledge_alert",
-      },
-      {
-        type: "button",
-        text: { type: "plain_text", text: "Snooze 24h" },
-        value: dealId ?? "forecast",
-        action_id: "snooze_alert_24h",
       },
     ],
   };

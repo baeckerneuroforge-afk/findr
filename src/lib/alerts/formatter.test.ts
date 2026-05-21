@@ -87,12 +87,13 @@ describe("formatSlackMessage", () => {
     expect(JSON.stringify(message.blocks)).toContain("-30.0%");
   });
 
-  it("includes action buttons on alert cards", () => {
+  it("includes only the working View Deal URL action on alert cards", () => {
     const message = formatSlackMessage(payload({ type: "risk_spike" }));
     const actions = message.blocks.find((block) => block.type === "actions");
 
     expect(JSON.stringify(actions)).toContain("View Deal");
-    expect(JSON.stringify(actions)).toContain("Acknowledge");
-    expect(JSON.stringify(actions)).toContain("Snooze 24h");
+    expect(JSON.stringify(actions)).not.toContain("Acknowledge");
+    expect(JSON.stringify(actions)).not.toContain("Snooze 24h");
+    expect(JSON.stringify(actions)).not.toContain("action_id");
   });
 });
