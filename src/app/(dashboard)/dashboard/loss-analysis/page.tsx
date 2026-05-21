@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { LossReasonBreakdown } from "@/components/dashboard/LossReasonBreakdown";
 import { LossReportPanel } from "@/components/dashboard/LossReportPanel";
+import { EarlyWarningPanel } from "@/components/dashboard/EarlyWarningPanel";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardBody } from "@/components/ui/Card";
 import { generateQuarterlyReport } from "@/lib/loss/reports";
+import { getEarlyWarnings } from "@/lib/loss/early-warning-service";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("de-DE", {
@@ -30,7 +32,10 @@ export default async function LossAnalysisPage() {
   const end = new Date();
   const start = new Date(end);
   start.setDate(start.getDate() - 90);
-  const report = await generateQuarterlyReport(orgId, start, end);
+  const [report, earlyWarnings] = await Promise.all([
+    generateQuarterlyReport(orgId, start, end),
+    getEarlyWarnings(orgId),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -55,6 +60,14 @@ export default async function LossAnalysisPage() {
           subtitle="Last 90 days"
         />
       </div>
+
+      <EarlyWarningPanel
+        hasEnoughData={earlyWarnings.has_enough_data}
+        totalLossesAnalyzed={earlyWarnings.total_losses_analyzed}
+        topLossReason={earlyWarnings.top_loss_reason}
+        topLossPercentage={earlyWarnings.top_loss_percentage}
+        warnings={earlyWarnings.warnings}
+      />
 
       <LossReportPanel />
 
