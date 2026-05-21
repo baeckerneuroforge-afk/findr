@@ -83,6 +83,13 @@ export default function DashboardSidebar() {
           <NavList items={INTEGRATIONS_NAV} pathname={pathname} />
         </div>
       </nav>
+
+      <div className="border-t border-neutral-200 px-3 py-4">
+        <NavList
+          items={[{ href: "/dashboard/settings", label: "Settings" }]}
+          pathname={pathname}
+        />
+      </div>
     </aside>
   );
 }
