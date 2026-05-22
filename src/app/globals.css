@@ -58,6 +58,21 @@
   --font-geist: var(--font-geist-sans);
 
   /* ────────────────────────────────────────────────────────────────
+     Comic / Neobrutalism landing (/v2). Exact values from the
+     approved findr-comic-landingpage.html template. Scoped names so
+     they don't collide with Tailwind defaults or the tokens below. */
+  --color-paper: #fff8e7;
+  --color-ink: #1a1a1a;
+  --color-comic-red: #ff5436;
+  --color-comic-purple: #7c5cff;
+  --color-comic-yellow: #ffe34d;
+  --color-comic-green: #16b36a;
+  --color-comic-muted: #6b6b62;
+
+  --font-display: var(--font-bricolage);
+  --font-grotesk: var(--font-space-grotesk);
+
+  /* ────────────────────────────────────────────────────────────────
      Platform Design System v2 — light-mode tokens for /dashboard
      and /onboarding. Landing-page tokens above are untouched. */
 
@@ -135,6 +150,49 @@
 
 body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Comic / Neobrutalism landing (/v2) utilities. Registered with
+   @utility so they support variants (hover:, md:, etc.). The hard
+   offset shadows have NO blur — that's the signature of the style. */
+@utility ink-border {
+  border: 2.5px solid var(--color-ink);
+}
+@utility shadow-hard-sm {
+  box-shadow: 3px 3px 0 var(--color-ink);
+}
+@utility shadow-hard {
+  box-shadow: 5px 5px 0 var(--color-ink);
+}
+@utility shadow-hard-lg {
+  box-shadow: 7px 7px 0 var(--color-ink);
+}
+@utility shadow-hard-purple {
+  box-shadow: 4px 4px 0 var(--color-comic-purple);
+}
+@utility shadow-hard-purple-lg {
+  box-shadow: 7px 7px 0 var(--color-comic-purple);
+}
+@utility shadow-hard-red {
+  box-shadow: 5px 5px 0 var(--color-comic-red);
+}
+/* paper grain dots — overlay at low opacity */
+@utility comic-dots {
+  background-image: radial-gradient(var(--color-ink) 0.6px, transparent 0.6px);
+  background-size: 22px 22px;
+}
+/* faint grid for the dark platform section */
+@utility comic-grid {
+  background-image: linear-gradient(var(--color-paper) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-paper) 1px, transparent 1px);
+  background-size: 46px 46px;
 }
 
 /* ────────────────────────────────────────────────────────────────

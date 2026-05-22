@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Bricolage_Grotesque, Space_Grotesk } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
@@ -7,6 +7,19 @@ import "./globals.css";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+});
+
+// Comic landing (/v2) display + body fonts.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -56,7 +69,7 @@ export default function RootLayout({
     >
       <html
         lang="en"
-        className={`${inter.variable} ${GeistSans.variable} h-full antialiased`}
+        className={`${inter.variable} ${GeistSans.variable} ${bricolage.variable} ${spaceGrotesk.variable} h-full scroll-smooth antialiased`}
       >
         <body className="min-h-full flex flex-col bg-obsidian text-white">
           {children}
