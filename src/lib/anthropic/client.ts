@@ -34,7 +34,8 @@ export function getAnthropicClient(): Anthropic {
   _client = new Anthropic({
     apiKey,
     timeout: 30_000,
-    maxRetries: 2,
+    // SDK retries transient 429/500/529 errors with backoff and jitter.
+    maxRetries: 4,
   });
   return _client;
 }
