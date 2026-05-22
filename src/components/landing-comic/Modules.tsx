@@ -16,8 +16,8 @@ const modules = [
     deliver: [
       "Real-time deal risk scoring",
       "AI post-loss voice interviews",
-      "Pipeline forecasting (90% accuracy)",
-      "Auto loss-reason detection",
+      "Pipeline forecasting",
+      "Automated loss-reason detection",
     ],
   },
   {
