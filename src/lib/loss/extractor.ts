@@ -25,7 +25,13 @@ export interface LossAnalysis {
   secondary_reasons: LossReasonType[];
   confidence: number;
   evidence_quotes: LossReasonEvidence[];
-  extraction_method: "heuristic";
+  /**
+   * How this analysis was produced. The regex `extractLossReason` always returns
+   * "heuristic"; the LLM `extractLossReasonLLM` returns "ai" on success and
+   * "heuristic" when it falls back to the regex. ("manual" is reserved for
+   * human-entered reasons — see the DB enum.)
+   */
+  extraction_method: "heuristic" | "ai";
   extracted_at: string;
 }
 
