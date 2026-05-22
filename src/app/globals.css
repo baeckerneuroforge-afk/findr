@@ -195,6 +195,23 @@ body {
   background-size: 46px 46px;
 }
 
+/* Comic doodle motion (/pricing-v2) — floating + spinning decorations.
+   Guarded so they hold still when the user prefers reduced motion.
+   --rot keeps a doodle's base tilt while it bobs. */
+@keyframes comic-bob {
+  0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
+  50% { transform: translateY(-7px) rotate(var(--rot, 0deg)); }
+}
+@keyframes comic-spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .doodle-float { animation: comic-bob 3.2s ease-in-out infinite; }
+  .doodle-float2 { animation: comic-bob 3.8s ease-in-out infinite 0.5s; }
+  .doodle-twirl { animation: comic-spin-slow 14s linear infinite; }
+}
+
 /* ────────────────────────────────────────────────────────────────
    Platform typography utilities. Apply Geist Sans via the .font-geist
    class on the route-group root (dashboard/onboarding) — landing keeps
