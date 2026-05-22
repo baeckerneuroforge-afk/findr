@@ -1,31 +1,31 @@
-import { Header } from "@/components/landing/Header";
-import { LandingFooter } from "@/components/landing/LandingFooter";
-import { PricingHero } from "@/components/pricing/PricingHero";
-import { PricingTable } from "@/components/pricing/PricingTable";
-import { PlatformRoadmap } from "@/components/pricing/PlatformRoadmap";
-import { OutcomePricing } from "@/components/pricing/OutcomePricing";
-import { FoundingCustomer } from "@/components/pricing/FoundingCustomer";
-import { PricingFAQ } from "@/components/pricing/PricingFAQ";
-import { PricingFinalCTA } from "@/components/pricing/PricingFinalCTA";
+import type { Metadata } from "next";
+import { Navbar } from "@/components/landing-comic/Navbar";
+import { Footer } from "@/components/landing-comic/Footer";
+import { PricingHeader } from "@/components/landing-comic/PricingHeader";
+import { PricingTiers } from "@/components/landing-comic/PricingTiers";
+import { EnterpriseBand } from "@/components/landing-comic/EnterpriseBand";
 
-export const metadata = {
-  title: "Pricing — Findr",
+export const metadata: Metadata = {
+  title: "Findr — Pricing",
   description:
-    "Transparent pricing for European B2B SaaS. Start with Sales Intelligence, expand to a full conversation intelligence platform.",
+    "Land with Sales Intelligence. Add CS Health, Discovery, and Research as your team grows. One platform, one contract — linear cost, compounding value.",
 };
 
 export default function PricingPage() {
   return (
-    <main className="min-h-screen bg-obsidian text-white overflow-x-hidden">
-      <Header />
-      <PricingHero />
-      <PricingTable />
-      <FoundingCustomer />
-      <PlatformRoadmap />
-      <OutcomePricing />
-      <PricingFAQ />
-      <PricingFinalCTA />
-      <LandingFooter />
+    <main className="font-grotesk bg-paper text-ink min-h-screen relative overflow-x-hidden">
+      <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.04] comic-dots" />
+      <div className="relative z-10">
+        <Navbar />
+        <PricingHeader />
+        <section>
+          <div className="max-w-[1180px] mx-auto px-7">
+            <PricingTiers />
+            <EnterpriseBand />
+          </div>
+        </section>
+        <Footer />
+      </div>
     </main>
   );
 }
