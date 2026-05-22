@@ -17,14 +17,19 @@ import {
  * (`DetectorInput`) and SAME output (`LossAnalysis`), so the two can be swapped
  * behind a single call site once the eval proves the LLM is the better choice.
  *
- * IMPORTANT: production still runs on the regex `extractLossReason`
- * (see `src/lib/loss/service.ts`). This module is wired ONLY into the eval until
- * the numbers justify switching the product path. Do not call it from the
- * product flow yet.
+ * PRODUCTION uses this extractor (see `src/lib/loss/service.ts`). The eval
+ * justified the switch: regex scored 33% (4/12), the LLM 100% (12/12) — see
+ * `evals-loss/llm-comparison.md`.
  *
- * Model: Opus by default — the same model the risk classifier calls
- * ANALYSIS_MODEL. Overridable via `LOSS_MODEL` so the eval can test cheaper
- * models (e.g. Sonnet), exactly analogous to `EVAL_MODEL` in the risk eval.
+ * MODEL — Sonnet by default (claude-sonnet-4-6). At the 12 eval cases Opus had
+ * NO measurable advantage over Sonnet (both 100%), so we run the ~5x cheaper
+ * Sonnet: loss analysis tolerates lower stakes than risk analysis. Overridable
+ * via `LOSS_MODEL` (analogous to `EVAL_MODEL` in the risk eval).
+ * RE-TEST TRIGGER: 12 hand-crafted cases is a thin basis. Once 50-100 REAL loss
+ * cases exist, re-run the Opus-vs-Sonnet comparison before trusting Sonnet at
+ * scale — if Opus pulls ahead there, reconsider this default:
+ *   LOSS_MODEL=claude-opus-4-7 env -u ANTHROPIC_API_KEY \
+ *     pnpm exec tsx --conditions=react-server evals-loss/run.ts llm
  *
  * Robustness: on ANY failure of the LLM path (network/SDK error, missing text,
  * no JSON, invalid JSON, schema mismatch) the function falls back to the regex
@@ -33,8 +38,12 @@ import {
  * can always tell which engine produced a given result.
  */
 
-/** Default analysis model: Opus 4.7 (same value as the risk ANALYSIS_MODEL). */
-export const DEFAULT_LOSS_MODEL = CLAUDE_MODELS.opus;
+/**
+ * Default analysis model: Sonnet 4.6 — see the MODEL / RE-TEST TRIGGER note
+ * above. Sonnet because Opus showed no measurable gain at 12 eval cases and is
+ * ~5x cheaper; revisit at 50-100 real cases via LOSS_MODEL=claude-opus-4-7.
+ */
+export const DEFAULT_LOSS_MODEL = CLAUDE_MODELS.sonnet;
 
 /**
  * The 10 valid loss-reason categories as a literal tuple, used both for the

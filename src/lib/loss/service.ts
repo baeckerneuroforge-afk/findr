@@ -4,7 +4,8 @@ import { getCallsByDealId } from "@/lib/calls/service";
 import { callsToDetectorCalls } from "@/lib/risk/adapters";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
-import { extractLossReason, type LossAnalysis } from "./extractor";
+import { type LossAnalysis } from "./extractor";
+import { extractLossReasonLLM } from "./llm-extractor";
 
 export interface LossDealContext {
   id: string;
@@ -36,7 +37,10 @@ export async function analyzeAndPersistLossReason(
   if (error || !deal || deal.data_source === "mock") return null;
 
   const calls = await getCallsByDealId(orgId, dealId);
-  const analysis = await extractLossReason({
+  // LLM extractor (Sonnet by default). Falls back to the regex heuristic
+  // internally if the LLM call fails or returns invalid JSON, so this never
+  // throws on a model hiccup — see src/lib/loss/llm-extractor.ts.
+  const analysis = await extractLossReasonLLM({
     deal_id: deal.id,
     org_id: deal.org_id,
     calls: callsToDetectorCalls(calls),
@@ -58,7 +62,8 @@ export async function analyzeAndPersistLossReason(
       secondary_reasons: analysis.secondary_reasons,
       confidence: analysis.confidence,
       evidence_quotes: analysis.evidence_quotes as unknown as Json,
-      extraction_method: "heuristic",
+      // "ai" when the LLM succeeded, "heuristic" when it fell back to regex.
+      extraction_method: analysis.extraction_method,
       extracted_at: analysis.extracted_at,
     },
     { onConflict: "deal_id" },
