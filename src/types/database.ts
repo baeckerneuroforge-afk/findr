@@ -1050,6 +1050,57 @@ export type Database = {
           },
         ]
       }
+      solution_reports: {
+        Row: {
+          created_at: string
+          deal_id: string
+          id: string
+          model: string
+          org_id: string
+          overall: Json
+          recommendations: Json
+          salvageable: "yes" | "no" | "maybe" | null
+          status: "completed" | "failed"
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          id?: string
+          model: string
+          org_id: string
+          overall?: Json
+          recommendations?: Json
+          salvageable?: "yes" | "no" | "maybe" | null
+          status?: "completed" | "failed"
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          id?: string
+          model?: string
+          org_id?: string
+          overall?: Json
+          recommendations?: Json
+          salvageable?: "yes" | "no" | "maybe" | null
+          status?: "completed" | "failed"
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solution_reports_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solution_reports_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcript_segments: {
         Row: {
           call_id: string
