@@ -23,10 +23,11 @@ SIGNS OF A HEALTHY DEAL (do NOT flag these as risks):
 - "Let me discuss with team" once or twice is normal — only flag as STALLING_PATTERN if it happens 3+ times across different calls
 
 SCORE CALIBRATION:
-- 0-39 (LOW): Healthy deal, no concerns. Most deals start here.
-- 40-59 (MEDIUM): One emerging concern, watch but don't escalate.
-- 60-79 (HIGH): 2-3 confirmed signals, needs intervention.
-- 80-100 (CRITICAL): Multiple severe signals, deal at imminent risk.
+SCORE-TO-LEVEL MAPPING (use exactly this, consistently):
+- 0-39 = LOW
+- 40-59 = MEDIUM
+- 60-79 = HIGH
+- 80-100 = CRITICAL
 
 For each signal:
 - 0 signals = score 0-35
@@ -37,6 +38,9 @@ For each signal:
 
 DO NOT inflate scores. A deal with one moderate Stalling-Pattern is medium (50-58), not high.
 DO NOT under-score confirmed signals. If you include a signal, a low score is usually wrong unless the signal is very minor and isolated.
+
+CONDITIONAL VS. MATERIALIZED RISK:
+Only flag a signal when the risk has actually materialized, not when a speaker merely raises it as a hypothetical or future possibility. Phrases like "if X leaves, it will get hard", "should the budget not come through", "wenn Petra nicht mehr aktiv ist" describe a POSSIBLE future risk — do NOT treat these as a confirmed signal. Flag the signal only if the speaker confirms the condition has already happened (e.g. "Petra HAS left", "the budget WAS frozen"). A conditional warning may slightly raise the score but must not by itself trigger a signal.
 
 SEVERE BLOCKERS:
 Use 80+ when there are multiple confirmed signals and at least one hard blocker: champion leaves or loses mandate, budget is frozen, CEO/CFO says they will stop the deal without ROI proof, procurement restarts the vendor comparison, a competitor pilot/vendor becomes preferred, or signature is explicitly paused until new leadership arrives.
@@ -72,7 +76,7 @@ THE 8 RISK SIGNALS:
 3. STALLING_PATTERN — Deal velocity is decreasing
    Patterns: "Lass uns das verschieben", repeated meeting cancellations, gaps in activity
    DETECT WHEN: 3+ instances of "let me check with team / get back to you" across multiple calls, no concrete progression between calls, vague timeline answers after prior next steps were agreed, procurement asks to wait until a future quarter, or an explicit pause such as "nothing until Q3" / "no signature until new leadership is in place" / "maybe we re-evaluate in June".
-   DO NOT DETECT: One delay due to a specific reason (vacation, end of quarter). Buyer doing thorough evaluation. Slow first response. A single "later nochmal anschauen" with delayed email replies is ENGAGEMENT_DROP/CHAMPION_DISENGAGEMENT, not STALLING_PATTERN.
+   DO NOT DETECT: One delay due to a specific reason (vacation, end of quarter). Buyer doing thorough evaluation. Slow first response. A single "later nochmal anschauen" with delayed email replies is ENGAGEMENT_DROP/CHAMPION_DISENGAGEMENT, not STALLING_PATTERN. A structurally long but transparently explained sales cycle is NOT stalling — e.g. the buyer states a long cycle is industry-standard for their domain AND gives a concrete, reasoned timeline or budget gate (such as a fixed CapEx committee date). Stalling requires UNEXPLAINED or REPEATED delay without a clear reason, not a buyer proactively explaining a legitimate long process with a named date.
 
 4. BUDGET_FRICTION — Pricing concerns surfacing
    Patterns: "CFO ist sich nicht sicher", "Budget ist knapp", price negotiation pushback
@@ -128,10 +132,7 @@ Return ONLY valid JSON, no markdown, no preamble:
 }
 
 SCORING GUIDE:
-- 0-30: Low risk — clear positive signals dominate
-- 31-55: Medium risk — some concerning signals but recoverable
-- 56-80: High risk — multiple strong signals, urgent action needed
-- 81-100: Critical — deal likely lost without immediate intervention
+Use the SCORE-TO-LEVEL MAPPING above. Do not apply any other score thresholds.
 
 Be precise. Be specific. Quote actual buyer language when available.`;
 
