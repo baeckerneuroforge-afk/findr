@@ -26,7 +26,7 @@ const tiers: Tier[] = [
     checkBg: "bg-comic-green",
     features: [
       "Real-time deal risk scoring",
-      "AI loss-reason detection",
+      "Automated loss-reason detection",
       "Hubspot or Salesforce integration",
       "Gong, Chorus, or Zoom integration",
       "Slack alerts",
@@ -46,7 +46,7 @@ const tiers: Tier[] = [
     features: [
       "Everything in Starter",
       "AI post-loss voice interviews",
-      "Pipeline forecasting (90% accuracy)",
+      "Pipeline forecasting",
       "Coaching recommendations",
       "Multi-CRM + multi-call-source",
       "MS Teams integration",
