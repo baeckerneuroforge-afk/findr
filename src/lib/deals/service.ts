@@ -1,5 +1,7 @@
 import "server-only";
 
+import { z } from "zod";
+
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database";
 import { MOCK_DEALS } from "./mock-data";
@@ -109,6 +111,11 @@ function mapDbDealToDeal(row: DealRow): Deal {
     closeDate,
     createdAt: row.created_at,
     dataSource: row.data_source,
+    contactName: row.contact_name,
+    contactEmail: row.contact_email,
+    contactPhone: row.contact_phone,
+    outcome: row.outcome,
+    closedAt: row.closed_at,
   };
 }
 
@@ -158,4 +165,64 @@ export async function getDealById(
 
   const mockDeal = MOCK_DEALS.find((deal) => deal.id === dealId);
   return mockDeal ? { ...mockDeal, dataSource: "mock" } : null;
+}
+
+// ----------------------------------------------------------------------------
+// Deal contact (post-loss interview prerequisite)
+// ----------------------------------------------------------------------------
+
+function emptyToUndefined(value: unknown) {
+  if (typeof value === "string" && value.trim() === "") return undefined;
+  return value;
+}
+
+/**
+ * Contact fields a user can set on a deal. All optional; an empty/omitted value
+ * clears the column (the editor always submits the full set).
+ */
+export const DealContactSchema = z.object({
+  contactName: z.preprocess(
+    emptyToUndefined,
+    z.string().trim().max(200).optional(),
+  ),
+  contactEmail: z.preprocess(
+    emptyToUndefined,
+    z.string().trim().email().max(200).optional(),
+  ),
+  contactPhone: z.preprocess(
+    emptyToUndefined,
+    z.string().trim().max(80).optional(),
+  ),
+});
+
+export type DealContactInput = z.infer<typeof DealContactSchema>;
+
+/**
+ * Set/replace a deal's contact details, scoped to the org. Returns the updated
+ * Deal, or null if the id isn't a real (UUID) deal in this org — e.g. demo/mock
+ * deals, which live in code rather than the DB.
+ */
+export async function updateDealContact(
+  orgId: string,
+  dealId: string,
+  input: DealContactInput,
+): Promise<Deal | null> {
+  if (!isUuid(dealId)) return null;
+
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("deals")
+    .update({
+      contact_name: input.contactName ?? null,
+      contact_email: input.contactEmail ?? null,
+      contact_phone: input.contactPhone ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("org_id", orgId)
+    .eq("id", dealId)
+    .select("*")
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapDbDealToDeal(data);
 }

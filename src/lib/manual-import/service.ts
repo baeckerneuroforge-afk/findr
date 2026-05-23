@@ -50,6 +50,12 @@ export const ManualDealSchema = z.object({
   stage: z.enum(DEAL_STAGES).default("qualified"),
   ownerName: optionalTrimmedString(),
   championName: optionalTrimmedString(),
+  contactName: optionalTrimmedString(),
+  contactEmail: z.preprocess(
+    emptyStringToUndefined,
+    z.string().trim().email().max(200).optional(),
+  ),
+  contactPhone: optionalTrimmedString(80),
   closeDate: z.preprocess(
     emptyStringToUndefined,
     z
@@ -132,6 +138,9 @@ export function buildManualDealInsert(
     stage: input.stage,
     owner_name: ownerName,
     owner_email: deriveOwnerEmail(input.ownerName),
+    contact_name: input.contactName ?? null,
+    contact_email: input.contactEmail ?? null,
+    contact_phone: input.contactPhone ?? null,
     last_activity_at: now,
     raw_data: buildRawData(input, now),
     updated_at: now,

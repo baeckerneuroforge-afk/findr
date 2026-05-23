@@ -31,6 +31,9 @@ interface FormState {
   stage: DealStage;
   ownerName: string;
   championName: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
   closeDate: string;
 }
 
@@ -42,6 +45,9 @@ const INITIAL_FORM: FormState = {
   stage: "qualified",
   ownerName: "",
   championName: "",
+  contactName: "",
+  contactEmail: "",
+  contactPhone: "",
   closeDate: "",
 };
 
@@ -168,6 +174,37 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
             value={form.championName}
             onChange={(event) => update("championName", event.target.value)}
             placeholder="Thomas Becker"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            disabled={submitting}
+          />
+        </Field>
+
+        <Field label="Contact name">
+          <input
+            value={form.contactName}
+            onChange={(event) => update("contactName", event.target.value)}
+            placeholder="Anna Berg"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            disabled={submitting}
+          />
+        </Field>
+
+        <Field label="Contact email">
+          <input
+            type="email"
+            value={form.contactEmail}
+            onChange={(event) => update("contactEmail", event.target.value)}
+            placeholder="anna.berg@example.com"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            disabled={submitting}
+          />
+        </Field>
+
+        <Field label="Contact phone">
+          <input
+            value={form.contactPhone}
+            onChange={(event) => update("contactPhone", event.target.value)}
+            placeholder="+49 151 23456789"
             className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />

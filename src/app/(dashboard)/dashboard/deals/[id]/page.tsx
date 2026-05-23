@@ -10,7 +10,10 @@ import { RiskSignalDrilldown } from "@/components/dashboard/RiskSignalDrilldown"
 import { SolutionPanel } from "@/components/dashboard/SolutionPanel";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { RiskHistoryChart } from "@/components/dashboard/RiskHistoryChart";
+import { DealContactCard } from "@/components/dashboard/DealContactCard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Badge } from "@/components/ui/Badge";
+import type { DealOutcome } from "@/lib/deals/types";
 
 function PhoneIcon() {
   return (
@@ -29,6 +32,12 @@ function PhoneIcon() {
       />
     </svg>
   );
+}
+
+function OutcomeBadge({ outcome }: { outcome: DealOutcome }) {
+  if (outcome === "won") return <Badge variant="success">Won</Badge>;
+  if (outcome === "lost") return <Badge variant="critical">Lost</Badge>;
+  return <Badge variant="default">Open</Badge>;
 }
 
 export default async function DealDetailPage({
@@ -88,7 +97,10 @@ export default async function DealDetailPage({
       {/* Header */}
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-display text-neutral-900 mb-2">{deal.name}</h1>
+          <div className="mb-2 flex flex-wrap items-center gap-3">
+            <h1 className="text-display text-neutral-900">{deal.name}</h1>
+            <OutcomeBadge outcome={deal.outcome ?? "open"} />
+          </div>
           <div className="flex flex-wrap items-center gap-3 text-body text-neutral-500">
             <span>{deal.stage}</span>
             <span aria-hidden="true">·</span>
@@ -139,6 +151,16 @@ export default async function DealDetailPage({
           />
         </div>
       )}
+
+      {/* Contact */}
+      <div className="mb-8">
+        <DealContactCard
+          dealId={id}
+          initialName={deal.contactName ?? null}
+          initialEmail={deal.contactEmail ?? null}
+          initialPhone={deal.contactPhone ?? null}
+        />
+      </div>
 
       {/* Calls */}
       <div className="mb-8">

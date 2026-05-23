@@ -9,6 +9,9 @@ export type DealStage =
 
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 
+/** Explicit close outcome of a deal (separate from the free-form `stage`). */
+export type DealOutcome = "open" | "won" | "lost";
+
 export interface Deal {
   id: string;
   name: string;
@@ -27,6 +30,13 @@ export interface Deal {
   closeDate: string;
   createdAt: string;
   dataSource?: string;
+  // Post-loss-interview prerequisites (deal contact + outcome). Optional so
+  // mock/demo deals without these still satisfy the type.
+  contactName?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  outcome?: DealOutcome;
+  closedAt?: string | null;
   // Risk-fields, populated after classifier runs:
   riskScore?: number;
   riskLevel?: RiskLevel;

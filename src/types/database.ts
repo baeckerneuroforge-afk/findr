@@ -291,6 +291,9 @@ export type Database = {
           amount: number | null
           closed_at: string | null
           company_name: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
           created_at: string
           currency: string
           data_source: string
@@ -302,6 +305,7 @@ export type Database = {
           loss_reason: string | null
           name: string
           org_id: string
+          outcome: "open" | "won" | "lost"
           owner_email: string | null
           owner_name: string | null
           raw_data: Json | null
@@ -313,6 +317,9 @@ export type Database = {
           amount?: number | null
           closed_at?: string | null
           company_name?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           currency?: string
           data_source?: string
@@ -324,6 +331,7 @@ export type Database = {
           loss_reason?: string | null
           name: string
           org_id: string
+          outcome?: "open" | "won" | "lost"
           owner_email?: string | null
           owner_name?: string | null
           raw_data?: Json | null
@@ -335,6 +343,9 @@ export type Database = {
           amount?: number | null
           closed_at?: string | null
           company_name?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           currency?: string
           data_source?: string
@@ -346,6 +357,7 @@ export type Database = {
           loss_reason?: string | null
           name?: string
           org_id?: string
+          outcome?: "open" | "won" | "lost"
           owner_email?: string | null
           owner_name?: string | null
           raw_data?: Json | null
