@@ -1115,6 +1115,7 @@ export type Database = {
           evidence: string | null
           extracted_reason: string | null
           id: string
+          language: "de" | "en"
           matched_risk_prediction: string | null
           model: string | null
           org_id: string
@@ -1131,6 +1132,7 @@ export type Database = {
           evidence?: string | null
           extracted_reason?: string | null
           id?: string
+          language?: "de" | "en"
           matched_risk_prediction?: string | null
           model?: string | null
           org_id: string
@@ -1147,6 +1149,7 @@ export type Database = {
           evidence?: string | null
           extracted_reason?: string | null
           id?: string
+          language?: "de" | "en"
           matched_risk_prediction?: string | null
           model?: string | null
           org_id?: string

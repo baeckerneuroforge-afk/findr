@@ -5,10 +5,12 @@ import { randomBytes } from "node:crypto";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
 import {
+  DEFAULT_INTERVIEW_LANGUAGE,
   DEFAULT_VOICE_MODEL,
   extractLossReasonFromInterview,
   nextInterviewMessage,
   type InterviewInput,
+  type InterviewLanguage,
   type InterviewResult,
   type InterviewTurn,
 } from "./interviewer";
@@ -36,6 +38,7 @@ export interface InterviewSession {
   dealId: string | null;
   accessToken: string;
   status: "open" | "completed" | "abandoned";
+  language: InterviewLanguage;
   conversation: InterviewTurn[];
   dealContext: InterviewInput | null;
   result: InterviewResult | null;
@@ -64,6 +67,7 @@ function toSession(row: Row): InterviewSession {
     dealId: row.deal_id,
     accessToken: row.access_token,
     status: row.status,
+    language: row.language,
     conversation: (row.conversation as unknown as InterviewTurn[]) ?? [],
     dealContext: (row.deal_context as unknown as InterviewInput | null) ?? null,
     result: (row.result as unknown as InterviewResult | null) ?? null,
@@ -105,11 +109,18 @@ export async function createInterviewSession(params: {
   orgId: string;
   dealId?: string | null;
   dealContext: InterviewInput;
+  language?: InterviewLanguage;
   model?: string;
 }): Promise<InterviewSession> {
   const model = params.model ?? process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL;
+  const language = params.language ?? DEFAULT_INTERVIEW_LANGUAGE;
 
-  const opening = await nextInterviewMessage(params.dealContext, [], model);
+  const opening = await nextInterviewMessage(
+    params.dealContext,
+    [],
+    language,
+    model,
+  );
   const conversation: InterviewTurn[] = [
     { role: "agent", text: opening.message },
   ];
@@ -122,6 +133,7 @@ export async function createInterviewSession(params: {
       deal_id: params.dealId ?? null,
       access_token: generateToken(),
       status: "open",
+      language,
       conversation: conversation as unknown as Json,
       deal_context: params.dealContext as unknown as Json,
       model,
@@ -170,7 +182,12 @@ export async function advanceInterview(
     { role: "customer", text: buyerMessage.trim() },
   ];
 
-  const { done, message } = await nextInterviewMessage(input, history, model);
+  const { done, message } = await nextInterviewMessage(
+    input,
+    history,
+    session.language,
+    model,
+  );
   history.push({ role: "agent", text: message });
 
   const finished = done || agentTurnCount(history) >= MAX_AGENT_TURNS;

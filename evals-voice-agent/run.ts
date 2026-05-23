@@ -149,6 +149,7 @@ async function main(): Promise<void> {
         const { done, message } = await nextInterviewMessage(
           input,
           history,
+          c.persona.language,
           agentModel,
         );
         history.push({ role: "agent", text: message });

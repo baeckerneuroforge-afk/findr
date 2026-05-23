@@ -49,6 +49,18 @@ export interface InterviewTurn {
   text: string;
 }
 
+/** Buyer-facing conversation language for a session. */
+export type InterviewLanguage = "de" | "en";
+
+/** Used when a session doesn't specify one (matches the DB column default). */
+export const DEFAULT_INTERVIEW_LANGUAGE: InterviewLanguage = "en";
+
+/** How each language is named to the model in the prompt. */
+const LANGUAGE_LABELS: Record<InterviewLanguage, string> = {
+  de: "German (Deutsch)",
+  en: "English",
+};
+
 /** The 10 valid loss-reason categories (kept in lockstep with LossReasonType). */
 const LOSS_CATEGORIES = [
   "pricing",
@@ -108,7 +120,7 @@ export class VoiceUnavailableError extends Error {
 
 export const INTERVIEWER_SYSTEM_PROMPT = `You are findr.'s post-loss interview agent. A B2B SaaS deal was just lost, and you are reaching out to the buyer (over text/chat) to learn the REAL reason it didn't go forward. This is research — you are NOT trying to win the deal back or sell anything.
 
-You work in DACH (Germany / Austria / Switzerland). Mirror the buyer's language: reply in German if they write German, English if they write English; otherwise use the language of the deal context.
+You work in DACH (Germany / Austria / Switzerland). LANGUAGE: every interview is conducted in a REQUIRED language, given in the context below. Write ALL of your messages in that language — including your opening message, which you send before the buyer has said anything — and stay in it for the whole conversation. The required language always takes precedence. (Fallback, only if no required language were given: mirror the buyer's language — German if they write German, otherwise English.)
 
 YOUR STYLE:
 - Warm, brief, professional. ONE short message at a time — a single question, never a wall of text.
@@ -185,8 +197,11 @@ function formatHistory(history: InterviewTurn[]): string {
 function buildInterviewerPrompt(
   input: InterviewInput,
   history: InterviewTurn[],
+  language: InterviewLanguage,
 ): string {
-  return `LOST DEAL CONTEXT:
+  return `REQUIRED LANGUAGE: ${LANGUAGE_LABELS[language]} — write your message in this language, including the opening message.
+
+LOST DEAL CONTEXT:
 ${formatDeal(input.deal)}
 
 PRIVATE — what findr.'s risk analysis suspected (do NOT reveal to the buyer):
@@ -312,17 +327,20 @@ async function callJson<T>(
 // ----------------------------------------------------------------------------
 
 /**
- * Generate the agent's next message given the conversation so far. Returns
- * `done: true` (with a closing message) when the agent decides it has enough.
+ * Generate the agent's next message given the conversation so far, in the
+ * session's required `language` (used from the very first message, where there
+ * is no buyer reply to mirror yet). Returns `done: true` (with a closing
+ * message) when the agent decides it has enough.
  */
 export async function nextInterviewMessage(
   input: InterviewInput,
   history: InterviewTurn[],
+  language: InterviewLanguage,
   model: string = process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL,
 ): Promise<NextMessage> {
   return callJson(
     INTERVIEWER_SYSTEM_PROMPT,
-    buildInterviewerPrompt(input, history),
+    buildInterviewerPrompt(input, history, language),
     model,
     NextMessageSchema,
   );
