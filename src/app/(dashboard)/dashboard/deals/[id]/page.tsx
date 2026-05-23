@@ -4,8 +4,10 @@ import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
 import { getRiskScoreHistory } from "@/lib/risk/service";
+import { getSolutionReports } from "@/lib/solution/service";
 import { CallDetail } from "@/components/dashboard/CallDetail";
 import { RiskSignalDrilldown } from "@/components/dashboard/RiskSignalDrilldown";
+import { SolutionPanel } from "@/components/dashboard/SolutionPanel";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { RiskHistoryChart } from "@/components/dashboard/RiskHistoryChart";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -59,6 +61,13 @@ export default async function DealDetailPage({
     level: point.risk_level,
   }));
 
+  // Solution layer only makes sense once a risk analysis exists. Load the most
+  // recent persisted report so it survives a reload.
+  const solutionReports = latestRisk
+    ? await getSolutionReports(orgId, id, 1)
+    : [];
+  const latestSolution = solutionReports[0] ?? null;
+
   return (
     <div>
       {/* Breadcrumb */}
@@ -107,7 +116,7 @@ export default async function DealDetailPage({
       </div>
 
       {latestRisk && (
-        <div className="mb-8">
+        <div className="mb-8 space-y-8">
           <RiskSignalDrilldown
             riskScore={latestRisk.risk_score}
             riskLevel={latestRisk.risk_level}
@@ -117,6 +126,7 @@ export default async function DealDetailPage({
             analyzedAt={latestRisk.analyzed_at}
             sourceCallCount={calls.length}
           />
+          <SolutionPanel dealId={id} initialReport={latestSolution} />
         </div>
       )}
       {!latestRisk && (
