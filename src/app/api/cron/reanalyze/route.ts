@@ -155,6 +155,9 @@ export async function GET(request: Request) {
               overall_reasoning: result.overallReasoning,
               recommendations: result.recommendations ?? [],
               signals: result.signals as unknown as Json,
+              // The scheduled re-analysis uses the rule-based detectors
+              // (analyzeRisk), not the LLM — mark it honestly.
+              analysis_method: "heuristic",
             })
             .select()
             .single();

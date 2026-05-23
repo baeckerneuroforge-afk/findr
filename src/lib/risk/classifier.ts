@@ -69,11 +69,22 @@ export async function analyzeDealRiskWithFallback(
       const result = await analyzeDealRiskLLM(deal, promptCalls);
       return { result, source: "llm" };
     } catch (err) {
+      // Loud, not silent: the result will be the rule-based heuristic, NOT the
+      // AI model. Surface the real reason (incl. the underlying cause) so a
+      // missing key / overloaded API isn't mistaken for a real AI analysis.
       console.warn(
-        "LLM analysis failed, falling back to heuristic detectors:",
-        err,
+        "[risk] LLM analysis failed — falling back to heuristic detectors (analysis_method=heuristic):",
+        err instanceof Error ? err.message : err,
       );
+      if (err instanceof Error && err.cause !== undefined) {
+        console.warn("[risk] LLM failure cause:", err.cause);
+      }
     }
+  } else {
+    console.warn(
+      "[risk] ANTHROPIC_API_KEY not set — using heuristic fallback " +
+        "(analysis_method=heuristic). The result is rule-based, not the Claude model.",
+    );
   }
 
   const result = await runHeuristicFallback(deal, calls, orgId);

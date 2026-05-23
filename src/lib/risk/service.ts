@@ -16,6 +16,8 @@ export interface RiskScoreRecord {
   recommendations: string[];
   signals: RiskSignal[];
   analyzed_at: string;
+  /** How this score was produced: "ai" = Claude classifier, "heuristic" = rule-based fallback. */
+  analysis_method: "ai" | "heuristic";
 }
 
 type RiskScoreRow = Database["public"]["Tables"]["risk_scores"]["Row"];
@@ -37,6 +39,10 @@ function toRecord(row: RiskScoreRow): RiskScoreRecord {
     recommendations: row.recommendations ?? [],
     signals: (row.signals as unknown as RiskSignal[]) ?? [],
     analyzed_at: row.analyzed_at ?? new Date(0).toISOString(),
+    // Default to "ai" so rows written before the analysis_method column existed
+    // (or any read before the migration is applied) are not mislabeled.
+    analysis_method:
+      (row.analysis_method as "ai" | "heuristic" | undefined) ?? "ai",
   };
 }
 

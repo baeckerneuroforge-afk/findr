@@ -14,6 +14,7 @@ interface RiskSignalDrilldownProps {
   signals: RiskSignal[];
   analyzedAt?: string;
   sourceCallCount?: number;
+  analysisMethod?: "ai" | "heuristic";
 }
 
 const SIGNAL_META: Record<
@@ -136,6 +137,7 @@ export function RiskSignalDrilldown({
   signals,
   analyzedAt,
   sourceCallCount,
+  analysisMethod,
 }: RiskSignalDrilldownProps) {
   const [expandedSignal, setExpandedSignal] = useState<string | null>(
     signals[0]?.type ?? null,
@@ -186,6 +188,12 @@ export function RiskSignalDrilldown({
                 </span>
               )}
               <span>{formatSignalCount(signals.length)}</span>
+              {analysisMethod === "heuristic" && (
+                <span className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-caption font-medium text-neutral-600">
+                  Heuristic analysis
+                  <InfoTooltip label="Rule-based fallback — the AI model was unavailable when this ran, so a deterministic heuristic was used instead of the Claude classifier." />
+                </span>
+              )}
             </div>
           </div>
           {analyzedAt && (

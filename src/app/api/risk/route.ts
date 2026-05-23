@@ -157,6 +157,9 @@ export async function POST(req: NextRequest) {
         overall_reasoning: result.overallReasoning,
         recommendations: result.recommendations ?? [],
         signals: result.signals as unknown as Json,
+        // Honest provenance: "ai" = Claude (Opus), "heuristic" = rule-based
+        // fallback (e.g. LLM call failed / key missing).
+        analysis_method: source === "llm" ? "ai" : "heuristic",
       })
       .select()
       .single();

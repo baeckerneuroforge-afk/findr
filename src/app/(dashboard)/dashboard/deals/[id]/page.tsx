@@ -125,6 +125,7 @@ export default async function DealDetailPage({
             signals={latestRisk.signals}
             analyzedAt={latestRisk.analyzed_at}
             sourceCallCount={calls.length}
+            analysisMethod={latestRisk.analysis_method}
           />
           <SolutionPanel dealId={id} initialReport={latestSolution} />
         </div>

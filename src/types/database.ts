@@ -844,6 +844,7 @@ export type Database = {
       }
       risk_scores: {
         Row: {
+          analysis_method: "ai" | "heuristic"
           analyzed_at: string | null
           created_at: string | null
           deal_id: string
@@ -856,6 +857,7 @@ export type Database = {
           signals: Json
         }
         Insert: {
+          analysis_method?: "ai" | "heuristic"
           analyzed_at?: string | null
           created_at?: string | null
           deal_id: string
@@ -868,6 +870,7 @@ export type Database = {
           signals: Json
         }
         Update: {
+          analysis_method?: "ai" | "heuristic"
           analyzed_at?: string | null
           created_at?: string | null
           deal_id?: string
