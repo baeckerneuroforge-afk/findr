@@ -89,6 +89,7 @@ export async function GET(
             signals: risk.signals.map((s) => ({
               type: s.type,
               confidence: s.confidence,
+              reasoning: s.reasoning,
               quote: s.quotes?.[0],
             })),
           }
@@ -100,6 +101,7 @@ export async function GET(
           signal: r.signal,
           recommendation: r.recommendation,
           nextStep: r.nextStep,
+          evidence: r.evidence,
         })),
         model: report.model,
         createdAt: report.created_at,
