@@ -1,20 +1,21 @@
 import "server-only";
 
+import fs from "node:fs";
+import path from "node:path";
 import PDFDocument from "pdfkit";
 
 /**
  * "Deal Solution Report" PDF — a considered internal deal-review document, not a
  * data dump. Findr style: white, calm typography, violet #5B2FD4 used sparingly
- * as an accent (heading rules, the risk ring, small labels). Reuses pdfkit (the
- * repo's PDF engine); kept separate from generator.ts so the violet accent
- * doesn't touch the existing indigo loss/forecast reports.
+ * as an accent (heading rules, the risk ring, small labels).
  *
- * Layout breathes (generous whitespace) and may run 2–3 pages; repeatable
- * blocks (signals, recommendations) are measured before drawing so they never
- * get cut across a page boundary.
+ * Typeface: Geist (the product's brand font) is embedded as a TrueType so German
+ * umlauts (ü ö ä ß …) render reliably and on-brand across all PDF viewers. If
+ * the font files can't be read at runtime it falls back to Helvetica, which also
+ * renders WinAnsi umlauts correctly — so the export never breaks.
  *
- * NB: pdfkit's standard fonts use WinAnsi — avoid glyphs like "→"/"…".
- * Smart quotes (“ ”), middle dot (·) and en dash (–) are safe.
+ * Layout breathes and may run 2–3 pages; repeatable blocks (signals,
+ * recommendations) are measured before drawing so they never split across a page.
  */
 
 const COLORS = {
@@ -28,9 +29,12 @@ const COLORS = {
   track: "#e8e8ec", // donut track
   panel: "#f7f7f8", // soft neutral panel
   danger: "#dc2626",
+  dangerTint: "#fdecec",
   high: "#ea580c",
   warning: "#d97706",
+  warningTint: "#fdf3e6",
   success: "#16a34a",
+  successTint: "#eaf6ee",
   white: "#ffffff",
 } as const;
 
@@ -44,6 +48,12 @@ const STAGE_LABELS: Record<string, string> = {
   closed_won: "Closed won",
   closed_lost: "Closed lost",
 };
+
+interface Fonts {
+  regular: string;
+  bold: string;
+  italic: string;
+}
 
 export interface SolutionPdfInput {
   deal: {
@@ -149,6 +159,12 @@ function salvageableColor(s: "yes" | "no" | "maybe"): string {
   return COLORS.warning;
 }
 
+function salvageableTint(s: "yes" | "no" | "maybe"): string {
+  if (s === "yes") return COLORS.successTint;
+  if (s === "no") return COLORS.dangerTint;
+  return COLORS.warningTint;
+}
+
 function salvageableLabel(s: "yes" | "no" | "maybe"): string {
   if (s === "yes") return "Salvageable";
   if (s === "no") return "Hard to save";
@@ -156,6 +172,34 @@ function salvageableLabel(s: "yes" | "no" | "maybe"): string {
 }
 
 // ---- pdfkit helpers ---------------------------------------------------------
+
+/**
+ * Embed Geist (brand font) for crisp, on-brand umlauts. Falls back to the
+ * built-in Helvetica (which also renders WinAnsi umlauts) if the files are
+ * missing, so PDF export never fails on a packaging issue.
+ */
+function registerFonts(doc: PDFKit.PDFDocument): Fonts {
+  const dir = path.join(process.cwd(), "src", "lib", "pdf", "fonts");
+  try {
+    doc.registerFont("Body", fs.readFileSync(path.join(dir, "Geist-Regular.ttf")));
+    doc.registerFont("Body-Bold", fs.readFileSync(path.join(dir, "Geist-Bold.ttf")));
+    doc.registerFont(
+      "Body-Italic",
+      fs.readFileSync(path.join(dir, "Geist-Italic.ttf")),
+    );
+    return { regular: "Body", bold: "Body-Bold", italic: "Body-Italic" };
+  } catch (err) {
+    console.warn(
+      "[solution-pdf] Geist fonts unavailable; falling back to Helvetica:",
+      err instanceof Error ? err.message : err,
+    );
+    return {
+      regular: "Helvetica",
+      bold: "Helvetica-Bold",
+      italic: "Helvetica-Oblique",
+    };
+  }
+}
 
 function pdfToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -178,13 +222,17 @@ function ensureSpace(doc: PDFKit.PDFDocument, needed: number): void {
 }
 
 /** Calm section heading: ink title with a short violet underline accent. */
-function sectionHeading(doc: PDFKit.PDFDocument, title: string): void {
+function sectionHeading(
+  doc: PDFKit.PDFDocument,
+  title: string,
+  boldFont: string,
+): void {
   const left = doc.page.margins.left;
   ensureSpace(doc, 46);
   doc.moveDown(1.1);
   const y = doc.y;
   doc
-    .font("Helvetica-Bold")
+    .font(boldFont)
     .fontSize(13)
     .fillColor(COLORS.ink)
     .text(title, left, y, { lineBreak: false });
@@ -232,18 +280,51 @@ export async function buildSolutionReportPdf(
   input: SolutionPdfInput,
 ): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", margin: 46, bufferPages: true });
+  const fonts = registerFonts(doc);
+
+  // Geist ships OpenType ligatures (ff, fi, tt). They render fine, but pdfkit's
+  // font subset maps the ligature glyphs so the PDF *text layer* loses
+  // characters (copy/paste & search yield "Patern" / "confdence"). Disable
+  // OpenType features doc-wide so every glyph keeps its own ToUnicode mapping —
+  // umlauts are precomposed glyphs and are unaffected.
+  const rawText = doc.text.bind(doc);
+  function patchedText(...args: unknown[]) {
+    const last = args[args.length - 1];
+    let opts: Record<string, unknown>;
+    if (last !== null && typeof last === "object") {
+      opts = last as Record<string, unknown>;
+    } else {
+      opts = {};
+      args.push(opts);
+    }
+    if (!("features" in opts)) {
+      // Object form with explicit false actually DISABLES the features (an empty
+      // array only fails to *add* them, leaving fontkit's defaults — incl. liga
+      // — in place). Disable all ligature/contextual features; keep kerning.
+      opts.features = {
+        liga: false,
+        clig: false,
+        dlig: false,
+        rlig: false,
+        calt: false,
+      };
+    }
+    return (rawText as (...a: unknown[]) => unknown)(...args);
+  }
+  (doc as unknown as { text: unknown }).text = patchedText;
+
   const left = doc.page.margins.left;
   const width = contentWidth(doc);
 
   // ---- Header ----
   const topY = doc.y;
   doc
-    .font("Helvetica-Bold")
+    .font(fonts.bold)
     .fontSize(13)
     .fillColor(COLORS.violet)
     .text("Findr", left, topY, { lineBreak: false });
   doc
-    .font("Helvetica")
+    .font(fonts.regular)
     .fontSize(9)
     .fillColor(COLORS.muted)
     .text(`Generated ${formatDate(input.solution.createdAt)}`, left, topY + 2, {
@@ -253,13 +334,13 @@ export async function buildSolutionReportPdf(
     });
   doc.y = topY + 26;
   doc
-    .font("Helvetica-Bold")
+    .font(fonts.bold)
     .fontSize(23)
     .fillColor(COLORS.ink)
     .text("Deal Solution Report", left, doc.y);
   doc.moveDown(0.2);
   doc
-    .font("Helvetica")
+    .font(fonts.regular)
     .fontSize(11)
     .fillColor(COLORS.muted)
     .text(`${input.deal.name} · ${input.deal.company}`, left, doc.y);
@@ -278,7 +359,7 @@ export async function buildSolutionReportPdf(
   // Left: deal context
   doc.roundedRect(left, bandY, leftW, boxH, 8).fill(COLORS.panel);
   doc
-    .font("Helvetica-Bold")
+    .font(fonts.bold)
     .fontSize(9)
     .fillColor(COLORS.violet)
     .text("Deal context", left + 14, bandY + 14, {
@@ -294,12 +375,12 @@ export async function buildSolutionReportPdf(
   ];
   for (const [k, v] of dealRows) {
     doc
-      .font("Helvetica")
+      .font(fonts.regular)
       .fontSize(9.5)
       .fillColor(COLORS.muted)
       .text(k, left + 14, cy, { width: 66, lineBreak: false });
     doc
-      .font("Helvetica-Bold")
+      .font(fonts.bold)
       .fontSize(9.5)
       .fillColor(COLORS.ink)
       .text(truncate(v, 40), left + 86, cy, {
@@ -309,10 +390,10 @@ export async function buildSolutionReportPdf(
     cy += 18;
   }
 
-  // Right: risk gauge (donut)
+  // Right: risk gauge (donut — unchanged)
   doc.roundedRect(rx, bandY, rightW, boxH, 8).fill(COLORS.panel);
   doc
-    .font("Helvetica-Bold")
+    .font(fonts.bold)
     .fontSize(9)
     .fillColor(COLORS.violet)
     .text("Risk", rx + 14, bandY + 14, { width: rightW - 28, lineBreak: false });
@@ -322,7 +403,7 @@ export async function buildSolutionReportPdf(
     const dcy = bandY + 56;
     drawDonut(doc, dcx, dcy, 24, 6, input.risk.score / 100, lvlColor, COLORS.track);
     doc
-      .font("Helvetica-Bold")
+      .font(fonts.bold)
       .fontSize(17)
       .fillColor(lvlColor)
       .text(String(input.risk.score), dcx - 26, dcy - 8, {
@@ -331,7 +412,7 @@ export async function buildSolutionReportPdf(
         lineBreak: false,
       });
     doc
-      .font("Helvetica-Bold")
+      .font(fonts.bold)
       .fontSize(9.5)
       .fillColor(lvlColor)
       .text(capitalize(input.risk.level), rx + 14, bandY + 88, {
@@ -340,7 +421,7 @@ export async function buildSolutionReportPdf(
         lineBreak: false,
       });
     doc
-      .font("Helvetica")
+      .font(fonts.regular)
       .fontSize(8.5)
       .fillColor(COLORS.muted)
       .text(
@@ -351,7 +432,7 @@ export async function buildSolutionReportPdf(
       );
   } else {
     doc
-      .font("Helvetica")
+      .font(fonts.regular)
       .fontSize(10)
       .fillColor(COLORS.muted)
       .text("No risk analysis on file", rx + 14, bandY + 52, {
@@ -362,7 +443,7 @@ export async function buildSolutionReportPdf(
   doc.y = bandY + boxH;
 
   // ---- Analyzed call ----
-  sectionHeading(doc, "Analyzed call");
+  sectionHeading(doc, "Analyzed call", fonts.bold);
   if (input.call) {
     const participants =
       input.call.participants.length > 0
@@ -373,13 +454,13 @@ export async function buildSolutionReportPdf(
         ? `  ·  +${input.call.totalCalls - 1} more call${input.call.totalCalls - 1 === 1 ? "" : "s"}`
         : "";
     doc
-      .font("Helvetica-Bold")
+      .font(fonts.bold)
       .fontSize(10.5)
       .fillColor(COLORS.ink)
       .text(input.call.title, left, doc.y, { width });
     doc.moveDown(0.15);
     doc
-      .font("Helvetica")
+      .font(fonts.regular)
       .fontSize(9.5)
       .fillColor(COLORS.muted)
       .text(
@@ -390,7 +471,7 @@ export async function buildSolutionReportPdf(
       );
   } else {
     doc
-      .font("Helvetica")
+      .font(fonts.regular)
       .fontSize(9.5)
       .fillColor(COLORS.muted)
       .text("No call linked to this deal.", left, doc.y, { width });
@@ -398,7 +479,7 @@ export async function buildSolutionReportPdf(
 
   // ---- Risk signals (name + confidence, reasoning, quote) ----
   if (input.risk && input.risk.signals.length > 0) {
-    sectionHeading(doc, `Risk signals (${input.risk.signals.length})`);
+    sectionHeading(doc, `Risk signals (${input.risk.signals.length})`, fonts.bold);
     const textW = width - 16;
     for (const s of input.risk.signals) {
       const reasoning = s.reasoning ? truncate(s.reasoning, 180) : "";
@@ -407,11 +488,11 @@ export async function buildSolutionReportPdf(
       // Measure the whole block so it never splits across a page.
       let h = 16;
       if (reasoning) {
-        doc.font("Helvetica").fontSize(9.5);
+        doc.font(fonts.regular).fontSize(9.5);
         h += doc.heightOfString(reasoning, { width: textW }) + 3;
       }
       if (quote) {
-        doc.font("Helvetica-Oblique").fontSize(9);
+        doc.font(fonts.italic).fontSize(9);
         h += doc.heightOfString(`“${quote}”`, { width: textW }) + 3;
       }
       ensureSpace(doc, h + 12);
@@ -419,7 +500,7 @@ export async function buildSolutionReportPdf(
       const y = doc.y;
       doc.circle(left + 4, y + 5, 3).fill(confidenceColor(s.confidence));
       doc
-        .font("Helvetica-Bold")
+        .font(fonts.bold)
         .fontSize(10.5)
         .fillColor(COLORS.ink)
         .text(formatSignal(s.type), left + 14, y, {
@@ -427,7 +508,7 @@ export async function buildSolutionReportPdf(
           lineBreak: false,
         });
       doc
-        .font("Helvetica")
+        .font(fonts.regular)
         .fontSize(9)
         .fillColor(COLORS.muted)
         .text(`${Math.round(s.confidence * 100)}% confidence`, left, y, {
@@ -438,7 +519,7 @@ export async function buildSolutionReportPdf(
       doc.y = y + 16;
       if (reasoning) {
         doc
-          .font("Helvetica")
+          .font(fonts.regular)
           .fontSize(9.5)
           .fillColor(COLORS.body)
           .text(reasoning, left + 14, doc.y, { width: textW });
@@ -446,7 +527,7 @@ export async function buildSolutionReportPdf(
       }
       if (quote) {
         doc
-          .font("Helvetica-Oblique")
+          .font(fonts.italic)
           .fontSize(9)
           .fillColor(COLORS.faint)
           .text(`“${quote}”`, left + 14, doc.y, { width: textW });
@@ -456,26 +537,36 @@ export async function buildSolutionReportPdf(
   }
 
   // ---- Solution (centerpiece) ----
-  sectionHeading(doc, "Solution");
+  sectionHeading(doc, "Solution", fonts.bold);
   const sv = input.solution.salvageable;
+
+  // Prominent, color-coded verdict banner.
+  const bannerH = 50;
+  ensureSpace(doc, bannerH + 24);
+  const by = doc.y;
+  doc.roundedRect(left, by, width, bannerH, 8).fill(salvageableTint(sv));
+  doc.roundedRect(left + 12, by + 11, 4, bannerH - 22, 2).fill(salvageableColor(sv));
   doc
-    .font("Helvetica")
-    .fontSize(9)
+    .font(fonts.regular)
+    .fontSize(8.5)
     .fillColor(COLORS.muted)
-    .text("Can this deal be saved?", left, doc.y, { lineBreak: false });
-  doc.y += 15;
-  const pillLabel = salvageableLabel(sv);
-  doc.font("Helvetica-Bold").fontSize(9.5);
-  const pillW = doc.widthOfString(pillLabel) + 22;
-  const pillY = doc.y;
-  doc.roundedRect(left, pillY, pillW, 20, 10).fill(salvageableColor(sv));
+    .text("Can this deal be saved?", left + 26, by + 12, {
+      width: width - 40,
+      lineBreak: false,
+    });
   doc
-    .fillColor(COLORS.white)
-    .text(pillLabel, left + 11, pillY + 6, { lineBreak: false });
-  doc.y = pillY + 28;
+    .font(fonts.bold)
+    .fontSize(17)
+    .fillColor(salvageableColor(sv))
+    .text(salvageableLabel(sv), left + 26, by + 24, {
+      width: width - 40,
+      lineBreak: false,
+    });
+  doc.y = by + bannerH + 14;
+
   if (input.solution.reasoning) {
     doc
-      .font("Helvetica")
+      .font(fonts.regular)
       .fontSize(10.5)
       .fillColor(COLORS.body)
       .text(input.solution.reasoning, left, doc.y, { width, lineGap: 1 });
@@ -485,7 +576,7 @@ export async function buildSolutionReportPdf(
   const recs = input.solution.recommendations;
   if (recs.length === 0) {
     doc
-      .font("Helvetica")
+      .font(fonts.regular)
       .fontSize(10.5)
       .fillColor(COLORS.success)
       .text("No rescue actions needed — this deal looks healthy.", left, doc.y, {
@@ -498,19 +589,19 @@ export async function buildSolutionReportPdf(
       // Measure the whole card so chip + body + next step + evidence stay
       // together on one page.
       let h = 22;
-      doc.font("Helvetica").fontSize(10.5);
+      doc.font(fonts.regular).fontSize(10.5);
       h += doc.heightOfString(rec.recommendation, { width }) + 5;
-      doc.font("Helvetica-Bold").fontSize(9.5);
+      doc.font(fonts.bold).fontSize(9.5);
       h += doc.heightOfString(`Next step:  ${rec.nextStep}`, { width }) + 5;
       if (evidence) {
-        doc.font("Helvetica-Oblique").fontSize(9);
+        doc.font(fonts.italic).fontSize(9);
         h += doc.heightOfString(`“${evidence}”`, { width }) + 5;
       }
       ensureSpace(doc, h + 14);
 
       // Signal chip (mixed case, light-violet accent)
       const chip = formatSignal(rec.signal);
-      doc.font("Helvetica-Bold").fontSize(8.5);
+      doc.font(fonts.bold).fontSize(8.5);
       const chipW = doc.widthOfString(chip) + 16;
       const chipY = doc.y;
       doc.roundedRect(left, chipY, chipW, 16, 8).fill(COLORS.violetSoft);
@@ -521,7 +612,7 @@ export async function buildSolutionReportPdf(
 
       // Recommendation
       doc
-        .font("Helvetica")
+        .font(fonts.regular)
         .fontSize(10.5)
         .fillColor(COLORS.ink)
         .text(rec.recommendation, left, doc.y, { width, lineGap: 1 });
@@ -529,17 +620,17 @@ export async function buildSolutionReportPdf(
 
       // Next step (clearly set off)
       doc
-        .font("Helvetica-Bold")
+        .font(fonts.bold)
         .fontSize(9.5)
         .fillColor(COLORS.violet)
         .text("Next step:  ", left, doc.y, { continued: true });
-      doc.font("Helvetica").fillColor(COLORS.ink).text(rec.nextStep, { lineGap: 1 });
+      doc.font(fonts.regular).fillColor(COLORS.ink).text(rec.nextStep, { lineGap: 1 });
 
       // Evidence quote (anchors the recommendation)
       if (evidence) {
         doc.moveDown(0.25);
         doc
-          .font("Helvetica-Oblique")
+          .font(fonts.italic)
           .fontSize(9)
           .fillColor(COLORS.faint)
           .text(`“${evidence}”`, left, doc.y, { width });
@@ -557,7 +648,7 @@ export async function buildSolutionReportPdf(
     doc.page.margins.bottom = 0;
     const fy = doc.page.height - 34;
     doc
-      .font("Helvetica")
+      .font(fonts.regular)
       .fontSize(8)
       .fillColor(COLORS.faint)
       .text(`Findr · Deal Solution Report · ${input.solution.model}`, left, fy, {
