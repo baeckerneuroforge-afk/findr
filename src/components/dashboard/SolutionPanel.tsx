@@ -201,21 +201,32 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
             </p>
           )}
         </div>
-        <Button
-          variant={report ? "secondary" : "primary"}
-          onClick={handleGenerate}
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <Spinner /> Generating…
-            </>
-          ) : report ? (
-            "Regenerate"
-          ) : (
-            "Generate recommendations"
+        <div className="flex items-center gap-2">
+          {report && (
+            <a
+              href={`/api/solution/${dealId}/pdf`}
+              download
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-white px-3 text-body-strong font-medium text-neutral-900 transition-colors duration-150 hover:border-neutral-300 hover:bg-neutral-50"
+            >
+              Export PDF
+            </a>
           )}
-        </Button>
+          <Button
+            variant={report ? "secondary" : "primary"}
+            onClick={handleGenerate}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Spinner /> Generating…
+              </>
+            ) : report ? (
+              "Regenerate"
+            ) : (
+              "Generate recommendations"
+            )}
+          </Button>
+        </div>
       </div>
 
       {loading && (
