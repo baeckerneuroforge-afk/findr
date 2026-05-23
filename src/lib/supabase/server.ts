@@ -5,6 +5,13 @@ import { auth } from "@clerk/nextjs/server";
 import type { Database } from "@/types/database";
 
 /**
+ * The service-role admin client lives in `./admin` (Next/Clerk-free, so seed
+ * scripts can import it under plain tsx). Re-exported here so existing callers
+ * importing it from `@/lib/supabase/server` keep working unchanged.
+ */
+export { createAdminSupabaseClient } from "./admin";
+
+/**
  * Server-side Supabase client authenticated via Clerk's session token.
  * Use in Server Components, Route Handlers, and Server Actions for
  * operations that should respect the current user's RLS policies.
@@ -18,31 +25,6 @@ export async function createServerSupabaseClient() {
     {
       async accessToken() {
         return (await getToken()) ?? null;
-      },
-    },
-  );
-}
-
-/**
- * Admin Supabase client using the service role key.
- * Bypasses RLS — only use for trusted server-side operations
- * (cron jobs, webhooks, admin tasks). NEVER expose to the client.
- */
-export function createAdminSupabaseClient() {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceRoleKey) {
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY is not set. Required for admin operations.",
-    );
-  }
-
-  return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
       },
     },
   );

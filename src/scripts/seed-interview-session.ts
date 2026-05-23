@@ -6,14 +6,22 @@
  * SUPABASE_* and ANTHROPIC_API_KEY. The session's opening question is generated
  * by Opus, so this makes one Claude call (~$0.02).
  *
+ * Imports are kept Next-free (admin Supabase client, not the Clerk-backed one)
+ * so nothing pulls in `next/navigation`. The --conditions=react-server flag is
+ * still required because the chain uses `server-only` modules (no-op under that
+ * condition, throws otherwise).
+ *
  * Run (foreground):
  *   env -u ANTHROPIC_API_KEY \
  *     pnpm exec tsx --conditions=react-server src/scripts/seed-interview-session.ts
  */
 
 import { config } from "dotenv";
+
 import { DEV_ORG_ID } from "@/lib/auth/dev-org";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { InterviewInput } from "@/lib/voice-agent/interviewer";
+import { createInterviewSession } from "@/lib/voice-agent/session-service";
 
 async function main(): Promise<void> {
   config({ path: ".env.local" });
@@ -23,25 +31,6 @@ async function main(): Promise<void> {
       "ANTHROPIC_API_KEY not set. Run with: env -u ANTHROPIC_API_KEY pnpm exec tsx --conditions=react-server src/scripts/seed-interview-session.ts",
     );
     process.exit(1);
-  }
-
-  let createAdminSupabaseClient: typeof import("@/lib/supabase/server").createAdminSupabaseClient;
-  let createInterviewSession: typeof import("@/lib/voice-agent/session-service").createInterviewSession;
-  try {
-    ({ createAdminSupabaseClient } = await import("@/lib/supabase/server"));
-    ({ createInterviewSession } = await import(
-      "@/lib/voice-agent/session-service"
-    ));
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (/Client Component|server-only/i.test(msg)) {
-      console.error(
-        "\nThis script imports server-only modules. Re-run with the react-server condition:\n" +
-          "  env -u ANTHROPIC_API_KEY pnpm exec tsx --conditions=react-server src/scripts/seed-interview-session.ts\n",
-      );
-      process.exit(1);
-    }
-    throw err;
   }
 
   // org_id must reference a real organizations row (FK). Prefer the first org;
