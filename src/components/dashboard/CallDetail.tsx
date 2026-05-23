@@ -24,6 +24,7 @@ interface CallDetailProps {
     call_type: string | null;
     duration_seconds: number | null;
     recorded_at: string | null;
+    transcript: string | null;
     transcript_summary: string | null;
     call_speakers: Speaker[];
     transcript_segments: Segment[];
@@ -55,6 +56,13 @@ function formatTime(seconds: number): string {
 
 export function CallDetail({ call }: CallDetailProps) {
   const [filter, setFilter] = useState<"all" | "signals">("all");
+  const [showTranscript, setShowTranscript] = useState(false);
+
+  // Gong/demo calls carry structured transcript_segments; manually-imported
+  // calls carry only the plain-text `transcript` field (no segments). The
+  // segment view below already shows the full transcript for the former; for the
+  // latter we offer a collapsible plain-text view so the raw source is reachable.
+  const hasSegments = call.transcript_segments.length > 0;
 
   const speakerById = (id: string) =>
     call.call_speakers.find((s) => s.id === id);
@@ -93,90 +101,116 @@ export function CallDetail({ call }: CallDetailProps) {
         </div>
 
         <div className="flex shrink-0 gap-1">
-          <button
-            type="button"
-            onClick={() => setFilter("all")}
-            className={`rounded-md px-2.5 py-1 text-caption font-medium transition-colors ${
-              filter === "all"
-                ? "bg-neutral-100 text-neutral-900"
-                : "text-neutral-500 hover:text-neutral-900"
-            }`}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter("signals")}
-            className={`rounded-md px-2.5 py-1 text-caption font-medium transition-colors ${
-              filter === "signals"
-                ? "bg-danger-50 text-danger-700"
-                : "text-neutral-500 hover:text-neutral-900"
-            }`}
-          >
-            Risk signals
-          </button>
+          {hasSegments ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                className={`rounded-md px-2.5 py-1 text-caption font-medium transition-colors ${
+                  filter === "all"
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-neutral-500 hover:text-neutral-900"
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("signals")}
+                className={`rounded-md px-2.5 py-1 text-caption font-medium transition-colors ${
+                  filter === "signals"
+                    ? "bg-danger-50 text-danger-700"
+                    : "text-neutral-500 hover:text-neutral-900"
+                }`}
+              >
+                Risk signals
+              </button>
+            </>
+          ) : call.transcript ? (
+            <button
+              type="button"
+              onClick={() => setShowTranscript((v) => !v)}
+              className="rounded-md px-2.5 py-1 text-caption font-medium text-primary-700 transition-colors hover:bg-primary-50"
+            >
+              {showTranscript ? "Hide transcript" : "Show transcript"}
+            </button>
+          ) : null}
         </div>
       </div>
 
-      <div className="max-h-[500px] space-y-3 overflow-y-auto pr-2">
-        {segments.length === 0 ? (
-          <p className="py-8 text-center text-small text-neutral-400">
-            No segments matching this filter.
-          </p>
-        ) : (
-          segments.map((segment) => {
-            const speaker = speakerById(segment.speaker_id);
-            const isSalesRep = speaker?.speaker_type === "sales_rep";
-            const hasSignals = segment.signals.length > 0;
+      {hasSegments ? (
+        <div className="max-h-[500px] space-y-3 overflow-y-auto pr-2">
+          {segments.length === 0 ? (
+            <p className="py-8 text-center text-small text-neutral-400">
+              No segments matching this filter.
+            </p>
+          ) : (
+            segments.map((segment) => {
+              const speaker = speakerById(segment.speaker_id);
+              const isSalesRep = speaker?.speaker_type === "sales_rep";
+              const hasSignals = segment.signals.length > 0;
 
-            return (
-              <div
-                key={segment.id}
-                className={`rounded-lg border p-3 ${
-                  hasSignals
-                    ? "border-danger-500/30 bg-danger-50/40"
-                    : "border-neutral-200 bg-white"
-                }`}
-              >
-                <div className="mb-1 flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-caption font-medium ${
-                        isSalesRep ? "text-primary-700" : "text-success-700"
-                      }`}
-                    >
-                      {speaker?.name ?? "Unknown"}
-                    </span>
-                    <span className="text-caption text-neutral-400">
-                      {formatTime(segment.start_seconds)}
-                    </span>
-                  </div>
-                  {hasSignals && (
-                    <div className="flex flex-wrap justify-end gap-1">
-                      {segment.signals.map((sig) => {
-                        const meta = SIGNAL_LABELS[sig];
-                        const tone = meta?.tone ?? "default";
-                        const label = meta?.label ?? sig;
-                        return (
-                          <span
-                            key={sig}
-                            className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${TONE_STYLES[tone]}`}
-                          >
-                            {label}
-                          </span>
-                        );
-                      })}
+              return (
+                <div
+                  key={segment.id}
+                  className={`rounded-lg border p-3 ${
+                    hasSignals
+                      ? "border-danger-500/30 bg-danger-50/40"
+                      : "border-neutral-200 bg-white"
+                  }`}
+                >
+                  <div className="mb-1 flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-caption font-medium ${
+                          isSalesRep ? "text-primary-700" : "text-success-700"
+                        }`}
+                      >
+                        {speaker?.name ?? "Unknown"}
+                      </span>
+                      <span className="text-caption text-neutral-400">
+                        {formatTime(segment.start_seconds)}
+                      </span>
                     </div>
-                  )}
+                    {hasSignals && (
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {segment.signals.map((sig) => {
+                          const meta = SIGNAL_LABELS[sig];
+                          const tone = meta?.tone ?? "default";
+                          const label = meta?.label ?? sig;
+                          return (
+                            <span
+                              key={sig}
+                              className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${TONE_STYLES[tone]}`}
+                            >
+                              {label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-body leading-relaxed text-neutral-700">
+                    {segment.text}
+                  </p>
                 </div>
-                <p className="text-body leading-relaxed text-neutral-700">
-                  {segment.text}
-                </p>
-              </div>
-            );
-          })
-        )}
-      </div>
+              );
+            })
+          )}
+        </div>
+      ) : call.transcript ? (
+        showTranscript && (
+          <div className="max-h-[500px] overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+            <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-700">
+              {call.transcript}
+            </p>
+          </div>
+        )
+      ) : (
+        <p className="py-8 text-center text-small text-neutral-400">
+          No transcript available for this call.
+        </p>
+      )}
     </div>
   );
 }
