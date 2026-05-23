@@ -157,14 +157,40 @@ function checkNextStep(rec: SolutionRecommendation): Check {
   return { ok: false, note: "no clear action verb" };
 }
 
-/** (c) No obvious hallucination: a presented quote must exist in the deal. */
+/** (c) No obvious hallucination: every presented quote fragment must exist in the deal. */
 function checkNoHalluc(rec: SolutionRecommendation, haystack: string): Check {
   const evNorm = normalize(rec.evidence);
   if (evNorm.length < 6) return { ok: true, note: "no evidence quote to verify" };
-  if (haystack.includes(evNorm)) {
-    return { ok: true, note: "evidence verbatim in deal" };
+
+  // The model sometimes stitches two genuine transcript spans together with an
+  // ellipsis ("A ... B" or "A … B"). Verify EACH fragment independently so a
+  // legitimate composite quote isn't flagged as fabrication — only a fragment
+  // that is genuinely absent from the deal is a hallucination signal. Short
+  // splinters (< 10 chars) from the split are ignored as noise.
+  const fragments = evNorm
+    .split(/\s*(?:\.\.\.|…)\s*/)
+    .map((f) => f.trim())
+    .filter((f) => f.length >= 10);
+
+  if (fragments.length === 0) {
+    return { ok: true, note: "no substantial evidence fragment to verify" };
   }
-  return { ok: false, note: "evidence NOT found verbatim — verify for fabrication" };
+
+  const missing = fragments.find((f) => !haystack.includes(f));
+  if (missing) {
+    return {
+      ok: false,
+      note: "evidence fragment NOT found verbatim — verify for fabrication",
+    };
+  }
+
+  return {
+    ok: true,
+    note:
+      fragments.length > 1
+        ? "all evidence fragments found in deal"
+        : "evidence verbatim in deal",
+  };
 }
 
 function flag(c: Check): string {
