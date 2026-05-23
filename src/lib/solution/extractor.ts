@@ -214,14 +214,25 @@ async function callClaude(
         "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble, no explanation."
       : SOLUTION_SYSTEM_PROMPT;
 
-  const response = await client.messages.create({
-    model,
-    max_tokens: 2048,
-    // Note: Opus 4.7 rejects the temperature parameter (400 error). Rely on the
-    // structured prompt + schema validation instead of a temperature setting.
-    system,
-    messages: [{ role: "user", content: userPrompt }],
-  });
+  const response = await client.messages.create(
+    {
+      model,
+      max_tokens: 2048,
+      // Note: Opus 4.7 rejects the temperature parameter (400 error). Rely on the
+      // structured prompt + schema validation instead of a temperature setting.
+      system,
+      messages: [{ role: "user", content: userPrompt }],
+    },
+    {
+      // Per-request overrides — the shared client (src/lib/anthropic/client.ts)
+      // keeps its 30s timeout / 4 retries for Risk and Loss. Opus solution
+      // generation (several grounded recommendations from a full transcript)
+      // routinely runs past 30s, so give THIS call 120s and fail fast with a
+      // single retry instead of retrying a slow call four times.
+      timeout: 120_000,
+      maxRetries: 1,
+    },
+  );
 
   const textBlock = response.content.find((block) => block.type === "text");
   if (!textBlock || textBlock.type !== "text") {

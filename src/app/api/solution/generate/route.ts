@@ -37,6 +37,16 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ success: true, report });
   } catch (err) {
+    // Surface the FULL error (including the cause chain) server-side. The
+    // wrapper message ("Claude solution generation failed") hides the real
+    // reason — the underlying error lives in err.cause.
+    console.error(
+      `[solution/generate] generation failed for deal ${parsed.data.dealId}:`,
+      err,
+    );
+    if (err instanceof Error && err.cause !== undefined) {
+      console.error("[solution/generate] underlying cause:", err.cause);
+    }
     if (err instanceof SolutionUnavailableError) {
       return NextResponse.json(
         { error: "Solution generation failed", detail: err.message },
