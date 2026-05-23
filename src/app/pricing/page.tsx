@@ -1,31 +1,24 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/landing-comic/Navbar";
-import { Footer } from "@/components/landing-comic/Footer";
-import { PricingHeader } from "@/components/landing-comic/PricingHeader";
-import { PricingTiers } from "@/components/landing-comic/PricingTiers";
-import { EnterpriseBand } from "@/components/landing-comic/EnterpriseBand";
+import { loadMarketingPage } from "@/lib/marketing/page-source";
+import { MarketingScripts } from "@/components/marketing/MarketingScripts";
 
 export const metadata: Metadata = {
-  title: "Findr — Pricing",
+  title: "Pricing — findr.",
   description:
-    "Land with Sales Intelligence. Add CS Health, Discovery, and Research as your team grows. One platform, one contract — linear cost, compounding value.",
+    "One platform, honest pricing. Starter, Growth, and Scale tiers plus Enterprise — 14-day free trial, no credit card. EU-hosted, GDPR compliant.",
 };
 
 export default function PricingPage() {
+  const { css, html, js } = loadMarketingPage("pricing.html", [
+    ["index.html#", "/#"],
+    ["index.html", "/"],
+  ]);
+
   return (
-    <main className="font-grotesk bg-paper text-ink min-h-screen relative overflow-x-hidden">
-      <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.04] comic-dots" />
-      <div className="relative z-10">
-        <Navbar />
-        <PricingHeader />
-        <section>
-          <div className="max-w-[1180px] mx-auto px-7">
-            <PricingTiers />
-            <EnterpriseBand />
-          </div>
-        </section>
-        <Footer />
-      </div>
-    </main>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: css }} />
+      <div dangerouslySetInnerHTML={{ __html: html }} />
+      <MarketingScripts js={js} />
+    </>
   );
 }

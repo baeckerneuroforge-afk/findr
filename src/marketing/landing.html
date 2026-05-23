@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>findr. — Conversation Intelligence for B2B Sales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --purple: #5B2FD4;
+    --purple-soft: #F3EFFE;
+    --purple-line: #D9CFFA;
+    --coral: #FF6B5B;
+    --amber: #F5A524;
+    --green: #2E9E6B;
+    --ink: #0E0A1F;
+    --muted: #6B6680;
+    --line: #E8E4F2;
+    --bg: #FFFFFF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.55;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ——— Wild flowing SVG lines background ——— */
+  .flow-lines {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .flow-lines svg { width: 100%; height: 100%; }
+  .flow-line {
+    fill: none; stroke-width: 1.2; stroke-linecap: round; opacity: 0.55;
+  }
+  .flow-line.purple { stroke: var(--purple); }
+  .flow-line.coral  { stroke: var(--coral); opacity: 0.6; }
+  .flow-line.dashed { stroke-dasharray: 4 8; }
+
+  /* ——— Structural grid rails ——— */
+  .rails {
+    position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  }
+  .rail {
+    position: absolute; top: 0; bottom: 0; width: 1px;
+    background: var(--purple-line); opacity: 0.35;
+  }
+  .rail.left  { left: 6vw; }
+  .rail.right { right: 6vw; }
+  .rail.center { left: 50%; background: var(--purple-line); opacity: 0.18; }
+
+  /* ——— Layout ——— */
+  main { position: relative; z-index: 2; }
+  .container {
+    max-width: 1200px; margin: 0 auto; padding: 0 28px;
+  }
+
+  /* ——— Nav ——— */
+  nav.top {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.top .inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 28px; max-width: 1400px; margin: 0 auto;
+  }
+  .logo {
+    font-weight: 800; font-size: 22px; letter-spacing: -0.02em;
+    color: var(--ink); display: flex; align-items: center;
+  }
+  .logo .dot {
+    display: inline-block; width: 4px; height: 4px; border-radius: 50%;
+    background: #B00; margin-left: 2px; vertical-align: middle;
+  }
+  nav.top ul {
+    display: flex; gap: 34px; list-style: none; font-size: 14px; color: var(--muted);
+  }
+  nav.top ul a:hover { color: var(--purple); }
+  .nav-cta {
+    background: var(--ink); color: white; padding: 10px 18px;
+    border-radius: 999px; font-size: 13px; font-weight: 500;
+  }
+
+  /* ——— Buttons ——— */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 24px; border-radius: 999px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease;
+    border: 1px solid transparent; font-family: inherit;
+  }
+  .btn-primary { background: var(--purple); color: white; }
+  .btn-primary:hover { background: #4A22B0; transform: translateY(-1px); }
+  .btn-secondary { background: white; color: var(--ink); border-color: var(--ink); }
+  .btn-secondary:hover { background: var(--ink); color: white; }
+
+  /* ——— Labels ——— */
+  .label {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--purple); margin-bottom: 20px; position: relative; padding-left: 22px;
+  }
+  .label::before {
+    content: ''; position: absolute; left: 0; top: 50%;
+    width: 14px; height: 1px; background: var(--purple);
+  }
+
+  /* ——— Sections ——— */
+  section { padding: 140px 0; position: relative; }
+
+  /* ——— Hero ——— */
+  .hero { padding: 120px 0 140px; position: relative; }
+  .hero-grid {
+    display: grid; grid-template-columns: 1.2fr 1fr; gap: 80px; align-items: center;
+  }
+  .hero h1 {
+    font-size: clamp(40px, 5.2vw, 68px); line-height: 1.04;
+    letter-spacing: -0.03em; font-weight: 700; margin-bottom: 28px;
+  }
+  .hero h1 .accent { color: var(--purple); }
+  .hero p.sub {
+    font-size: 18px; color: var(--muted); max-width: 520px;
+    margin-bottom: 38px; line-height: 1.6;
+  }
+  .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+
+  /* Hero right — mini transcript card */
+  .hero-card {
+    position: relative; background: white; border: 1px solid var(--line);
+    padding: 28px; border-radius: 4px;
+  }
+  .hero-card::before, .hero-card::after {
+    content: ''; position: absolute; width: 14px; height: 14px;
+    border: 1px solid var(--purple);
+  }
+  .hero-card::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .hero-card::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  .mini-risk {
+    display: flex; align-items: center; gap: 18px;
+    padding-bottom: 20px; border-bottom: 1px dashed var(--line); margin-bottom: 20px;
+  }
+  .risk-ring { width: 64px; height: 64px; position: relative; }
+  .risk-ring svg { transform: rotate(-90deg); }
+  .risk-ring .num {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: var(--purple);
+  }
+  .mini-risk .meta .title { font-weight: 600; font-size: 14px; }
+  .mini-risk .meta .sub { font-size: 12px; color: var(--muted); }
+
+  .mini-line {
+    display: flex; gap: 12px; font-size: 13px;
+    padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .mini-line:last-child { border-bottom: 0; }
+  .mini-line .who {
+    font-weight: 600; flex-shrink: 0; width: 44px;
+    font-size: 11px; color: var(--muted); text-transform: uppercase; padding-top: 2px;
+  }
+  .mini-line .txt { color: #2A2640; }
+  .mini-line .txt .hl {
+    background: linear-gradient(120deg, var(--purple-soft) 0%, var(--purple-soft) 100%);
+    padding: 1px 4px; border-radius: 2px; color: var(--purple); font-weight: 500;
+  }
+
+  /* ——— Reveal animations ——— */
+  .reveal {
+    opacity: 0; transform: translateY(28px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ——— Section header ——— */
+  .sec-head { max-width: 720px; margin-bottom: 80px; }
+  .sec-head h2 {
+    font-size: clamp(32px, 4vw, 52px); line-height: 1.08;
+    letter-spacing: -0.025em; font-weight: 700; margin-bottom: 20px;
+  }
+  .sec-head h2 .accent { color: var(--purple); }
+  .sec-head p { font-size: 17px; color: var(--muted); max-width: 600px; }
+
+  /* ——— LIVE ANALYSIS interactive ——— */
+  .live-wrap {
+    display: grid; grid-template-columns: 1.25fr 1fr; gap: 0;
+    border: 1px solid var(--line); border-radius: 4px;
+    overflow: hidden; position: relative; background: white;
+  }
+  .live-wrap::before, .live-wrap::after {
+    content: ''; position: absolute; width: 20px; height: 20px;
+    border: 1.5px solid var(--purple); z-index: 2;
+  }
+  .live-wrap::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .live-wrap::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  .transcript-pane { padding: 36px; border-right: 1px solid var(--line); }
+  .transcript-pane .pane-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 20px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .transcript-pane .pane-label .rec {
+    color: var(--coral); display: inline-flex; align-items: center; gap: 6px;
+    font-weight: 600;
+  }
+  .transcript-pane .pane-label .rec::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--coral); animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .tx-line {
+    display: grid; grid-template-columns: 56px 1fr; gap: 16px;
+    padding: 10px 0; font-size: 14px; border-bottom: 1px dashed var(--line);
+    transition: background 0.3s ease;
+  }
+  .tx-line:last-child { border-bottom: 0; }
+  .tx-line .who {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; padding-top: 2px;
+  }
+  .tx-line .who.rep { color: var(--purple); }
+  .tx-line .content { color: #2A2640; }
+  .tx-line .content .phrase {
+    background: transparent; padding: 0 2px; border-radius: 2px;
+    transition: background 0.6s ease, color 0.6s ease; cursor: default;
+  }
+  .tx-line .content .phrase.lit {
+    background: var(--purple-soft); color: var(--purple); font-weight: 500;
+  }
+  .tx-line .content .phrase.coral.lit { background: #FFE9E4; color: #C9442F; }
+  .tx-line .content .phrase.amber.lit { background: #FEF2D9; color: #A56B00; }
+  .tx-line .content .phrase.green.lit { background: #DCF3E6; color: #1F6F47; }
+
+  .analyze-btn {
+    margin-top: 28px; background: var(--purple); color: white; border: 0;
+    padding: 14px 26px; border-radius: 999px; font-size: 14px; font-weight: 500;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+    font-family: inherit; transition: background 0.2s;
+  }
+  .analyze-btn:hover { background: #4A22B0; }
+  .analyze-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .analyze-btn .icon {
+    width: 16px; height: 16px; border: 2px solid white;
+    border-top-color: transparent; border-radius: 50%;
+    display: none; animation: spin 0.8s linear infinite;
+  }
+  .analyze-btn.loading .icon { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Right analysis pane */
+  .analysis-pane { padding: 36px; background: #FAFAFE; position: relative; }
+  .analysis-pane .pane-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 24px;
+  }
+  .risk-score-big {
+    display: flex; align-items: center; gap: 20px; margin-bottom: 28px;
+    padding-bottom: 24px; border-bottom: 1px solid var(--line);
+  }
+  .score-ring { width: 92px; height: 92px; position: relative; flex-shrink: 0; }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-ring circle { fill: none; stroke-width: 6; }
+  .score-ring .bg { stroke: var(--line); }
+  .score-ring .fg {
+    stroke: var(--purple); stroke-linecap: round;
+    transition: stroke-dashoffset 1.4s ease;
+  }
+  .score-ring .num {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700; color: var(--ink);
+  }
+  .score-meta .lbl {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .score-meta .verdict { font-size: 18px; font-weight: 600; color: var(--ink); }
+  .score-meta .verdict.high { color: var(--coral); }
+
+  .signals-label {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 12px;
+  }
+  .signals { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+  .signal {
+    background: white; border: 1px solid var(--line); border-left: 3px solid var(--purple);
+    padding: 12px 14px; opacity: 0; transform: translateX(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .signal.show { opacity: 1; transform: translateX(0); }
+  .signal .head {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+  }
+  .signal .head .name { font-size: 13px; font-weight: 600; }
+  .signal .head .sev {
+    font-size: 10px; padding: 2px 8px; border-radius: 999px;
+    font-weight: 600; letter-spacing: 0.05em;
+  }
+  .sev.high { background: #FFE9E4; color: #C9442F; }
+  .sev.med  { background: #FEF2D9; color: #A56B00; }
+  .sev.low  { background: #DCF3E6; color: #1F6F47; }
+  .signal .quote {
+    font-size: 12px; color: var(--muted); font-style: italic;
+    padding-left: 10px; border-left: 2px solid var(--purple-soft);
+  }
+
+  .insight-box {
+    background: var(--ink); color: white; padding: 18px; border-radius: 4px;
+    font-size: 13px; opacity: 0; transition: opacity 0.6s ease;
+  }
+  .insight-box.show { opacity: 1; }
+  .insight-box .lbl {
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #9991B0; margin-bottom: 10px;
+  }
+  .insight-box .row {
+    display: grid; grid-template-columns: 60px 1fr; gap: 12px; padding: 6px 0;
+  }
+  .insight-box .row .k {
+    color: #9991B0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .insight-box .row .v.old { color: #C7C0DB; text-decoration: line-through; }
+  .insight-box .row .v.new { color: white; font-weight: 500; }
+
+  .reset-btn {
+    margin-top: 16px; background: transparent; border: 1px solid var(--line);
+    color: var(--muted); padding: 10px 18px; border-radius: 999px;
+    font-size: 12px; cursor: pointer; font-family: inherit; display: none;
+  }
+  .reset-btn.show { display: inline-block; }
+  .reset-btn:hover { color: var(--ink); border-color: var(--ink); }
+
+  /* ——— NEW: How it works — flowing 5-step journey ——— */
+  .journey-wrap {
+    position: relative;
+    padding: 40px 0 80px;
+  }
+  .journey-path {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--line);
+    transform: translateY(-50%);
+    z-index: 1;
+  }
+  .journey-path::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    width: 0;
+    background: var(--purple);
+    transition: width 1.2s ease;
+  }
+  .journey-path.draw::before { width: 100%; }
+  
+  .journey-steps {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    position: relative;
+    z-index: 2;
+  }
+  .journey-step {
+    padding: 0 16px;
+    text-align: center;
+    position: relative;
+  }
+  .journey-node {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    position: relative;
+    z-index: 3;
+    transition: border-color 0.4s ease, background 0.4s ease, transform 0.4s ease;
+  }
+  .journey-step.active .journey-node {
+    border-color: var(--purple);
+    background: var(--purple);
+    color: white;
+    transform: scale(1.1);
+  }
+  .journey-step.active .journey-node::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 2px solid var(--purple);
+    border-radius: 50%;
+    animation: nodePulse 2s infinite;
+    opacity: 0.5;
+  }
+  @keyframes nodePulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.3); opacity: 0; }
+  }
+  .journey-node .num {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--purple);
+  }
+  .journey-step.active .journey-node .num { color: white; }
+  
+  .journey-step h3 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .journey-step p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .journey-step .step-tag {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+    width: fit-content;
+  }
+  .step-tag.live { background: #DCF3E6; color: #1F6F47; }
+  .step-tag.soon { background: #E8E4F2; color: var(--muted); }
+  
+  /* Phase labels for narrative arc */
+  .journey-phase {
+    position: absolute;
+    top: -30px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .journey-step.active .journey-phase { opacity: 1; }
+  .journey-step:nth-child(1) .journey-phase,
+  .journey-step:nth-child(2) .journey-phase,
+  .journey-step:nth-child(3) .journey-phase {
+    color: var(--purple);
+  }
+  .journey-step:nth-child(4) .journey-phase {
+    color: var(--coral);
+    font-weight: 700;
+  }
+  .journey-step:nth-child(5) .journey-phase {
+    color: var(--muted);
+  }
+
+  /* ——— NEW: Solution Layer Section ——— */
+  .solution-layer {
+    background: var(--purple-soft);
+    position: relative;
+    overflow: hidden;
+  }
+  .solution-layer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at top right, rgba(91,47,212,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .solution-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+  .solution-copy h3 {
+    font-size: clamp(28px, 3.6vw, 42px);
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 18px;
+  }
+  .solution-copy h3 .accent { color: var(--purple); }
+  .solution-copy p {
+    color: var(--muted);
+    font-size: 16px;
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  .solution-copy .key-diff {
+    background: white;
+    border: 1px solid var(--line);
+    padding: 18px;
+    border-radius: 4px;
+    margin: 24px 0;
+    font-size: 14px;
+    color: #2A2640;
+    position: relative;
+  }
+  .solution-copy .key-diff::before, .solution-copy .key-diff::after {
+    content: ''; position: absolute; width: 10px; height: 10px; border: 1px solid var(--purple);
+  }
+  .solution-copy .key-diff::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .solution-copy .key-diff::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .solution-copy .key-diff strong { color: var(--purple); font-weight: 600; }
+
+  .solution-example {
+    background: white;
+    border: 1px solid var(--line);
+    padding: 28px;
+    border-radius: 4px;
+    position: relative;
+  }
+  .solution-example::before, .solution-example::after {
+    content: ''; position: absolute; width: 14px; height: 14px; border: 1px solid var(--purple);
+  }
+  .solution-example::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .solution-example::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  .solution-example .signal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #FFE9E4;
+    color: #C9442F;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 18px;
+  }
+  .solution-example .signal-badge::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  }
+
+  .solution-example .item {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px dashed var(--line);
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .solution-example .item.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .solution-example .item:last-child {
+    margin-bottom: 0; padding-bottom: 0; border-bottom: 0;
+  }
+  .solution-example .item-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .solution-example .item-value {
+    font-size: 14px;
+    color: #2A2640;
+    line-height: 1.5;
+  }
+  .solution-example .item-value.quote {
+    font-style: italic;
+    color: var(--ink);
+    padding-left: 14px;
+    border-left: 2px solid var(--purple-soft);
+  }
+
+  .pdf-export {
+    margin-top: 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .pdf-icon {
+    width: 48px; height: 48px;
+    border-radius: 4px;
+    background: var(--ink);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .pdf-icon::after { content: 'PDF'; }
+  .pdf-icon.generating::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border: 2px solid var(--purple);
+    border-radius: 6px;
+    animation: pdfPulse 1.2s ease-in-out;
+  }
+  @keyframes pdfPulse {
+    0%, 100% { opacity: 0; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+  .pdf-icon.check::after { content: '✓'; font-size: 20px; }
+  .pdf-copy {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .pdf-copy strong { color: var(--ink); font-weight: 500; }
+
+  .pdf-btn {
+    margin-top: 14px;
+    background: var(--ink);
+    color: white;
+    border: 0;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+  .pdf-btn:hover { background: #1A1530; transform: translateY(-1px); }
+  .pdf-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  
+  .solution-complete {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--green);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .solution-complete.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .solution-complete::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  /* ——— Closing the loop ——— */
+  .loop-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+  }
+  .coming-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--purple-soft); color: var(--purple);
+    padding: 6px 12px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 20px;
+  }
+  .loop-copy h3 {
+    font-size: 36px; letter-spacing: -0.02em; font-weight: 700;
+    line-height: 1.15; margin-bottom: 18px;
+  }
+  .loop-copy h3 .accent { color: var(--purple); }
+  .loop-copy p {
+    color: var(--muted); font-size: 16px; margin-bottom: 24px;
+  }
+  .loop-copy ul { list-style: none; }
+  .loop-copy ul li {
+    padding: 8px 0; font-size: 14px; color: #2A2640;
+    padding-left: 28px; position: relative;
+  }
+  .loop-copy ul li::before {
+    content: ''; position: absolute; left: 0; top: 14px;
+    width: 14px; height: 1.5px; background: var(--purple);
+  }
+
+  /* Voice animation */
+  .voice-card {
+    background: white; border: 1px solid var(--line); padding: 32px; position: relative;
+  }
+  .voice-card::before, .voice-card::after {
+    content: ''; position: absolute; width: 14px; height: 14px; border: 1px solid var(--purple);
+  }
+  .voice-card::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .voice-card::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  .dialer {
+    display: flex; flex-direction: column; align-items: center;
+    padding-bottom: 24px; border-bottom: 1px dashed var(--line); margin-bottom: 24px;
+  }
+  .dial-ring {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--purple-soft); display: flex; align-items: center; justify-content: center;
+    position: relative; margin-bottom: 12px;
+  }
+  .dial-ring::before, .dial-ring::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    border: 1.5px solid var(--purple); animation: ringPulse 2s infinite;
+  }
+  .dial-ring::after { animation-delay: 1s; }
+  @keyframes ringPulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  .dial-ring .phone { font-size: 28px; color: var(--purple); }
+  .dial-status {
+    font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  .dial-status .dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green); margin-right: 6px; animation: pulse 1.4s infinite;
+  }
+
+  .voice-thread { display: flex; flex-direction: column; gap: 14px; }
+  .v-msg {
+    display: grid; grid-template-columns: 40px 1fr; gap: 12px;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .v-msg.show { opacity: 1; transform: translateY(0); }
+  .v-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .v-avatar.ai { background: var(--purple); }
+  .v-avatar.human { background: var(--coral); }
+  .v-bubble {
+    background: #F7F5FC; padding: 12px 16px; border-radius: 4px;
+    font-size: 13px; color: #2A2640; position: relative;
+  }
+  .v-msg.human .v-bubble { background: #FFF6F4; }
+  .v-role {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 4px; font-weight: 600;
+  }
+
+  /* ——— Integrations — FIXED: radial layout ——— */
+  .integ-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+
+  .brain-network {
+    position: relative;
+    aspect-ratio: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 480px;
+  }
+  .brain-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: var(--purple);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    text-align: center;
+    box-shadow: 0 0 0 4px white, 0 0 0 5px var(--purple-line);
+  }
+  .brain-center .t1 {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+  .brain-center .t2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .brain-center .t3 {
+    font-size: 10px;
+    opacity: 0.9;
+    margin-top: 2px;
+  }
+
+  .node {
+    position: absolute;
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: white;
+    border: 1.5px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink);
+    box-shadow: 0 4px 20px rgba(14, 10, 31, 0.08);
+  }
+  .node .name {
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .node .badge {
+    margin-top: 4px;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+  .badge.live { background: var(--green); color: white; }
+  .badge.soon { background: #E8E4F2; color: var(--muted); }
+
+  /* Radial positions - orbiting around center, NOT overlapping */
+  .node.n1 { top: 8%; left: 50%; transform: translateX(-50%); }      /* Top: Gong */
+  .node.n2 { top: 28%; right: 8%; transform: translateY(-50%); }      /* Right-top: HubSpot */
+  .node.n3 { bottom: 22%; right: 14%; transform: translateY(50%); }   /* Right-bottom: Slack */
+  .node.n4 { bottom: 22%; left: 14%; transform: translateY(50%); }    /* Left-bottom: Salesforce */
+  .node.n5 { top: 28%; left: 8%; transform: translateY(-50%); }       /* Left-top: Zoom */
+
+  .brain-svg {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .conn-line {
+    stroke: var(--purple);
+    stroke-width: 1.5;
+    fill: none;
+    stroke-dasharray: 4 4;
+    opacity: 0.6;
+  }
+  .pulse-dot {
+    fill: var(--purple);
+  }
+
+  /* ——— Platform / 4 products ——— */
+  .modules {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid var(--line);
+  }
+  .module {
+    padding: 36px 28px; border-right: 1px solid var(--line); position: relative;
+  }
+  .module:last-child { border-right: 0; }
+  .module .idx {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    color: var(--purple); margin-bottom: 14px;
+  }
+  .module h4 {
+    font-size: 18px; font-weight: 600; margin-bottom: 10px; letter-spacing: -0.01em;
+  }
+  .module p {
+    font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.6;
+  }
+  .module .status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .status.live { color: var(--green); }
+  .status.soon { color: var(--muted); }
+  .status.live::before, .status.soon::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+  }
+  .status.live::before { background: var(--green); }
+  .status.soon::before { background: var(--muted); }
+
+  .module-divider {
+    position: absolute; right: -1px; top: 30%; bottom: 30%;
+    width: 1px; background: repeating-linear-gradient(
+      to bottom, var(--purple) 0 4px, transparent 4px 8px
+    ); opacity: 0.4;
+  }
+  .module:last-child .module-divider { display: none; }
+
+  /* ——— Why Findr stats ——— */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid var(--line);
+  }
+  .stat {
+    padding: 48px 32px; border-right: 1px solid var(--line); position: relative; text-align: center;
+  }
+  .stat:last-child { border-right: 0; }
+  .stat::before, .stat::after {
+    content: ''; position: absolute; width: 14px; height: 14px; border: 1px solid var(--purple);
+  }
+  .stat::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .stat::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  .stat .big {
+    font-size: 52px; font-weight: 700; letter-spacing: -0.03em;
+    color: var(--purple); line-height: 1; margin-bottom: 12px;
+  }
+  .stat .big .unit { font-size: 24px; }
+  .stat .lbl { font-size: 13px; color: var(--muted); }
+
+  /* ——— Final CTA ——— */
+  .final-cta { text-align: center; padding: 160px 0; position: relative; }
+  .final-cta h2 {
+    font-size: clamp(36px, 5vw, 64px); letter-spacing: -0.03em;
+    font-weight: 700; line-height: 1.08; max-width: 820px; margin: 0 auto 30px;
+  }
+  .final-cta h2 .accent { color: var(--purple); }
+  .final-cta p { color: var(--muted); font-size: 17px; margin-bottom: 36px; }
+
+  /* ——— Footer ——— */
+  footer { border-top: 1px solid var(--line); padding: 40px 0; }
+  .foot-inner {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 20px; font-size: 13px; color: var(--muted);
+  }
+  .foot-inner .compliance { display: flex; gap: 24px; flex-wrap: wrap; }
+  .foot-inner .compliance span {
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .foot-inner .compliance span::before {
+    content: ''; width: 4px; height: 4px; background: var(--purple); border-radius: 50%;
+  }
+
+  /* ——— Responsive ——— */
+  @media (max-width: 1100px) {
+    .journey-steps { grid-template-columns: repeat(3, 1fr); }
+    .journey-step:nth-child(4),
+    .journey-step:nth-child(5) {
+      grid-column: span 3;
+      padding-top: 40px;
+    }
+    .journey-path { display: none; }
+  }
+  @media (max-width: 960px) {
+    nav.top ul { display: none; }
+    .hero-grid { grid-template-columns: 1fr; gap: 60px; }
+    .live-wrap { grid-template-columns: 1fr; }
+    .transcript-pane { border-right: 0; border-bottom: 1px solid var(--line); }
+    .loop-grid, .integ-layout, .solution-grid { grid-template-columns: 1fr; gap: 60px; }
+    .modules, .stats { grid-template-columns: 1fr 1fr; }
+    .module:nth-child(2), .stat:nth-child(2) { border-right: 0; }
+    .module, .stat { border-bottom: 1px solid var(--line); }
+    section { padding: 90px 0; }
+    
+    /* Mobile: vertical journey */
+    .journey-wrap { padding: 20px 0 40px; }
+    .journey-path {
+      top: 0; bottom: 0; left: 50%; width: 2px; height: auto;
+      transform: translateX(-50%);
+    }
+    .journey-path::before {
+      width: 100%; height: 0;
+      transition: height 1.2s ease;
+    }
+    .journey-path.draw::before { height: 100%; }
+    .journey-steps {
+      grid-template-columns: 1fr;
+      gap: 60px;
+      padding-left: 40px;
+    }
+    .journey-step {
+      text-align: left;
+      padding: 0;
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    .journey-node { margin: 0; }
+    .journey-phase {
+      position: static;
+      margin-bottom: 8px;
+      text-align: left;
+    }
+  }
+  @media (max-width: 600px) {
+    .modules, .stats { grid-template-columns: 1fr; }
+    .module, .stat { border-right: 0 !important; }
+    .journey-steps { padding-left: 30px; }
+    .journey-step { grid-template-columns: 40px 1fr; gap: 16px; }
+    .journey-node { width: 40px; height: 40px; }
+    .journey-node .num { font-size: 14px; }
+    .journey-step h3 { font-size: 15px; }
+    .journey-step p { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Wild flowing background lines -->
+<div class="flow-lines">
+  <svg viewBox="0 0 1440 2400" preserveAspectRatio="xMidYMid slice">
+    <path class="flow-line purple" d="M -50 200 Q 300 50 500 300 T 1100 400 T 1500 250"/>
+    <path class="flow-line purple dashed" d="M -50 900 Q 400 700 700 950 T 1400 800"/>
+    <path class="flow-line coral" d="M 1500 1200 Q 1100 1050 900 1300 T 300 1400 T -50 1250"/>
+    <path class="flow-line purple" d="M -50 1700 Q 300 1500 600 1750 T 1300 1600 T 1500 1800"/>
+    <path class="flow-line purple dashed" d="M 1500 2100 Q 1000 2300 600 2050 T -50 2200"/>
+  </svg>
+</div>
+
+<!-- Structural grid rails -->
+<div class="rails">
+  <div class="rail left"></div>
+  <div class="rail right"></div>
+  <div class="rail center"></div>
+</div>
+
+<!-- Nav -->
+<nav class="top">
+  <div class="inner">
+    <a href="#" class="logo">findr<span class="dot"></span></a>
+    <ul>
+      <li><a href="#live">Live analysis</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#platform">Platform</a></li>
+      <li><a href="#integrations">Integrations</a></li>
+      <li><a href="pricing.html">Pricing</a></li>
+    </ul>
+    <a href="#cta" class="nav-cta">Book a demo</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="reveal">
+        <span class="label">Conversation intelligence</span>
+        <h1>Your CRM shows <span class="accent">what</span> happened.<br/>findr. shows <span class="accent">why.</span></h1>
+        <p class="sub">Sales teams log deals as "lost on pricing" — but the real reason is hiding in the calls. findr. reads every conversation, scores deal risk in real time, and surfaces the signals your CRM misses.</p>
+        <div class="hero-ctas">
+          <a href="#cta" class="btn btn-primary">Book a demo →</a>
+          <a href="#live" class="btn btn-secondary">Try the live analysis</a>
+        </div>
+      </div>
+      <div class="hero-card reveal">
+        <div class="mini-risk">
+          <div class="risk-ring">
+            <svg width="64" height="64">
+              <circle cx="32" cy="32" r="28" fill="none" stroke="#E8E4F2" stroke-width="4"/>
+              <circle cx="32" cy="32" r="28" fill="none" stroke="#5B2FD4" stroke-width="4"
+                      stroke-dasharray="176" stroke-dashoffset="50" stroke-linecap="round"/>
+            </svg>
+            <div class="num">72</div>
+          </div>
+          <div class="meta">
+            <div class="title">Deal risk score</div>
+            <div class="sub">Acme Corp · Q2 renewal</div>
+          </div>
+        </div>
+        <div class="mini-line">
+          <div class="who rep">Rep</div>
+          <div class="txt">Who on your side will need to sign off on this?</div>
+        </div>
+        <div class="mini-line">
+          <div class="who">Prospect</div>
+          <div class="txt"><span class="hl">I'd have to loop in Markus, our CFO, but he's been swamped.</span></div>
+        </div>
+        <div class="mini-line">
+          <div class="who rep">Rep</div>
+          <div class="txt">Happy to work around his schedule.</div>
+        </div>
+        <div class="mini-line">
+          <div class="who">Prospect</div>
+          <div class="txt"><span class="hl">Yeah, let's just send the proposal and see.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE ANALYSIS -->
+<section id="live">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="label">Try it yourself</span>
+      <h2>See a real deal <span class="accent">fall apart</span> in 30 seconds.</h2>
+      <p>This is an actual sales call transcript. Hit analyze and watch findr. catch the signals a human reviewer missed.</p>
+    </div>
+
+    <div class="live-wrap reveal">
+      <!-- Transcript pane -->
+      <div class="transcript-pane">
+        <div class="pane-label">
+          <span>Transcript · Acme Corp × Northwind · 34:12</span>
+          <span class="rec">Live</span>
+        </div>
+
+        <div class="tx-line">
+          <div class="who rep">Rep</div>
+          <div class="content">So, walk me through what's changed since we last spoke.</div>
+        </div>
+        <div class="tx-line">
+          <div class="who">Prospect</div>
+          <div class="content">Yeah, so <span class="phrase" data-sig="champion">Sarah actually left the company last week</span>, which is a bummer — she was really pushing for this.</div>
+        </div>
+        <div class="tx-line">
+          <div class="who rep">Rep</div>
+          <div class="content">Oh, sorry to hear that. Who's picking up the project now?</div>
+        </div>
+        <div class="tx-line">
+          <div class="who">Prospect</div>
+          <div class="content">Honestly, <span class="phrase amber" data-sig="dm">I'm not 100% sure. The CFO mentioned something about reviewing all vendor spend.</span></div>
+        </div>
+        <div class="tx-line">
+          <div class="who rep">Rep</div>
+          <div class="content">Makes sense. Did you get a chance to look at the pricing we sent over?</div>
+        </div>
+        <div class="tx-line">
+          <div class="who">Prospect</div>
+          <div class="content">We did. <span class="phrase coral" data-sig="comp">Your competitors came in a bit lower, to be honest.</span></div>
+        </div>
+        <div class="tx-line">
+          <div class="who rep">Rep</div>
+          <div class="content">I see. Where did they land?</div>
+        </div>
+        <div class="tx-line">
+          <div class="who">Prospect</div>
+          <div class="content">Let's just say it's a tough conversation internally. <span class="phrase green" data-sig="stall">We might need to push this to Q3.</span></div>
+        </div>
+        <div class="tx-line">
+          <div class="who rep">Rep</div>
+          <div class="content">Totally understand. Let's stay in touch.</div>
+        </div>
+
+        <button class="analyze-btn" id="analyzeBtn">
+          <span class="icon"></span>
+          <span class="label-text">Analyze this call</span>
+        </button>
+        <button class="reset-btn" id="resetBtn">↺ Reset demo</button>
+      </div>
+
+      <!-- Analysis pane -->
+      <div class="analysis-pane">
+        <div class="pane-label">Findr analysis</div>
+
+        <div class="risk-score-big">
+          <div class="score-ring">
+            <svg width="92" height="92">
+              <circle class="bg" cx="46" cy="46" r="40"/>
+              <circle class="fg" id="scoreFg" cx="46" cy="46" r="40"
+                      stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+            </svg>
+            <div class="num" id="scoreNum">0</div>
+          </div>
+          <div class="score-meta">
+            <div class="lbl">Deal risk</div>
+            <div class="verdict high" id="verdict">Waiting…</div>
+          </div>
+        </div>
+
+        <div class="signals-label">Detected risk signals</div>
+        <div class="signals" id="signals">
+          <div class="signal" data-delay="800">
+            <div class="head">
+              <div class="name">Champion Loss</div>
+              <div class="sev high">High</div>
+            </div>
+            <div class="quote">"Sarah actually left the company last week…"</div>
+          </div>
+          <div class="signal" data-delay="1400">
+            <div class="head">
+              <div class="name">Late Decision-Maker</div>
+              <div class="sev high">High</div>
+            </div>
+            <div class="quote">"The CFO mentioned something about reviewing all vendor spend."</div>
+          </div>
+          <div class="signal" data-delay="2000">
+            <div class="head">
+              <div class="name">Competitor Pressure</div>
+              <div class="sev med">Medium</div>
+            </div>
+            <div class="quote">"Your competitors came in a bit lower, to be honest."</div>
+          </div>
+          <div class="signal" data-delay="2600">
+            <div class="head">
+              <div class="name">Stalling</div>
+              <div class="sev med">Medium</div>
+            </div>
+            <div class="quote">"We might need to push this to Q3."</div>
+          </div>
+        </div>
+
+        <div class="insight-box" id="insightBox">
+          <div class="lbl">CRM vs. reality</div>
+          <div class="row"><div class="k">CRM tag</div><div class="v old">Lost on pricing</div></div>
+          <div class="row"><div class="k">findr.</div><div class="v new">Champion lost + CFO never engaged</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS — FLOWING 5-STEP JOURNEY -->
+<section id="how">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="label">How it works</span>
+      <h2>From raw call to <span class="accent">clear decision.</span></h2>
+      <p>Five connected steps. No data entry. No "AI summary" noise — just the risk signals that actually move deals.</p>
+    </div>
+
+    <div class="journey-wrap reveal" id="journeyWrap">
+      <div class="journey-path" id="journeyPath"></div>
+      <div class="journey-steps">
+        <div class="journey-step" data-step="1">
+          <div class="journey-phase">Observe</div>
+          <div class="journey-node"><span class="num">1</span></div>
+          <h3>Connect your calls</h3>
+          <p>Plug findr. into Gong, Slack, or your calendar. Conversations flow in automatically — no uploads, no tagging.</p>
+        </div>
+        <div class="journey-step" data-step="2">
+          <div class="journey-phase">Observe</div>
+          <div class="journey-node"><span class="num">2</span></div>
+          <h3>findr. scores risk</h3>
+          <p>Each deal gets a 0–100 risk score, updated after every call. Eight risk signals, each backed by the exact transcript moment.</p>
+        </div>
+        <div class="journey-step" data-step="3">
+          <div class="journey-phase">Observe</div>
+          <div class="journey-node"><span class="num">3</span></div>
+          <h3>Your forecast updates</h3>
+          <p>Risk-adjusted pipeline — best case, likely, worst case — flows straight into HubSpot. Monday reviews finally tell the truth.</p>
+        </div>
+        <div class="journey-step" data-step="4">
+          <div class="journey-phase">Act</div>
+          <div class="journey-node"><span class="num">4</span></div>
+          <h3>findr. tells you how to save it</h3>
+          <p>When a deal is at risk, findr. generates concrete, grounded recommendations to rescue it — specific actions + next steps, anchored in what was actually said.</p>
+          <span class="step-tag live">Live</span>
+        </div>
+        <div class="journey-step" data-step="5">
+          <div class="journey-phase">Learn</div>
+          <div class="journey-node"><span class="num">5</span></div>
+          <h3>findr. closes the loop</h3>
+          <p>If the deal is lost anyway, findr.'s voice agent reaches out to ask what really happened. That ground-truth answer sharpens every future risk score.</p>
+          <span class="step-tag soon">Coming soon</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOLUTION LAYER SECTION -->
+<section class="solution-layer">
+  <div class="container">
+    <div class="solution-grid">
+      <div class="solution-copy reveal">
+        <span class="label">The Solution Layer</span>
+        <h3>findr. doesn't just diagnose risk — <span class="accent">it prescribes the fix.</span></h3>
+        <p>Generic advice is useless in complex B2B deals. findr. anchors every recommendation in the actual conversation: for each risk signal, you get a specific action, a concrete next step (who does what, by when), and the exact quote that triggered it.</p>
+        
+        <div class="key-diff">
+          <strong>No platitudes. No guesswork.</strong><br/>
+          Every recommendation cites what the buyer actually said — so your team knows <em>why</em> this action matters, and can act with confidence.
+        </div>
+
+        <p>And because deals move fast, the full solution report exports as a clean 1–2 page PDF — ready to drop into your next deal review or forward to Legal, Finance, or Product.</p>
+      </div>
+
+      <div class="solution-example reveal">
+        <div class="signal-badge">Champion Loss · High risk</div>
+        
+        <div class="item" id="itemRec">
+          <div class="item-label">Recommendation</div>
+          <div class="item-value">Lock a warm handover session with the successor before the champion leaves — frame it as continuity, not a restart.</div>
+        </div>
+        
+        <div class="item" id="itemNext">
+          <div class="item-label">Next step</div>
+          <div class="item-value">Email the successor (cc'ing the departing champion) to schedule a 30-min transition call this week. Use the champion's intro to build trust.</div>
+        </div>
+        
+        <div class="item" id="itemQuote">
+          <div class="item-label">Evidence from call</div>
+          <div class="item-value quote">"Sarah war eigentlich die treibende Kraft auf unserer Seite — seit sie letzte Woche gegangen ist, liegt das Thema etwas auf Eis."</div>
+        </div>
+
+        <div class="pdf-export">
+          <div class="pdf-icon" id="pdfIcon"></div>
+          <div class="pdf-copy">
+            <strong>Export the full playbook as a PDF</strong><br/>
+            Your whole team can act on it — no login required.
+          </div>
+        </div>
+        <button class="pdf-btn" id="pdfBtn">Generate PDF preview</button>
+        <div class="solution-complete" id="solutionComplete">Preview complete · Ready to export</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING THE LOOP -->
+<section id="loop">
+  <div class="container">
+    <div class="loop-grid">
+      <div class="loop-copy reveal">
+        <div class="coming-badge">◆ Coming soon</div>
+        <span class="label">Closing the loop</span>
+        <h3>When a deal slips, <span class="accent">findr. asks why.</span></h3>
+        <p>A deal closes as lost. findr. automatically reaches out to the buyer — by voice or text, in their own language — and asks what really happened. The honest answer feeds back into the model and sharpens every future risk score.</p>
+        <ul>
+          <li>Automated outreach to every lost deal</li>
+          <li>AI-moderated, in the prospect's language</li>
+          <li>Ground-truth feedback into your risk model</li>
+          <li>The CRM finally tells you what it missed</li>
+        </ul>
+      </div>
+
+      <div class="voice-card reveal">
+        <div class="dialer">
+          <div class="dial-ring"><div class="phone">📞</div></div>
+          <div class="dial-status"><span class="dot"></span>Call connected</div>
+        </div>
+        <div class="voice-thread" id="voiceThread">
+          <div class="v-msg ai">
+            <div class="v-avatar ai">AI</div>
+            <div class="v-bubble">
+              <div class="v-role">findr. voice agent</div>
+              Hi Lena, quick question about the Northwind deal — what was the real reason it didn't move forward?
+            </div>
+          </div>
+          <div class="v-msg human">
+            <div class="v-avatar human">L</div>
+            <div class="v-bubble">
+              <div class="v-role">Prospect · Lena K.</div>
+              Honestly? It wasn't the price. Our champion left, and the CFO never got briefed.
+            </div>
+          </div>
+          <div class="v-msg ai">
+            <div class="v-avatar ai">AI</div>
+            <div class="v-bubble">
+              <div class="v-role">findr. voice agent</div>
+              That's really helpful. Would a short exec-level brief have changed the outcome?
+            </div>
+          </div>
+          <div class="v-msg human">
+            <div class="v-avatar human">L</div>
+            <div class="v-bubble">
+              <div class="v-role">Prospect · Lena K.</div>
+              100%. If your rep had asked to meet him earlier, we'd probably be a customer now.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INTEGRATIONS — FIXED RADIAL LAYOUT -->
+<section id="integrations">
+  <div class="container">
+    <div class="integ-layout">
+      <div class="reveal">
+        <span class="label">Integrations</span>
+        <h2 style="font-size:clamp(32px,4vw,48px);letter-spacing:-0.02em;font-weight:700;line-height:1.1;margin-bottom:20px;">One AI brain. <span style="color:var(--purple);">Live data</span> from everywhere.</h2>
+        <p style="color:var(--muted);font-size:16px;margin-bottom:30px;max-width:440px;">findr. sits at the center of your revenue stack. Every conversation, every CRM update, every signal — flowing into one shared intelligence engine.</p>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;">
+          <li style="font-size:14px;padding-left:24px;position:relative;color:#2A2640;"><span style="position:absolute;left:0;top:8px;width:12px;height:1.5px;background:var(--purple);"></span>Native connectors for tools you already use</li>
+          <li style="font-size:14px;padding-left:24px;position:relative;color:#2A2640;"><span style="position:absolute;left:0;top:8px;width:12px;height:1.5px;background:var(--purple);"></span>Real-time data pulses into the AI brain</li>
+          <li style="font-size:14px;padding-left:24px;position:relative;color:#2A2640;"><span style="position:absolute;left:0;top:8px;width:12px;height:1.5px;background:var(--purple);"></span>Bi-directional sync — insights flow back to your CRM</li>
+        </ul>
+      </div>
+
+      <div class="brain-network reveal">
+        <svg class="brain-svg" viewBox="0 0 480 480">
+          <!-- Radiating lines from center to each node (adjusted coordinates to match node positions) -->
+          <path class="conn-line" d="M 240,240 L 240,50" />      <!-- to Gong (top) -->
+          <path class="conn-line" d="M 240,240 L 400,150" />      <!-- to HubSpot (right-top) -->
+          <path class="conn-line" d="M 240,240 L 380,360" />      <!-- to Slack (right-bottom) -->
+          <path class="conn-line" d="M 240,240 L 100,360" />      <!-- to Salesforce (left-bottom) -->
+          <path class="conn-line" d="M 240,240 L 80,150" />       <!-- to Zoom (left-top) -->
+          
+          <!-- Pulse dots traveling along paths -->
+          <circle class="pulse-dot" r="4">
+            <animateMotion dur="3s" repeatCount="indefinite" path="M 240 240 L 240 50"/>
+          </circle>
+          <circle class="pulse-dot" r="4">
+            <animateMotion dur="3.2s" repeatCount="indefinite" path="M 240 240 L 400 150"/>
+          </circle>
+          <circle class="pulse-dot" r="4">
+            <animateMotion dur="3.5s" repeatCount="indefinite" path="M 240 240 L 380 360"/>
+          </circle>
+          <circle class="pulse-dot" r="4">
+            <animateMotion dur="3.8s" repeatCount="indefinite" path="M 240 240 L 100 360"/>
+          </circle>
+          <circle class="pulse-dot" r="4">
+            <animateMotion dur="4s" repeatCount="indefinite" path="M 240 240 L 80 150"/>
+          </circle>
+        </svg>
+
+        <!-- Integration nodes orbiting around brain, NOT overlapping -->
+        <div class="node n1"><div class="name">Gong</div><div class="badge live">Live</div></div>
+        <div class="node n2"><div class="name">HubSpot</div><div class="badge live">Live</div></div>
+        <div class="node n3"><div class="name">Slack</div><div class="badge live">Live</div></div>
+        <div class="node n4"><div class="name">Salesforce</div><div class="badge soon">Soon</div></div>
+        <div class="node n5"><div class="name">Zoom</div><div class="badge soon">Soon</div></div>
+
+        <!-- Central AI brain - sits alone, nothing overlaps it -->
+        <div class="brain-center">
+          <div class="t1">findr.</div>
+          <div class="t2">AI Brain</div>
+          <div class="t3">· live ·</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ONE BRAIN FOUR PRODUCTS -->
+<section id="platform">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="label">The platform</span>
+      <h2>One AI brain. <span class="accent">Four products.</span></h2>
+      <p>Customers land with Sales Intelligence and expand into the other modules over time. All four share one conversation-intelligence engine — so data compounds.</p>
+    </div>
+
+    <div class="modules reveal">
+      <div class="module">
+        <div class="idx">— 01</div>
+        <h4>Sales Intelligence</h4>
+        <p>Real-time deal risk scoring, automated loss-reason detection, and risk-adjusted pipeline forecasting.</p>
+        <div class="status live">Live now</div>
+        <div class="module-divider"></div>
+      </div>
+      <div class="module">
+        <div class="idx">— 02</div>
+        <h4>Customer Success Health</h4>
+        <p>Churn signals, account health scores, and expansion opportunities — surfaced from every customer call.</p>
+        <div class="status soon">Coming soon</div>
+        <div class="module-divider"></div>
+      </div>
+      <div class="module">
+        <div class="idx">— 03</div>
+        <h4>Product Discovery</h4>
+        <p>What customers are actually asking for — aggregated from real conversations, not feature-request forms.</p>
+        <div class="status soon">Coming soon</div>
+        <div class="module-divider"></div>
+      </div>
+      <div class="module">
+        <div class="idx">— 04</div>
+        <h4>Market Research</h4>
+        <p>AI-moderated interviews at scale. Run qualitative research without a panel of interviewers.</p>
+        <div class="status soon">Coming soon</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY FINDR -->
+<section id="why">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="label">Why findr.</span>
+      <h2>Built for <span class="accent">European B2B.</span></h2>
+      <p>Not another US SaaS ported to Europe. findr. is built in Germany, hosted in Frankfurt, and trained on DACH sales language from day one.</p>
+    </div>
+
+    <div class="stats reveal">
+      <div class="stat">
+        <div class="big"><span class="countup" data-target="8">0</span></div>
+        <div class="lbl">Risk signals, each with transcript evidence</div>
+      </div>
+      <div class="stat">
+        <div class="big"><span class="countup" data-target="100">0</span><span class="unit">%</span></div>
+        <div class="lbl">Hosted in the EU · GDPR compliant</div>
+      </div>
+      <div class="stat">
+        <div class="big"><span class="countup" data-target="14">0</span><span class="unit">d</span></div>
+        <div class="lbl">Free trial · no credit card</div>
+      </div>
+      <div class="stat">
+        <div class="big"><span class="countup" data-target="1">0</span></div>
+        <div class="lbl">Shared AI brain across four products</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section id="cta" class="final-cta">
+  <div class="container reveal">
+    <span class="label">Ready?</span>
+    <h2>Stop guessing <span class="accent">why</span> deals slip.</h2>
+    <p>See what findr. surfaces in your own pipeline.</p>
+    <div class="hero-ctas" style="justify-content:center;">
+      <a href="#" class="btn btn-primary">Book a demo →</a>
+      <a href="pricing.html" class="btn btn-secondary">See pricing</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container foot-inner">
+    <div class="logo">findr<span class="dot"></span></div>
+    <div class="compliance">
+      <span>Built in Germany</span>
+      <span>Hosted in Frankfurt</span>
+      <span>GDPR compliant</span>
+      <span>EU AI Act compliant</span>
+    </div>
+    <div>© 2026 findr.</div>
+  </div>
+</footer>
+
+</main>
+
+<script>
+/* ——— Scroll reveal ——— */
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      io.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+/* ——— Count-up numbers ——— */
+const countIO = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const el = e.target;
+      const target = +el.dataset.target;
+      const dur = 1200;
+      const start = performance.now();
+      const step = (now) => {
+        const p = Math.min((now - start) / dur, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * eased);
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+      countIO.unobserve(el);
+    }
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('.countup').forEach(el => countIO.observe(el));
+
+/* ——— Live analysis interactive ——— */
+const analyzeBtn = document.getElementById('analyzeBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+analyzeBtn.addEventListener('click', runAnalysis);
+resetBtn.addEventListener('click', resetAnalysis);
+
+function runAnalysis() {
+  analyzeBtn.classList.add('loading');
+  analyzeBtn.querySelector('.label-text').textContent = 'Analyzing…';
+  analyzeBtn.disabled = true;
+
+  const phrases = document.querySelectorAll('.phrase');
+  phrases.forEach((p, i) => {
+    setTimeout(() => p.classList.add('lit'), 400 + i * 380);
+  });
+
+  setTimeout(() => {
+    const scoreEl = document.getElementById('scoreNum');
+    const fg = document.getElementById('scoreFg');
+    const verdict = document.getElementById('verdict');
+    const target = 87;
+    const circumference = 2 * Math.PI * 40;
+    const start = performance.now();
+    const dur = 1400;
+    const step = (now) => {
+      const p = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const val = Math.round(target * eased);
+      scoreEl.textContent = val;
+      fg.setAttribute('stroke-dashoffset', circumference * (1 - (val/100)));
+      if (p < 1) requestAnimationFrame(step);
+      else { verdict.textContent = 'High risk · review required'; }
+    };
+    requestAnimationFrame(step);
+  }, 2200);
+
+  const signals = document.querySelectorAll('.signal');
+  signals.forEach(s => {
+    setTimeout(() => s.classList.add('show'), +s.dataset.delay + 2000);
+  });
+
+  setTimeout(() => {
+    document.getElementById('insightBox').classList.add('show');
+    analyzeBtn.classList.remove('loading');
+    analyzeBtn.querySelector('.label-text').textContent = 'Analysis complete';
+    resetBtn.classList.add('show');
+  }, 5000);
+}
+
+function resetAnalysis() {
+  document.querySelectorAll('.phrase').forEach(p => p.classList.remove('lit'));
+  document.getElementById('scoreNum').textContent = '0';
+  document.getElementById('scoreFg').setAttribute('stroke-dashoffset', 251.3);
+  document.getElementById('verdict').textContent = 'Waiting…';
+  document.querySelectorAll('.signal').forEach(s => s.classList.remove('show'));
+  document.getElementById('insightBox').classList.remove('show');
+  analyzeBtn.querySelector('.label-text').textContent = 'Analyze this call';
+  analyzeBtn.disabled = false;
+  resetBtn.classList.remove('show');
+}
+
+/* ——— Voice thread animation ——— */
+const voiceIO = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const msgs = e.target.querySelectorAll('.v-msg');
+      msgs.forEach((m, i) => {
+        setTimeout(() => m.classList.add('show'), i * 700);
+      });
+      voiceIO.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('#voiceThread').forEach(el => voiceIO.observe(el));
+
+/* ——— NEW: Flowing 5-step journey animation ——— */
+const journeyWrap = document.getElementById('journeyWrap');
+const journeyPath = document.getElementById('journeyPath');
+const journeySteps = document.querySelectorAll('.journey-step');
+
+const journeyIO = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      // Draw the path line
+      setTimeout(() => journeyPath.classList.add('draw'), 300);
+      
+      // Activate steps sequentially
+      journeySteps.forEach((step, i) => {
+        setTimeout(() => {
+          step.classList.add('active');
+        }, 500 + i * 400);
+      });
+      
+      journeyIO.unobserve(journeyWrap);
+    }
+  });
+}, { threshold: 0.3 });
+journeyIO.observe(journeyWrap);
+
+/* ——— NEW: Solution Layer PDF interactive build ——— */
+const pdfBtn = document.getElementById('pdfBtn');
+const pdfIcon = document.getElementById('pdfIcon');
+const solutionComplete = document.getElementById('solutionComplete');
+const solutionItems = [
+  document.getElementById('itemRec'),
+  document.getElementById('itemNext'),
+  document.getElementById('itemQuote')
+];
+
+function resetSolution() {
+  solutionItems.forEach(item => item.classList.remove('visible'));
+  solutionComplete.classList.remove('visible');
+  pdfIcon.classList.remove('generating', 'check');
+  pdfBtn.disabled = false;
+  pdfBtn.textContent = 'Generate PDF preview';
+}
+
+pdfBtn.addEventListener('click', () => {
+  if (pdfBtn.disabled) {
+    // If already complete, reset and replay
+    resetSolution();
+    setTimeout(buildSolution, 200);
+    return;
+  }
+  
+  // Reset first if needed
+  resetSolution();
+  buildSolution();
+});
+
+function buildSolution() {
+  pdfBtn.disabled = true;
+  pdfBtn.textContent = 'Building…';
+  pdfIcon.classList.add('generating');
+  
+  // Animate items in sequence
+  solutionItems.forEach((item, i) => {
+    setTimeout(() => {
+      item.classList.add('visible');
+    }, 400 + i * 500);
+  });
+  
+  // Show complete state after all items are visible
+  setTimeout(() => {
+    pdfIcon.classList.remove('generating');
+    pdfIcon.classList.add('check');
+    pdfBtn.textContent = 'Preview ready';
+    solutionComplete.classList.add('visible');
+    pdfBtn.disabled = false;
+  }, 2200);
+}
+
+/* ——— Initialize solution items hidden ——— */
+document.addEventListener('DOMContentLoaded', () => {
+  solutionItems.forEach(item => {
+    if (item) item.classList.remove('visible');
+  });
+  solutionComplete.classList.remove('visible');
+});
+</script>
+
+</body>
+</html>
