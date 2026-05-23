@@ -240,9 +240,9 @@ async function requestJson<T>(
       system: sys,
       messages: [{ role: "user", content: userPrompt }],
     },
-    // The interview makes several short calls; a 60s per-request budget is ample
-    // and fails reasonably fast. The shared client default stays untouched.
-    { timeout: 60_000, maxRetries: 2 },
+    // Opus can take ~40-60s; give each call a generous per-request budget (same
+    // approach as the solution layer) without touching the shared client.
+    { timeout: 120_000, maxRetries: 2 },
   );
 
   const textBlock = response.content.find((block) => block.type === "text");

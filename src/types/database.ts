@@ -1104,6 +1104,72 @@ export type Database = {
           },
         ]
       }
+      interview_sessions: {
+        Row: {
+          access_token: string
+          completed_at: string | null
+          conversation: Json
+          created_at: string
+          deal_context: Json | null
+          deal_id: string | null
+          evidence: string | null
+          extracted_reason: string | null
+          id: string
+          matched_risk_prediction: string | null
+          model: string | null
+          org_id: string
+          result: Json | null
+          status: "open" | "completed" | "abandoned"
+        }
+        Insert: {
+          access_token: string
+          completed_at?: string | null
+          conversation?: Json
+          created_at?: string
+          deal_context?: Json | null
+          deal_id?: string | null
+          evidence?: string | null
+          extracted_reason?: string | null
+          id?: string
+          matched_risk_prediction?: string | null
+          model?: string | null
+          org_id: string
+          result?: Json | null
+          status?: "open" | "completed" | "abandoned"
+        }
+        Update: {
+          access_token?: string
+          completed_at?: string | null
+          conversation?: Json
+          created_at?: string
+          deal_context?: Json | null
+          deal_id?: string | null
+          evidence?: string | null
+          extracted_reason?: string | null
+          id?: string
+          matched_risk_prediction?: string | null
+          model?: string | null
+          org_id?: string
+          result?: Json | null
+          status?: "open" | "completed" | "abandoned"
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_sessions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcript_segments: {
         Row: {
           call_id: string
