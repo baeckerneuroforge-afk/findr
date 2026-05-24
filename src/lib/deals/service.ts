@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database";
 import { MOCK_DEALS } from "./mock-data";
-import type { Deal, DealStage } from "./types";
+import type { Deal, DealStage, DealOutcome } from "./types";
 
 type DealRow = Database["public"]["Tables"]["deals"]["Row"];
 
@@ -217,6 +217,48 @@ export async function updateDealContact(
       contact_email: input.contactEmail ?? null,
       contact_phone: input.contactPhone ?? null,
       updated_at: new Date().toISOString(),
+    })
+    .eq("org_id", orgId)
+    .eq("id", dealId)
+    .select("*")
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapDbDealToDeal(data);
+}
+
+// ----------------------------------------------------------------------------
+// Deal outcome (mark won / lost / reopen)
+// ----------------------------------------------------------------------------
+
+export const DEAL_OUTCOMES = ["open", "won", "lost"] as const;
+
+export const DealOutcomeSchema = z.object({
+  outcome: z.enum(DEAL_OUTCOMES),
+});
+
+export type DealOutcomeInput = z.infer<typeof DealOutcomeSchema>;
+
+/**
+ * Set a deal's close outcome. Marking won/lost stamps closed_at; reopening
+ * ('open') clears it. Scoped to the org; returns the updated Deal, or null if the
+ * id isn't a real (UUID) deal in this org.
+ */
+export async function updateDealOutcome(
+  orgId: string,
+  dealId: string,
+  outcome: DealOutcome,
+): Promise<Deal | null> {
+  if (!isUuid(dealId)) return null;
+
+  const now = new Date().toISOString();
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("deals")
+    .update({
+      outcome,
+      closed_at: outcome === "open" ? null : now,
+      updated_at: now,
     })
     .eq("org_id", orgId)
     .eq("id", dealId)

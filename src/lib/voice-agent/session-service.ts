@@ -157,6 +157,42 @@ export async function getPublicSession(
   return session ? toPublicView(session) : null;
 }
 
+/** Org-internal view of a deal's interview (for the dashboard deal page). */
+export interface DealInterviewView {
+  accessToken: string;
+  status: "open" | "completed" | "abandoned";
+  createdAt: string;
+  completedAt: string | null;
+}
+
+/**
+ * The most recent interview session linked to a deal, scoped to the org. Used by
+ * the deal page to show an existing interview (and avoid creating a second one).
+ * Org-internal — the dashboard user owns the deal, so exposing the access token
+ * here is fine (it's the link they share).
+ */
+export async function getDealInterview(
+  orgId: string,
+  dealId: string,
+): Promise<DealInterviewView | null> {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select("access_token, status, created_at, completed_at")
+    .eq("org_id", orgId)
+    .eq("deal_id", dealId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    accessToken: data.access_token,
+    status: data.status,
+    createdAt: data.created_at,
+    completedAt: data.completed_at,
+  };
+}
+
 /**
  * Append the buyer's message, generate the next agent message, persist, and run
  * the extraction when the agent (or the safety cap) closes the conversation.

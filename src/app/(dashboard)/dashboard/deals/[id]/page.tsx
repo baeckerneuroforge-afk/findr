@@ -11,9 +11,10 @@ import { SolutionPanel } from "@/components/dashboard/SolutionPanel";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { RiskHistoryChart } from "@/components/dashboard/RiskHistoryChart";
 import { DealContactCard } from "@/components/dashboard/DealContactCard";
+import { DealOutcomeControl } from "@/components/dashboard/DealOutcomeControl";
+import { PostLossInterviewPanel } from "@/components/dashboard/PostLossInterviewPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Badge } from "@/components/ui/Badge";
-import type { DealOutcome } from "@/lib/deals/types";
+import { getDealInterview } from "@/lib/voice-agent/session-service";
 
 function PhoneIcon() {
   return (
@@ -32,12 +33,6 @@ function PhoneIcon() {
       />
     </svg>
   );
-}
-
-function OutcomeBadge({ outcome }: { outcome: DealOutcome }) {
-  if (outcome === "won") return <Badge variant="success">Won</Badge>;
-  if (outcome === "lost") return <Badge variant="critical">Lost</Badge>;
-  return <Badge variant="default">Open</Badge>;
 }
 
 export default async function DealDetailPage({
@@ -77,6 +72,11 @@ export default async function DealDetailPage({
     : [];
   const latestSolution = solutionReports[0] ?? null;
 
+  // A deal's post-loss interview only exists once it's lost; load it so the
+  // panel can show an existing session (and avoid creating a second one).
+  const dealInterview =
+    deal.outcome === "lost" ? await getDealInterview(orgId, id) : null;
+
   return (
     <div>
       {/* Breadcrumb */}
@@ -99,7 +99,10 @@ export default async function DealDetailPage({
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-3">
             <h1 className="text-display text-neutral-900">{deal.name}</h1>
-            <OutcomeBadge outcome={deal.outcome ?? "open"} />
+            <DealOutcomeControl
+              dealId={id}
+              initialOutcome={deal.outcome ?? "open"}
+            />
           </div>
           <div className="flex flex-wrap items-center gap-3 text-body text-neutral-500">
             <span>{deal.stage}</span>
@@ -121,6 +124,17 @@ export default async function DealDetailPage({
           size="large"
         />
       </div>
+
+      {/* Post-Loss Interview — only once the deal is marked lost */}
+      {deal.outcome === "lost" && (
+        <div className="mb-8">
+          <PostLossInterviewPanel
+            dealId={id}
+            hasContact={Boolean(deal.contactName)}
+            initialSession={dealInterview}
+          />
+        </div>
+      )}
 
       {/* Risk history chart */}
       <div className="mb-6">
