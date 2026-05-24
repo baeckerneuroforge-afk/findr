@@ -14,6 +14,7 @@ interface SessionView {
   status: "open" | "completed" | "abandoned";
   createdAt: string;
   completedAt: string | null;
+  invitedAt?: string | null;
   // Result fields — only present once the interview is completed.
   extractedReason?: string | null;
   evidence?: string | null;
@@ -25,6 +26,7 @@ interface SessionView {
 interface PostLossInterviewPanelProps {
   dealId: string;
   hasContact: boolean;
+  contactEmail: string | null;
   initialSession: SessionView | null;
 }
 
@@ -170,12 +172,18 @@ function CompletedResult({ session }: { session: SessionView }) {
 export function PostLossInterviewPanel({
   dealId,
   hasContact,
+  contactEmail,
   initialSession,
 }: PostLossInterviewPanelProps) {
   const [session, setSession] = useState<SessionView | null>(initialSession);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [invitedAt, setInvitedAt] = useState<string | null>(
+    initialSession?.invitedAt ?? null,
+  );
+  const [sending, setSending] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   // Build the absolute link only after mount (window is client-only); the first
   // render matches the server (origin = "") to avoid a hydration mismatch.
@@ -216,6 +224,30 @@ export function PostLossInterviewPanel({
     } catch {
       // Clipboard can be blocked; the link is selectable in the field as a
       // fallback.
+    }
+  }
+
+  async function sendInvite() {
+    setSending(true);
+    setInviteError(null);
+    try {
+      const res = await fetch(`/api/deals/${dealId}/interview/invite`, {
+        method: "POST",
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        invitedAt?: string | null;
+      };
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not send the invitation.");
+      }
+      setInvitedAt(data.invitedAt ?? new Date().toISOString());
+    } catch (err) {
+      setInviteError(
+        err instanceof Error ? err.message : "Could not send the invitation.",
+      );
+    } finally {
+      setSending(false);
     }
   }
 
@@ -272,11 +304,51 @@ export function PostLossInterviewPanel({
               </div>
               {!isCompleted && (
                 <p className="mt-2 text-small text-neutral-500">
-                  Nothing is sent automatically yet — share this link to run the
-                  interview. (Sending comes next.)
+                  Or copy the link to share it manually.
                 </p>
               )}
             </div>
+
+            {session.status === "open" && (
+              <div className="border-t border-neutral-100 pt-4">
+                <span className="mb-1.5 block text-body-strong text-neutral-900">
+                  Email invitation
+                </span>
+                {!contactEmail ? (
+                  <p className="text-small text-neutral-500">
+                    Add a contact email to send the invitation.
+                  </p>
+                ) : invitedAt ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-small text-success-700">
+                      Invitation sent to {contactEmail} · {invitedAt.slice(0, 10)}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={sendInvite}
+                      disabled={sending}
+                    >
+                      {sending ? "Sending…" : "Resend"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button onClick={sendInvite} disabled={sending}>
+                      {sending ? "Sending…" : "Send invitation"}
+                    </Button>
+                    <span className="text-small text-neutral-500">
+                      to {contactEmail}
+                    </span>
+                  </div>
+                )}
+                {inviteError && (
+                  <div className="mt-2 rounded-md border border-danger-500/20 bg-danger-50 px-3 py-2 text-small text-danger-700">
+                    {inviteError}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : !hasContact ? (
           <p className="text-body text-neutral-500">

@@ -131,6 +131,7 @@ export default async function DealDetailPage({
           <PostLossInterviewPanel
             dealId={id}
             hasContact={Boolean(deal.contactName)}
+            contactEmail={deal.contactEmail ?? null}
             initialSession={dealInterview}
           />
         </div>

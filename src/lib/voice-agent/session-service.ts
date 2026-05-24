@@ -163,6 +163,8 @@ export interface DealInterviewView {
   status: "open" | "completed" | "abandoned";
   createdAt: string;
   completedAt: string | null;
+  /** When an invitation email was last sent for this interview (null = never). */
+  invitedAt: string | null;
   /** Result fields — populated once the interview is completed. */
   extractedReason: string | null;
   evidence: string | null;
@@ -187,7 +189,7 @@ export async function getDealInterview(
   const { data, error } = await supabase
     .from("interview_sessions")
     .select(
-      "access_token, status, created_at, completed_at, extracted_reason, evidence, matched_risk_prediction, result, conversation",
+      "access_token, status, created_at, completed_at, invited_at, extracted_reason, evidence, matched_risk_prediction, result, conversation",
     )
     .eq("org_id", orgId)
     .eq("deal_id", dealId)
@@ -202,6 +204,7 @@ export async function getDealInterview(
     status: data.status,
     createdAt: data.created_at,
     completedAt: data.completed_at,
+    invitedAt: data.invited_at,
     extractedReason: data.extracted_reason,
     evidence: data.evidence,
     matchedRiskPrediction:
@@ -209,6 +212,27 @@ export async function getDealInterview(
     reasoning: result?.reasoning ?? null,
     conversation: (data.conversation as unknown as InterviewTurn[]) ?? [],
   };
+}
+
+/**
+ * Stamp invited_at = now on a session, identified by its access token within the
+ * org. Returns the new timestamp, or null if no matching session. Org-scoped.
+ */
+export async function markInterviewInvited(
+  orgId: string,
+  accessToken: string,
+): Promise<string | null> {
+  const now = new Date().toISOString();
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .update({ invited_at: now })
+    .eq("org_id", orgId)
+    .eq("access_token", accessToken)
+    .select("invited_at")
+    .maybeSingle();
+  if (error || !data) return null;
+  return data.invited_at;
 }
 
 /**
