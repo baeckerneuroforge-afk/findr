@@ -163,13 +163,21 @@ export interface DealInterviewView {
   status: "open" | "completed" | "abandoned";
   createdAt: string;
   completedAt: string | null;
+  /** Result fields — populated once the interview is completed. */
+  extractedReason: string | null;
+  evidence: string | null;
+  matchedRiskPrediction: "yes" | "no" | "partial" | null;
+  reasoning: string | null;
+  conversation: InterviewTurn[];
 }
 
 /**
  * The most recent interview session linked to a deal, scoped to the org. Used by
- * the deal page to show an existing interview (and avoid creating a second one).
- * Org-internal — the dashboard user owns the deal, so exposing the access token
- * here is fine (it's the link they share).
+ * the deal page to show an existing interview (status + link) and, once
+ * completed, its result (extracted reason, evidence, risk-prediction match,
+ * reasoning, full conversation). Org-internal — the dashboard user owns the
+ * deal, so exposing the access token + result here is fine; this is NOT the
+ * public token path.
  */
 export async function getDealInterview(
   orgId: string,
@@ -178,18 +186,28 @@ export async function getDealInterview(
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("interview_sessions")
-    .select("access_token, status, created_at, completed_at")
+    .select(
+      "access_token, status, created_at, completed_at, extracted_reason, evidence, matched_risk_prediction, result, conversation",
+    )
     .eq("org_id", orgId)
     .eq("deal_id", dealId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error || !data) return null;
+
+  const result = (data.result as unknown as InterviewResult | null) ?? null;
   return {
     accessToken: data.access_token,
     status: data.status,
     createdAt: data.created_at,
     completedAt: data.completed_at,
+    extractedReason: data.extracted_reason,
+    evidence: data.evidence,
+    matchedRiskPrediction:
+      (data.matched_risk_prediction as "yes" | "no" | "partial" | null) ?? null,
+    reasoning: result?.reasoning ?? null,
+    conversation: (data.conversation as unknown as InterviewTurn[]) ?? [],
   };
 }
 

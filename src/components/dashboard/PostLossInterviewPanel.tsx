@@ -4,12 +4,22 @@ import { useEffect, useState } from "react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { EvidenceQuote } from "@/components/dashboard/EvidenceQuote";
+import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
+
+type MatchPrediction = "yes" | "no" | "partial";
 
 interface SessionView {
   accessToken: string;
   status: "open" | "completed" | "abandoned";
   createdAt: string;
   completedAt: string | null;
+  // Result fields — only present once the interview is completed.
+  extractedReason?: string | null;
+  evidence?: string | null;
+  matchedRiskPrediction?: MatchPrediction | null;
+  reasoning?: string | null;
+  conversation?: InterviewTurn[];
 }
 
 interface PostLossInterviewPanelProps {
@@ -27,8 +37,135 @@ const STATUS_META: Record<
   abandoned: { label: "Abandoned", variant: "default" },
 };
 
+// Human-readable labels for the loss-reason categories (the enum values stored
+// in extracted_reason). UI stays English; quotes/conversation keep their
+// original language.
+const LOSS_REASON_LABELS: Record<string, string> = {
+  pricing: "Pricing",
+  budget: "Budget",
+  competitor: "Competitor",
+  feature_gap: "Feature Gap",
+  compliance: "Compliance",
+  timing: "Timing",
+  champion_lost: "Champion Loss",
+  no_decision: "No Decision",
+  internal_priority: "Internal Priority",
+  other: "Other",
+};
+
+function lossReasonLabel(reason: string | null | undefined): string {
+  if (!reason) return "Unknown";
+  return (
+    LOSS_REASON_LABELS[reason] ??
+    reason
+      .split("_")
+      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+      .join(" ")
+  );
+}
+
+function matchHeaderStyle(m: MatchPrediction): string {
+  if (m === "yes") return "bg-success-50 border-success-500/30";
+  if (m === "no") return "bg-danger-50 border-danger-500/30";
+  return "bg-warning-50 border-warning-500/30";
+}
+
+function matchBadgeStyle(m: MatchPrediction): string {
+  if (m === "yes") return "border-success-500/30 bg-success-50 text-success-700";
+  if (m === "no") return "border-danger-500 bg-danger-500 text-white";
+  return "border-warning-500/30 bg-warning-50 text-warning-700";
+}
+
+function matchBadgeLabel(m: MatchPrediction): string {
+  if (m === "yes") return "Yes";
+  if (m === "no") return "No";
+  return "Partially";
+}
+
+function matchStatement(m: MatchPrediction): string {
+  if (m === "yes")
+    return "Findr's risk analysis predicted the real reason this deal was lost.";
+  if (m === "no")
+    return "The real reason differed from what Findr's risk analysis predicted.";
+  return "Findr's risk analysis caught part of the real reason, but not all of it.";
+}
+
 const INPUT_CLASS =
   "h-9 min-w-0 flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-body text-neutral-700 outline-none";
+
+function CompletedResult({ session }: { session: SessionView }) {
+  const [showConversation, setShowConversation] = useState(false);
+  const mp = session.matchedRiskPrediction ?? null;
+  const conversation = session.conversation ?? [];
+
+  return (
+    <div className="space-y-5">
+      {/* Risk-prediction match — the ground truth: was the AI right? */}
+      {mp && (
+        <div className={`rounded-lg border p-5 ${matchHeaderStyle(mp)}`}>
+          <div className="mb-2 text-caption uppercase tracking-wider text-neutral-500">
+            Did Findr&apos;s risk analysis call it?
+          </div>
+          <span
+            className={`inline-block rounded-md border px-2 py-0.5 text-caption font-semibold uppercase ${matchBadgeStyle(mp)}`}
+          >
+            {matchBadgeLabel(mp)}
+          </span>
+          <p className="mt-3 text-body leading-relaxed text-neutral-700">
+            {session.reasoning?.trim() ? session.reasoning : matchStatement(mp)}
+          </p>
+        </div>
+      )}
+
+      {/* Extracted real loss reason */}
+      <div>
+        <div className="mb-1.5 text-caption uppercase tracking-wider text-neutral-500">
+          Real loss reason
+        </div>
+        <div className="text-h2 text-neutral-900">
+          {lossReasonLabel(session.extractedReason)}
+        </div>
+      </div>
+
+      {/* Evidence quote (kept in its original language) */}
+      {session.evidence?.trim() && (
+        <div>
+          <div className="mb-1.5 text-caption uppercase tracking-wider text-neutral-500">
+            In the buyer&apos;s words
+          </div>
+          <EvidenceQuote quote={session.evidence} speakerRole="buyer" />
+        </div>
+      )}
+
+      {/* Full conversation — collapsed by default, like the call transcript */}
+      {conversation.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowConversation((v) => !v)}
+            className="rounded-md px-2.5 py-1 text-caption font-medium text-primary-700 transition-colors hover:bg-primary-50"
+          >
+            {showConversation ? "Hide conversation" : "Show conversation"}
+          </button>
+          {showConversation && (
+            <div className="mt-2 max-h-[500px] space-y-3 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+              {conversation.map((turn, i) => (
+                <div key={i}>
+                  <div className="mb-0.5 text-caption font-medium text-neutral-500">
+                    {turn.role === "agent" ? "Findr" : "Buyer"}
+                  </div>
+                  <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-700">
+                    {turn.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function PostLossInterviewPanel({
   dealId,
@@ -82,6 +219,8 @@ export function PostLossInterviewPanel({
     }
   }
 
+  const isCompleted = session?.status === "completed";
+
   return (
     <Card>
       <CardHeader>
@@ -93,13 +232,16 @@ export function PostLossInterviewPanel({
       </CardHeader>
       <CardBody>
         {session ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="flex items-center gap-2">
               <span className="text-body text-neutral-500">Status</span>
               <Badge variant={STATUS_META[session.status].variant}>
                 {STATUS_META[session.status].label}
               </Badge>
             </div>
+
+            {isCompleted && <CompletedResult session={session} />}
+
             <div>
               <span className="mb-1.5 block text-body-strong text-neutral-900">
                 Interview link
@@ -118,10 +260,12 @@ export function PostLossInterviewPanel({
                   <Button variant="ghost">Open</Button>
                 </a>
               </div>
-              <p className="mt-2 text-small text-neutral-500">
-                Nothing is sent automatically yet — share this link to run the
-                interview. (Sending comes next.)
-              </p>
+              {!isCompleted && (
+                <p className="mt-2 text-small text-neutral-500">
+                  Nothing is sent automatically yet — share this link to run the
+                  interview. (Sending comes next.)
+                </p>
+              )}
             </div>
           </div>
         ) : !hasContact ? (
