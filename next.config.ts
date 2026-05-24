@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
   // treats the brackets literally instead of as a character class.
   outputFileTracingIncludes: {
     "/api/solution/\\[dealId\\]/pdf": ["./src/lib/pdf/fonts/*.ttf"],
+    "/api/deals/\\[id\\]/interview/pdf": ["./src/lib/pdf/fonts/*.ttf"],
   },
   experimental: {
     optimizePackageImports: ["framer-motion"],

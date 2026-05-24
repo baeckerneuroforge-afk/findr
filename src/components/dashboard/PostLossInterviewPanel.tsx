@@ -238,6 +238,16 @@ export function PostLossInterviewPanel({
               <Badge variant={STATUS_META[session.status].variant}>
                 {STATUS_META[session.status].label}
               </Badge>
+              {isCompleted && (
+                <a
+                  href={`/api/deals/${dealId}/interview/pdf`}
+                  className="ml-auto"
+                >
+                  <Button variant="secondary" size="sm">
+                    Export PDF
+                  </Button>
+                </a>
+              )}
             </div>
 
             {isCompleted && <CompletedResult session={session} />}
