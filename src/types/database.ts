@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_health_scores: {
+        Row: {
+          account_id: string
+          analysis_method: string
+          analyzed_at: string | null
+          created_at: string | null
+          health_level: string
+          health_score: number
+          id: string
+          org_id: string
+          overall_reasoning: string
+          recommendations: string[] | null
+          signals: Json
+          source_call_id: string | null
+        }
+        Insert: {
+          account_id: string
+          analysis_method?: string
+          analyzed_at?: string | null
+          created_at?: string | null
+          health_level: string
+          health_score: number
+          id?: string
+          org_id: string
+          overall_reasoning: string
+          recommendations?: string[] | null
+          signals: Json
+          source_call_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          analysis_method?: string
+          analyzed_at?: string | null
+          created_at?: string | null
+          health_level?: string
+          health_score?: number
+          id?: string
+          org_id?: string
+          overall_reasoning?: string
+          recommendations?: string[] | null
+          signals?: Json
+          source_call_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_health_scores_source_call_id_fkey"
+            columns: ["source_call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           company_name: string
@@ -236,6 +289,7 @@ export type Database = {
       }
       calls: {
         Row: {
+          account_id: string | null
           analyzed_at: string | null
           call_type: string | null
           created_at: string
@@ -257,6 +311,7 @@ export type Database = {
           transcript_summary: string | null
         }
         Insert: {
+          account_id?: string | null
           analyzed_at?: string | null
           call_type?: string | null
           created_at?: string
@@ -278,6 +333,7 @@ export type Database = {
           transcript_summary?: string | null
         }
         Update: {
+          account_id?: string | null
           analyzed_at?: string | null
           call_type?: string | null
           created_at?: string
@@ -304,6 +360,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]

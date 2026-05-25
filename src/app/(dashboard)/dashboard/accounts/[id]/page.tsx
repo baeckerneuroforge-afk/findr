@@ -2,7 +2,13 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getAccount } from "@/lib/accounts/service";
+import {
+  getAccountTranscriptCount,
+  getHealthScoreHistory,
+  getLatestHealthScore,
+} from "@/lib/accounts/health-service";
 import { getDealById } from "@/lib/deals/service";
+import { AccountHealthPanel } from "@/components/dashboard/AccountHealthPanel";
 import { AccountMasterCard } from "@/components/dashboard/AccountMasterCard";
 import { AccountStatusControl } from "@/components/dashboard/AccountStatusControl";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -55,6 +61,20 @@ export default async function AccountDetailPage({
     : null;
 
   const renewal = formatDate(account.renewalDate);
+
+  // Health data (Etappe 2): latest score + history for the chart + transcript
+  // count for the honesty line. Keyed by the account id (text column, consistent
+  // with risk_scores.deal_id).
+  const [latestHealth, healthHistory, transcriptCount] = await Promise.all([
+    getLatestHealthScore(orgId, account.id),
+    getHealthScoreHistory(orgId, account.id, 30),
+    getAccountTranscriptCount(orgId, account.id),
+  ]);
+  const healthHistoryPoints = healthHistory.map((point) => ({
+    date: point.analyzed_at,
+    score: point.health_score,
+    level: point.health_level,
+  }));
 
   return (
     <div>
@@ -112,12 +132,31 @@ export default async function AccountDetailPage({
         </div>
       </div>
 
-      {/* Coming-next placeholders (health score + interviews land in later sprints) */}
-      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-        <ComingNext
-          title="Health score"
-          description="Once post-sale calls and signals flow into this account, Findr will track a health score over time — mirroring the deal risk engine."
+      {/* Health score (Etappe 2): paste a post-sale transcript → score via the
+          existing risk engine, inverted to health. */}
+      <div className="mb-8">
+        <AccountHealthPanel
+          accountId={account.id}
+          latest={
+            latestHealth
+              ? {
+                  healthScore: latestHealth.health_score,
+                  healthLevel: latestHealth.health_level,
+                  overallReasoning: latestHealth.overall_reasoning,
+                  recommendations: latestHealth.recommendations,
+                  signals: latestHealth.signals,
+                  analysisMethod: latestHealth.analysis_method,
+                  analyzedAt: latestHealth.analyzed_at,
+                }
+              : null
+          }
+          history={healthHistoryPoints}
+          transcriptCount={transcriptCount}
         />
+      </div>
+
+      {/* Interviews — still a later sprint */}
+      <div className="mb-8">
         <ComingNext
           title="Interviews"
           description="Scheduled and ad-hoc customer interviews (renewal check-ins, churn diagnostics) will live here, reusing the voice-agent interviewer."

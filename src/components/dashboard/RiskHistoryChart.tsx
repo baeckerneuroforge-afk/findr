@@ -10,6 +10,12 @@ interface RiskScorePoint {
 
 interface RiskHistoryChartProps {
   history: RiskScorePoint[];
+  /** Heading above the chart. Defaults to the risk framing (deal page). */
+  title?: string;
+  /** When true, an upward trend is good (green). Health uses this; risk doesn't. */
+  higherIsBetter?: boolean;
+  /** Dashed reference line value (0-100), or null to hide it. Defaults to 70. */
+  thresholdValue?: number | null;
 }
 
 const LEVEL_COLORS = {
@@ -19,7 +25,12 @@ const LEVEL_COLORS = {
   critical: "#ef4444",
 };
 
-export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
+export function RiskHistoryChart({
+  history,
+  title = "Risk score over time",
+  higherIsBetter = false,
+  thresholdValue = 70,
+}: RiskHistoryChartProps) {
   const chartData = useMemo(() => {
     const sorted = [...history].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
@@ -73,18 +84,19 @@ export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
           chartData.points[chartData.points.length - 1],
         ]
       : chartData.points;
-  const trendColor =
-    trend > 0
-      ? "text-danger-700"
-      : trend < 0
-        ? "text-success-700"
-        : "text-neutral-500";
+  const worsening = higherIsBetter ? trend < 0 : trend > 0;
+  const improving = higherIsBetter ? trend > 0 : trend < 0;
+  const trendColor = worsening
+    ? "text-danger-700"
+    : improving
+      ? "text-success-700"
+      : "text-neutral-500";
 
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-6">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-h2 text-neutral-900">Risk score over time</h3>
+          <h3 className="text-h2 text-neutral-900">{title}</h3>
           <p className="mt-1 text-small text-neutral-500">
             {chartData.points.length} data points · Trend{" "}
             <span className={trendColor}>{trendLabel} points</span>
@@ -102,7 +114,7 @@ export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
         viewBox={`0 0 ${chartData.width} ${chartData.height}`}
         className="w-full"
         role="img"
-        aria-label="Risk score history chart"
+        aria-label={`${title} chart`}
       >
         {[0, 25, 50, 75, 100].map((value) => {
           const y =
@@ -133,24 +145,26 @@ export function RiskHistoryChart({ history }: RiskHistoryChartProps) {
           );
         })}
 
-        <line
-          x1={chartData.padding.left}
-          y1={
-            chartData.padding.top +
-            chartData.innerHeight -
-            (70 / 100) * chartData.innerHeight
-          }
-          x2={chartData.width - chartData.padding.right}
-          y2={
-            chartData.padding.top +
-            chartData.innerHeight -
-            (70 / 100) * chartData.innerHeight
-          }
-          stroke="#ef4444"
-          strokeWidth="1"
-          strokeDasharray="4,4"
-          opacity="0.35"
-        />
+        {thresholdValue !== null && (
+          <line
+            x1={chartData.padding.left}
+            y1={
+              chartData.padding.top +
+              chartData.innerHeight -
+              (thresholdValue / 100) * chartData.innerHeight
+            }
+            x2={chartData.width - chartData.padding.right}
+            y2={
+              chartData.padding.top +
+              chartData.innerHeight -
+              (thresholdValue / 100) * chartData.innerHeight
+            }
+            stroke="#ef4444"
+            strokeWidth="1"
+            strokeDasharray="4,4"
+            opacity="0.35"
+          />
+        )}
 
         <path
           d={chartData.pathD}
