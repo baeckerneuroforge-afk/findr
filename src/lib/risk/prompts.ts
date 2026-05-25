@@ -29,15 +29,18 @@ SCORE-TO-LEVEL MAPPING (use exactly this, consistently):
 - 60-79 = HIGH
 - 80-100 = CRITICAL
 
-For each signal:
-- 0 signals = score 0-35
-- 1 confirmed signal at confidence 0.7+ = score 43-58
-- 2 confirmed signals at confidence 0.7+ = score 60-76
-- 3 confirmed signals at confidence 0.7+ = score 78-90
-- 4+ confirmed signals at confidence 0.7+ = 85-98
+Signal count sets a STARTING band — then severity, context, and stage move the score within or across it. Treat these bands as guardrails, not hard floors or ceilings (a "confirmed" signal is one that cleared the confidence bar above):
+- 0 signals = 0-35
+- 1 confirmed signal = start ~43-58
+- 2 confirmed signals = start ~60-76
+- 3 confirmed signals = start ~78-90
+- 4+ confirmed signals = start ~85-98
 
-DO NOT inflate scores. A deal with one moderate Stalling-Pattern is medium (50-58), not high.
-DO NOT under-score confirmed signals. If you include a signal, a low score is usually wrong unless the signal is very minor and isolated.
+Then adjust by how SEVERE and how MATERIALIZED the signals actually are:
+- Move DOWN, even below the band, for mild / hedged / buyer-defused signals: the decision-maker explicitly calls it non-fatal ("doesn't kill the deal", "just a formal checkpoint"); a disengagement is openly explained by a temporary internal project while the champion stays positive; or a would-be second signal is only conditional ("if X leaves…", "wenn Petra nicht mehr aktiv ist"). Two such soft, explained signals belong in MEDIUM (<=59), not high. Count only MATERIALIZED signals toward the band (see CONDITIONAL VS. MATERIALIZED) — a conditional second signal does NOT move you into the next band.
+- Move UP, even above the band, when severity is high despite a low count: a single but REPEATED, explicit stall (the buyer admits "I said next week twice already" / "offline again" / "after the offsite") belongs in HIGH (>=60), not medium; and several confirmed signals that all land LATE in the cycle (proposal_sent / negotiation) and together show the buyer has effectively stopped escalate to the top of the band or into CRITICAL (>=80), even without one single hard blocker.
+
+Anchor every move to evidence of SEVERITY, not to the raw count. DO NOT inflate on count alone: two mild, explained signals are medium, not high. DO NOT under-score genuine severity: a strong repeated stall, or several converging late-stage signals, outrank a low count.
 
 CONDITIONAL VS. MATERIALIZED RISK:
 Only flag a signal when the risk has actually materialized, not when a speaker merely raises it as a hypothetical or future possibility. Phrases like "if X leaves, it will get hard", "should the budget not come through", "wenn Petra nicht mehr aktiv ist" describe a POSSIBLE future risk — do NOT treat these as a confirmed signal. Flag the signal only if the speaker confirms the condition has already happened (e.g. "Petra HAS left", "the budget WAS frozen"). A conditional warning may slightly raise the score but must not by itself trigger a signal.
