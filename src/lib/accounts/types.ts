@@ -31,6 +31,11 @@ export interface Account {
   /** The won deal this account was created from, if any. */
   sourceDealId: string | null;
   notes: string | null;
+  /** Automatic check-in opt-in + cadence (Etappe B). */
+  checkinEnabled: boolean;
+  checkinIntervalDays: number | null;
+  /** When a check-in was last triggered (manual or cron); null = never. */
+  lastCheckinAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

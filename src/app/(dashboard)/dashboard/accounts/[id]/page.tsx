@@ -179,6 +179,9 @@ export default async function AccountDetailPage({
           accountId={account.id}
           sponsorEmail={account.sponsorEmail}
           initialCheckin={checkin}
+          initialEnabled={account.checkinEnabled}
+          initialIntervalDays={account.checkinIntervalDays}
+          lastCheckinAt={account.lastCheckinAt}
         />
       </div>
 

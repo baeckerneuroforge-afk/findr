@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getAccount } from "@/lib/accounts/service";
+import { getAccount, markAccountCheckedIn } from "@/lib/accounts/service";
 import { getLatestHealthScore } from "@/lib/accounts/health-service";
 import { getOrgName } from "@/lib/auth/org";
 import { getOrgSettings } from "@/lib/settings/org-settings";
@@ -114,6 +114,9 @@ export async function createAndInviteCheckin(
     });
     await sendEmail({ to: email, subject, html, text });
     const invitedAt = await markInterviewInvited(orgId, accessToken);
+    // Stamp the account so the scheduler knows when the next check-in is due
+    // (covers both this manual path and the daily cron).
+    await markAccountCheckedIn(orgId, accountId);
 
     return {
       status: "sent",

@@ -123,6 +123,9 @@ export type Database = {
       }
       accounts: {
         Row: {
+          checkin_enabled: boolean
+          checkin_interval_days: number | null
+          last_checkin_at: string | null
           company_name: string
           created_at: string
           currency: string
@@ -139,6 +142,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          checkin_enabled?: boolean
+          checkin_interval_days?: number | null
+          last_checkin_at?: string | null
           company_name: string
           created_at?: string
           currency?: string
@@ -155,6 +161,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          checkin_enabled?: boolean
+          checkin_interval_days?: number | null
+          last_checkin_at?: string | null
           company_name?: string
           created_at?: string
           currency?: string

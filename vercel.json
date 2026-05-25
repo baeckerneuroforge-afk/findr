@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/reanalyze",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/account-checkins",
+      "schedule": "0 7 * * *"
     }
   ]
 }

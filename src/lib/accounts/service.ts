@@ -37,6 +37,9 @@ function mapRow(row: AccountRow): Account {
     status: toStatus(row.status),
     sourceDealId: row.source_deal_id,
     notes: row.notes,
+    checkinEnabled: row.checkin_enabled,
+    checkinIntervalDays: row.checkin_interval_days,
+    lastCheckinAt: row.last_checkin_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -87,6 +90,16 @@ const optionalRenewalDate = z.preprocess(
     .optional(),
 );
 
+/** Check-in cadence in days (1-365); accepts number, numeric string, "" / null. */
+const optionalIntervalDays = z.preprocess((value) => {
+  if (value === "" || value === null) return null;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : value;
+  }
+  return value;
+}, z.number().int().min(1).max(365).nullable().optional());
+
 export const AccountCreateSchema = z.object({
   companyName: z.string().trim().min(1).max(200),
   sponsorName: optionalText(200),
@@ -116,6 +129,8 @@ export const AccountUpdateSchema = z.object({
   renewalDate: optionalRenewalDate,
   status: z.enum(ACCOUNT_STATUSES).optional(),
   notes: optionalText(5000),
+  checkinEnabled: z.boolean().optional(),
+  checkinIntervalDays: optionalIntervalDays,
 });
 
 export type AccountUpdateInput = z.infer<typeof AccountUpdateSchema>;
@@ -171,6 +186,21 @@ export async function getAccountBySourceDeal(
   return data ? mapRow(data) : null;
 }
 
+/** All accounts with automatic check-ins enabled, for the daily cron. */
+export async function getCheckinEnabledAccounts(
+  orgId: string,
+): Promise<Account[]> {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("checkin_enabled", true);
+
+  if (error || !data) return [];
+  return data.map(mapRow);
+}
+
 // ----------------------------------------------------------------------------
 // Writes
 // ----------------------------------------------------------------------------
@@ -224,6 +254,10 @@ export async function updateAccount(
   if (input.renewalDate !== undefined) patch.renewal_date = input.renewalDate;
   if (input.status !== undefined) patch.status = input.status;
   if (input.notes !== undefined) patch.notes = input.notes;
+  if (input.checkinEnabled !== undefined)
+    patch.checkin_enabled = input.checkinEnabled;
+  if (input.checkinIntervalDays !== undefined)
+    patch.checkin_interval_days = input.checkinIntervalDays;
 
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
@@ -236,6 +270,24 @@ export async function updateAccount(
 
   if (error || !data) return null;
   return mapRow(data);
+}
+
+/**
+ * Stamp last_checkin_at = now when a check-in is triggered (manual or cron), so
+ * the daily scheduler knows when the next one is due. System-managed — not part
+ * of the user-editable update path.
+ */
+export async function markAccountCheckedIn(
+  orgId: string,
+  id: string,
+): Promise<void> {
+  if (!isUuid(id)) return;
+  const supabase = createAdminSupabaseClient();
+  await supabase
+    .from("accounts")
+    .update({ last_checkin_at: new Date().toISOString() })
+    .eq("org_id", orgId)
+    .eq("id", id);
 }
 
 /**
