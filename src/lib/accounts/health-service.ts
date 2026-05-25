@@ -89,6 +89,36 @@ export async function getLatestHealthScore(
   return toRecord(data);
 }
 
+/**
+ * Fetch the latest health score for each of the given account IDs.
+ * Returns a Map keyed by account_id; accounts without a stored score are absent.
+ * One indexed query + JS dedup — mirrors getLatestRiskScoresForDeals. No Opus.
+ */
+export async function getLatestHealthScoresForAccounts(
+  orgId: string,
+  accountIds: string[],
+): Promise<Map<string, HealthScoreRecord>> {
+  if (accountIds.length === 0) return new Map();
+
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("account_health_scores")
+    .select("*")
+    .eq("org_id", orgId)
+    .in("account_id", accountIds)
+    .order("analyzed_at", { ascending: false });
+
+  if (error || !data) return new Map();
+
+  const latest = new Map<string, HealthScoreRecord>();
+  for (const row of data) {
+    if (!latest.has(row.account_id)) {
+      latest.set(row.account_id, toRecord(row));
+    }
+  }
+  return latest;
+}
+
 export async function getHealthScoreHistory(
   orgId: string,
   accountId: string,
