@@ -13,7 +13,18 @@ import { createAndInviteCheckin } from "@/lib/voice-agent/checkin-orchestration"
  * (last_checkin_at + interval_days) reached (or never checked in). It skips
  * accounts without a sponsor email and never double-triggers an already-open
  * check-in.
+ *
+ * COST CONTROLS:
+ *   - ?dryRun=true runs the FULL due-check but triggers NOTHING (zero Opus
+ *     calls, zero emails). The summary lists which accounts WOULD fire.
+ *   - MAX_CHECKINS_PER_RUN caps how many check-ins a single run triggers; the
+ *     overflow is deferred to the next run (counted as skipped_over_limit).
  */
+
+// Hard cap on check-ins triggered per run — guards against a cost blow-up when
+// many accounts come due at once. Overflow is picked up on the next run. Tune
+// this single constant to raise/lower the per-run ceiling.
+const MAX_CHECKINS_PER_RUN = 10;
 
 function isAuthorizedCron(request: Request): boolean {
   const cronSecret = process.env.CRON_SECRET;
@@ -39,6 +50,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Dry run: do the full due-check but trigger nothing (no Opus, no email).
+  const dryRun = new URL(request.url).searchParams.get("dryRun") === "true";
+
   const supabase = createAdminSupabaseClient();
   const { data: orgs, error: orgsError } = await supabase
     .from("organizations")
@@ -49,6 +63,8 @@ export async function GET(request: Request) {
   }
 
   const results = {
+    dry_run: dryRun,
+    limit: MAX_CHECKINS_PER_RUN,
     total_orgs: orgs.length,
     enabled_accounts: 0,
     triggered: 0,
@@ -56,9 +72,16 @@ export async function GET(request: Request) {
     skipped_open: 0,
     skipped_no_email: 0,
     skipped_misconfigured: 0,
+    skipped_over_limit: 0,
     failed: 0,
+    /** Accounts selected to fire this run (or that WOULD, in dry run). */
+    would_trigger: [] as { id: string; company: string }[],
     errors: [] as string[],
   };
+
+  // Check-ins this run has committed to — caps real and dry-run alike, across
+  // all orgs (a single global ceiling per run).
+  let consumed = 0;
 
   for (const org of orgs) {
     // getCheckinEnabledAccounts swallows DB errors (returns []), so no try here.
@@ -87,6 +110,20 @@ export async function GET(request: Request) {
           results.skipped_open++;
           continue;
         }
+
+        // Eligible. Enforce the per-run cap (overflow waits for the next run).
+        if (consumed >= MAX_CHECKINS_PER_RUN) {
+          results.skipped_over_limit++;
+          continue;
+        }
+        consumed++;
+        results.would_trigger.push({
+          id: account.id,
+          company: account.companyName,
+        });
+
+        // Dry run stops here: full due-check done, but no Opus call, no email.
+        if (dryRun) continue;
 
         const result = await createAndInviteCheckin(org.id, account.id);
         if (result.status === "sent") {
