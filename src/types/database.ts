@@ -980,18 +980,21 @@ export type Database = {
           auto_start_post_loss_interview: boolean
           created_at: string
           org_id: string
+          product_name: string | null
           updated_at: string
         }
         Insert: {
           auto_start_post_loss_interview?: boolean
           created_at?: string
           org_id: string
+          product_name?: string | null
           updated_at?: string
         }
         Update: {
           auto_start_post_loss_interview?: boolean
           created_at?: string
           org_id?: string
+          product_name?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1331,6 +1334,8 @@ export type Database = {
       interview_sessions: {
         Row: {
           access_token: string
+          account_id: string | null
+          kind: "post_loss" | "checkin"
           completed_at: string | null
           conversation: Json
           created_at: string
@@ -1349,6 +1354,8 @@ export type Database = {
         }
         Insert: {
           access_token: string
+          account_id?: string | null
+          kind?: "post_loss" | "checkin"
           completed_at?: string | null
           conversation?: Json
           created_at?: string
@@ -1367,6 +1374,8 @@ export type Database = {
         }
         Update: {
           access_token?: string
+          account_id?: string | null
+          kind?: "post_loss" | "checkin"
           completed_at?: string | null
           conversation?: Json
           created_at?: string

@@ -4,11 +4,14 @@ import { randomBytes } from "node:crypto";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
+import { analyzeAccountTranscript } from "@/lib/accounts/health-service";
 import {
   DEFAULT_INTERVIEW_LANGUAGE,
   DEFAULT_VOICE_MODEL,
   extractLossReasonFromInterview,
+  nextCheckinMessage,
   nextInterviewMessage,
+  type CheckinInput,
   type InterviewInput,
   type InterviewLanguage,
   type InterviewResult,
@@ -31,11 +34,14 @@ import {
 type Row = Database["public"]["Tables"]["interview_sessions"]["Row"];
 
 const MAX_AGENT_TURNS = 6; // safety cap on conversation length / cost per session
+const MAX_CHECKIN_AGENT_TURNS = 4; // check-ins are short (2-3 questions)
 
 export interface InterviewSession {
   id: string;
   orgId: string;
   dealId: string | null;
+  accountId: string | null;
+  kind: "post_loss" | "checkin";
   accessToken: string;
   status: "open" | "completed" | "abandoned";
   language: InterviewLanguage;
@@ -65,6 +71,8 @@ function toSession(row: Row): InterviewSession {
     id: row.id,
     orgId: row.org_id,
     dealId: row.deal_id,
+    accountId: row.account_id,
+    kind: row.kind,
     accessToken: row.access_token,
     status: row.status,
     language: row.language,
@@ -78,15 +86,27 @@ function toSession(row: Row): InterviewSession {
 }
 
 function toPublicView(session: InterviewSession): PublicInterviewView {
+  const company =
+    session.kind === "checkin"
+      ? ((session.dealContext as unknown as CheckinInput | null)?.account
+          .companyName ?? null)
+      : (session.dealContext?.deal.company ?? null);
   return {
     status: session.status,
     conversation: session.conversation,
-    company: session.dealContext?.deal.company ?? null,
+    company,
   };
 }
 
 function agentTurnCount(conversation: InterviewTurn[]): number {
   return conversation.filter((t) => t.role === "agent").length;
+}
+
+/** Flatten a conversation into a plain transcript for the health engine. */
+function conversationToTranscript(conversation: InterviewTurn[]): string {
+  return conversation
+    .map((t) => `${t.role === "agent" ? "Assistant" : "Customer"}: ${t.text}`)
+    .join("\n");
 }
 
 async function loadByToken(token: string): Promise<InterviewSession | null> {
@@ -108,19 +128,30 @@ async function loadByToken(token: string): Promise<InterviewSession | null> {
 export async function createInterviewSession(params: {
   orgId: string;
   dealId?: string | null;
-  dealContext: InterviewInput;
+  accountId?: string | null;
+  kind?: "post_loss" | "checkin";
+  dealContext: InterviewInput | CheckinInput;
   language?: InterviewLanguage;
   model?: string;
 }): Promise<InterviewSession> {
+  const kind = params.kind ?? "post_loss";
   const model = params.model ?? process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL;
   const language = params.language ?? DEFAULT_INTERVIEW_LANGUAGE;
 
-  const opening = await nextInterviewMessage(
-    params.dealContext,
-    [],
-    language,
-    model,
-  );
+  const opening =
+    kind === "checkin"
+      ? await nextCheckinMessage(
+          params.dealContext as CheckinInput,
+          [],
+          language,
+          model,
+        )
+      : await nextInterviewMessage(
+          params.dealContext as InterviewInput,
+          [],
+          language,
+          model,
+        );
   const conversation: InterviewTurn[] = [
     { role: "agent", text: opening.message },
   ];
@@ -131,6 +162,8 @@ export async function createInterviewSession(params: {
     .insert({
       org_id: params.orgId,
       deal_id: params.dealId ?? null,
+      account_id: params.accountId ?? null,
+      kind,
       access_token: generateToken(),
       status: "open",
       language,
@@ -214,6 +247,40 @@ export async function getDealInterview(
   };
 }
 
+/** Org-internal view of an account's latest check-in (for the account page). */
+export interface AccountCheckinView {
+  accessToken: string;
+  status: "open" | "completed" | "abandoned";
+  createdAt: string;
+  completedAt: string | null;
+  invitedAt: string | null;
+}
+
+/** The most recent check-in session for an account, scoped to the org. */
+export async function getAccountCheckin(
+  orgId: string,
+  accountId: string,
+): Promise<AccountCheckinView | null> {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select("access_token, status, created_at, completed_at, invited_at")
+    .eq("org_id", orgId)
+    .eq("account_id", accountId)
+    .eq("kind", "checkin")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    accessToken: data.access_token,
+    status: data.status,
+    createdAt: data.created_at,
+    completedAt: data.completed_at,
+    invitedAt: data.invited_at,
+  };
+}
+
 /**
  * Stamp invited_at = now on a session, identified by its access token within the
  * org. Returns the new timestamp, or null if no matching session. Org-scoped.
@@ -236,8 +303,14 @@ export async function markInterviewInvited(
 }
 
 /**
- * Append the buyer's message, generate the next agent message, persist, and run
- * the extraction when the agent (or the safety cap) closes the conversation.
+ * Append the buyer/customer message, generate the next agent message, persist,
+ * and finish when the agent (or the safety cap) closes the conversation.
+ *
+ * Branches on session kind:
+ *   post_loss → on finish, run the loss-reason extraction (unchanged).
+ *   checkin   → on finish, turn the conversation into a transcript and feed it to
+ *               the account health engine (one transcript → one health point).
+ *
  * Returns the updated public view, or null if the token doesn't match a session.
  */
 export async function advanceInterview(
@@ -252,14 +325,77 @@ export async function advanceInterview(
     return toPublicView(session);
   }
 
-  const input = session.dealContext;
   const model = session.model ?? process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL;
-
   const history: InterviewTurn[] = [
     ...session.conversation,
     { role: "customer", text: buyerMessage.trim() },
   ];
+  const supabase = createAdminSupabaseClient();
 
+  // ── CHECK-IN: short satisfaction chat → account health point on finish ──────
+  if (session.kind === "checkin") {
+    const input = session.dealContext as unknown as CheckinInput;
+    const { done, message } = await nextCheckinMessage(
+      input,
+      history,
+      session.language,
+      model,
+    );
+    history.push({ role: "agent", text: message });
+    const finished = done || agentTurnCount(history) >= MAX_CHECKIN_AGENT_TURNS;
+
+    if (finished) {
+      // Feed the completed check-in into the account's health score. A health
+      // failure must NOT break the customer's chat — the conversation is saved
+      // regardless.
+      if (session.accountId) {
+        try {
+          await analyzeAccountTranscript(
+            session.orgId,
+            session.accountId,
+            conversationToTranscript(history),
+          );
+        } catch (err) {
+          console.error(
+            "[checkin] health analysis failed (conversation still saved):",
+            err instanceof Error ? err.message : err,
+          );
+        }
+      }
+      const { data, error } = await supabase
+        .from("interview_sessions")
+        .update({
+          conversation: history as unknown as Json,
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("access_token", token)
+        .select()
+        .single();
+      if (error || !data) {
+        throw new Error(
+          `Failed to finalize check-in session: ${error?.message ?? "no row returned"}`,
+        );
+      }
+      return toPublicView(toSession(data));
+    }
+
+    const { data, error } = await supabase
+      .from("interview_sessions")
+      .update({ conversation: history as unknown as Json })
+      .eq("access_token", token)
+      .select()
+      .single();
+    if (error || !data) {
+      throw new Error(
+        `Failed to update check-in session: ${error?.message ?? "no row returned"}`,
+      );
+    }
+    return toPublicView(toSession(data));
+  }
+
+  // ── POST-LOSS interview (unchanged behavior) ────────────────────────────────
+  const input = session.dealContext;
   const { done, message } = await nextInterviewMessage(
     input,
     history,
@@ -269,7 +405,6 @@ export async function advanceInterview(
   history.push({ role: "agent", text: message });
 
   const finished = done || agentTurnCount(history) >= MAX_AGENT_TURNS;
-  const supabase = createAdminSupabaseClient();
 
   if (finished) {
     const result = await extractLossReasonFromInterview(input, history, model);

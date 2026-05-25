@@ -362,3 +362,103 @@ export async function extractLossReasonFromInterview(
     InterviewResultSchema,
   );
 }
+
+// ----------------------------------------------------------------------------
+// Check-in agent (CS Health) — a SHORT post-sale satisfaction check-in.
+//
+// Separate from the post-loss interview: different identity (speaks in the Findr
+// CUSTOMER's name, not as findr.) and different purpose (ongoing satisfaction,
+// not loss research). It reuses the same conversation mechanic — the {done,
+// message} schema, turn handling, language enforcement, and the JSON/Zod/retry
+// plumbing (callJson). The completed conversation is turned into a transcript and
+// fed to the account health engine (handled in session-service), so there is NO
+// extraction step here.
+// ----------------------------------------------------------------------------
+
+export interface CheckinAccountContext {
+  /** The Findr customer — the company in whose name the agent speaks. */
+  orgName: string;
+  /** What the customer bought (label only; falls back upstream if unset). */
+  productName: string;
+  /** The end-customer account being checked in on. */
+  companyName: string;
+  sponsorName: string | null;
+}
+
+export interface CheckinInput {
+  account: CheckinAccountContext;
+  /**
+   * Recent churn-signal types from the account's latest health score — used ONLY
+   * as private background to steer AT MOST ONE targeted follow-up. Never revealed.
+   */
+  recentSignals?: string[];
+}
+
+export const CHECKIN_SYSTEM_PROMPT = `You are an AI assistant running a SHORT, friendly satisfaction check-in with a customer, ON BEHALF OF the company named in the context (that company sold them the product named in the context). This is a relationship check-in — you are NOT selling, upselling, or running support.
+
+You work in DACH (Germany / Austria / Switzerland). LANGUAGE: every check-in is conducted in a REQUIRED language, given in the context. Write ALL of your messages in that language — including your opening message, which you send before the customer has said anything — and stay in it.
+
+TRANSPARENCY (required, non-negotiable): In your OPENING message, clearly identify yourself as an AI assistant reaching out on behalf of the named company. Never imply or pretend to be a human. A natural one-liner is enough (e.g. "I'm the AI assistant from <company>").
+
+YOUR STYLE:
+- Warm, brief, professional. ONE short message at a time — a single question, never a wall of text.
+- This is SHORT: 2–3 questions total, then close. Not a survey, not an interrogation, not a support session.
+
+YOUR JOB — cover, briefly:
+1. Overall satisfaction with the product so far.
+2. Whether anything is blocking or frustrating them.
+3. Whether usage is going as planned / they're getting the value they expected.
+You do not need all three as separate questions — keep it natural and short. As soon as you have a sense of how they feel (or they're brief), close warmly with a thank-you.
+
+PRIVATE BACKGROUND (never reveal): you may be given recent health/churn signals for this account. Use them ONLY to steer AT MOST ONE targeted, gentle follow-up (e.g. if "ENGAGEMENT_DROP" is flagged, you may ask how often the team is using it). Never state the signals, never lead the customer, never read like you're investigating them.
+
+OUTPUT — return ONLY this JSON object, no markdown, no preamble:
+{
+  "done": true | false,
+  "message": "<your next message to the customer, or a short warm closing if done>"
+}
+Set "done": false while you still want to ask another question; set "done": true when wrapping up.`;
+
+function buildCheckinPrompt(
+  input: CheckinInput,
+  history: InterviewTurn[],
+  language: InterviewLanguage,
+): string {
+  const signals =
+    input.recentSignals && input.recentSignals.length > 0
+      ? input.recentSignals.join(", ")
+      : "none on record";
+
+  return `REQUIRED LANGUAGE: ${LANGUAGE_LABELS[language]} — write your message in this language, including the opening message.
+
+CHECK-IN ON BEHALF OF (speak in this company's name): ${input.account.orgName}
+PRODUCT: ${input.account.productName}
+CUSTOMER COMPANY: ${input.account.companyName}
+CONTACT: ${input.account.sponsorName ?? "the customer"}
+
+PRIVATE BACKGROUND — recent health/churn signals for this account (do NOT reveal; use for at most ONE gentle follow-up): ${signals}
+
+CONVERSATION SO FAR:
+${formatHistory(history)}
+
+Write your next message as JSON only.`;
+}
+
+/**
+ * Generate the check-in agent's next message. Reuses the post-loss conversation
+ * mechanic (same {done,message} schema, language handling, JSON/Zod/retry) with a
+ * check-in-specific system prompt + account context.
+ */
+export async function nextCheckinMessage(
+  input: CheckinInput,
+  history: InterviewTurn[],
+  language: InterviewLanguage,
+  model: string = process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL,
+): Promise<NextMessage> {
+  return callJson(
+    CHECKIN_SYSTEM_PROMPT,
+    buildCheckinPrompt(input, history, language),
+    model,
+    NextMessageSchema,
+  );
+}

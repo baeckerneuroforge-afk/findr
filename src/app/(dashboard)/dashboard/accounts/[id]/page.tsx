@@ -9,12 +9,12 @@ import {
 } from "@/lib/accounts/health-service";
 import { getSavePlays } from "@/lib/accounts/save-play-service";
 import { getDealById } from "@/lib/deals/service";
+import { getAccountCheckin } from "@/lib/voice-agent/session-service";
 import { AccountHealthPanel } from "@/components/dashboard/AccountHealthPanel";
 import { SavePlayPanel } from "@/components/dashboard/SavePlayPanel";
+import { AccountCheckinPanel } from "@/components/dashboard/AccountCheckinPanel";
 import { AccountMasterCard } from "@/components/dashboard/AccountMasterCard";
 import { AccountStatusControl } from "@/components/dashboard/AccountStatusControl";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 
 function formatMrr(mrr: number | null, currency: "USD" | "EUR"): string {
   if (mrr === null) return "MRR not set";
@@ -67,11 +67,13 @@ export default async function AccountDetailPage({
   // Health data (Etappe 2): latest score + history for the chart + transcript
   // count for the honesty line. Keyed by the account id (text column, consistent
   // with risk_scores.deal_id).
-  const [latestHealth, healthHistory, transcriptCount] = await Promise.all([
-    getLatestHealthScore(orgId, account.id),
-    getHealthScoreHistory(orgId, account.id, 30),
-    getAccountTranscriptCount(orgId, account.id),
-  ]);
+  const [latestHealth, healthHistory, transcriptCount, checkin] =
+    await Promise.all([
+      getLatestHealthScore(orgId, account.id),
+      getHealthScoreHistory(orgId, account.id, 30),
+      getAccountTranscriptCount(orgId, account.id),
+      getAccountCheckin(orgId, account.id),
+    ]);
   const healthHistoryPoints = healthHistory.map((point) => ({
     date: point.analyzed_at,
     score: point.health_score,
@@ -171,11 +173,12 @@ export default async function AccountDetailPage({
         </div>
       )}
 
-      {/* Interviews — still a later sprint */}
+      {/* Customer check-in — short AI satisfaction chat that feeds the health score */}
       <div className="mb-8">
-        <ComingNext
-          title="Interviews"
-          description="Scheduled and ad-hoc customer interviews (renewal check-ins, churn diagnostics) will live here, reusing the voice-agent interviewer."
+        <AccountCheckinPanel
+          accountId={account.id}
+          sponsorEmail={account.sponsorEmail}
+          initialCheckin={checkin}
         />
       </div>
 
@@ -196,25 +199,5 @@ export default async function AccountDetailPage({
         />
       </div>
     </div>
-  );
-}
-
-function ComingNext({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <Card className="border-dashed">
-      <CardHeader className="flex items-center justify-between border-dashed">
-        <h2 className="text-h2 text-neutral-900">{title}</h2>
-        <Badge variant="default">Coming next</Badge>
-      </CardHeader>
-      <CardBody>
-        <p className="text-body text-neutral-500">{description}</p>
-      </CardBody>
-    </Card>
   );
 }
