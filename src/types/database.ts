@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          company_name: string
+          created_at: string
+          currency: string
+          id: string
+          mrr: number | null
+          notes: string | null
+          org_id: string
+          renewal_date: string | null
+          source_deal_id: string | null
+          sponsor_email: string | null
+          sponsor_name: string | null
+          sponsor_phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          currency?: string
+          id?: string
+          mrr?: number | null
+          notes?: string | null
+          org_id: string
+          renewal_date?: string | null
+          source_deal_id?: string | null
+          sponsor_email?: string | null
+          sponsor_name?: string | null
+          sponsor_phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          mrr?: number | null
+          notes?: string | null
+          org_id?: string
+          renewal_date?: string | null
+          source_deal_id?: string | null
+          sponsor_email?: string | null
+          sponsor_name?: string | null
+          sponsor_phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_source_deal_id_fkey"
+            columns: ["source_deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alert_history: {
         Row: {
           alert_type: string

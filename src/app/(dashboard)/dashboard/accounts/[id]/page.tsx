@@ -1,0 +1,165 @@
+import Link from "next/link";
+import { redirect, notFound } from "next/navigation";
+import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
+import { getAccount } from "@/lib/accounts/service";
+import { getDealById } from "@/lib/deals/service";
+import { AccountMasterCard } from "@/components/dashboard/AccountMasterCard";
+import { AccountStatusControl } from "@/components/dashboard/AccountStatusControl";
+import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+
+function formatMrr(mrr: number | null, currency: "USD" | "EUR"): string {
+  if (mrr === null) return "MRR not set";
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(mrr);
+}
+
+function formatDate(date: string | null): string | null {
+  if (!date) return null;
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return parsed.toLocaleDateString("de-DE", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export default async function AccountDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch (err) {
+    if (err instanceof OrgResolutionError) {
+      if (err.code === "no_auth") redirect("/sign-in");
+      if (err.code === "no_org") redirect("/onboarding/create-org");
+      redirect("/sign-in");
+    }
+    throw err;
+  }
+
+  const { id } = await params;
+  const account = await getAccount(orgId, id);
+  if (!account) notFound();
+
+  // Resolve the originating deal (for a back-link), if any. May be gone.
+  const sourceDeal = account.sourceDealId
+    ? await getDealById(orgId, account.sourceDealId)
+    : null;
+
+  const renewal = formatDate(account.renewalDate);
+
+  return (
+    <div>
+      {/* Breadcrumb */}
+      <nav
+        aria-label="Breadcrumb"
+        className="mb-6 flex items-center gap-2 text-small text-neutral-500"
+      >
+        <Link
+          href="/dashboard/accounts"
+          className="transition-colors hover:text-neutral-900"
+        >
+          Accounts
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span className="truncate text-neutral-900">{account.companyName}</span>
+      </nav>
+
+      {/* Header */}
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-3">
+            <h1 className="text-display text-neutral-900">
+              {account.companyName}
+            </h1>
+            <AccountStatusControl
+              accountId={account.id}
+              initialStatus={account.status}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-body text-neutral-500">
+            <span>{formatMrr(account.mrr, account.currency)}</span>
+            {renewal && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>Renews {renewal}</span>
+              </>
+            )}
+            {account.sourceDealId && (
+              <>
+                <span aria-hidden="true">·</span>
+                {sourceDeal ? (
+                  <Link
+                    href={`/dashboard/deals/${account.sourceDealId}`}
+                    className="text-primary-700 hover:underline"
+                  >
+                    From deal: {sourceDeal.name}
+                  </Link>
+                ) : (
+                  <span>Created from a won deal</span>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Coming-next placeholders (health score + interviews land in later sprints) */}
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <ComingNext
+          title="Health score"
+          description="Once post-sale calls and signals flow into this account, Findr will track a health score over time — mirroring the deal risk engine."
+        />
+        <ComingNext
+          title="Interviews"
+          description="Scheduled and ad-hoc customer interviews (renewal check-ins, churn diagnostics) will live here, reusing the voice-agent interviewer."
+        />
+      </div>
+
+      {/* Master data (editable) */}
+      <div className="mb-8">
+        <AccountMasterCard
+          accountId={account.id}
+          initial={{
+            companyName: account.companyName,
+            sponsorName: account.sponsorName,
+            sponsorEmail: account.sponsorEmail,
+            sponsorPhone: account.sponsorPhone,
+            mrr: account.mrr,
+            currency: account.currency,
+            renewalDate: account.renewalDate,
+            notes: account.notes,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ComingNext({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <Card className="border-dashed">
+      <CardHeader className="flex items-center justify-between border-dashed">
+        <h2 className="text-h2 text-neutral-900">{title}</h2>
+        <Badge variant="default">Coming next</Badge>
+      </CardHeader>
+      <CardBody>
+        <p className="text-body text-neutral-500">{description}</p>
+      </CardBody>
+    </Card>
+  );
+}
