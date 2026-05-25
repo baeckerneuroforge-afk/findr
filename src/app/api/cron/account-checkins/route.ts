@@ -46,12 +46,19 @@ function isDue(
 }
 
 export async function GET(request: Request) {
-  if (!isAuthorizedCron(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   // Dry run: do the full due-check but trigger nothing (no Opus, no email).
   const dryRun = new URL(request.url).searchParams.get("dryRun") === "true";
+
+  // Auth. The REAL run ALWAYS requires the cron token. A dry run is read-only
+  // (zero Opus, zero email), so when NOT running on Vercel — i.e. local `next
+  // dev` or `next start` — it may run WITHOUT the token, so the due-logic can be
+  // tested locally without the Bearer dance. On Vercel (preview/prod) even a dry
+  // run requires the token, so the deployed endpoint is never probeable
+  // unauthenticated. (process.env.VERCEL is set only on Vercel.)
+  const localDryRun = dryRun && !process.env.VERCEL;
+  if (!localDryRun && !isAuthorizedCron(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const supabase = createAdminSupabaseClient();
   const { data: orgs, error: orgsError } = await supabase
