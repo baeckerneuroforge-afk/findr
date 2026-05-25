@@ -125,30 +125,6 @@ export async function getAccountTranscriptCount(
 
 // ── analysis ─────────────────────────────────────────────────────────────────
 
-async function loadAccountPromptCalls(
-  orgId: string,
-  accountId: string,
-): Promise<CallForPrompt[]> {
-  const supabase = createAdminSupabaseClient();
-  const { data, error } = await supabase
-    .from("calls")
-    .select(
-      "call_type, duration_seconds, recorded_at, transcript_summary, transcript",
-    )
-    .eq("org_id", orgId)
-    .eq("account_id", accountId)
-    .order("recorded_at", { ascending: false });
-
-  if (error || !data) return [];
-  return data.map((c) => ({
-    call_type: c.call_type,
-    duration_seconds: c.duration_seconds,
-    recorded_at: c.recorded_at,
-    transcript_summary: c.transcript_summary,
-    transcript: c.transcript,
-  }));
-}
-
 /**
  * Synthetic Deal built from an account so the deal risk engine can run unchanged.
  * Post-sale relationship signals (champion disengagement, stalling, engagement
@@ -183,8 +159,13 @@ export interface AnalyzeAccountResult {
 
 /**
  * Store a transcript as a call on the account, run the EXISTING risk engine over
- * all of the account's transcripts, invert the result to a health score, and
- * persist it. Returns null only if the account doesn't exist in this org.
+ * JUST THIS transcript, invert the result to a health score, and persist it as
+ * one score point. Returns null only if the account doesn't exist in this org.
+ *
+ * One score per transcript (mirrors the risk engine's one row per run): the
+ * account's CURRENT health is the newest transcript's score, and the history
+ * chart shows every point, so a real recovery between conversations (e.g. an old
+ * 22 followed by a fresh 85) is visible instead of being averaged away.
  *
  * The attach point (account_id) is what makes this "health" rather than "risk" —
  * there is no phase auto-detection.
@@ -225,9 +206,21 @@ export async function analyzeAccountTranscript(
     );
   }
 
-  // 2) Run the existing engine over ALL of the account's transcripts.
-  const promptCalls = await loadAccountPromptCalls(orgId, accountId);
-  const syntheticDeal = accountToSyntheticDeal(account, promptCalls.length);
+  // 2) Score ONLY this transcript — one health-score point per analysis run
+  //    (mirrors the risk engine's one row per run). Pooling all of an account's
+  //    transcripts would let an old bad call drag down a fresh good one and turn
+  //    the "trend" into a measure of the growing collection rather than real
+  //    movement. The newest transcript's score IS the account's current health.
+  const promptCalls: CallForPrompt[] = [
+    {
+      call_type: "manual_transcript",
+      duration_seconds: null,
+      recorded_at: now,
+      transcript_summary: null,
+      transcript,
+    },
+  ];
+  const syntheticDeal = accountToSyntheticDeal(account, 1);
   const { result, source } = await analyzeDealRiskWithFallback(
     syntheticDeal,
     promptCalls,

@@ -105,17 +105,14 @@ export function AccountHealthPanel({
           {/* Honesty: always say what the score is based on. */}
           {latest ? (
             <p className="text-small text-neutral-500">
-              Based on {transcriptCount}{" "}
-              {transcriptCount === 1 ? "transcript" : "transcripts"} · last
-              analyzed {new Date(latest.analyzedAt).toLocaleString("de-DE")}
+              Latest score from 1 transcript ·{" "}
+              {transcriptCount === 1 ? "1 score" : `${transcriptCount} scores`}{" "}
+              total · last analyzed{" "}
+              {new Date(latest.analyzedAt).toLocaleString("de-DE")}
               {latest.analysisMethod === "heuristic" &&
                 " · heuristic fallback (AI model was unavailable)"}
               {transcriptCount === 1 && (
-                <>
-                  {" "}
-                  — this is a single data point; add more transcripts for a
-                  fuller picture.
-                </>
+                <> — first data point; add more transcripts to see the trend.</>
               )}
             </p>
           ) : (
