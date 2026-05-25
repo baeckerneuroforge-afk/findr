@@ -641,7 +641,11 @@ export const EVAL_CASES: EvalCase[] = [
       riskLevel: "high",
       scoreRangeMin: 61,
       scoreRangeMax: 77,
-      requiredSignals: ["LATE_DECISION_MAKER", "STALLING_PATTERN"],
+      // STALLING_PATTERN removed: this is a single, newly-surfaced Legal/Betriebsrat
+      // approval gate (LATE_DECISION_MAKER), not repeated postponement — there is no
+      // "we said next week again" pattern in the transcript. Level stays high: an
+      // unengaged works-council veto gate blocking the pilot is a real late blocker.
+      requiredSignals: ["LATE_DECISION_MAKER"],
     },
   },
   {
@@ -1508,7 +1512,12 @@ export const EVAL_CASES: EvalCase[] = [
       riskLevel: "critical",
       scoreRangeMin: 82,
       scoreRangeMax: 96,
-      requiredSignals: ["STALLING_PATTERN", "ENGAGEMENT_DROP"],
+      // ENGAGEMENT_DROP removed: the only engagement signal here is the champion
+      // pulling back from cadence ("I do not want to keep weekly meetings ... if we
+      // cannot move anything forward") — the same root as CHAMPION_DISENGAGEMENT,
+      // the more specific label the prompt asks for. Requiring both double-counts
+      // one event; the buyer team is otherwise engaged.
+      requiredSignals: ["STALLING_PATTERN"],
     },
   },
   {
@@ -2077,8 +2086,12 @@ export const EVAL_CASES: EvalCase[] = [
     expected: {
       riskLevel: "medium",
       scoreRangeMin: 48,
-      // Range widened: a late procurement compliance review in DACH banking can legitimately score at the medium/high boundary; 62 is acceptable.
-      scoreRangeMax: 63,
+      // Level-consistent band: medium tops out at 59 (>=60 maps to high). This is
+      // a single, late compliance gate the decision-maker explicitly calls
+      // non-fatal ("adds a formal checkpoint") — one materialized
+      // LATE_DECISION_MAKER, so medium is the honest call. The previous 48-63 band
+      // crossed the 60 level boundary, making the case unpassable by definition.
+      scoreRangeMax: 59,
       requiredSignals: ["LATE_DECISION_MAKER"],
     },
   },
