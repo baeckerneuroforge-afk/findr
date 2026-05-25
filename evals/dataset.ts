@@ -1512,12 +1512,12 @@ export const EVAL_CASES: EvalCase[] = [
       riskLevel: "critical",
       scoreRangeMin: 82,
       scoreRangeMax: 96,
-      // ENGAGEMENT_DROP removed: the only engagement signal here is the champion
-      // pulling back from cadence ("I do not want to keep weekly meetings ... if we
-      // cannot move anything forward") — the same root as CHAMPION_DISENGAGEMENT,
-      // the more specific label the prompt asks for. Requiring both double-counts
-      // one event; the buyer team is otherwise engaged.
-      requiredSignals: ["STALLING_PATTERN"],
+      // ENGAGEMENT_DROP replaced with CHAMPION_DISENGAGEMENT: the champion pulling
+      // back from cadence ("I do not want to keep weekly meetings ... if we cannot
+      // move anything forward") is the specific signal driving this case — the
+      // prompt's "most specific label" for that root, which the model correctly
+      // emits. ENGAGEMENT_DROP would double-count the same event.
+      requiredSignals: ["STALLING_PATTERN", "CHAMPION_DISENGAGEMENT"],
     },
   },
   {
