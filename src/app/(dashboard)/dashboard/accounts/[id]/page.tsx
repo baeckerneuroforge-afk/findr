@@ -7,8 +7,10 @@ import {
   getHealthScoreHistory,
   getLatestHealthScore,
 } from "@/lib/accounts/health-service";
+import { getSavePlays } from "@/lib/accounts/save-play-service";
 import { getDealById } from "@/lib/deals/service";
 import { AccountHealthPanel } from "@/components/dashboard/AccountHealthPanel";
+import { SavePlayPanel } from "@/components/dashboard/SavePlayPanel";
 import { AccountMasterCard } from "@/components/dashboard/AccountMasterCard";
 import { AccountStatusControl } from "@/components/dashboard/AccountStatusControl";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -75,6 +77,13 @@ export default async function AccountDetailPage({
     score: point.health_score,
     level: point.health_level,
   }));
+
+  // Save-play only makes sense once a health analysis exists (mirrors the deal
+  // page gating the Solution layer behind a risk analysis). Load the latest so it
+  // survives a reload.
+  const latestSavePlay = latestHealth
+    ? ((await getSavePlays(orgId, account.id, 1))[0] ?? null)
+    : null;
 
   return (
     <div>
@@ -154,6 +163,13 @@ export default async function AccountDetailPage({
           transcriptCount={transcriptCount}
         />
       </div>
+
+      {/* Save-play (retention recommendations) — only once a health score exists */}
+      {latestHealth && (
+        <div className="mb-8">
+          <SavePlayPanel accountId={account.id} initialReport={latestSavePlay} />
+        </div>
+      )}
 
       {/* Interviews — still a later sprint */}
       <div className="mb-8">

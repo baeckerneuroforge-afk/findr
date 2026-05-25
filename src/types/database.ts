@@ -67,6 +67,60 @@ export type Database = {
           },
         ]
       }
+      account_save_plays: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          model: string
+          org_id: string
+          overall: Json
+          recommendations: Json
+          salvageable: "yes" | "no" | "maybe" | null
+          source_health_score_id: string | null
+          status: "completed" | "failed"
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          model: string
+          org_id: string
+          overall?: Json
+          recommendations?: Json
+          salvageable?: "yes" | "no" | "maybe" | null
+          source_health_score_id?: string | null
+          status?: "completed" | "failed"
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          model?: string
+          org_id?: string
+          overall?: Json
+          recommendations?: Json
+          salvageable?: "yes" | "no" | "maybe" | null
+          source_health_score_id?: string | null
+          status?: "completed" | "failed"
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_save_plays_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_save_plays_source_health_score_id_fkey"
+            columns: ["source_health_score_id"]
+            isOneToOne: false
+            referencedRelation: "account_health_scores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           company_name: string
