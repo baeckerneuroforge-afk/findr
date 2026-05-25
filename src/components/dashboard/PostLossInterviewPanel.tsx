@@ -27,6 +27,7 @@ interface PostLossInterviewPanelProps {
   dealId: string;
   hasContact: boolean;
   contactEmail: string | null;
+  autoInterviewEnabled: boolean;
   initialSession: SessionView | null;
 }
 
@@ -173,6 +174,7 @@ export function PostLossInterviewPanel({
   dealId,
   hasContact,
   contactEmail,
+  autoInterviewEnabled,
   initialSession,
 }: PostLossInterviewPanelProps) {
   const [session, setSession] = useState<SessionView | null>(initialSession);
@@ -350,23 +352,33 @@ export function PostLossInterviewPanel({
               </div>
             )}
           </div>
-        ) : !hasContact ? (
-          <p className="text-body text-neutral-500">
-            Add contact details to start an interview.
-          </p>
         ) : (
           <div className="space-y-3">
-            <p className="text-body text-neutral-700">
-              Generate a one-time interview link for the buyer contact.
-            </p>
-            {error && (
-              <div className="rounded-md border border-danger-500/20 bg-danger-50 px-3 py-2 text-small text-danger-700">
-                {error}
+            {autoInterviewEnabled && (!hasContact || !contactEmail) && (
+              <div className="rounded-md border border-warning-500/30 bg-warning-50 px-3 py-2 text-small text-warning-700">
+                Auto-interview not started: a contact email is required. Add the
+                contact details above, then start it manually below.
               </div>
             )}
-            <Button onClick={start} disabled={loading}>
-              {loading ? "Starting…" : "Start interview"}
-            </Button>
+            {!hasContact ? (
+              <p className="text-body text-neutral-500">
+                Add contact details to start an interview.
+              </p>
+            ) : (
+              <>
+                <p className="text-body text-neutral-700">
+                  Generate a one-time interview link for the buyer contact.
+                </p>
+                {error && (
+                  <div className="rounded-md border border-danger-500/20 bg-danger-50 px-3 py-2 text-small text-danger-700">
+                    {error}
+                  </div>
+                )}
+                <Button onClick={start} disabled={loading}>
+                  {loading ? "Starting…" : "Start interview"}
+                </Button>
+              </>
+            )}
           </div>
         )}
 

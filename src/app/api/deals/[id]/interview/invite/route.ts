@@ -1,21 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireOrgIdOrError } from "@/lib/auth/org";
-import { getDealById } from "@/lib/deals/service";
-import {
-  getDealInterview,
-  markInterviewInvited,
-} from "@/lib/voice-agent/session-service";
-import { sendEmail, EmailError } from "@/lib/email/resend";
-import {
-  buildInterviewInvite,
-  interviewUrl,
-} from "@/lib/email/interview-invite";
+import { createAndInviteInterview } from "@/lib/voice-agent/interview-orchestration";
 
 /**
- * Send the post-loss interview invitation email for a deal's open interview.
- * Org-internal (logged-in). The recipient address comes from the deal's stored
- * contact email — NEVER from the request body — and everything is org-scoped.
+ * Send the post-loss interview invitation email for a deal. Org-internal
+ * (logged-in). The recipient address comes from the deal's stored contact email
+ * — NEVER from the request body. Delegates to the shared createAndInviteInterview
+ * flow (also used by the lost-deal auto-trigger), which creates the interview if
+ * one doesn't exist yet and then sends the invite.
  */
 
 const DealIdSchema = z.string().uuid();
@@ -26,69 +19,38 @@ export async function POST(
 ) {
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
-  const orgId = orgOrError.orgId;
 
   const { id } = await params;
   const parsed = DealIdSchema.safeParse(id);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid dealId" }, { status: 400 });
   }
-  const dealId = parsed.data;
 
-  const deal = await getDealById(orgId, dealId);
-  if (!deal) {
-    return NextResponse.json({ error: "Deal not found" }, { status: 404 });
-  }
+  const result = await createAndInviteInterview(orgOrError.orgId, parsed.data);
 
-  const email = deal.contactEmail?.trim();
-  if (!email) {
-    return NextResponse.json(
-      { error: "Add a contact email to send the invitation." },
-      { status: 400 },
-    );
-  }
-
-  const interview = await getDealInterview(orgId, dealId);
-  if (!interview) {
-    return NextResponse.json(
-      { error: "Start the interview before sending an invitation." },
-      { status: 400 },
-    );
-  }
-  if (interview.status !== "open") {
-    return NextResponse.json(
-      { error: "This interview is no longer open." },
-      { status: 400 },
-    );
-  }
-
-  const { subject, html, text } = buildInterviewInvite({
-    contactName: deal.contactName,
-    company: deal.companyName,
-    url: interviewUrl(interview.accessToken),
-  });
-
-  try {
-    await sendEmail({ to: email, subject, html, text });
-  } catch (err) {
-    console.error(
-      `[deals/${dealId}/interview/invite] send failed:`,
-      err instanceof Error ? err.message : err,
-    );
-    if (err instanceof EmailError) {
+  switch (result.status) {
+    case "sent":
+      return NextResponse.json({
+        success: true,
+        sentTo: result.sentTo,
+        invitedAt: result.invitedAt,
+      });
+    case "missing_contact":
+      return NextResponse.json(
+        { error: "Add a contact email to send the invitation." },
+        { status: 400 },
+      );
+    case "not_found":
+      return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+    case "not_open":
+      return NextResponse.json(
+        { error: "This interview is no longer open." },
+        { status: 400 },
+      );
+    default:
       return NextResponse.json(
         { error: "Could not send the invitation email. Please try again." },
         { status: 502 },
       );
-    }
-    return NextResponse.json(
-      { error: "Could not send the invitation. Please try again." },
-      { status: 500 },
-    );
   }
-
-  // Record the send so the deal page can show "invited" instead of re-offering.
-  const invitedAt = await markInterviewInvited(orgId, interview.accessToken);
-
-  return NextResponse.json({ success: true, sentTo: email, invitedAt });
 }

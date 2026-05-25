@@ -1,4 +1,5 @@
 import { OrganizationSettingsForm } from "@/components/settings/OrganizationSettingsForm";
+import { AutoInterviewSettingForm } from "@/components/settings/AutoInterviewSettingForm";
 
 export default function OrganizationSettingsPage() {
   return (
@@ -10,6 +11,7 @@ export default function OrganizationSettingsPage() {
         </p>
       </div>
       <OrganizationSettingsForm />
+      <AutoInterviewSettingForm />
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { DealOutcomeControl } from "@/components/dashboard/DealOutcomeControl";
 import { PostLossInterviewPanel } from "@/components/dashboard/PostLossInterviewPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getDealInterview } from "@/lib/voice-agent/session-service";
+import { getOrgSettings } from "@/lib/settings/org-settings";
 
 function PhoneIcon() {
   return (
@@ -76,6 +77,12 @@ export default async function DealDetailPage({
   // panel can show an existing session (and avoid creating a second one).
   const dealInterview =
     deal.outcome === "lost" ? await getDealInterview(orgId, id) : null;
+  // Drives the "auto-interview couldn't start" hint when the toggle is on but
+  // contact details are missing.
+  const autoInterviewEnabled =
+    deal.outcome === "lost"
+      ? (await getOrgSettings(orgId)).autoStartPostLossInterview
+      : false;
 
   return (
     <div>
@@ -132,6 +139,7 @@ export default async function DealDetailPage({
             dealId={id}
             hasContact={Boolean(deal.contactName)}
             contactEmail={deal.contactEmail ?? null}
+            autoInterviewEnabled={autoInterviewEnabled}
             initialSession={dealInterview}
           />
         </div>

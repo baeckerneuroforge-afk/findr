@@ -792,6 +792,35 @@ export type Database = {
           },
         ]
       }
+      org_settings: {
+        Row: {
+          auto_start_post_loss_interview: boolean
+          created_at: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_start_post_loss_interview?: boolean
+          created_at?: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_start_post_loss_interview?: boolean
+          created_at?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           clerk_org_id: string
