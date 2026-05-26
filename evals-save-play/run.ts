@@ -1,41 +1,44 @@
 /**
- * Solution-Layer Eval Runner
- * --------------------------
- * Runs generateSolution() over SOLUTION_EVAL_CASES and prints the FULL output
- * per case (recommendations + next steps + evidence + overall verdict) so it can
- * be read and judged MANUALLY — that manual read is the primary evaluation.
+ * Save-Play Eval Runner
+ * ---------------------
+ * Mirror of evals-solution/run.ts for the CS save-play layer. Runs
+ * generateSavePlayLLM() over SAVE_PLAY_EVAL_CASES and prints the FULL output
+ * per case (recommendations + next steps + evidence + overall verdict) so it
+ * can be read and judged MANUALLY — that manual read is the primary evaluation.
  *
  * On top of the read, three heuristic checks are printed per recommendation as
  * supportive signals (not a score):
- *   (a) anchored   — does it cite a real quote / concrete deal detail (not just
- *                    the signal name), and avoid generic sales platitudes?
+ *   (a) anchored   — does it cite a real quote / concrete account detail (not
+ *                    just the signal name), and avoid generic CS platitudes?
  *   (b) nextStep   — is there a concrete, actionable next step (verb / timing)?
  *   (c) no-halluc  — if it presents an evidence quote, does that quote actually
- *                    appear in this deal? (rough fabrication check)
+ *                    appear in this account's transcript? (rough fabrication check)
  * These are heuristics; trust the text, not the PASS/WARN flags.
  *
- * Always calls the LLM (Opus by default; override with SOLUTION_MODEL). The
- * extractor pulls in modules marked "server-only", so this MUST run with the
+ * Always calls the LLM (Opus by default; override with SOLUTION_MODEL — shared
+ * with the solution eval on purpose, both layers share one model knob). The
+ * service pulls in modules marked "server-only", so this MUST run with the
  * react-server export condition. Start it yourself, in the foreground:
  *
  *   env -u ANTHROPIC_API_KEY \
- *     pnpm exec tsx --conditions=react-server evals-solution/run.ts
+ *     pnpm exec tsx --conditions=react-server evals-save-play/run.ts
  *
- * (`env -u ANTHROPIC_API_KEY` clears an empty/shadowing shell var so dotenv can
- * inject the real key from .env.local; harmless if unset. Prefix with
+ * (`env -u ANTHROPIC_API_KEY` clears an empty/shadowing shell var so dotenv
+ * can inject the real key from .env.local; harmless if unset. Prefix with
  * `SOLUTION_MODEL=claude-sonnet-4-6` to test the cheaper model.)
  */
 
 import { config } from "dotenv";
-import { SOLUTION_EVAL_CASES, type SolutionEvalCase } from "./dataset";
+import { SAVE_PLAY_EVAL_CASES, type SavePlayEvalCase } from "./dataset";
 import type {
-  SolutionRecommendation,
-  SolutionResult,
-} from "@/lib/solution/extractor";
+  SavePlayRecommendation,
+  SavePlayResult,
+} from "@/lib/accounts/save-play-extractor";
 
 // ---- heuristic checks -------------------------------------------------------
 
 const GENERIC_PHRASES = [
+  // Shared with the solution eval (sales/CS overlap):
   "build a relationship",
   "build relationship",
   "build rapport",
@@ -54,9 +57,19 @@ const GENERIC_PHRASES = [
   "vertrauen aufbauen",
   "am ball bleiben",
   "proaktiv sein",
+  // CS-specific platitudes (round 1 additions):
+  "secure the renewal",
+  "renewal sichern",
+  "drive expansion",
+  "expansion treiben",
+  "rebuild trust",
+  "vertrauen zurückgewinnen",
+  "ensure customer success",
+  "customer success sicherstellen",
 ];
 
 const ACTION_VERBS = [
+  // Shared with the solution eval:
   "send",
   "schedule",
   "book",
@@ -92,6 +105,12 @@ const ACTION_VERBS = [
   "aufsetzen",
   "durchgehen",
   "anbieten",
+  // CS-specific concrete verbs (round 1 additions):
+  "introduce",
+  "vorstellen",
+  "re-onboard",
+  "neu onboarden",
+  "verlängern",
 ];
 
 const TIME_REFS = [
@@ -155,15 +174,15 @@ function salientTokens(s: string): string[] {
   return [...caps, ...nums].filter((t) => !stop.has(t.toLowerCase()));
 }
 
-/** (a) Anchored: cites a real quote / concrete deal detail, not a platitude. */
-function checkAnchored(rec: SolutionRecommendation, haystack: string): Check {
+/** (a) Anchored: cites a real quote / concrete account detail, not a platitude. */
+function checkAnchored(rec: SavePlayRecommendation, haystack: string): Check {
   const recNorm = fold(rec.recommendation);
   const generic = GENERIC_PHRASES.find((p) => recNorm.includes(p));
   if (generic) return { ok: false, note: `generic phrase: "${generic}"` };
 
   const evNorm = fold(rec.evidence);
   if (evNorm.length >= 12 && haystack.includes(evNorm)) {
-    return { ok: true, note: "evidence quote found in deal" };
+    return { ok: true, note: "evidence quote found in account" };
   }
 
   // Fold the token too — otherwise an umlaut-bearing token (e.g., "Müller")
@@ -171,13 +190,13 @@ function checkAnchored(rec: SolutionRecommendation, haystack: string): Check {
   const shared = salientTokens(rec.recommendation).find((tok) =>
     haystack.includes(fold(tok)),
   );
-  if (shared) return { ok: true, note: `mentions deal detail "${shared}"` };
+  if (shared) return { ok: true, note: `mentions account detail "${shared}"` };
 
-  return { ok: false, note: "no quote or concrete deal detail in recommendation" };
+  return { ok: false, note: "no quote or concrete account detail in recommendation" };
 }
 
 /** (b) Concrete next step: has an action verb (and ideally a timing/owner). */
-function checkNextStep(rec: SolutionRecommendation): Check {
+function checkNextStep(rec: SavePlayRecommendation): Check {
   const ns = fold(rec.nextStep);
   if (ns.length < 15) return { ok: false, note: "next step too short / vague" };
   const hasVerb = ACTION_VERBS.some((v) => ns.includes(v));
@@ -187,15 +206,15 @@ function checkNextStep(rec: SolutionRecommendation): Check {
   return { ok: false, note: "no clear action verb" };
 }
 
-/** (c) No obvious hallucination: every presented quote fragment must exist in the deal. */
-function checkNoHalluc(rec: SolutionRecommendation, haystack: string): Check {
+/** (c) No obvious hallucination: every presented quote fragment must exist in the account. */
+function checkNoHalluc(rec: SavePlayRecommendation, haystack: string): Check {
   const evNorm = fold(rec.evidence);
   if (evNorm.length < 6) return { ok: true, note: "no evidence quote to verify" };
 
   // The model sometimes stitches two genuine transcript spans together with an
   // ellipsis ("A ... B" or "A … B"). Verify EACH fragment independently so a
   // legitimate composite quote isn't flagged as fabrication — only a fragment
-  // that is genuinely absent from the deal is a hallucination signal. Short
+  // that is genuinely absent from the account is a hallucination signal. Short
   // splinters (< 10 chars) from the split are ignored as noise.
   const fragments = evNorm
     .split(/\s*(?:\.\.\.|…)\s*/)
@@ -218,8 +237,8 @@ function checkNoHalluc(rec: SolutionRecommendation, haystack: string): Check {
     ok: true,
     note:
       fragments.length > 1
-        ? "all evidence fragments found in deal"
-        : "evidence verbatim in deal",
+        ? "all evidence fragments found in account"
+        : "evidence verbatim in account",
   };
 }
 
@@ -229,15 +248,15 @@ function flag(c: Check): string {
 
 // ---- printing ---------------------------------------------------------------
 
-function caseHaystack(c: SolutionEvalCase): string {
-  const quotes = c.riskAnalysis.signals.flatMap((s) => s.quotes).join(" ");
+function caseHaystack(c: SavePlayEvalCase): string {
+  const quotes = c.health.signals.flatMap((s) => s.quotes).join(" ");
   return fold(`${c.transcript} ${quotes}`);
 }
 
-function amountStr(c: SolutionEvalCase): string {
-  const { amount, currency } = c.deal;
-  if (amount == null) return "amount n/a";
-  return `${currency ? `${currency} ` : ""}${amount.toLocaleString()}`;
+function mrrStr(c: SavePlayEvalCase): string {
+  const { mrr, currency } = c.account;
+  if (mrr == null) return "MRR n/a";
+  return `${currency} ${mrr.toLocaleString()}/mo`;
 }
 
 interface Tally {
@@ -247,20 +266,20 @@ interface Tally {
   noHalluc: number;
 }
 
-function printCase(c: SolutionEvalCase, result: SolutionResult, tally: Tally): void {
+function printCase(c: SavePlayEvalCase, result: SavePlayResult, tally: Tally): void {
   const haystack = caseHaystack(c);
   const signalList =
-    c.riskAnalysis.signals.map((s) => s.type).join(", ") || "none";
+    c.health.signals.map((s) => s.type).join(", ") || "none";
 
   console.log("\n" + "=".repeat(78));
   console.log(`${c.id} — ${c.description}`);
   console.log(
-    `deal: ${c.deal.stage} · ${amountStr(c)} · ${c.deal.callsCount} calls · ${
-      c.deal.industry ?? "n/a"
-    }`,
+    `account: ${c.account.companyName} · sponsor: ${
+      c.account.sponsorName ?? "—"
+    } · ${mrrStr(c)} · renewal: ${c.account.renewalDate ?? "—"}`,
   );
   console.log(
-    `risk: ${c.riskAnalysis.riskScore}/100 (${c.riskAnalysis.riskLevel}) · signals: ${signalList}`,
+    `health: ${c.health.healthScore}/100 (${c.health.healthLevel}) · signals: ${signalList}`,
   );
   console.log("-".repeat(78));
   console.log(
@@ -269,8 +288,8 @@ function printCase(c: SolutionEvalCase, result: SolutionResult, tally: Tally): v
 
   if (result.recommendations.length === 0) {
     console.log("(no recommendations returned)");
-    if (c.riskAnalysis.signals.length === 0) {
-      console.log("  -> expected for a healthy deal.");
+    if (c.health.signals.length === 0) {
+      console.log("  -> expected for a healthy account.");
     } else {
       console.log("  -> WARN: signals were present but no recommendations came back.");
     }
@@ -303,13 +322,13 @@ function printCase(c: SolutionEvalCase, result: SolutionResult, tally: Tally): v
 
 async function loadExtractor() {
   try {
-    return await import("@/lib/solution/extractor");
+    return await import("@/lib/accounts/save-play-extractor");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (/Client Component|server-only/i.test(msg)) {
       console.error(
         "\nThis runner imports a server-only module. Re-run with the react-server condition:\n" +
-          "  env -u ANTHROPIC_API_KEY pnpm exec tsx --conditions=react-server evals-solution/run.ts\n",
+          "  env -u ANTHROPIC_API_KEY pnpm exec tsx --conditions=react-server evals-save-play/run.ts\n",
       );
       process.exit(1);
     }
@@ -327,22 +346,28 @@ async function main(): Promise<void> {
     );
   }
 
-  const { generateSolution, DEFAULT_SOLUTION_MODEL } = await loadExtractor();
+  const { generateSavePlayLLM } = await loadExtractor();
+  // Reuses the Solution model knob — both layers share one model setting on purpose
+  // (save-play-service.ts imports DEFAULT_SOLUTION_MODEL for the same reason).
+  const { DEFAULT_SOLUTION_MODEL } = await import("@/lib/solution/extractor");
   const model = process.env.SOLUTION_MODEL ?? DEFAULT_SOLUTION_MODEL;
 
-  console.log(`\nSolution-Layer Eval — model: ${model}`);
-  console.log(`${SOLUTION_EVAL_CASES.length} cases · read the output, judge manually\n`);
+  console.log(`\nSave-Play Eval — model: ${model}`);
+  console.log(`${SAVE_PLAY_EVAL_CASES.length} cases · read the output, judge manually\n`);
 
   const tally: Tally = { recs: 0, anchored: 0, nextStep: 0, noHalluc: 0 };
   let errors = 0;
 
-  for (const c of SOLUTION_EVAL_CASES) {
+  for (const c of SAVE_PLAY_EVAL_CASES) {
     try {
-      const result = await generateSolution({
-        riskAnalysis: c.riskAnalysis,
-        deal: c.deal,
-        transcript: c.transcript,
-      });
+      const result = await generateSavePlayLLM(
+        {
+          health: c.health,
+          account: c.account,
+          transcript: c.transcript,
+        },
+        model,
+      );
       printCase(c, result, tally);
     } catch (err) {
       errors += 1;
@@ -355,7 +380,7 @@ async function main(): Promise<void> {
   }
 
   console.log("\n" + "=".repeat(78));
-  console.log(`SUMMARY (${SOLUTION_EVAL_CASES.length} cases, model: ${model})`);
+  console.log(`SUMMARY (${SAVE_PLAY_EVAL_CASES.length} cases, model: ${model})`);
   if (errors > 0) console.log(`  errors:               ${errors}`);
   console.log(`  total recommendations: ${tally.recs}`);
   console.log(`  anchored:              ${tally.anchored}/${tally.recs}`);
