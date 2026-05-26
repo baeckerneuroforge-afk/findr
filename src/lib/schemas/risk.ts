@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+// LLMs occasionally return enum values in the "wrong" case (e.g. "CRITICAL"
+// when the schema expects "critical", or lowercase signal types). Normalize
+// STRINGS here so the subsequent z.enum check is case-insensitive WITHOUT
+// changing the allowed value set itself. Non-strings pass through unchanged so
+// the enum can still reject them with a clear "expected string" error.
+const toLowerString = (v: unknown) =>
+  typeof v === "string" ? v.toLowerCase() : v;
+const toUpperString = (v: unknown) =>
+  typeof v === "string" ? v.toUpperCase() : v;
+
 export const RISK_SIGNAL_TYPES = [
   "CHAMPION_LOSS",
   "COMPETITOR_PRESSURE",
@@ -13,7 +23,7 @@ export const RISK_SIGNAL_TYPES = [
 ] as const;
 
 export const RiskSignalSchema = z.object({
-  type: z.enum(RISK_SIGNAL_TYPES),
+  type: z.preprocess(toUpperString, z.enum(RISK_SIGNAL_TYPES)),
   confidence: z.number().min(0).max(1),
   reasoning: z.string().min(1).max(2000),
   quotes: z.array(z.string()).max(10).default([]),
@@ -21,7 +31,10 @@ export const RiskSignalSchema = z.object({
 
 export const RiskAnalysisResultSchema = z.object({
   riskScore: z.number().int().min(0).max(100),
-  riskLevel: z.enum(["low", "medium", "high", "critical"]),
+  riskLevel: z.preprocess(
+    toLowerString,
+    z.enum(["low", "medium", "high", "critical"]),
+  ),
   signals: z.array(RiskSignalSchema).max(8),
   overallReasoning: z.string().min(1).max(5000),
   recommendations: z.array(z.string()).max(5).default([]),
