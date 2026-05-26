@@ -69,7 +69,7 @@ CONFIDENCE — be HONEST.
 If the transcript barely touches an axis, set confidence < 0.3 AND keep the score near 50 (neutral). DO NOT invent or extrapolate. A short or thin call legitimately yields low-confidence axes — that is the correct answer, not a guess. The aggregator will give those axes zero weight.
 
 EVIDENCE — verbatim only.
-Each evidence entry must be a literal quote from the transcript (German or English, as spoken). If you do not have a real quote for an axis or signal, return an empty evidence array. Never paraphrase into the evidence array. Inventing quotes is the worst failure mode here.
+Each evidence entry must be a literal quote from the transcript (German or English, as spoken), AND each entry must be ONE contiguous span from a SINGLE speaker turn — do NOT concatenate across speaker changes, and do NOT insert punctuation (dashes, ellipses, etc.) to stitch two lines together. If you do not have a real quote for an axis or signal, return an empty evidence array. Never paraphrase into the evidence array. Inventing quotes is the worst failure mode here.
 
 ACUTE SIGNALS — a SEPARATE layer with a HARD event requirement.
 
