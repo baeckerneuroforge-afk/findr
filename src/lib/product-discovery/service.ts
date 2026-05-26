@@ -163,10 +163,23 @@ export interface ProductDiscoveryInsightRecord {
    *  for a future fallback, mirroring the option on health/risk. */
   analysis_method: "ai" | "heuristic";
   analyzed_at: string;
+  /** UI label resolved server-side: deal `name` (deal-side) or account
+   *  `company_name` (account-side). null when the linked deal/account no
+   *  longer exists or — for deal_id — is a legacy non-UUID seed string
+   *  ("deal_001"…) without a matching deals row; the page renders a
+   *  placeholder in that case. Only populated by getAllInsightsForOrg; the
+   *  other read functions leave it null because their callers already know
+   *  the parent's name from page context. */
+  source_label: string | null;
+  /** "deal" when the insight is attached to a deal_id, "account" otherwise.
+   *  Derived from deal_id presence — XOR is enforced indirectly via the
+   *  source call's calls.calls_single_parent_chk. */
+  source_kind: "deal" | "account";
 }
 
 function toRecord(
   row: ProductDiscoveryInsightRow,
+  sourceLabel: string | null = null,
 ): ProductDiscoveryInsightRecord {
   return {
     id: row.id,
@@ -182,7 +195,47 @@ function toRecord(
     analysis_method:
       (row.analysis_method as "ai" | "heuristic" | undefined) ?? "ai",
     analyzed_at: row.analyzed_at,
+    source_label: sourceLabel,
+    source_kind: row.deal_id ? "deal" : "account",
   };
+}
+
+/** UUID-form check used to filter `deal_id` values before querying `deals`
+ *  by their `uuid` primary key. deal_id is `text` and holds a mix of real
+ *  UUIDs and legacy seed strings ("deal_001" …, see 20260610*_product_
+ *  discovery_deal_id_text.sql); only UUID-shaped ids can match. Non-UUID
+ *  deal_ids resolve to a null source_label. */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function fetchDealNames(
+  supabase: SupabaseClient<DatabaseWithPD>,
+  orgId: string,
+  dealIds: string[],
+): Promise<Map<string, string>> {
+  if (dealIds.length === 0) return new Map();
+  const { data } = await supabase
+    .from("deals")
+    .select("id, name")
+    .eq("org_id", orgId)
+    .in("id", dealIds);
+  if (!data) return new Map();
+  return new Map(data.map((d) => [d.id, d.name]));
+}
+
+async function fetchAccountNames(
+  supabase: SupabaseClient<DatabaseWithPD>,
+  orgId: string,
+  accountIds: string[],
+): Promise<Map<string, string>> {
+  if (accountIds.length === 0) return new Map();
+  const { data } = await supabase
+    .from("accounts")
+    .select("id, company_name")
+    .eq("org_id", orgId)
+    .in("id", accountIds);
+  if (!data) return new Map();
+  return new Map(data.map((a) => [a.id, a.company_name]));
 }
 
 // ── Reads ───────────────────────────────────────────────────────────────────
@@ -222,7 +275,9 @@ export async function getInsightsForDeal(
     .order("analyzed_at", { ascending: false });
 
   if (error || !data) return [];
-  return data.map(toRecord);
+  // Wrap to drop Array.map's index arg; toRecord's optional second param
+  // is `string | null`, not `number`.
+  return data.map((row) => toRecord(row));
 }
 
 /** All insights across the calls of a single account, newest first. */
@@ -239,15 +294,32 @@ export async function getInsightsForAccount(
     .order("analyzed_at", { ascending: false });
 
   if (error || !data) return [];
-  return data.map(toRecord);
+  // Wrap to drop Array.map's index arg; toRecord's optional second param
+  // is `string | null`, not `number`.
+  return data.map((row) => toRecord(row));
 }
 
 /**
  * All insights in an org, newest first, optionally bounded by an ISO `since`
- * cutoff. Intended as the read endpoint for the Phase 3.2 cross-call rollup
- * view — JS-side aggregation is fine at expected volumes for now; once
- * volume warrants it the rollups move into SQL views directly against the
- * JSONB arrays.
+ * cutoff. UI-ready: every record carries a resolved `source_label`
+ * (deal.name or accounts.company_name) and `source_kind` ("deal" | "account")
+ * so the rollup page can render the parent label and the link href without
+ * a second hop.
+ *
+ * Resolution strategy: insights are fetched org-scoped, then deal-side and
+ * account-side labels are looked up in TWO batched indexed queries
+ * (`.in("id", …)`) and merged client-side. The conceptual equivalent is
+ *
+ *   LEFT JOIN deals    d ON d.id::text = pdi.deal_id AND d.org_id = pdi.org_id
+ *   LEFT JOIN accounts a ON a.id      = pdi.account_id AND a.org_id = pdi.org_id
+ *   SELECT COALESCE(d.name, a.company_name) AS source_label
+ *
+ * but supabase-js cannot express the uuid::text cast through its embedded-
+ * select syntax (the deal_id FK was dropped in 20260610*; pdi.deal_id is
+ * `text`, deals.id is `uuid`). Two `.in()` queries are also cheaper than the
+ * cast-based join for typical org sizes since both lookups hit the primary
+ * key index directly. Same pattern as getLatestHealthScoresForAccounts in
+ * src/lib/accounts/health-service.ts.
  */
 export async function getAllInsightsForOrg(
   orgId: string,
@@ -263,7 +335,39 @@ export async function getAllInsightsForOrg(
 
   const { data, error } = await query;
   if (error || !data) return [];
-  return data.map(toRecord);
+
+  // Collect unique parent ids for the two label lookups. deal_id is filtered
+  // to UUID-shaped values; legacy non-UUID strings have no matching deals
+  // row and resolve to null source_label.
+  const dealIds = [
+    ...new Set(
+      data
+        .map((r) => r.deal_id)
+        .filter((id): id is string => id !== null && UUID_RE.test(id)),
+    ),
+  ];
+  const accountIds = [
+    ...new Set(
+      data
+        .map((r) => r.account_id)
+        .filter((id): id is string => id !== null),
+    ),
+  ];
+
+  const [dealNames, accountNames] = await Promise.all([
+    fetchDealNames(supabase, orgId, dealIds),
+    fetchAccountNames(supabase, orgId, accountIds),
+  ]);
+
+  return data.map((row) => {
+    const label =
+      row.deal_id !== null
+        ? (dealNames.get(row.deal_id) ?? null)
+        : row.account_id !== null
+          ? (accountNames.get(row.account_id) ?? null)
+          : null;
+    return toRecord(row, label);
+  });
 }
 
 // ── Analysis (write) ────────────────────────────────────────────────────────
