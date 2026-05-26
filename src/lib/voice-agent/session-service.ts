@@ -2,20 +2,26 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import type { Database, Json } from "@/types/database";
+import type { Json } from "@/types/database";
 import { analyzeAccountTranscript } from "@/lib/accounts/health-service";
+import {
+  createResearchSupabase,
+  type DatabaseWithResearch,
+} from "@/lib/research/db";
+import { persistResearchTranscriptAndDiscovery } from "@/lib/research/transcript-service";
 import {
   DEFAULT_INTERVIEW_LANGUAGE,
   DEFAULT_VOICE_MODEL,
   extractLossReasonFromInterview,
   nextCheckinMessage,
   nextInterviewMessage,
+  nextResearchMessage,
   type CheckinInput,
   type InterviewInput,
   type InterviewLanguage,
   type InterviewResult,
   type InterviewTurn,
+  type ResearchInput,
 } from "./interviewer";
 
 /**
@@ -31,22 +37,48 @@ import {
  * session and nothing else.
  */
 
-type Row = Database["public"]["Tables"]["interview_sessions"]["Row"];
+type Row = DatabaseWithResearch["public"]["Tables"]["interview_sessions"]["Row"];
 
 const MAX_AGENT_TURNS = 6; // safety cap on conversation length / cost per session
 const MAX_CHECKIN_AGENT_TURNS = 4; // check-ins are short (2-3 questions)
+// Research interviews cover 2–4 turns per topic; with a typical plan of 3–5
+// topics that lands in the 8–14 turn range. Cap at 14 so a runaway plan or
+// a chatty participant can't drive cost arbitrarily high — the agent's own
+// done-flag remains the primary stop signal.
+const MAX_RESEARCH_AGENT_TURNS = 14;
+
+/**
+ * dealContext is the per-session input bucket consumed by the agent prompt.
+ * Which shape lives inside depends on `kind`:
+ *   post_loss → InterviewInput  (deal + risk prediction)
+ *   checkin   → CheckinInput    (account + recent signals)
+ *   research  → ResearchInput   (plan + brand)
+ * The column is JSONB; we narrow at the branch points.
+ */
+export type InterviewSessionContext =
+  | InterviewInput
+  | CheckinInput
+  | ResearchInput;
 
 export interface InterviewSession {
   id: string;
   orgId: string;
   dealId: string | null;
   accountId: string | null;
-  kind: "post_loss" | "checkin";
+  kind: "post_loss" | "checkin" | "research";
+  /** expand-contract Phase 1: flow mirrors kind once Phase 2 lands; today
+   *  kind is still authoritative. Null on legacy rows. */
+  flow: "post_loss" | "checkin" | "research" | null;
+  mode: "text" | "voice" | "video";
+  planId: string | null;
+  inviteId: string | null;
+  recordingUrl: string | null;
+  transcriptSource: string | null;
   accessToken: string;
   status: "open" | "completed" | "abandoned";
   language: InterviewLanguage;
   conversation: InterviewTurn[];
-  dealContext: InterviewInput | null;
+  dealContext: InterviewSessionContext | null;
   result: InterviewResult | null;
   model: string | null;
   createdAt: string;
@@ -73,11 +105,18 @@ function toSession(row: Row): InterviewSession {
     dealId: row.deal_id,
     accountId: row.account_id,
     kind: row.kind,
+    flow: row.flow,
+    mode: row.mode,
+    planId: row.plan_id,
+    inviteId: row.invite_id,
+    recordingUrl: row.recording_url,
+    transcriptSource: row.transcript_source,
     accessToken: row.access_token,
     status: row.status,
     language: row.language,
     conversation: (row.conversation as unknown as InterviewTurn[]) ?? [],
-    dealContext: (row.deal_context as unknown as InterviewInput | null) ?? null,
+    dealContext:
+      (row.deal_context as unknown as InterviewSessionContext | null) ?? null,
     result: (row.result as unknown as InterviewResult | null) ?? null,
     model: row.model,
     createdAt: row.created_at,
@@ -86,11 +125,24 @@ function toSession(row: Row): InterviewSession {
 }
 
 function toPublicView(session: InterviewSession): PublicInterviewView {
-  const company =
-    session.kind === "checkin"
-      ? ((session.dealContext as unknown as CheckinInput | null)?.account
-          .companyName ?? null)
-      : (session.dealContext?.deal.company ?? null);
+  // `company` is the friendly label shown in the chat header. We keep the
+  // field name for backwards-compat with the existing public API; the value
+  // semantics depend on the flow:
+  //   post_loss → buyer's company (header reads "… about Acme")
+  //   checkin   → customer's company (account)
+  //   research  → NULL by design. The plan title would feel awkward as a
+  //                "company" label, and the agent's transparent opening
+  //                message already states what the research is about. The
+  //                header then degrades cleanly to "A short conversation".
+  let company: string | null = null;
+  if (session.kind === "research") {
+    company = null;
+  } else if (session.kind === "checkin") {
+    company =
+      (session.dealContext as CheckinInput | null)?.account.companyName ?? null;
+  } else {
+    company = (session.dealContext as InterviewInput | null)?.deal.company ?? null;
+  }
   return {
     status: session.status,
     conversation: session.conversation,
@@ -110,7 +162,7 @@ function conversationToTranscript(conversation: InterviewTurn[]): string {
 }
 
 async function loadByToken(token: string): Promise<InterviewSession | null> {
-  const supabase = createAdminSupabaseClient();
+  const supabase = createResearchSupabase();
   const { data, error } = await supabase
     .from("interview_sessions")
     .select("*")
@@ -129,34 +181,54 @@ export async function createInterviewSession(params: {
   orgId: string;
   dealId?: string | null;
   accountId?: string | null;
-  kind?: "post_loss" | "checkin";
-  dealContext: InterviewInput | CheckinInput;
+  kind?: "post_loss" | "checkin" | "research";
+  dealContext: InterviewSessionContext;
+  /** Conversation channel — default 'text'. Voice/Video will set this when
+   *  the transport adapters land. */
+  mode?: "text" | "voice" | "video";
+  /** Research-only links. Ignored for post_loss / checkin sessions. */
+  planId?: string | null;
+  inviteId?: string | null;
   language?: InterviewLanguage;
   model?: string;
 }): Promise<InterviewSession> {
   const kind = params.kind ?? "post_loss";
+  const mode = params.mode ?? "text";
   const model = params.model ?? process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL;
   const language = params.language ?? DEFAULT_INTERVIEW_LANGUAGE;
 
+  // Opening message routing — same callJson plumbing, different prompt + input
+  // shape per flow.
   const opening =
-    kind === "checkin"
-      ? await nextCheckinMessage(
-          params.dealContext as CheckinInput,
+    kind === "research"
+      ? await nextResearchMessage(
+          params.dealContext as ResearchInput,
           [],
           language,
           model,
         )
-      : await nextInterviewMessage(
-          params.dealContext as InterviewInput,
-          [],
-          language,
-          model,
-        );
+      : kind === "checkin"
+        ? await nextCheckinMessage(
+            params.dealContext as CheckinInput,
+            [],
+            language,
+            model,
+          )
+        : await nextInterviewMessage(
+            params.dealContext as InterviewInput,
+            [],
+            language,
+            model,
+          );
   const conversation: InterviewTurn[] = [
     { role: "agent", text: opening.message },
   ];
 
-  const supabase = createAdminSupabaseClient();
+  const supabase = createResearchSupabase();
+  // expand-contract Phase 1: kind stays authoritative; we ALSO write `flow`
+  // with the same value so future readers can switch over without a backfill.
+  // transcript_source is "typed" for text mode (default); voice/video adapters
+  // will set it differently when they land.
   const { data, error } = await supabase
     .from("interview_sessions")
     .insert({
@@ -164,6 +236,11 @@ export async function createInterviewSession(params: {
       deal_id: params.dealId ?? null,
       account_id: params.accountId ?? null,
       kind,
+      flow: kind,
+      mode,
+      plan_id: params.planId ?? null,
+      invite_id: params.inviteId ?? null,
+      transcript_source: mode === "text" ? "typed" : null,
       access_token: generateToken(),
       status: "open",
       language,
@@ -218,7 +295,7 @@ export async function getDealInterview(
   orgId: string,
   dealId: string,
 ): Promise<DealInterviewView | null> {
-  const supabase = createAdminSupabaseClient();
+  const supabase = createResearchSupabase();
   const { data, error } = await supabase
     .from("interview_sessions")
     .select(
@@ -261,7 +338,7 @@ export async function getAccountCheckin(
   orgId: string,
   accountId: string,
 ): Promise<AccountCheckinView | null> {
-  const supabase = createAdminSupabaseClient();
+  const supabase = createResearchSupabase();
   const { data, error } = await supabase
     .from("interview_sessions")
     .select("access_token, status, created_at, completed_at, invited_at")
@@ -290,7 +367,7 @@ export async function markInterviewInvited(
   accessToken: string,
 ): Promise<string | null> {
   const now = new Date().toISOString();
-  const supabase = createAdminSupabaseClient();
+  const supabase = createResearchSupabase();
   const { data, error } = await supabase
     .from("interview_sessions")
     .update({ invited_at: now })
@@ -310,6 +387,9 @@ export async function markInterviewInvited(
  *   post_loss → on finish, run the loss-reason extraction (unchanged).
  *   checkin   → on finish, turn the conversation into a transcript and feed it to
  *               the account health engine (one transcript → one health point).
+ *   research  → on finish, persist the transcript as a calls row and run the
+ *               product-discovery classifier. Both side-effects are best-effort
+ *               (errors are logged, the conversation is saved regardless).
  *
  * Returns the updated public view, or null if the token doesn't match a session.
  */
@@ -330,7 +410,75 @@ export async function advanceInterview(
     ...session.conversation,
     { role: "customer", text: buyerMessage.trim() },
   ];
-  const supabase = createAdminSupabaseClient();
+  const supabase = createResearchSupabase();
+
+  // ── RESEARCH: plan-driven research interview → Product Discovery on finish ──
+  // Branch ordered BEFORE check-in / post-loss so a session with kind="research"
+  // never falls through to the older paths. The existing branches stay
+  // untouched.
+  if (session.kind === "research") {
+    const input = session.dealContext as unknown as ResearchInput;
+    const { done, message } = await nextResearchMessage(
+      input,
+      history,
+      session.language,
+      model,
+    );
+    history.push({ role: "agent", text: message });
+    const finished =
+      done || agentTurnCount(history) >= MAX_RESEARCH_AGENT_TURNS;
+
+    if (finished) {
+      // Persist the completed transcript as a calls row (account_id = null,
+      // deal_id = null — allowed under calls_single_parent_chk which says
+      // "not both set", not "exactly one") and feed it to the Product
+      // Discovery classifier. Any failure is logged but never thrown — the
+      // conversation must be saved no matter what.
+      try {
+        await persistResearchTranscriptAndDiscovery({
+          orgId: session.orgId,
+          planId: session.planId,
+          inviteId: session.inviteId,
+          transcript: conversationToTranscript(history),
+        });
+      } catch (err) {
+        console.error(
+          "[research] discovery analysis failed (conversation still saved):",
+          err instanceof Error ? err.message : err,
+        );
+      }
+
+      const { data, error } = await supabase
+        .from("interview_sessions")
+        .update({
+          conversation: history as unknown as Json,
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("access_token", token)
+        .select()
+        .single();
+      if (error || !data) {
+        throw new Error(
+          `Failed to finalize research session: ${error?.message ?? "no row returned"}`,
+        );
+      }
+      return toPublicView(toSession(data));
+    }
+
+    const { data, error } = await supabase
+      .from("interview_sessions")
+      .update({ conversation: history as unknown as Json })
+      .eq("access_token", token)
+      .select()
+      .single();
+    if (error || !data) {
+      throw new Error(
+        `Failed to update research session: ${error?.message ?? "no row returned"}`,
+      );
+    }
+    return toPublicView(toSession(data));
+  }
 
   // ── CHECK-IN: short satisfaction chat → account health point on finish ──────
   if (session.kind === "checkin") {
@@ -395,7 +543,10 @@ export async function advanceInterview(
   }
 
   // ── POST-LOSS interview (unchanged behavior) ────────────────────────────────
-  const input = session.dealContext;
+  // Narrow the broadened dealContext (InterviewSessionContext union) back to
+  // InterviewInput — by the time we reach this branch, both research and
+  // checkin have returned, so the value must be the post-loss shape.
+  const input = session.dealContext as InterviewInput;
   const { done, message } = await nextInterviewMessage(
     input,
     history,

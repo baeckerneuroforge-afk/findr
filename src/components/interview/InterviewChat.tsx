@@ -65,8 +65,8 @@ function CompletedPanel() {
         Thank you for your time.
       </h2>
       <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6680]">
-        Your feedback is genuinely valuable — it helps us understand what really
-        mattered. Have a great day.
+        Your input is genuinely valuable — thanks for taking a few minutes. Have
+        a great day.
       </p>
     </div>
   );
@@ -150,20 +150,17 @@ export function InterviewChat({
             findr
             <span className="mb-[10px] ml-[1px] inline-block h-[4px] w-[4px] rounded-full bg-[#B00]" />
           </span>
-          <span className="text-[12px] text-[#6B6680]">
-            Confidential · ~2 minutes
-          </span>
+          <span className="text-[12px] text-[#6B6680]">Confidential</span>
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 py-6">
         <div className="mb-6">
           <h1 className="text-[18px] font-semibold">
-            A quick question{company ? ` about ${company}` : ""}
+            A short conversation{company ? ` about ${company}` : ""}
           </h1>
           <p className="mt-1 text-[14px] leading-relaxed text-[#6B6680]">
-            Your honest answer helps us understand what really happened — it only
-            takes a moment, and there are no wrong answers.
+            Your honest answers help us learn — there are no wrong answers.
           </p>
         </div>
 
