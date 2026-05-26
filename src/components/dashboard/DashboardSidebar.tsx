@@ -41,8 +41,7 @@ const MODULES: NavGroupDef[] = [
     label: "Customer Health",
     items: [
       { href: "/dashboard/accounts", label: "Accounts" },
-      // A health-reporting overview slot is reserved for Etappe 2 — not
-      // wired up yet on purpose (no "coming soon" placeholders).
+      { href: "/dashboard/health", label: "Health Overview" },
     ],
   },
 ];

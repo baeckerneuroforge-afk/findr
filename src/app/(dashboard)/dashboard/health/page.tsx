@@ -1,0 +1,385 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
+import { getAccounts } from "@/lib/accounts/service";
+import {
+  getLatestHealthScoresForAccounts,
+  type HealthScoreRecord,
+} from "@/lib/accounts/health-service";
+import type { Account, HealthLevel } from "@/lib/accounts/types";
+import { StatCard } from "@/components/ui/StatCard";
+import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Badge } from "@/components/ui/Badge";
+import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
+import { HealthBadge } from "@/components/dashboard/HealthBadge";
+import { HealthLevelBreakdown } from "@/components/dashboard/HealthLevelBreakdown";
+
+/**
+ * Customer Health Overview — the CS-side reporting page, parallel to
+ * /dashboard/forecast on the Sales side. NO new AI calls: this is a pure
+ * roll-up of the latest health analyses already stored per account.
+ *
+ * Sections (top to bottom):
+ *   1. KPI tiles  — analyzed total, needs-attention, critical, with signals
+ *   2. Health distribution chart (the 5-level breakdown)
+ *   3. Top churn signals across all accounts (frequency rollup with sample)
+ *   4. Most urgent accounts list, linking to each account's detail page
+ */
+
+// ── Static label maps ──────────────────────────────────────────────────────
+
+const SIGNAL_LABELS: Record<string, string> = {
+  CHAMPION_LOSS: "Champion Loss",
+  CHAMPION_DISENGAGEMENT: "Champion Disengagement",
+  STAKEHOLDER_CHURN: "Stakeholder Churn",
+  LATE_DECISION_MAKER: "Late Decision Maker",
+  BUDGET_FRICTION: "Budget Friction",
+  COMPETITOR_PRESSURE: "Competitor Pressure",
+  STALLING_PATTERN: "Stalling Pattern",
+  ENGAGEMENT_DROP: "Engagement Drop",
+  MULTI_THREADING_FAILURE: "Multi-Threading Failure",
+};
+
+/** Lower rank = more urgent. Mirrors the order in /dashboard/accounts. */
+const LEVEL_RANK: Record<HealthLevel, number> = {
+  critical: 0,
+  at_risk: 1,
+  lukewarm: 2,
+  healthy: 3,
+  thriving: 4,
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+interface AnalyzedRow {
+  account: Account;
+  health: HealthScoreRecord;
+}
+
+function formatMrr(mrr: number | null, currency: "USD" | "EUR"): string {
+  if (mrr === null) return "—";
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(mrr);
+}
+
+function formatRenewal(renewalDate: string | null): string {
+  if (!renewalDate) return "—";
+  const parsed = new Date(renewalDate);
+  if (Number.isNaN(parsed.getTime())) return renewalDate;
+  return parsed.toLocaleDateString("de-DE", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function topSignalType(health: HealthScoreRecord): string | null {
+  if (health.signals.length === 0) return null;
+  const top = [...health.signals].sort(
+    (a, b) => b.confidence - a.confidence,
+  )[0];
+  return SIGNAL_LABELS[top.type] ?? top.type;
+}
+
+function HealthIcon() {
+  return (
+    <svg
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 12h3.75l2.25-6 4.5 12 2.25-6H21"
+      />
+    </svg>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
+
+export default async function CustomerHealthOverviewPage() {
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch (err) {
+    if (err instanceof OrgResolutionError) {
+      if (err.code === "no_auth") redirect("/sign-in");
+      if (err.code === "no_org") redirect("/onboarding/create-org");
+      redirect("/sign-in");
+    }
+    throw err;
+  }
+
+  // One batch fetch per dimension — no AI, no Opus, all reads.
+  const accounts = await getAccounts(orgId);
+  const healthMap = await getLatestHealthScoresForAccounts(
+    orgId,
+    accounts.map((a) => a.id),
+  );
+
+  // Pair each account with its latest health (drop those without an analysis).
+  const analyzed: AnalyzedRow[] = accounts
+    .map((account) => ({
+      account,
+      health: healthMap.get(account.id) ?? null,
+    }))
+    .filter((row): row is AnalyzedRow => row.health !== null);
+
+  // Empty-state: no account has been analyzed yet.
+  if (analyzed.length === 0) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-display text-neutral-900">Health overview</h1>
+          <p className="mt-1 text-body text-neutral-500">
+            A roll-up of the latest health analyses across all your customer
+            accounts.
+          </p>
+        </div>
+
+        <EmptyState
+          icon={<HealthIcon />}
+          title="No health analyses yet"
+          description={
+            accounts.length === 0
+              ? "Create a customer account first, then analyze a post-sale transcript to populate the health overview."
+              : "Open an account and analyze a post-sale transcript to see it appear here. The roll-up below populates as soon as the first health snapshot exists."
+          }
+          cta={{
+            label: accounts.length === 0 ? "Create an account" : "Go to Accounts",
+            href: "/dashboard/accounts",
+          }}
+        />
+      </div>
+    );
+  }
+
+  // ── Aggregations ────────────────────────────────────────────────────────
+
+  const countByLevel: Record<HealthLevel, number> = {
+    critical: 0,
+    at_risk: 0,
+    lukewarm: 0,
+    healthy: 0,
+    thriving: 0,
+  };
+  for (const { health } of analyzed) {
+    countByLevel[health.health_level] =
+      (countByLevel[health.health_level] ?? 0) + 1;
+  }
+  const needsAttentionCount =
+    countByLevel.critical + countByLevel.at_risk + countByLevel.lukewarm;
+  const accountsWithSignals = analyzed.filter(
+    (r) => r.health.signals.length > 0,
+  ).length;
+
+  // Top churn-signal rollup: count of distinct signal occurrences across all
+  // latest health snapshots + one sample evidence quote per type (first found).
+  const signalRollup = new Map<
+    string,
+    { count: number; sample: { quote: string; accountName: string } | null }
+  >();
+  for (const { account, health } of analyzed) {
+    for (const signal of health.signals) {
+      const entry = signalRollup.get(signal.type) ?? { count: 0, sample: null };
+      entry.count += 1;
+      if (!entry.sample && signal.quotes.length > 0) {
+        entry.sample = {
+          quote: signal.quotes[0],
+          accountName: account.companyName,
+        };
+      }
+      signalRollup.set(signal.type, entry);
+    }
+  }
+  const topSignals = Array.from(signalRollup.entries())
+    .map(([type, entry]) => ({ type, ...entry }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+
+  // Most-urgent accounts: critical → at_risk → lukewarm, then score-asc.
+  const urgent = analyzed
+    .filter(
+      (r) =>
+        r.health.health_level !== "healthy" &&
+        r.health.health_level !== "thriving",
+    )
+    .sort((a, b) => {
+      const byLevel =
+        LEVEL_RANK[a.health.health_level] - LEVEL_RANK[b.health.health_level];
+      if (byLevel !== 0) return byLevel;
+      return a.health.health_score - b.health.health_score;
+    })
+    .slice(0, 10);
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-display text-neutral-900">Health overview</h1>
+        <p className="mt-1 text-body text-neutral-500">
+          A roll-up of the latest health analyses across{" "}
+          {analyzed.length === 1
+            ? "1 customer account"
+            : `${analyzed.length} customer accounts`}
+          .
+        </p>
+      </div>
+
+      {/* KPI tiles */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <StatCard label="Analyzed accounts" value={analyzed.length} />
+        <StatCard
+          label="Needs attention"
+          value={needsAttentionCount}
+          subtitle="Lukewarm + at_risk + critical"
+          status={needsAttentionCount > 0 ? "warning" : "default"}
+        />
+        <StatCard
+          label="Critical"
+          value={countByLevel.critical}
+          status={countByLevel.critical > 0 ? "critical" : "default"}
+        />
+        <StatCard
+          label="With acute signals"
+          value={accountsWithSignals}
+          subtitle="Accounts with ≥ 1 churn signal"
+          status={accountsWithSignals > 0 ? "warning" : "default"}
+        />
+      </div>
+
+      {/* Health distribution */}
+      <HealthLevelBreakdown counts={countByLevel} />
+
+      {/* Top churn signals */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-h2 text-neutral-900">Top churn signals</h2>
+          <p className="text-body text-neutral-500">
+            Most frequent acute signals detected across all latest health
+            analyses.
+          </p>
+        </div>
+        {topSignals.length === 0 ? (
+          <Card>
+            <CardBody>
+              <p className="py-4 text-center text-body text-neutral-500">
+                No acute churn signals detected — every analyzed account is
+                axis-driven only.
+              </p>
+            </CardBody>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {topSignals.map((s) => {
+              const label = SIGNAL_LABELS[s.type] ?? s.type;
+              const sharePct =
+                analyzed.length > 0 ? (s.count / analyzed.length) * 100 : 0;
+              return (
+                <Card key={s.type}>
+                  <CardBody className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-h3 text-neutral-900">{label}</div>
+                        <div className="text-small text-neutral-500">
+                          {s.count} {s.count === 1 ? "account" : "accounts"}
+                        </div>
+                      </div>
+                      <Badge variant={sharePct >= 25 ? "critical" : "default"}>
+                        {sharePct.toFixed(0)}%
+                      </Badge>
+                    </div>
+                    {s.sample && (
+                      <div className="space-y-1">
+                        <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
+                          Sample — {s.sample.accountName}
+                        </div>
+                        <blockquote className="border-l-2 border-neutral-200 pl-3 text-small text-neutral-600">
+                          {s.sample.quote}
+                        </blockquote>
+                      </div>
+                    )}
+                  </CardBody>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Most urgent accounts */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-h2 text-neutral-900">Most urgent accounts</h2>
+          <p className="text-body text-neutral-500">
+            Critical first, then at_risk and lukewarm. Lowest score within each
+            level sorts to the top.
+          </p>
+        </div>
+        {urgent.length === 0 ? (
+          <Card>
+            <CardBody>
+              <p className="py-4 text-center text-body text-neutral-500">
+                No accounts need attention right now — everything analyzed is
+                healthy or thriving.
+              </p>
+            </CardBody>
+          </Card>
+        ) : (
+          <Card>
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Account</TH>
+                  <TH>Health</TH>
+                  <TH>Top signal</TH>
+                  <TH className="text-right">MRR</TH>
+                  <TH>Renewal</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {urgent.map(({ account, health }) => (
+                  <TR key={account.id}>
+                    <TD>
+                      <Link
+                        href={`/dashboard/accounts/${account.id}`}
+                        className="text-body-strong text-neutral-900 hover:text-primary-700 hover:underline"
+                      >
+                        {account.companyName}
+                      </Link>
+                    </TD>
+                    <TD>
+                      <HealthBadge
+                        score={health.health_score}
+                        level={health.health_level}
+                        size="sm"
+                      />
+                    </TD>
+                    <TD className="text-neutral-700">
+                      {topSignalType(health) ?? "—"}
+                    </TD>
+                    <TD className="text-right whitespace-nowrap font-medium text-neutral-900">
+                      {formatMrr(account.mrr, account.currency)}
+                    </TD>
+                    <TD className="text-neutral-700 whitespace-nowrap">
+                      {formatRenewal(account.renewalDate)}
+                    </TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          </Card>
+        )}
+      </section>
+    </div>
+  );
+}
