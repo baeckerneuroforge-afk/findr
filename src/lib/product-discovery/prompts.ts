@@ -102,8 +102,38 @@ DO NOT DETECT — these are NOT product discovery findings:
 - Hypotheticals from the vendor side — only what the CUSTOMER says counts. Skip.
 - Items where you cannot ground a verbatim customer quote — drop the item entirely.
 
-DEDUP — one statement, one item.
-If the customer says "we'd love an audit log" once, that is ONE featureRequest (NEW_CAPABILITY, "audit log"). Do NOT also emit it as a MISSING_FEATURE pain unless the customer ALSO separately framed it as today's pain ("deshalb müssen wir Excel-Listen führen"). Same content emitted twice in two layers is a defect. When the customer genuinely says BOTH ("we need audit logs — we're flying blind without them"), emit BOTH and link them via a Theme. The Theme's indices then point to one entry in each array.
+DEDUP — STRICT: one customer thought = exactly ONE entry.
+
+A single customer thought MUST produce exactly ONE entry — either a featureRequest OR a painPoint, NEVER both. "Uns fehlt X" / "wir bräuchten X" / "wäre gut wenn X" is ONE thought = ONE entry. This is a hard rule, not a guideline.
+
+DEFAULT FRAMING TEST — which side the entry lands on:
+- WISH / NEED framing ("wir bräuchten", "wäre gut", "fehlt uns", "habt ihr …?", "wenn ihr X könntet", "we'd like", "do you support …?") → featureRequest. NO matching painPoint.
+- CONCRETE TODAY PAIN with measurable impact / workaround / past failure ("kostet uns 4h pro Woche", "deshalb müssen wir manuell …", "letzten Monat ist uns X durchgerutscht", "der Sync dauert eine Stunde", "Kollegen finden das nicht") → painPoint. NO matching featureRequest.
+- Intensity wording around a wish ("dringend", "ist eine Katastrophe", "wirklich Gold wert", "ein riesiger Hebel") belongs in the \`intensity\` / \`severity\` field, NOT in a second entry on the other side.
+- In doubt → ONE entry on whichever side dominates. NEVER two.
+
+TWO ENTRIES on the same topic (one FR + one PP) require ALL THREE checks to pass "yes":
+1. The wish statement and the pain statement appear in TWO DIFFERENT speaker turns — not in the same sentence or same turn.
+2. Each entry cites its OWN distinct evidence quote. The other entry does NOT cite the same line.
+3. The painPoint cites a CONCRETE today's-impact statement (cost / workaround / past failure), not just intensity wording around the wish.
+
+If any check answers "no" → EMIT EXACTLY ONE entry, on the side that matches the dominant framing.
+
+The same verbatim quote MUST NEVER appear as evidence for both a featureRequest and a painPoint. If you find yourself wanting to reuse a quote, that is your signal it is ONE thought → ONE entry.
+
+When two entries are warranted (all three "yes"), link them via a Theme so the downstream view shows the connection.
+
+WORKED EXAMPLES:
+
+CORRECT — two entries (different turns, different quotes, concrete pain alongside the wish):
+- Turn 2 customer: "Uns fehlt eine Rollen- und Rechteverwaltung. Komplett."  →  featureRequest NEW_CAPABILITY (own evidence).
+- Turn 4 same customer: "Wir pflegen das in einer separaten Excel … letzten Monat ist uns einmal etwas durchgerutscht."  →  painPoint MISSING_FEATURE (own evidence, concrete past failure).
+- Linked by a Theme.
+
+WRONG — must collapse to ONE entry:
+- "Wir nutzen HubSpot, eine Anbindung wäre für uns ein riesiger Hebel."  →  ONE INTEGRATION featureRequest. Do NOT also emit an INTEGRATION_GAP painPoint citing the same line — "riesiger Hebel" is intensity, not a second framing.
+- "Wir bräuchten dringend eine echte Mobile App — der Browser-View auf dem Handy ist eine Katastrophe."  →  ONE MOBILE featureRequest with intensity=high. Do NOT also emit a UX_FRICTION painPoint on the same turn — "Katastrophe" is intensity, the underlying thought is the missing mobile app.
+- "Was wir wirklich brauchen ist eine Möglichkeit das im Außendienst auf dem Handy zu bedienen."  →  ONE MOBILE featureRequest. The "Außendienst auf dem Handy" detail is the wish itself, not a separate pain.
 
 THEMES — clustering only, never new content.
 A theme connects 2+ already-extracted items by their array index (relatedFeatureRequestIndices / relatedPainPointIndices). Themes never introduce items not already present in featureRequests / painPoints. Themes are OPTIONAL — if items don't cluster naturally, leave the array empty. Themes are NOT categories; they are short, freeform labels grounded in the customer's actual concerns ("Reporting für Finance", "Mobile Außendienst-Flow", "Multi-Mandanten-Struktur"). German or English, whichever fits.
