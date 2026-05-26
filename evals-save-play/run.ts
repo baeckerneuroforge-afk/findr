@@ -135,8 +135,36 @@ interface Check {
   note: string;
 }
 
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/\s+/g, " ").trim();
+/**
+ * Fold Unicode + DE typography to ASCII equivalents so substring checks treat
+ * smart quotes, en/em-dashes, umlauts, and ß as their plain ASCII forms. Both
+ * the haystack and the candidate are folded before comparison, so transcript
+ * "ü" matches a quote "ue" (and vice versa), `„…"` matches `'…'`, em-dashes
+ * match hyphens, etc. Mirrors fold() in evals/health-runner.eval.ts so the
+ * two evals stay consistent.
+ *
+ * Normalization:
+ *  - NFKC (compose composed/decomposed forms, normalize compatibility chars)
+ *  - DE umlauts → ASCII pairs (ü → ue, ä → ae, ö → oe, ß → ss)
+ *  - ALL quote varieties (ASCII " ', typographic „ " " « » ' ' ‚ ‹ ›) → "
+ *  - En/em-dashes (– —) → -
+ *  - Whitespace collapsed, trimmed, lowercased.
+ */
+function fold(s: string): string {
+  return s
+    .normalize("NFKC")
+    .replace(/Ä/g, "Ae")
+    .replace(/ä/g, "ae")
+    .replace(/Ö/g, "Oe")
+    .replace(/ö/g, "oe")
+    .replace(/Ü/g, "Ue")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/["'„“”«»‘’‚‹›]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 function salientTokens(s: string): string[] {
@@ -148,17 +176,19 @@ function salientTokens(s: string): string[] {
 
 /** (a) Anchored: cites a real quote / concrete account detail, not a platitude. */
 function checkAnchored(rec: SavePlayRecommendation, haystack: string): Check {
-  const recNorm = normalize(rec.recommendation);
+  const recNorm = fold(rec.recommendation);
   const generic = GENERIC_PHRASES.find((p) => recNorm.includes(p));
   if (generic) return { ok: false, note: `generic phrase: "${generic}"` };
 
-  const evNorm = normalize(rec.evidence);
+  const evNorm = fold(rec.evidence);
   if (evNorm.length >= 12 && haystack.includes(evNorm)) {
     return { ok: true, note: "evidence quote found in account" };
   }
 
+  // Fold the token too — otherwise an umlaut-bearing token (e.g., "Müller")
+  // would miss its already-folded haystack counterpart ("mueller").
   const shared = salientTokens(rec.recommendation).find((tok) =>
-    haystack.includes(tok.toLowerCase()),
+    haystack.includes(fold(tok)),
   );
   if (shared) return { ok: true, note: `mentions account detail "${shared}"` };
 
@@ -167,7 +197,7 @@ function checkAnchored(rec: SavePlayRecommendation, haystack: string): Check {
 
 /** (b) Concrete next step: has an action verb (and ideally a timing/owner). */
 function checkNextStep(rec: SavePlayRecommendation): Check {
-  const ns = normalize(rec.nextStep);
+  const ns = fold(rec.nextStep);
   if (ns.length < 15) return { ok: false, note: "next step too short / vague" };
   const hasVerb = ACTION_VERBS.some((v) => ns.includes(v));
   const hasTime = TIME_REFS.some((t) => ns.includes(t));
@@ -178,7 +208,7 @@ function checkNextStep(rec: SavePlayRecommendation): Check {
 
 /** (c) No obvious hallucination: every presented quote fragment must exist in the account. */
 function checkNoHalluc(rec: SavePlayRecommendation, haystack: string): Check {
-  const evNorm = normalize(rec.evidence);
+  const evNorm = fold(rec.evidence);
   if (evNorm.length < 6) return { ok: true, note: "no evidence quote to verify" };
 
   // The model sometimes stitches two genuine transcript spans together with an
@@ -220,7 +250,7 @@ function flag(c: Check): string {
 
 function caseHaystack(c: SavePlayEvalCase): string {
   const quotes = c.health.signals.flatMap((s) => s.quotes).join(" ");
-  return normalize(`${c.transcript} ${quotes}`);
+  return fold(`${c.transcript} ${quotes}`);
 }
 
 function mrrStr(c: SavePlayEvalCase): string {
