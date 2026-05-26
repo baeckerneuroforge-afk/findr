@@ -4,12 +4,34 @@ export type AccountStatus = "active" | "at_risk" | "churned";
 export const ACCOUNT_STATUSES = ["active", "at_risk", "churned"] as const;
 
 /**
- * Computed health level (inverse of churn risk; high health = good). Distinct
- * from the manual AccountStatus — this one is derived from transcript analysis.
+ * Computed health level — derived from transcript analysis by the dedicated
+ * CS Health classifier (src/lib/health/). Distinct from the manual
+ * AccountStatus. Five levels (replaces the legacy 3-level inversion from
+ * the risk engine):
+ *  - thriving  — happy, expansion signals, clear value
+ *  - healthy   — solid, unspectacular, minor friction at most
+ *  - lukewarm  — flat, no enthusiasm, no acute event (THIS is what the
+ *                old `health = 100 − risk` inversion missed: no risk
+ *                signals ≠ healthy)
+ *  - at_risk   — strong baseline BUT a sharp acute signal, OR axes alone
+ *                in the 25-39 band
+ *  - critical  — multiple stacking critical signals, account in immediate
+ *                danger
  */
-export type HealthLevel = "healthy" | "at_risk" | "critical";
+export type HealthLevel =
+  | "thriving"
+  | "healthy"
+  | "lukewarm"
+  | "at_risk"
+  | "critical";
 
-export const HEALTH_LEVELS = ["healthy", "at_risk", "critical"] as const;
+export const HEALTH_LEVELS = [
+  "thriving",
+  "healthy",
+  "lukewarm",
+  "at_risk",
+  "critical",
+] as const;
 
 /**
  * A customer account — the central CS Health object. It has its own life after a

@@ -7,20 +7,29 @@ interface HealthBadgeProps {
   size?: "sm" | "md" | "large";
 }
 
+/** Mirrors LEVEL_BANDS in src/lib/health/aggregate.ts. Used only as a
+ *  fallback when a caller passes a score without an explicit level — the
+ *  primary source of truth is the level the aggregator emitted. */
 function deriveLevel(score: number): HealthLevel {
-  if (score >= 67) return "healthy";
-  if (score >= 34) return "at_risk";
+  if (score >= 80) return "thriving";
+  if (score >= 62) return "healthy";
+  if (score >= 40) return "lukewarm";
+  if (score >= 25) return "at_risk";
   return "critical";
 }
 
 const LEVEL_STYLES: Record<HealthLevel, string> = {
+  thriving: "bg-success-100 text-success-700 border-success-500/40",
   healthy: "bg-success-50 text-success-700 border-success-500/30",
+  lukewarm: "bg-neutral-50 text-neutral-700 border-neutral-300",
   at_risk: "bg-warning-50 text-warning-700 border-warning-500/30",
   critical: "bg-danger-50 text-danger-700 border-danger-500/40",
 };
 
 const LEVEL_LABELS: Record<HealthLevel, string> = {
+  thriving: "Thriving",
   healthy: "Healthy",
+  lukewarm: "Lukewarm",
   at_risk: "At risk",
   critical: "Critical",
 };

@@ -27,10 +27,14 @@ interface AccountRow {
 type AnalyzedRow = { account: Account; health: HealthScoreRecord };
 
 // Most critical first when sorting "Needs attention".
+/** Lower rank = more urgent. Used to sort "Needs attention" — criticals
+ *  surface first, thriving last. Matches the 5-level health classifier. */
 const LEVEL_RANK: Record<HealthLevel, number> = {
   critical: 0,
   at_risk: 1,
-  healthy: 2,
+  lukewarm: 2,
+  healthy: 3,
+  thriving: 4,
 };
 
 /** CHAMPION_DISENGAGEMENT → "Champion Disengagement" (matches the drilldown labels). */
@@ -178,8 +182,14 @@ export default async function AccountsPage() {
   const analyzed = rows.filter((r): r is AnalyzedRow => r.health !== null);
 
   // Group + sort by the COMPUTED health level (not the manual account.status).
+  // "Doing well" buckets healthy + thriving (the two positive levels).
+  // "Needs attention" everything else — lukewarm, at_risk, critical.
   const needsAttention = analyzed
-    .filter((r) => r.health.health_level !== "healthy")
+    .filter(
+      (r) =>
+        r.health.health_level !== "healthy" &&
+        r.health.health_level !== "thriving",
+    )
     .sort((a, b) => {
       const byLevel =
         LEVEL_RANK[a.health.health_level] - LEVEL_RANK[b.health.health_level];
@@ -188,7 +198,11 @@ export default async function AccountsPage() {
         : a.health.health_score - b.health.health_score; // lowest score first
     });
   const healthy = analyzed
-    .filter((r) => r.health.health_level === "healthy")
+    .filter(
+      (r) =>
+        r.health.health_level === "healthy" ||
+        r.health.health_level === "thriving",
+    )
     .sort((a, b) => b.health.health_score - a.health.health_score);
   const notAnalyzed = rows
     .filter((r) => r.health === null)

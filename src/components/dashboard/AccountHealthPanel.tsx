@@ -32,11 +32,14 @@ type RiskLevel = "low" | "medium" | "high" | "critical";
 const TEXTAREA_CLASS =
   "w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 disabled:opacity-60";
 
-/** Health dot color reuses the risk palette buckets: healthy=green, at_risk=orange, critical=red. */
+/** Health dot color reuses the risk palette buckets:
+ *  thriving / healthy → green (low), lukewarm → yellow (medium),
+ *  at_risk → orange (high), critical → red (critical). */
 function healthLevelToColorBucket(level: HealthLevel): RiskLevel {
-  if (level === "healthy") return "low";
+  if (level === "thriving" || level === "healthy") return "low";
+  if (level === "lukewarm") return "medium";
   if (level === "critical") return "critical";
-  return "high";
+  return "high"; // at_risk
 }
 
 function riskLevelFromScore(risk: number): RiskLevel {
@@ -157,9 +160,9 @@ export function AccountHealthPanel({
       {latest && riskScore !== undefined && (
         <div className="space-y-3">
           <p className="text-small text-neutral-500">
-            Health is the inverse of churn risk. The breakdown below shows the
-            risk signals the engine detected in the transcript(s) — fewer and
-            weaker signals mean a healthier account.
+            These are the acute churn signals the health classifier picked up
+            in the transcript(s), each with verbatim evidence from the call.
+            Fewer and weaker signals mean a healthier account.
           </p>
           <RiskSignalDrilldown
             riskScore={riskScore}

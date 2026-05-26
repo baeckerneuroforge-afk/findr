@@ -4,14 +4,35 @@ import { z } from "zod";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database";
-import type { Deal } from "@/lib/deals/types";
-import type { CallForPrompt } from "@/lib/risk/prompts";
+import { getOrgName } from "@/lib/auth/org";
+import { getOrgSettings } from "@/lib/settings/org-settings";
+import { analyzeHealth } from "@/lib/health/classifier";
+import { withAggregatedScores } from "@/lib/health/aggregate";
+import type {
+  AcuteSignal,
+  AcuteSignalSeverity,
+} from "@/lib/schemas/health";
 import type { RiskSignal } from "@/lib/schemas/risk";
-import { analyzeDealRiskWithFallback } from "@/lib/risk/classifier";
 import { getAccount } from "./service";
-import type { Account, HealthLevel } from "./types";
+import type { HealthLevel } from "./types";
 
 type HealthRow = Database["public"]["Tables"]["account_health_scores"]["Row"];
+
+/**
+ * The signal shape STORED in the `signals` jsonb column and surfaced to the
+ * existing dashboard + save-play readers. It mirrors RiskSignal (the legacy
+ * shape used across the deal flow) so those readers keep working unchanged:
+ *  - severity → derived confidence  (low 0.55, medium 0.7, high 0.85, critical 0.95)
+ *  - evidence → quotes
+ *  - type, reasoning            → unchanged
+ *
+ * The native `severity` is preserved as a sidecar field on the jsonb so
+ * future migrations can read the original calibration without re-running
+ * the classifier.
+ */
+export type StoredHealthSignal = RiskSignal & {
+  severity: AcuteSignalSeverity;
+};
 
 export interface HealthScoreRecord {
   id: string;
@@ -19,12 +40,16 @@ export interface HealthScoreRecord {
   account_id: string;
   health_score: number;
   health_level: HealthLevel;
+  /** The classifier's transcript summary (mapped from `summary` field). */
   overall_reasoning: string;
+  /** Empty for rows written by the v2 classifier — retention actions now
+   *  come from the save-play layer. Legacy rows may still carry recs. */
   recommendations: string[];
-  signals: RiskSignal[];
+  signals: StoredHealthSignal[];
   /** The transcript (call) whose analysis produced this score, if still present. */
   source_call_id: string | null;
-  /** "ai" = Claude classifier, "heuristic" = rule-based fallback. */
+  /** "ai" = Claude classifier (always for v2 rows); "heuristic" = legacy
+   *  rule-based fallback (only on old rows). */
   analysis_method: "ai" | "heuristic";
   analyzed_at: string;
 }
@@ -34,22 +59,43 @@ export const AnalyzeTranscriptSchema = z.object({
 });
 export type AnalyzeTranscriptInput = z.infer<typeof AnalyzeTranscriptSchema>;
 
-/**
- * Invert a churn-RISK score (high = bad) into a HEALTH score (high = good).
- * health = 100 - risk; level by thirds (healthy ≥ 67, at_risk ≥ 34, else critical).
- */
-export function riskToHealth(riskScore: number): {
-  healthScore: number;
-  healthLevel: HealthLevel;
-} {
-  const healthScore = Math.max(0, Math.min(100, 100 - Math.round(riskScore)));
-  const healthLevel: HealthLevel =
-    healthScore >= 67 ? "healthy" : healthScore >= 34 ? "at_risk" : "critical";
-  return { healthScore, healthLevel };
+// ── Signal mapping (acute → stored) ─────────────────────────────────────────
+// Severity → confidence: monotonic mapping that preserves the strictest-first
+// sort order in the dashboard's topSignal helper and renders sensibly in the
+// existing ConfidenceIndicator + severity bar.
+const SEVERITY_TO_CONFIDENCE: Record<AcuteSignalSeverity, number> = {
+  low: 0.55,
+  medium: 0.7,
+  high: 0.85,
+  critical: 0.95,
+};
+
+function acuteSignalToStored(s: AcuteSignal): StoredHealthSignal {
+  return {
+    type: s.type,
+    confidence: SEVERITY_TO_CONFIDENCE[s.severity],
+    reasoning: s.reasoning,
+    quotes: s.evidence,
+    severity: s.severity,
+  };
 }
 
+// ── Level coercion (DB string → strict HealthLevel) ─────────────────────────
+const HEALTH_LEVEL_SET: ReadonlySet<HealthLevel> = new Set([
+  "thriving",
+  "healthy",
+  "lukewarm",
+  "at_risk",
+  "critical",
+]);
+
 function toHealthLevel(value: string): HealthLevel {
-  return value === "healthy" || value === "critical" ? value : "at_risk";
+  // Coerce unknown DB values (e.g. a future fifth level not yet typed here, or
+  // a manual SQL hack) to "at_risk" as a conservative default — surfacing
+  // unknown as critical would be alarmist, as healthy would hide a problem.
+  return HEALTH_LEVEL_SET.has(value as HealthLevel)
+    ? (value as HealthLevel)
+    : "at_risk";
 }
 
 function toRecord(row: HealthRow): HealthScoreRecord {
@@ -61,7 +107,7 @@ function toRecord(row: HealthRow): HealthScoreRecord {
     health_level: toHealthLevel(row.health_level),
     overall_reasoning: row.overall_reasoning,
     recommendations: row.recommendations ?? [],
-    signals: (row.signals as unknown as RiskSignal[]) ?? [],
+    signals: (row.signals as unknown as StoredHealthSignal[]) ?? [],
     source_call_id: row.source_call_id,
     analysis_method:
       (row.analysis_method as "ai" | "heuristic" | undefined) ?? "ai",
@@ -153,52 +199,32 @@ export async function getAccountTranscriptCount(
   return count;
 }
 
-// ── analysis ─────────────────────────────────────────────────────────────────
-
-/**
- * Synthetic Deal built from an account so the deal risk engine can run unchanged.
- * Post-sale relationship signals (champion disengagement, stalling, engagement
- * drop, …) carry over directly; only the framing differs. A dedicated post-sale
- * prompt is a deliberate later refinement, not part of this stage.
- */
-function accountToSyntheticDeal(account: Account, callCount: number): Deal {
-  return {
-    id: account.id,
-    name: account.companyName,
-    companyName: account.companyName,
-    amount: account.mrr ?? 0,
-    currency: account.currency,
-    stage: "closed_won",
-    ownerName: "—",
-    championName: account.sponsorName ?? "Unknown",
-    championTitle: "Sponsor",
-    daysSinceLastActivity: 0,
-    callsCompleted: callCount,
-    emailsSent: 0,
-    stakeholdersCount: account.sponsorName ? 1 : 0,
-    competitorsMentioned: [],
-    closeDate: account.renewalDate ?? account.createdAt,
-    createdAt: account.createdAt,
-  };
-}
+// ── analysis ────────────────────────────────────────────────────────────────
 
 export interface AnalyzeAccountResult {
   health: HealthScoreRecord;
-  source: "llm" | "heuristic";
+  /** v2 always "llm" — the dedicated health classifier has no heuristic
+   *  fallback (a health analysis is only worth surfacing when the model
+   *  produced a valid grounded one). Kept as a string union for response
+   *  shape stability. */
+  source: "llm";
 }
 
 /**
- * Store a transcript as a call on the account, run the EXISTING risk engine over
- * JUST THIS transcript, invert the result to a health score, and persist it as
- * one score point. Returns null only if the account doesn't exist in this org.
+ * Store a transcript as a call on the account, run the DEDICATED CS Health
+ * classifier (src/lib/health/) over it, aggregate the result deterministically
+ * (axes + signals → score + 5-level), and persist one score point.
+ * Returns null only if the account doesn't exist in this org.
  *
- * One score per transcript (mirrors the risk engine's one row per run): the
- * account's CURRENT health is the newest transcript's score, and the history
- * chart shows every point, so a real recovery between conversations (e.g. an old
- * 22 followed by a fresh 85) is visible instead of being averaged away.
+ * Replaces the legacy `riskToHealth` inversion. The classifier rates four
+ * satisfaction axes (product, relationship, valueRealization, engagement)
+ * independently and emits acute event signals using the same vocabulary as
+ * the risk engine (CHAMPION_LOSS, BUDGET_FRICTION, …). The aggregator
+ * combines them deterministically using fixed weights + signal caps.
  *
- * The attach point (account_id) is what makes this "health" rather than "risk" —
- * there is no phase auto-detection.
+ * One score per transcript (mirrors the previous etappe): the account's
+ * CURRENT health is the newest transcript's score; the history chart shows
+ * every point, so a real recovery between conversations is visible.
  */
 export async function analyzeAccountTranscript(
   orgId: string,
@@ -236,41 +262,44 @@ export async function analyzeAccountTranscript(
     );
   }
 
-  // 2) Score ONLY this transcript — one health-score point per analysis run
-  //    (mirrors the risk engine's one row per run). Pooling all of an account's
-  //    transcripts would let an old bad call drag down a fresh good one and turn
-  //    the "trend" into a measure of the growing collection rather than real
-  //    movement. The newest transcript's score IS the account's current health.
-  const promptCalls: CallForPrompt[] = [
-    {
-      call_type: "manual_transcript",
-      duration_seconds: null,
-      recorded_at: now,
-      transcript_summary: null,
-      transcript,
-    },
-  ];
-  const syntheticDeal = accountToSyntheticDeal(account, 1);
-  const { result, source } = await analyzeDealRiskWithFallback(
-    syntheticDeal,
-    promptCalls,
-    orgId,
-  );
+  // 2) Pull lightweight account/org context — grounds the classifier in
+  //    WHO is talking to WHOM. Failures here are non-fatal; we fall back to
+  //    null so the classifier still runs without the labels.
+  const [orgName, orgSettings] = await Promise.all([
+    getOrgName(orgId).catch(() => null),
+    getOrgSettings(orgId).catch(() => null),
+  ]);
 
-  // 3) Invert risk → health and persist (with honest provenance).
-  const { healthScore, healthLevel } = riskToHealth(result.riskScore);
+  // 3) Run the dedicated health classifier and aggregate.
+  const raw = await analyzeHealth({
+    transcript,
+    account: {
+      companyName: account.companyName,
+      sponsorName: account.sponsorName,
+      productName: orgSettings?.productName?.trim() || null,
+      orgName: orgName?.trim() || null,
+    },
+    recordedAt: now,
+  });
+  const aggregated = withAggregatedScores(raw);
+
+  // 4) Map acuteSignals → legacy RiskSignal shape so the existing dashboard
+  //    + save-play layer keep reading without modification. Native severity
+  //    is preserved on the jsonb sidecar.
+  const signalsForDb = aggregated.acuteSignals.map(acuteSignalToStored);
+
   const { data: inserted, error: insertError } = await supabase
     .from("account_health_scores")
     .insert({
       org_id: orgId,
       account_id: accountId,
-      health_score: healthScore,
-      health_level: healthLevel,
-      overall_reasoning: result.overallReasoning,
-      recommendations: result.recommendations ?? [],
-      signals: result.signals as unknown as Json,
+      health_score: aggregated.healthScore,
+      health_level: aggregated.healthLevel,
+      overall_reasoning: aggregated.summary,
+      recommendations: [],
+      signals: signalsForDb as unknown as Json,
       source_call_id: callRow.id,
-      analysis_method: source === "llm" ? "ai" : "heuristic",
+      analysis_method: "ai",
       analyzed_at: now,
     })
     .select("*")
@@ -282,5 +311,5 @@ export async function analyzeAccountTranscript(
     );
   }
 
-  return { health: toRecord(inserted), source };
+  return { health: toRecord(inserted), source: "llm" };
 }
