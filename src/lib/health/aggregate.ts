@@ -34,26 +34,58 @@ export const AXIS_WEIGHTS: Record<HealthAxisKey, number> = {
 export const MIN_CONFIDENCE_FOR_AXIS = 0.3;
 
 // ── Acute-signal overrides ──────────────────────────────────────────────────
-// Two effects per signal:
-//   • a PENALTY subtracted from the baseline (multiple signals stack);
-//   • a CAP that hard-limits the final score (the most-restrictive cap wins
-//     across all signals).
+// Revised after eval round 1. The OLD model applied BOTH a cap AND a per-signal
+// penalty to the same signal, double-punishing single-signal cases:
+//   luk_010 raw 32 → agg  1   (lukewarm collapsed to critical)
+//   luk_012 raw 42 → agg 10   (lukewarm collapsed to critical)
+//   arc_014 raw 32 → agg  0   (at_risk collapsed to critical)
+//   arc_015 raw 32 → agg  0   (at_risk collapsed to critical)
+//
+// New three-step model:
+//   1. CAP is the PRIMARY brake. The strictest signal's cap absorbs the first
+//      hit — score is clamped to that cap, full stop. NO penalty for the
+//      strictest signal (it is already "spent" by the cap).
+//   2. EXTRA PENALTY applies ONLY to signals BEYOND the strictest one. Halved
+//      from the legacy values — its job is to differentiate 2+ same-severity
+//      signals from a single one, not to double-punish.
+//   3. SEVERITY FLOOR — depends on the strictest severity. Set LOW for critical
+//      (5) so two stacked criticals CAN reach the critical band, but not so
+//      low that one critical falls through into critical.
+//
 // Tuned so:
-//   - one medium = noticeable but recoverable (≤70 ceiling);
-//   - one critical = the customer cannot land above "at_risk" (≤30);
-//   - several criticals push the score into "critical" band via penalties.
-export const SIGNAL_PENALTIES: Record<AcuteSignalSeverity, number> = {
-  low: 5,
-  medium: 12,
-  high: 20,
-  critical: 30,
+//   - 1 critical signal at any baseline → score ~32 → at_risk (25-44) ✓
+//   - 2+ critical signals               → score ~17 → critical (0-24) ✓
+//   - 1 high signal                     → score ~50 → lukewarm (45-64)
+//   - low signals                       → no cap; barely move the baseline.
+
+/** Score ceiling imposed by the strictest signal present. */
+export const SIGNAL_CAPS: Record<AcuteSignalSeverity, number> = {
+  low: 100, // no cap
+  medium: 72, // single medium → upper-lukewarm boundary (was 70)
+  high: 50, // single high → lukewarm (unchanged)
+  critical: 32, // single critical → solid at_risk (was 30; bumped off the edge)
 };
 
-export const SIGNAL_CAPS: Record<AcuteSignalSeverity, number> = {
-  low: 100, // no hard cap
-  medium: 70,
-  high: 50,
-  critical: 30,
+/** Penalty applied ONLY to signals BEYOND the strictest one. Halved from the
+ *  legacy per-signal penalties (low 5, medium 12, high 20, critical 30) so
+ *  multiple same-severity signals nudge the score down without doubling the
+ *  cap's punishment of the strictest one. */
+export const SIGNAL_PENALTIES_PER_EXTRA: Record<AcuteSignalSeverity, number> = {
+  low: 2,
+  medium: 6,
+  high: 10,
+  critical: 15,
+};
+
+/** Lower bound the score cannot be pushed below by stacked extra penalties.
+ *  Depends on the STRICTEST severity present: critical floor is deep (5) so
+ *  multiple criticals can reach the critical band (0-24); higher severities
+ *  have shallower floors to prevent the score from collapsing too far. */
+export const SEVERITY_FLOORS: Record<AcuteSignalSeverity, number> = {
+  low: 50,
+  medium: 35,
+  high: 18,
+  critical: 5,
 };
 
 // ── Score → level bands (descending, covers 0-100) ──────────────────────────
@@ -76,9 +108,11 @@ export interface AggregatedHealth {
   healthLevel: HealthLevel;
   /** Score from axes alone, before signal penalties + caps. */
   baseline: number;
-  /** Maximum allowed score after applying the strictest signal cap. */
+  /** Strictest signal cap (the primary ceiling). 100 = no cap (no signals,
+   *  or only low-severity signals). */
   capApplied: number;
-  /** Total penalty subtracted from baseline before clamping. */
+  /** Extra-signal penalty applied AFTER the cap — counted only for signals
+   *  beyond the strictest one. 0 when there is ≤1 signal. */
   penaltyTotal: number;
   /** Axis keys that contributed (confidence ≥ MIN_CONFIDENCE_FOR_AXIS). */
   axesUsed: HealthAxisKey[];
@@ -109,21 +143,45 @@ export function aggregateHealth(
           0,
         );
 
-  // 2) Acute signals — penalties stack, strictest cap wins.
-  const penaltyTotal = signals.reduce(
-    (sum, s) => sum + SIGNAL_PENALTIES[s.severity],
-    0,
-  );
-  const capApplied =
-    signals.length === 0
-      ? 100
-      : Math.min(...signals.map((s) => SIGNAL_CAPS[s.severity]));
+  // 2) Acute signals — cap is the PRIMARY brake; an extra-signal penalty
+  //    differentiates multiple same-severity signals; a severity-dependent
+  //    floor prevents stacked penalties from collapsing the score too far.
+  let capApplied = 100;
+  let penaltyTotal = 0;
+  let scoreAfterSignals = baselineRaw;
 
-  // 3) Final: clamp (baseline − penalties) into [0, cap].
-  const afterPenalty = Math.max(0, baselineRaw - penaltyTotal);
-  const healthScore = Math.round(Math.min(afterPenalty, capApplied));
+  if (signals.length > 0) {
+    // The strictest signal = the one whose cap is the tightest (lowest value).
+    const strictest = signals.reduce(
+      (best, s) =>
+        SIGNAL_CAPS[s.severity] < SIGNAL_CAPS[best.severity] ? s : best,
+      signals[0],
+    );
+    capApplied = SIGNAL_CAPS[strictest.severity];
+    const floor = SEVERITY_FLOORS[strictest.severity];
 
-  // 4) Level from fixed bands (descending; the first match wins).
+    // Step 1: the strictest signal absorbs the cap (no additional penalty).
+    const afterCap = Math.min(baselineRaw, capApplied);
+
+    // Step 2: extra penalty for every signal BEYOND the strictest. Skipping the
+    // strictest one (by index, in case multiple signals share the strictest
+    // severity) is what removes the old double-punishment.
+    const strictestIdx = signals.indexOf(strictest);
+    penaltyTotal = signals.reduce(
+      (sum, s, i) =>
+        i === strictestIdx
+          ? sum
+          : sum + SIGNAL_PENALTIES_PER_EXTRA[s.severity],
+      0,
+    );
+
+    // Step 3: bound below by the severity-floor.
+    scoreAfterSignals = Math.max(floor, afterCap - penaltyTotal);
+  }
+
+  const healthScore = Math.round(scoreAfterSignals);
+
+  // 3) Level from fixed bands (descending; the first match wins).
   const band = LEVEL_BANDS.find((b) => healthScore >= b.min);
   const healthLevel: HealthLevel = band?.level ?? "critical";
 
