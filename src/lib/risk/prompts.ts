@@ -83,7 +83,7 @@ THE 8 RISK SIGNALS:
 
 4. BUDGET_FRICTION — Pricing concerns surfacing
    Patterns: "CFO ist sich nicht sicher", "Budget ist knapp", price negotiation pushback
-   DETECT WHEN: Buyer explicitly says budget is constrained, asks for discount before seeing pricing, references needing to cut spend, says budget is frozen/already committed, asks to split payments because timing is the issue, or a CEO/CFO/budget owner says the deal stops without hard ROI proof.
+   DETECT WHEN: Buyer explicitly says budget is constrained, asks for discount before seeing pricing, references needing to cut spend, says budget is frozen/already committed, asks to split payments because timing is the issue, or a CEO/CFO/budget owner says the deal stops without hard ROI proof. Also detect when the deal is explicitly restructured around a budget-release calendar (CapEx committee, annual planning gate) — e.g. buyer proposes an OpEx pilot now plus a full CapEx rollout later because the money is process-locked until a fixed date. This counts as BUDGET_FRICTION at MEDIUM severity, even when framed collaboratively and without a discount request or stop-threat.
    DO NOT DETECT: Standard pricing questions, comparison shopping, asking for ROI justification without a stop/go threat, multi-year deal negotiations.
 
 5. CHAMPION_DISENGAGEMENT — Champion exists but is losing energy
