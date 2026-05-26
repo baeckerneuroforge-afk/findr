@@ -214,14 +214,40 @@ describe("CS Health Classifier Eval Suite", () => {
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Substring check after normalizing whitespace + case. Strict on content
- * (paraphrases fail), forgiving on formatting. The classifier prompt says
- * "verbatim only"; orphans here mean hallucinated quotes.
+ * Substring check after normalizing whitespace + case + common Unicode/DE
+ * typography. Strict on content (paraphrases fail), forgiving on formatting.
+ * The classifier prompt says "verbatim only"; orphans here mean hallucinated
+ * quotes, NOT umlaut-or-typographic-quote mismatches between the transcript
+ * and the model's quote.
+ *
+ * Normalization:
+ *  - NFKC (compose composed/decomposed forms, normalize compatibility chars)
+ *  - DE umlauts folded to ASCII pairs (ü→ue, ä→ae, ö→oe, ß→ss). Because both
+ *    sides are folded, transcript "ü" matches quote "ue" (and vice versa).
+ *  - Typographic double quotes („ " " « ») → ASCII ".
+ *  - Typographic single quotes / apostrophes (' ') → ASCII '.
+ *  - En-/em-dashes (– —) → ASCII -.
+ *  - Whitespace collapsed, trimmed, lowercased.
  */
 function isVerbatim(quote: string, transcript: string): boolean {
   if (!quote.trim()) return true; // empty evidence is fine (default [])
-  const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
-  return norm(transcript).includes(norm(quote));
+  const fold = (s: string) =>
+    s
+      .normalize("NFKC")
+      .replace(/Ä/g, "Ae")
+      .replace(/ä/g, "ae")
+      .replace(/Ö/g, "Oe")
+      .replace(/ö/g, "oe")
+      .replace(/Ü/g, "Ue")
+      .replace(/ü/g, "ue")
+      .replace(/ß/g, "ss")
+      .replace(/[„“”«»]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .replace(/[–—]/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  return fold(transcript).includes(fold(quote));
 }
 
 function buildReport(

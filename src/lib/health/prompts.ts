@@ -79,11 +79,13 @@ DETECT only when the transcript NAMES the event:
 - CHAMPION_LOSS — the champion has left, announced leaving, or lost mandate. Quote required.
 - BUDGET_FRICTION — a budget owner explicitly froze / cut / blocked the spend WITH a stop-threat or hard ROI hurdle ("wird nicht verlängert", "ohne harte Zahlen kein Vertrag"). Quote required.
 - COMPETITOR_PRESSURE — a competitor pilot has STARTED, or the customer has stated a preference / signed a competing offer. Not for "we sometimes compare".
-- STAKEHOLDER_CHURN — a key stakeholder has changed roles / left, OR a new senior procurement / VP has reset the vendor decision with power to switch.
-- LATE_DECISION_MAKER — a previously-uninvolved decision-maker enters late with veto power and new proof requirements.
+- STAKEHOLDER_CHURN — a key stakeholder has CHANGED ROLES / LEFT, OR a NEW senior procurement / VP has JOINED with power to switch and is reopening the vendor decision. PRIMARY signal whenever a new-hire's arrival is itself the event that resets the decision (new VP Procurement, new CFO who freezes renewals as a category, etc.).
+- LATE_DECISION_MAKER — an EXISTING, previously-uninvolved internal decision-maker steps in late with veto power and new proof requirements. NOT for a brand-new hire whose arrival itself is the event — that is STAKEHOLDER_CHURN. Pick this only when the person was already at the company and is just now entering the deal.
 - STALLING_PATTERN — REPEATED, explicit postponement of a concrete next step ("nochmal nächste Woche", signature paused twice). Not for "we will discuss internally later".
 - ENGAGEMENT_DROP — a SHARP drop with a concrete TRIGGER (power-user left, QBR canceled twice, logins fell off after a named event). NOT for general flat usage or stalled adoption.
 - CHAMPION_DISENGAGEMENT — the champion has MATERIALLY stepped back: 2+ meeting cancellations, communication delegated to a named replacement, refusal of concrete next steps. NOT for a passing self-aware comment like "ich bin grade nicht so drin" without behavioral evidence.
+
+ONE EVENT = ONE SIGNAL. A single named event plus its downstream effects produces ONE signal, not several. Example: "Champion verlässt die Firma, Nachfolger könnte die Vendor-Entscheidung neu aufrollen" → CHAMPION_LOSS only, NOT also STAKEHOLDER_CHURN or LATE_DECISION_MAKER for the same downstream re-decision. Pick the type that best names the ORIGINATING event. Emit multiple signals only when multiple INDEPENDENT events are named in the transcript (e.g., champion left AND budget separately frozen — two events, two signals).
 
 DO NOT DETECT — these belong in the AXES, NOT in acuteSignals:
 - "Wir wissen nicht ob es sich lohnt" / no concrete ROI win after months → LOW valueRealization, NOT a signal.

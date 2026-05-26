@@ -53,9 +53,9 @@ export const MIN_CONFIDENCE_FOR_AXIS = 0.3;
 //      low that one critical falls through into critical.
 //
 // Tuned so:
-//   - 1 critical signal at any baseline → score ~32 → at_risk (25-44) ✓
+//   - 1 critical signal at any baseline → score ~32 → at_risk (25-39) ✓
 //   - 2+ critical signals               → score ~17 → critical (0-24) ✓
-//   - 1 high signal                     → score ~50 → lukewarm (45-64)
+//   - 1 high signal                     → score ~50 → lukewarm (40-64)
 //   - low signals                       → no cap; barely move the baseline.
 
 /** Score ceiling imposed by the strictest signal present. */
@@ -91,11 +91,11 @@ export const SEVERITY_FLOORS: Record<AcuteSignalSeverity, number> = {
 // ── Score → level bands (descending, covers 0-100) ──────────────────────────
 // Edit these to retune levels without touching the classifier or the prompt.
 export const LEVEL_BANDS: ReadonlyArray<{ min: number; level: HealthLevel }> = [
-  { min: 80, level: "thriving" },
-  { min: 65, level: "healthy" },
-  { min: 45, level: "lukewarm" },
-  { min: 25, level: "at_risk" },
-  { min: 0, level: "critical" },
+  { min: 80, level: "thriving" }, // 80-100
+  { min: 65, level: "healthy" }, //  65-79
+  { min: 40, level: "lukewarm" }, // 40-64 (lower bound shifted from 45 → 40 after eval round 2)
+  { min: 25, level: "at_risk" }, //  25-39
+  { min: 0, level: "critical" }, //  0-24
 ] as const;
 
 // Fallback when no axis has sufficient confidence — neutral, not optimistic.
