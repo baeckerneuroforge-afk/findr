@@ -9,12 +9,15 @@ import {
 } from "@/lib/accounts/health-service";
 import { getSavePlays } from "@/lib/accounts/save-play-service";
 import { getDealById } from "@/lib/deals/service";
+import { getCallsByAccountId } from "@/lib/calls/service";
+import { getLatestInsightsForCalls } from "@/lib/product-discovery/service";
 import { getAccountCheckin } from "@/lib/voice-agent/session-service";
 import { AccountHealthPanel } from "@/components/dashboard/AccountHealthPanel";
 import { SavePlayPanel } from "@/components/dashboard/SavePlayPanel";
 import { AccountCheckinPanel } from "@/components/dashboard/AccountCheckinPanel";
 import { AccountMasterCard } from "@/components/dashboard/AccountMasterCard";
 import { AccountStatusControl } from "@/components/dashboard/AccountStatusControl";
+import { CallProductDiscoverySection } from "@/components/dashboard/CallProductDiscoverySection";
 
 function formatMrr(mrr: number | null, currency: "USD" | "EUR"): string {
   if (mrr === null) return "MRR not set";
@@ -67,13 +70,21 @@ export default async function AccountDetailPage({
   // Health data (Etappe 2): latest score + history for the chart + transcript
   // count for the honesty line. Keyed by the account id (text column, consistent
   // with risk_scores.deal_id).
-  const [latestHealth, healthHistory, transcriptCount, checkin] =
+  const [latestHealth, healthHistory, transcriptCount, checkin, accountCalls] =
     await Promise.all([
       getLatestHealthScore(orgId, account.id),
       getHealthScoreHistory(orgId, account.id, 30),
       getAccountTranscriptCount(orgId, account.id),
       getAccountCheckin(orgId, account.id),
+      getCallsByAccountId(orgId, account.id),
     ]);
+  // Batched latest-insight lookup for the Product Discovery section below —
+  // one indexed query for all of the account's calls. N+1-safe even with
+  // many calls per account.
+  const productDiscoveryByCall = await getLatestInsightsForCalls(
+    orgId,
+    accountCalls.map((c) => c.id),
+  );
   const healthHistoryPoints = healthHistory.map((point) => ({
     date: point.analyzed_at,
     score: point.health_score,
@@ -183,6 +194,62 @@ export default async function AccountDetailPage({
           initialIntervalDays={account.checkinIntervalDays}
           lastCheckinAt={account.lastCheckinAt}
         />
+      </div>
+
+      {/* Product Discovery — per-call extraction of feature requests, pain
+          points and themes. New here (the Account page never listed calls
+          historically because it's account-level, not call-level). Each call
+          gets the analyse-trigger plus, once analysed, the persisted insight
+          card; the rollup of all of these across the org lives at
+          /dashboard/product-discovery. */}
+      <div className="mb-8">
+        <h2 className="mb-4 text-h2 text-neutral-900">
+          Product discovery from calls
+        </h2>
+        {accountCalls.length === 0 ? (
+          <p className="text-body text-neutral-500">
+            Sobald ein Call zu diesem Account vorliegt, kann er hier auf
+            Produktsignale analysiert werden.
+          </p>
+        ) : (
+          <div className="space-y-6">
+            {accountCalls.map((call) => {
+              const recordedAt = call.recorded_at
+                ? new Date(call.recorded_at).toLocaleDateString("de-DE", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })
+                : "—";
+              return (
+                <div
+                  key={call.id}
+                  className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div>
+                      <div className="text-body-strong text-neutral-900">
+                        {call.call_type ?? "Call"}
+                      </div>
+                      <div className="text-small text-neutral-500">
+                        {recordedAt}
+                      </div>
+                    </div>
+                  </div>
+                  {call.transcript_summary && (
+                    <p className="text-small text-neutral-600">
+                      {call.transcript_summary}
+                    </p>
+                  )}
+                  <CallProductDiscoverySection
+                    callId={call.id}
+                    insight={productDiscoveryByCall.get(call.id) ?? null}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Master data (editable) */}

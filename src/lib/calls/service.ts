@@ -62,6 +62,40 @@ export async function getCallsByDealId(
   return (data ?? []) as CallRow[];
 }
 
+/**
+ * Lean per-account call list — only the columns the Account-Detail page's
+ * Product Discovery section needs. Unlike getCallsByDealId we deliberately
+ * do NOT pull speakers / transcript_segments here: the Account-Detail page
+ * never rendered per-call detail historically (it's account-level: Health,
+ * Save-Play, Check-in), and pulling those joins by default would balloon
+ * the page payload.
+ */
+export interface AccountCallSummary {
+  id: string;
+  account_id: string | null;
+  call_type: string | null;
+  recorded_at: string | null;
+  transcript_summary: string | null;
+}
+
+export async function getCallsByAccountId(
+  orgId: string,
+  accountId: string,
+): Promise<AccountCallSummary[]> {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("calls")
+    .select("id, account_id, call_type, recorded_at, transcript_summary")
+    .eq("org_id", orgId)
+    .eq("account_id", accountId)
+    .order("recorded_at", { ascending: false });
+  if (error) {
+    console.error("Error fetching calls by account:", error.message);
+    return [];
+  }
+  return (data ?? []) as AccountCallSummary[];
+}
+
 export async function getCallById(
   orgId: string,
   callId: string,

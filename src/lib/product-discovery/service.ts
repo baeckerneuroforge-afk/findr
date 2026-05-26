@@ -240,6 +240,42 @@ async function fetchAccountNames(
 
 // ── Reads ───────────────────────────────────────────────────────────────────
 
+/**
+ * Latest insight per call across a batch of callIds. Returns a Map keyed by
+ * source_call_id — callIds without a stored insight are absent. Mirrors
+ * getLatestRiskScoresForDeals / getLatestHealthScoresForAccounts: ONE indexed
+ * query + a JS dedup loop, so the deal/account detail pages can show
+ * "hasInsights" per call without an N+1 fan-out.
+ *
+ * source_label and source_kind are left at their toRecord defaults (null /
+ * derived). Detail-page callers already know the parent label from page
+ * context; only the org-wide rollup pre-joins it (cf. getAllInsightsForOrg).
+ */
+export async function getLatestInsightsForCalls(
+  orgId: string,
+  callIds: string[],
+): Promise<Map<string, ProductDiscoveryInsightRecord>> {
+  if (callIds.length === 0) return new Map();
+
+  const supabase = createPDSupabase();
+  const { data, error } = await supabase
+    .from("product_discovery_insights")
+    .select("*")
+    .eq("org_id", orgId)
+    .in("source_call_id", callIds)
+    .order("analyzed_at", { ascending: false });
+
+  if (error || !data) return new Map();
+
+  const latest = new Map<string, ProductDiscoveryInsightRecord>();
+  for (const row of data) {
+    if (!latest.has(row.source_call_id)) {
+      latest.set(row.source_call_id, toRecord(row));
+    }
+  }
+  return latest;
+}
+
 /** Most recent insight for a single call, or null if no extraction yet. */
 export async function getLatestInsightsForCall(
   orgId: string,

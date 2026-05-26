@@ -44,6 +44,17 @@ const MODULES: NavGroupDef[] = [
       { href: "/dashboard/health", label: "Health Overview" },
     ],
   },
+  // Product Discovery is its own module: the AI brain pointed INWARD at the
+  // vendor's own product, not outward at customers. It draws on calls from
+  // BOTH Sales Intelligence (deals) and Customer Health (accounts), so it
+  // doesn't belong under either; a dedicated "Product" group keeps the
+  // navigation honest about which capability surfaces what.
+  {
+    label: "Product",
+    items: [
+      { href: "/dashboard/product-discovery", label: "Product Discovery" },
+    ],
+  },
 ];
 
 /** Cross-cutting workspace tools — not a product module, but the plumbing

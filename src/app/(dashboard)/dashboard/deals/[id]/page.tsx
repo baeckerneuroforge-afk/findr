@@ -6,6 +6,8 @@ import { getCallsByDealId } from "@/lib/calls/service";
 import { getRiskScoreHistory } from "@/lib/risk/service";
 import { getSolutionReports } from "@/lib/solution/service";
 import { CallDetail } from "@/components/dashboard/CallDetail";
+import { CallProductDiscoverySection } from "@/components/dashboard/CallProductDiscoverySection";
+import { getLatestInsightsForCalls } from "@/lib/product-discovery/service";
 import { RiskSignalDrilldown } from "@/components/dashboard/RiskSignalDrilldown";
 import { SolutionPanel } from "@/components/dashboard/SolutionPanel";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
@@ -58,6 +60,12 @@ export default async function DealDetailPage({
   if (!deal) notFound();
 
   const calls = await getCallsByDealId(orgId, id);
+  // Batched latest-insight lookup so per-call panels avoid N+1. Mirrors the
+  // getLatestRiskScoresForDeals pattern. Empty for calls without an insight.
+  const productDiscoveryByCall = await getLatestInsightsForCalls(
+    orgId,
+    calls.map((c) => c.id),
+  );
   const history = await getRiskScoreHistory(orgId, id, 30);
   const latestRisk = history[history.length - 1] ?? null;
   const historyPoints = history.map((point) => ({
@@ -198,9 +206,15 @@ export default async function DealDetailPage({
             variant="default"
           />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {calls.map((call) => (
-              <CallDetail key={call.id} call={call} />
+              <div key={call.id} className="space-y-3">
+                <CallDetail call={call} />
+                <CallProductDiscoverySection
+                  callId={call.id}
+                  insight={productDiscoveryByCall.get(call.id) ?? null}
+                />
+              </div>
             ))}
           </div>
         )}
