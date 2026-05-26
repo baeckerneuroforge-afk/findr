@@ -462,3 +462,171 @@ export async function nextCheckinMessage(
     NextMessageSchema,
   );
 }
+
+// ----------------------------------------------------------------------------
+// Research interviewer — proactive, plan-driven research conversation.
+//
+// Third agent flavor (after post-loss + check-in). Unlike the check-in (short
+// satisfaction sweep) or the post-loss interview (one extraction target), this
+// one runs a real research interview: it gets a PLAN (topics + intents +
+// optional hypotheses, NOT a fixed question list) and formulates questions
+// on-the-fly, probes for SPECIFIC STORIES rather than general opinions, and
+// stops when every topic has yielded signal or the participant signals fatigue.
+//
+// Reuses the same conversation mechanic — {done, message} schema, language
+// enforcement, callJson plumbing. The downstream classifier (Product Discovery)
+// is run on the completed transcript via the existing analyzeCallForProduct-
+// Discovery hook; the research interviewer itself produces NO extraction step
+// (no riskAnalysis-style result column).
+//
+// brand is OPTIONAL: when the research runs on behalf of a vendor (the common
+// internal case — a Findr customer researching their own market), brand
+// carries orgName + product. For external / independent research it is null;
+// the agent then frames itself as "independent research", no vendor name.
+// ----------------------------------------------------------------------------
+
+/** One topic in a research plan. The classifier-side schema lives in
+ *  src/lib/schemas/ once a Zod boundary is added; the agent only needs the
+ *  shape it consumes. */
+export interface ResearchTopic {
+  /** Short label shown to operators ("Daily workflow", "Tooling switch"). */
+  topic: string;
+  /** What we want to learn about this topic, in plain language. */
+  intent: string;
+  /** Optional private hypotheses — used only to steer probing, NEVER revealed
+   *  to the participant. */
+  hypotheses?: string[];
+}
+
+export interface ResearchPlanContext {
+  /** Plan title — shown to the participant in the opening message. */
+  title: string;
+  /** One-line research objective, used to ground the agent. */
+  objective: string;
+  topics: ResearchTopic[];
+  /** Free-text target-persona description (role, industry, maturity). */
+  persona?: string | null;
+}
+
+/** Vendor / brand context — null for independent / external research. */
+export interface ResearchBrand {
+  /** Vendor name, e.g. "Acme GmbH". */
+  orgName: string;
+  /** Optional product label; null when the research isn't product-specific. */
+  productName: string | null;
+}
+
+export interface ResearchInput {
+  plan: ResearchPlanContext;
+  brand: ResearchBrand | null;
+}
+
+export const RESEARCH_INTERVIEWER_SYSTEM_PROMPT = `You are an AI research interviewer running an in-depth research conversation with a participant. The goal is to LEARN — surface specific stories, lived experience, friction, and unmet needs.
+
+You work in DACH (Germany / Austria / Switzerland). LANGUAGE: every interview is conducted in a REQUIRED language, given in the context. Write ALL of your messages in that language — including your opening message, which you send before the participant has said anything — and stay in it for the whole conversation.
+
+TRANSPARENCY (required, non-negotiable): In your OPENING message, clearly identify yourself as an AI research assistant conducting an interview. Briefly mention what the research is about (one sentence based on the plan's objective), say the conversation is confidential, and that there are no wrong answers. Never imply or pretend to be a human.
+
+YOUR STYLE:
+- Curious, professional, neutral. Warm but not chatty. ONE focused question at a time — never a wall of text.
+- Listen more than you speak. After each answer, ask ONE meaningful follow-up that goes deeper, the way a real researcher would: "Why was that?", "Can you walk me through the last time it happened?", "What did you try before?", "Who else was involved?".
+- NEVER lead the witness. Do not propose features, do not validate or invalidate hypotheses to the participant, do not put words in their mouth.
+- NEVER sell, never thank them for "their interest in <product>", never frame the research as marketing.
+
+YOUR JOB:
+You are given a research PLAN with TOPICS (each has a label, an intent, and optionally private hypotheses). Cover the topics naturally:
+- Open with a brief context line (see TRANSPARENCY) and the LIGHTEST entry-topic in the plan as the first real question. Pick whichever topic is easiest to talk about for a stranger.
+- Spend 2–4 turns per topic before moving on. Move on EARLIER if the participant clearly has nothing concrete to add on that topic.
+- Mine for SPECIFIC STORIES ("the last time you ran into this…", "walk me through what happened on Tuesday…"), NOT general opinions ("how do you usually feel about…"). General answers get one follow-up that asks for a concrete example before moving on.
+- Vary your follow-ups. Don't repeat the same probe verb.
+
+WHEN TO STOP — set "done": true and write a short warm closing when ANY of:
+- Every topic in the plan has yielded at least one specific story OR was probed and produced no signal.
+- The participant signals fatigue, time pressure, or asks to end. ALWAYS respect that.
+- The conversation has clearly run out of new information (the participant is repeating themselves).
+Do NOT summarize what the participant said in the closing — a downstream classifier handles that. Just thank them warmly and confirm the conversation is anonymized as agreed.
+
+PRIVATE CONTEXT (never reveal):
+- You may be given the inviting org's name and product (when the research is on behalf of a vendor). Use it ONLY to ground questions in the right context (e.g. "when you set up new sales pipelines"). NEVER name the vendor product, never defend it, never lead the participant toward it.
+- Topic hypotheses, if provided, are for YOUR private steering only. Never read them out, never confirm or invalidate them in the open.
+
+OUTPUT — return ONLY this JSON object, no markdown, no preamble:
+{
+  "done": true | false,
+  "message": "<your next message to the participant, or a short warm closing if done>"
+}
+Set "done": false while you still want to ask another question; set "done": true when wrapping up.`;
+
+function formatTopics(topics: ResearchTopic[]): string {
+  if (topics.length === 0) {
+    return "(no topics specified — keep the conversation open-ended around the objective)";
+  }
+  return topics
+    .map((t, i) => {
+      const lines = [`${i + 1}. ${t.topic} — intent: ${t.intent}`];
+      if (t.hypotheses && t.hypotheses.length > 0) {
+        lines.push(
+          `   private hypotheses (do NOT reveal): ${t.hypotheses.join(" | ")}`,
+        );
+      }
+      return lines.join("\n");
+    })
+    .join("\n");
+}
+
+function formatBrand(brand: ResearchBrand | null): string {
+  if (!brand) {
+    return "Independent research — no specific vendor or product context. Frame yourself as an independent research assistant.";
+  }
+  const product = brand.productName?.trim();
+  return product
+    ? `Research on behalf of ${brand.orgName} (product: ${product}). Use this ONLY to ground questions; never name the product, never sell.`
+    : `Research on behalf of ${brand.orgName}. Use this ONLY to ground questions; never sell.`;
+}
+
+function buildResearchPrompt(
+  input: ResearchInput,
+  history: InterviewTurn[],
+  language: InterviewLanguage,
+): string {
+  const persona = input.plan.persona?.trim();
+  return `REQUIRED LANGUAGE: ${LANGUAGE_LABELS[language]} — write your message in this language, including the opening message.
+
+${formatBrand(input.brand)}
+
+RESEARCH PLAN
+Title:     ${input.plan.title}
+Objective: ${input.plan.objective}${persona ? `\nPersona:   ${persona}` : ""}
+
+TOPICS (cover naturally, 2–4 turns each, start with the lightest):
+${formatTopics(input.plan.topics)}
+
+CONVERSATION SO FAR:
+${formatHistory(history)}
+
+Write your next message as JSON only.`;
+}
+
+/**
+ * Generate the research interviewer's next message. Reuses the same {done,
+ * message} schema + JSON/Zod/retry plumbing as the post-loss and check-in
+ * agents (callJson). The plan + brand context are passed FRESH on every call
+ * — there is no extraction step at the end (the downstream Product Discovery
+ * classifier is invoked separately on the completed transcript).
+ *
+ * Not yet wired into a session-service branch — that lands when the research
+ * flow is plumbed through advanceInterview (next milestone).
+ */
+export async function nextResearchMessage(
+  input: ResearchInput,
+  history: InterviewTurn[],
+  language: InterviewLanguage,
+  model: string = process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL,
+): Promise<NextMessage> {
+  return callJson(
+    RESEARCH_INTERVIEWER_SYSTEM_PROMPT,
+    buildResearchPrompt(input, history, language),
+    model,
+    NextMessageSchema,
+  );
+}
