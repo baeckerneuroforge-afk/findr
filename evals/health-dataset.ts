@@ -299,9 +299,16 @@ csm: Want to set up a re-onboarding for the SDR team?
 sponsor: Maybe later in the year. Not now.`,
     },
     expected: {
-      healthLevel: "lukewarm",
-      scoreRangeMin: 45,
-      scoreRangeMax: 60,
+      // RECATEGORIZED in round 3: this is axis-driven at_risk, not lukewarm.
+      // "they went back to their old spreadsheet" + refused re-onboarding =
+      // active, documented value loss. The previous "lukewarm" label was too
+      // optimistic; the KI honestly scores ~32 from the axes alone. No acute
+      // signal expected — DO NOT DETECT in the prompt explicitly covers
+      // "they went back to their spreadsheet" as engagement-axis, NOT
+      // ENGAGEMENT_DROP. So requiredAcuteSignals stays empty.
+      healthLevel: "at_risk",
+      scoreRangeMin: 25,
+      scoreRangeMax: 39,
     },
   },
   {
@@ -417,8 +424,11 @@ sponsor: Sonst war die Zusammenarbeit immer top, das ist nicht persönlich. Nur 
     },
     expected: {
       healthLevel: "at_risk",
+      // HIGH-severity BUDGET_FRICTION → cap 38 → score lands at 38 from a
+      // strong relationship/product baseline. Range raised from 34 → 39 to
+      // match the new HIGH-cap calibration (round 3).
       scoreRangeMin: 22,
-      scoreRangeMax: 34,
+      scoreRangeMax: 39,
       requiredAcuteSignals: ["BUDGET_FRICTION"],
     },
   },
@@ -447,8 +457,11 @@ sponsor: I personally still think you're the right tool, but I don't have the fi
     },
     expected: {
       healthLevel: "at_risk",
+      // HIGH-severity STAKEHOLDER_CHURN → cap 38 → score lands at 38 from a
+      // strong baseline. Range raised from 36 → 39 to match the new HIGH-cap
+      // calibration (round 3).
       scoreRangeMin: 22,
-      scoreRangeMax: 36,
+      scoreRangeMax: 39,
       requiredAcuteSignals: ["STAKEHOLDER_CHURN"],
     },
   },

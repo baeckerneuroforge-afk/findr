@@ -55,15 +55,25 @@ export const MIN_CONFIDENCE_FOR_AXIS = 0.3;
 // Tuned so:
 //   - 1 critical signal at any baseline → score ~32 → at_risk (25-39) ✓
 //   - 2+ critical signals               → score ~17 → critical (0-24) ✓
-//   - 1 high signal                     → score ~50 → lukewarm (40-64)
+//   - 1 high signal                     → score ~38 → at_risk top (25-39) ✓
+//                                         (was 50 → lukewarm; lifted off the
+//                                         lukewarm-floor in eval round 3 so a
+//                                         single HIGH event from a strong
+//                                         baseline lands at_risk, not lukewarm.
+//                                         arc_014 / arc_015 are the canonical
+//                                         cases this unlocks.)
 //   - low signals                       → no cap; barely move the baseline.
 
 /** Score ceiling imposed by the strictest signal present. */
 export const SIGNAL_CAPS: Record<AcuteSignalSeverity, number> = {
   low: 100, // no cap
-  medium: 72, // single medium → upper-lukewarm boundary (was 70)
-  high: 50, // single high → lukewarm (unchanged)
-  critical: 32, // single critical → solid at_risk (was 30; bumped off the edge)
+  medium: 72, // single medium → upper-lukewarm boundary
+  high: 38, // single high → at_risk top (was 50; lowered in round 3 so a
+  //                       single HIGH event from a strong baseline lands
+  //                       at_risk (25-39), not lukewarm. Sits one point
+  //                       below the at_risk ceiling so it cleanly lives
+  //                       inside the band rather than on the edge.)
+  critical: 32, // single critical → solid at_risk
 };
 
 /** Penalty applied ONLY to signals BEYOND the strictest one. Halved from the

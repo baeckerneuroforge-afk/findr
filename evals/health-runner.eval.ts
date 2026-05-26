@@ -97,9 +97,11 @@ describe("CS Health Classifier Eval Suite", () => {
         const axesReport = HEALTH_AXIS_KEYS.reduce(
           (acc, key) => {
             const axis = result.satisfactionAxes[key];
-            const orphans = axis.evidence.filter(
-              (q) => !isVerbatim(q, transcript),
-            ).length;
+            const orphans = axis.evidence.filter((q) => {
+              if (isVerbatim(q, transcript)) return false;
+              logOrphan(evalCase.id, `axis:${key}`, q, transcript);
+              return true;
+            }).length;
             acc[key] = {
               score: axis.score,
               confidence: axis.confidence,
@@ -113,7 +115,12 @@ describe("CS Health Classifier Eval Suite", () => {
 
         const signalEvidenceOrphans = result.acuteSignals.reduce(
           (sum, s) =>
-            sum + s.evidence.filter((q) => !isVerbatim(q, transcript)).length,
+            sum +
+            s.evidence.filter((q) => {
+              if (isVerbatim(q, transcript)) return false;
+              logOrphan(evalCase.id, `signal:${s.type}`, q, transcript);
+              return true;
+            }).length,
           0,
         );
 
@@ -214,40 +221,96 @@ describe("CS Health Classifier Eval Suite", () => {
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Substring check after normalizing whitespace + case + common Unicode/DE
- * typography. Strict on content (paraphrases fail), forgiving on formatting.
- * The classifier prompt says "verbatim only"; orphans here mean hallucinated
- * quotes, NOT umlaut-or-typographic-quote mismatches between the transcript
- * and the model's quote.
+ * Folds Unicode + DE typography variants so substring checks treat smart
+ * quotes, en/em-dashes, umlauts, and ß as their ASCII equivalents. Hoisted
+ * to module level so isVerbatim + findClosestPassage share ONE normalization.
  *
  * Normalization:
  *  - NFKC (compose composed/decomposed forms, normalize compatibility chars)
- *  - DE umlauts folded to ASCII pairs (ü→ue, ä→ae, ö→oe, ß→ss). Because both
- *    sides are folded, transcript "ü" matches quote "ue" (and vice versa).
+ *  - DE umlauts folded to ASCII pairs (ü→ue, ä→ae, ö→oe, ß→ss). Both sides
+ *    are folded, so transcript "ü" matches quote "ue" (and vice versa).
  *  - Typographic double quotes („ " " « ») → ASCII ".
  *  - Typographic single quotes / apostrophes (' ') → ASCII '.
  *  - En-/em-dashes (– —) → ASCII -.
  *  - Whitespace collapsed, trimmed, lowercased.
  */
+function fold(s: string): string {
+  return s
+    .normalize("NFKC")
+    .replace(/Ä/g, "Ae")
+    .replace(/ä/g, "ae")
+    .replace(/Ö/g, "Oe")
+    .replace(/ö/g, "oe")
+    .replace(/Ü/g, "Ue")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[„“”«»]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Substring check after folding. Strict on content (paraphrases fail),
+ * forgiving on whitespace + typography. The classifier prompt says
+ * "verbatim only"; orphans here mean hallucinated/paraphrased quotes the
+ * fold can't rescue.
+ */
 function isVerbatim(quote: string, transcript: string): boolean {
   if (!quote.trim()) return true; // empty evidence is fine (default [])
-  const fold = (s: string) =>
-    s
-      .normalize("NFKC")
-      .replace(/Ä/g, "Ae")
-      .replace(/ä/g, "ae")
-      .replace(/Ö/g, "Oe")
-      .replace(/ö/g, "oe")
-      .replace(/Ü/g, "Ue")
-      .replace(/ü/g, "ue")
-      .replace(/ß/g, "ss")
-      .replace(/[„“”«»]/g, '"')
-      .replace(/[‘’]/g, "'")
-      .replace(/[–—]/g, "-")
-      .replace(/\s+/g, " ")
-      .trim()
-      .toLowerCase();
   return fold(transcript).includes(fold(quote));
+}
+
+/**
+ * Diagnostic for orphans: finds the longest contiguous substring of the
+ * folded quote that DOES appear in the folded transcript, returns a
+ * ~60-char window around it. Lets us see at-a-glance whether an orphan is
+ * a one-character typography miss vs. a real paraphrase / hallucination.
+ *
+ * O(n²) on quote length, but only invoked on orphans (rare).
+ */
+function findClosestPassage(quote: string, transcript: string): string {
+  const fq = fold(quote);
+  const ft = fold(transcript);
+  if (!fq || !ft) return "(empty)";
+  const minLen = Math.min(8, fq.length);
+  for (let len = fq.length; len >= minLen; len--) {
+    for (let start = 0; start + len <= fq.length; start++) {
+      const slice = fq.slice(start, start + len);
+      const idx = ft.indexOf(slice);
+      if (idx >= 0) {
+        const winStart = Math.max(0, idx - 30);
+        const winEnd = Math.min(ft.length, idx + len + 30);
+        const before = winStart > 0 ? "…" : "";
+        const after = winEnd < ft.length ? "…" : "";
+        return `${before}${ft.slice(winStart, winEnd)}${after}`;
+      }
+    }
+  }
+  return "(no substantial overlap)";
+}
+
+/**
+ * One-line warning per non-verbatim evidence entry. Triggered from the
+ * eval runner's orphan-detection branches so we can spot whether residual
+ * orphans are one-character typography misses or real paraphrases.
+ * Logging-only — no logic change.
+ */
+function logOrphan(
+  caseId: string,
+  source: string,
+  quote: string,
+  transcript: string,
+): void {
+  console.warn(chalk.yellow(`  [orphan] ${caseId} ${source}`));
+  console.warn(chalk.yellow(`    quote:   ${JSON.stringify(quote)}`));
+  console.warn(
+    chalk.gray(
+      `    nearest: ${JSON.stringify(findClosestPassage(quote, transcript))}`,
+    ),
+  );
 }
 
 function buildReport(
