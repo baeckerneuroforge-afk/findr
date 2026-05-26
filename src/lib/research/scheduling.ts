@@ -1,0 +1,354 @@
+import "server-only";
+
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
+
+/**
+ * Scheduling service for research interviews. Mirrors the read/write
+ * pattern in src/lib/risk/service.ts + src/lib/accounts/health-service.ts:
+ * typed Supabase reads via the admin client, narrow public record shape,
+ * helpers that hide the underlying column-name pluralization.
+ *
+ * SCOPE per the v1 brief: a Findr user MANUALLY picks one scheduled_at per
+ * invite. No Cal.com, no availability matching. proposeSlots is purely a
+ * UI convenience (suggest a few default times); it does NOT reserve or
+ * lock anything. The mutation that matters is scheduleInvite, which writes
+ * a single timestamptz onto the row.
+ *
+ * Mode-agnostic: the invite carries a `mode_preference` ("text" | "voice" |
+ * "video") that affects /interview/[token] rendering, NOT the schedule.
+ * This service treats the value as opaque text.
+ *
+ * ── Schema assumption ─────────────────────────────────────────────────
+ * `research_invites` lives in prod (sister-branch migration) but is NOT
+ * yet in src/types/database.ts on this branch. Until the next types
+ * regeneration we widen the Database type locally — same pattern used by
+ * product-discovery's service.ts before its types regen. Drop the
+ * DatabaseWithResearch block + createResearchSupabase once
+ * `supabase gen types` has run after the sister-branch migration.
+ *
+ * The column set below is what this scheduling work touches plus what the
+ * reminder cron reads. If the sister-branch schema differs, point it out
+ * at merge and we adjust here only — no consumer code references the
+ * augmentation.
+ */
+
+type ResearchInviteRow = {
+  id: string;
+  org_id: string | null;
+  research_plan_id: string;
+  contact_name: string | null;
+  contact_email: string;
+  scheduled_at: string | null;
+  mode_preference: string;
+  access_token: string | null;
+  invited_at: string | null;
+  reminder_24h_sent_at: string | null;
+  reminder_1h_sent_at: string | null;
+  status: string;
+  created_at: string;
+};
+
+type ResearchInviteInsert = {
+  id?: string;
+  org_id?: string | null;
+  research_plan_id: string;
+  contact_name?: string | null;
+  contact_email: string;
+  scheduled_at?: string | null;
+  mode_preference?: string;
+  access_token?: string | null;
+  invited_at?: string | null;
+  reminder_24h_sent_at?: string | null;
+  reminder_1h_sent_at?: string | null;
+  status?: string;
+  created_at?: string;
+};
+
+type ResearchInviteUpdate = {
+  id?: string;
+  org_id?: string | null;
+  research_plan_id?: string;
+  contact_name?: string | null;
+  contact_email?: string;
+  scheduled_at?: string | null;
+  mode_preference?: string;
+  access_token?: string | null;
+  invited_at?: string | null;
+  reminder_24h_sent_at?: string | null;
+  reminder_1h_sent_at?: string | null;
+  status?: string;
+  created_at?: string;
+};
+
+type DatabaseWithResearch = {
+  __InternalSupabase: Database["__InternalSupabase"];
+  public: {
+    Tables: Database["public"]["Tables"] & {
+      research_invites: {
+        Row: ResearchInviteRow;
+        Insert: ResearchInviteInsert;
+        Update: ResearchInviteUpdate;
+        Relationships: [];
+      };
+    };
+    Views: Database["public"]["Views"];
+    Functions: Database["public"]["Functions"];
+    Enums: Database["public"]["Enums"];
+    CompositeTypes: Database["public"]["CompositeTypes"];
+  };
+};
+
+function createResearchSupabase(): SupabaseClient<DatabaseWithResearch> {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is not set. Required for admin operations.",
+    );
+  }
+  return createClient<DatabaseWithResearch>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceRoleKey,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+}
+
+// ── Public record shape ─────────────────────────────────────────────────────
+
+export interface ResearchInviteRecord {
+  id: string;
+  org_id: string | null;
+  research_plan_id: string;
+  contact_name: string | null;
+  contact_email: string;
+  scheduled_at: string | null;
+  mode_preference: string;
+  access_token: string | null;
+  invited_at: string | null;
+  reminder_24h_sent_at: string | null;
+  reminder_1h_sent_at: string | null;
+  status: string;
+}
+
+function toRecord(row: ResearchInviteRow): ResearchInviteRecord {
+  return {
+    id: row.id,
+    org_id: row.org_id,
+    research_plan_id: row.research_plan_id,
+    contact_name: row.contact_name,
+    contact_email: row.contact_email,
+    scheduled_at: row.scheduled_at,
+    mode_preference: row.mode_preference,
+    access_token: row.access_token,
+    invited_at: row.invited_at,
+    reminder_24h_sent_at: row.reminder_24h_sent_at,
+    reminder_1h_sent_at: row.reminder_1h_sent_at,
+    status: row.status,
+  };
+}
+
+// ── proposeSlots — minimal UI helper ────────────────────────────────────────
+
+/**
+ * Suggest a few default scheduling slots — purely a UI convenience for the
+ * "schedule this invite" form. NOT a calendar / availability check; the
+ * Findr user is free to ignore these and pick any timestamp.
+ *
+ * Default: next N business days (Mon–Fri) at 10:00 in Europe/Berlin. v1
+ * skips weekends and does not skip German public holidays — the calendar
+ * UI on the manual side already shows the date so users notice if a slot
+ * lands on a holiday.
+ */
+export function proposeSlots(now: Date = new Date(), count = 3): Date[] {
+  const slots: Date[] = [];
+  // Start from the next day so the earliest suggestion is at least tomorrow
+  // 10:00 — never "today in two hours", which usually isn't useful for a
+  // participant we're inviting now.
+  const cursor = new Date(now);
+  cursor.setDate(cursor.getDate() + 1);
+
+  while (slots.length < count) {
+    const day = cursor.getDay(); // 0 = Sunday, 6 = Saturday
+    if (day !== 0 && day !== 6) {
+      // 10:00 Europe/Berlin ≈ 09:00 UTC in winter / 08:00 UTC in summer.
+      // Without a TZ lib we approximate by setting the local time to 10:00
+      // and trust the caller's runtime to be in or near CET. The actual
+      // calendar invite (ICS) renders in the recipient's local TZ.
+      const slot = new Date(cursor);
+      slot.setHours(10, 0, 0, 0);
+      slots.push(slot);
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return slots;
+}
+
+// ── Reads ───────────────────────────────────────────────────────────────────
+
+export async function getResearchInvite(
+  orgId: string,
+  inviteId: string,
+): Promise<ResearchInviteRecord | null> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_invites")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("id", inviteId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return toRecord(data);
+}
+
+/**
+ * Cron-facing fetch: invites due for a 24h or 1h reminder. Pulls a single
+ * window covering both buckets [now+30min, now+25h] and lets the caller
+ * split into 24h vs 1h candidates client-side. Skips invites with no
+ * org_id (the cron can't resolve org context for them) and no
+ * scheduled_at (not yet planned).
+ *
+ * `limit` caps the result set so a busy day doesn't load thousands of
+ * rows at once; the cron has its own per-run cap on TOP of this.
+ */
+export async function listInvitesDueForReminder(
+  limit = 200,
+): Promise<ResearchInviteRecord[]> {
+  const supabase = createResearchSupabase();
+  const now = Date.now();
+  const lowerBound = new Date(now + 30 * 60_000).toISOString();
+  const upperBound = new Date(now + 25 * 60 * 60_000).toISOString();
+
+  const { data, error } = await supabase
+    .from("research_invites")
+    .select("*")
+    .not("org_id", "is", null)
+    .not("scheduled_at", "is", null)
+    .gte("scheduled_at", lowerBound)
+    .lte("scheduled_at", upperBound)
+    .order("scheduled_at", { ascending: true })
+    .limit(limit);
+
+  if (error || !data) return [];
+  return data.map((row) => toRecord(row));
+}
+
+// ── Writes ──────────────────────────────────────────────────────────────────
+
+export type ScheduleInviteStatus =
+  | "scheduled"
+  | "not_found"
+  | "missing_org"
+  | "in_past";
+
+export interface ScheduleInviteResult {
+  status: ScheduleInviteStatus;
+  invite: ResearchInviteRecord | null;
+  message: string | null;
+}
+
+/**
+ * Set scheduled_at on a research invite. v1 mutation surface — does NOT
+ * send the email (that's the orchestration's job, see
+ * src/lib/research/invite-orchestration.ts). Returns a typed result rather
+ * than throwing for expected misses so the route layer can map them to
+ * 404 / 409 / 422.
+ *
+ * Refuses to schedule into the past (defensive: a typo'd date doesn't
+ * silently create a stale reminder window). Caller passes a Date; we
+ * store ISO UTC.
+ */
+export async function scheduleInvite(
+  orgId: string,
+  inviteId: string,
+  scheduledAt: Date,
+): Promise<ScheduleInviteResult> {
+  if (scheduledAt.getTime() <= Date.now()) {
+    return {
+      status: "in_past",
+      invite: null,
+      message: "scheduled_at must be in the future.",
+    };
+  }
+
+  const invite = await getResearchInvite(orgId, inviteId);
+  if (!invite) {
+    return { status: "not_found", invite: null, message: "Invite not found." };
+  }
+  if (!invite.org_id) {
+    return {
+      status: "missing_org",
+      invite,
+      message: "Invite has no org_id — cannot schedule under an org context.",
+    };
+  }
+
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_invites")
+    .update({ scheduled_at: scheduledAt.toISOString() })
+    .eq("org_id", orgId)
+    .eq("id", inviteId)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    return {
+      status: "not_found",
+      invite,
+      message: error?.message ?? "Update returned no row",
+    };
+  }
+  return { status: "scheduled", invite: toRecord(data), message: null };
+}
+
+/** Stamps the moment we sent the initial scheduling-invite mail. Mirrors
+ *  markInterviewInvited(). Called from the orchestration after the Resend
+ *  call succeeded so a failed send doesn't get an audit timestamp. */
+export async function markInviteSent(
+  orgId: string,
+  inviteId: string,
+): Promise<string | null> {
+  const now = new Date().toISOString();
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_invites")
+    .update({ invited_at: now })
+    .eq("org_id", orgId)
+    .eq("id", inviteId)
+    .select("invited_at")
+    .single();
+  if (error || !data) return null;
+  return data.invited_at;
+}
+
+/** Stamps one of the two reminder timestamps after a successful reminder
+ *  send. The cron's idempotency relies on this — if the stamp is missing,
+ *  the next cron tick re-fires the reminder. */
+export async function markReminderSent(
+  orgId: string,
+  inviteId: string,
+  kind: "24h" | "1h",
+): Promise<string | null> {
+  // Computed-key updates ({ [column]: now }) widen to a string-indexed type
+  // that supabase-js's strict Update shape rejects (TS2345 — string index
+  // signatures aren't assignable to `never`). Spell both branches out so
+  // the Update type stays narrow.
+  const now = new Date().toISOString();
+  const update: ResearchInviteUpdate =
+    kind === "24h"
+      ? { reminder_24h_sent_at: now }
+      : { reminder_1h_sent_at: now };
+
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_invites")
+    .update(update)
+    .eq("org_id", orgId)
+    .eq("id", inviteId)
+    .select("reminder_24h_sent_at, reminder_1h_sent_at")
+    .single();
+  if (error || !data) return null;
+  return kind === "24h" ? data.reminder_24h_sent_at : data.reminder_1h_sent_at;
+}
