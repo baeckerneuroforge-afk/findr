@@ -33,7 +33,7 @@ import { SAVE_PLAY_EVAL_CASES, type SavePlayEvalCase } from "./dataset";
 import type {
   SavePlayRecommendation,
   SavePlayResult,
-} from "@/lib/accounts/save-play-service";
+} from "@/lib/accounts/save-play-extractor";
 
 // ---- heuristic checks -------------------------------------------------------
 
@@ -290,9 +290,9 @@ function printCase(c: SavePlayEvalCase, result: SavePlayResult, tally: Tally): v
 
 // ---- main -------------------------------------------------------------------
 
-async function loadService() {
+async function loadExtractor() {
   try {
-    return await import("@/lib/accounts/save-play-service");
+    return await import("@/lib/accounts/save-play-extractor");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (/Client Component|server-only/i.test(msg)) {
@@ -316,7 +316,7 @@ async function main(): Promise<void> {
     );
   }
 
-  const { generateSavePlayLLM } = await loadService();
+  const { generateSavePlayLLM } = await loadExtractor();
   // Reuses the Solution model knob — both layers share one model setting on purpose
   // (save-play-service.ts imports DEFAULT_SOLUTION_MODEL for the same reason).
   const { DEFAULT_SOLUTION_MODEL } = await import("@/lib/solution/extractor");

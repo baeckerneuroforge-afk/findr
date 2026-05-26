@@ -28,7 +28,7 @@
  * No `companyProfile` in this first round — that variant comes later.
  */
 
-import type { SavePlayInput } from "@/lib/accounts/save-play-service";
+import type { SavePlayInput } from "@/lib/accounts/save-play-extractor";
 
 export interface SavePlayEvalCase {
   id: string;
