@@ -1,0 +1,417 @@
+import "server-only";
+
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import type { Database, Json } from "@/types/database";
+import { getOrgName } from "@/lib/auth/org";
+import { getOrgSettings } from "@/lib/settings/org-settings";
+import { getAccount } from "@/lib/accounts/service";
+import { getDealById } from "@/lib/deals/service";
+import type {
+  FeatureRequest,
+  PainPoint,
+  Theme,
+} from "@/lib/schemas/product-discovery";
+import { analyzeProductDiscovery } from "./classifier";
+
+/**
+ * Product Discovery service layer. Mirrors src/lib/risk/service.ts +
+ * src/lib/accounts/health-service.ts: typed Supabase reads via the admin
+ * client + explicit org_id filter, plus one analyze() entry-point that reads
+ * a call's transcript, runs the classifier, and persists the result to
+ * product_discovery_insights.
+ *
+ * Reads always take orgId explicitly (admin client bypasses RLS). The
+ * write entry-point trusts the caller's org context — the route handler
+ * verifies user-org-call membership before invoking; see
+ * analyzeCallForProductDiscovery below.
+ */
+
+// ── Database type augmentation ──────────────────────────────────────────────
+//
+// product_discovery_insights is new in 20260609000000_product_discovery_
+// insights.sql; src/types/database.ts has NOT been regenerated yet. Until it
+// is, we widen the Database type locally so the typed Supabase client
+// narrows .from("product_discovery_insights") cleanly. Once the user runs
+// `supabase gen types` after applying the migration, this block (and the
+// cast in createPDSupabase) can be removed and the function bodies will work
+// against the regenerated Database type unchanged.
+
+// Object-literal types (NOT interfaces) — the generated Database in
+// src/types/database.ts uses inline literal types for every table, and
+// supabase-js's `.insert(...)` overload narrowing only resolves cleanly
+// against the same flavor of type. With interfaces the .insert() type
+// degrades to `never[]` (TS2353 "org_id does not exist in type 'never[]'").
+type ProductDiscoveryInsightRow = {
+  id: string;
+  org_id: string;
+  source_call_id: string;
+  deal_id: string | null;
+  account_id: string | null;
+  feature_requests: Json;
+  pain_points: Json;
+  themes: Json;
+  summary: string | null;
+  analysis_method: string;
+  analyzed_at: string;
+  created_at: string;
+};
+
+type ProductDiscoveryInsightInsert = {
+  id?: string;
+  org_id: string;
+  source_call_id: string;
+  deal_id?: string | null;
+  account_id?: string | null;
+  feature_requests?: Json;
+  pain_points?: Json;
+  themes?: Json;
+  summary?: string | null;
+  analysis_method?: string;
+  analyzed_at?: string;
+  created_at?: string;
+};
+
+type ProductDiscoveryInsightUpdate = {
+  id?: string;
+  org_id?: string;
+  source_call_id?: string;
+  deal_id?: string | null;
+  account_id?: string | null;
+  feature_requests?: Json;
+  pain_points?: Json;
+  themes?: Json;
+  summary?: string | null;
+  analysis_method?: string;
+  analyzed_at?: string;
+  created_at?: string;
+};
+
+// Explicit reconstruction instead of `Database & {...}` intersection: the
+// supabase-js client's deep conditional generics get confused by intersected
+// schema types and end up inferring Insert as `never[]` at the `.from(...)
+// .insert({...})` call site. Spelling out every key of `public` keeps the
+// shape simple and the generic narrowing reliable.
+type DatabaseWithPD = {
+  __InternalSupabase: Database["__InternalSupabase"];
+  public: {
+    Tables: Database["public"]["Tables"] & {
+      product_discovery_insights: {
+        Row: ProductDiscoveryInsightRow;
+        Insert: ProductDiscoveryInsightInsert;
+        Update: ProductDiscoveryInsightUpdate;
+        Relationships: [];
+      };
+    };
+    Views: Database["public"]["Views"];
+    Functions: Database["public"]["Functions"];
+    Enums: Database["public"]["Enums"];
+    CompositeTypes: Database["public"]["CompositeTypes"];
+  };
+};
+
+/**
+ * Construct a SupabaseClient typed against the augmented DatabaseWithPD so
+ * `.from("product_discovery_insights")` narrows correctly. We construct
+ * fresh here instead of casting createAdminSupabaseClient()'s return value:
+ * `as unknown as SupabaseClient<DatabaseWithPD>` survives the cast on paper
+ * but the client's nested conditional generics don't pick up the augmented
+ * Insert/Row types, and `.insert({...})` then resolves to `never[]` (TS2353
+ * "org_id does not exist in type 'never[]'"). Once src/types/database.ts is
+ * regenerated post-migration, both this helper and DatabaseWithPD can be
+ * dropped and callers switch to createAdminSupabaseClient() directly.
+ */
+function createPDSupabase(): SupabaseClient<DatabaseWithPD> {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is not set. Required for admin operations.",
+    );
+  }
+  return createClient<DatabaseWithPD>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceRoleKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    },
+  );
+}
+
+// ── Public record shape ─────────────────────────────────────────────────────
+
+/**
+ * Typed view of a persisted insight. JSONB columns are narrowed to their
+ * Zod-validated TypeScript shapes — the classifier validated them before
+ * insert, so the runtime cast is safe (mirrors the pattern in risk/service.ts
+ * for the `signals` JSONB column).
+ */
+export interface ProductDiscoveryInsightRecord {
+  id: string;
+  org_id: string;
+  source_call_id: string;
+  deal_id: string | null;
+  account_id: string | null;
+  feature_requests: FeatureRequest[];
+  pain_points: PainPoint[];
+  themes: Theme[];
+  summary: string | null;
+  /** "ai" = Claude classifier (always for current rows); "heuristic" reserved
+   *  for a future fallback, mirroring the option on health/risk. */
+  analysis_method: "ai" | "heuristic";
+  analyzed_at: string;
+}
+
+function toRecord(
+  row: ProductDiscoveryInsightRow,
+): ProductDiscoveryInsightRecord {
+  return {
+    id: row.id,
+    org_id: row.org_id,
+    source_call_id: row.source_call_id,
+    deal_id: row.deal_id,
+    account_id: row.account_id,
+    feature_requests:
+      (row.feature_requests as unknown as FeatureRequest[]) ?? [],
+    pain_points: (row.pain_points as unknown as PainPoint[]) ?? [],
+    themes: (row.themes as unknown as Theme[]) ?? [],
+    summary: row.summary,
+    analysis_method:
+      (row.analysis_method as "ai" | "heuristic" | undefined) ?? "ai",
+    analyzed_at: row.analyzed_at,
+  };
+}
+
+// ── Reads ───────────────────────────────────────────────────────────────────
+
+/** Most recent insight for a single call, or null if no extraction yet. */
+export async function getLatestInsightsForCall(
+  orgId: string,
+  callId: string,
+): Promise<ProductDiscoveryInsightRecord | null> {
+  const supabase = createPDSupabase();
+  const { data, error } = await supabase
+    .from("product_discovery_insights")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("source_call_id", callId)
+    .order("analyzed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return toRecord(data);
+}
+
+/** All insights across the calls of a single deal, newest first. A deal can
+ *  have several calls; each call can be re-analysed, so this is naturally a
+ *  list. */
+export async function getInsightsForDeal(
+  orgId: string,
+  dealId: string,
+): Promise<ProductDiscoveryInsightRecord[]> {
+  const supabase = createPDSupabase();
+  const { data, error } = await supabase
+    .from("product_discovery_insights")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("deal_id", dealId)
+    .order("analyzed_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data.map(toRecord);
+}
+
+/** All insights across the calls of a single account, newest first. */
+export async function getInsightsForAccount(
+  orgId: string,
+  accountId: string,
+): Promise<ProductDiscoveryInsightRecord[]> {
+  const supabase = createPDSupabase();
+  const { data, error } = await supabase
+    .from("product_discovery_insights")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("account_id", accountId)
+    .order("analyzed_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data.map(toRecord);
+}
+
+/**
+ * All insights in an org, newest first, optionally bounded by an ISO `since`
+ * cutoff. Intended as the read endpoint for the Phase 3.2 cross-call rollup
+ * view — JS-side aggregation is fine at expected volumes for now; once
+ * volume warrants it the rollups move into SQL views directly against the
+ * JSONB arrays.
+ */
+export async function getAllInsightsForOrg(
+  orgId: string,
+  since?: string,
+): Promise<ProductDiscoveryInsightRecord[]> {
+  const supabase = createPDSupabase();
+  let query = supabase
+    .from("product_discovery_insights")
+    .select("*")
+    .eq("org_id", orgId)
+    .order("analyzed_at", { ascending: false });
+  if (since) query = query.gte("analyzed_at", since);
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+  return data.map(toRecord);
+}
+
+// ── Analysis (write) ────────────────────────────────────────────────────────
+
+interface CallRecord {
+  id: string;
+  org_id: string;
+  deal_id: string | null;
+  account_id: string | null;
+  transcript: string;
+  recorded_at: string | null;
+}
+
+/**
+ * Read a call by id WITHOUT an org filter, returning the row plus its
+ * org_id so the caller can scope downstream work. Returns null when the
+ * call does not exist or has an empty transcript — both are no-op
+ * conditions for product discovery extraction (no point analysing nothing).
+ *
+ * Trust model: callers must have verified the user belongs to this call's
+ * org BEFORE invoking analyzeCallForProductDiscovery. See the function's
+ * docstring.
+ */
+async function loadCall(callId: string): Promise<CallRecord | null> {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("calls")
+    .select("id, org_id, deal_id, account_id, transcript, recorded_at")
+    .eq("id", callId)
+    .maybeSingle();
+  if (error || !data) return null;
+  if (!data.transcript || data.transcript.trim().length === 0) return null;
+  return {
+    id: data.id,
+    org_id: data.org_id,
+    deal_id: data.deal_id,
+    account_id: data.account_id,
+    transcript: data.transcript,
+    recorded_at: data.recorded_at,
+  };
+}
+
+/**
+ * Resolve customer + org context for the classifier prompt. companyName +
+ * sponsorName come from the account (post-sale) or the deal (pre-sale),
+ * depending on which side the call is attached to (calls have an XOR
+ * single-parent constraint). Org-level labels (orgName, productName) come
+ * from org settings.
+ *
+ * Lookups are best-effort — if a side fails or is missing, the function
+ * returns undefined and the classifier falls back to its no-context branch.
+ * Mirrors health-service's resolution pattern.
+ */
+async function resolveAccountContext(
+  call: CallRecord,
+): Promise<
+  | {
+      companyName: string;
+      sponsorName: string | null;
+      productName: string | null;
+      orgName: string | null;
+    }
+  | undefined
+> {
+  const [orgName, orgSettings] = await Promise.all([
+    getOrgName(call.org_id).catch(() => null),
+    getOrgSettings(call.org_id).catch(() => null),
+  ]);
+
+  let companyName: string | undefined;
+  let sponsorName: string | null = null;
+
+  if (call.account_id) {
+    const account = await getAccount(call.org_id, call.account_id).catch(
+      () => null,
+    );
+    if (account) {
+      companyName = account.companyName;
+      sponsorName = account.sponsorName;
+    }
+  } else if (call.deal_id) {
+    const deal = await getDealById(call.org_id, call.deal_id).catch(() => null);
+    if (deal) {
+      companyName = deal.companyName;
+      sponsorName = deal.contactName ?? null;
+    }
+  }
+
+  if (!companyName) return undefined;
+  return {
+    companyName,
+    sponsorName,
+    productName: orgSettings?.productName?.trim() || null,
+    orgName: orgName?.trim() || null,
+  };
+}
+
+/**
+ * Read a call's transcript, run the Product Discovery classifier, and
+ * persist the result. Returns the persisted record, or null if the call
+ * doesn't exist or has no transcript. Throws ProductDiscoveryUnavailableError
+ * (from the classifier) when the model call fails after one retry.
+ *
+ * Trust model: the CALLER (route handler) is responsible for verifying that
+ * the authenticated user has access to this call's organization before
+ * invoking. This function does NOT take an `orgId` argument — it derives
+ * org_id from the call row itself and persists the insight under that
+ * org_id. This mirrors the per-call analyze pattern that a future
+ * /api/calls/[id]/product-discovery route would use after the Clerk +
+ * org-membership check.
+ */
+export async function analyzeCallForProductDiscovery(
+  callId: string,
+): Promise<ProductDiscoveryInsightRecord | null> {
+  const call = await loadCall(callId);
+  if (!call) return null;
+
+  const account = await resolveAccountContext(call);
+
+  const result = await analyzeProductDiscovery({
+    transcript: call.transcript,
+    account,
+    recordedAt: call.recorded_at,
+  });
+
+  const supabase = createPDSupabase();
+  const { data, error } = await supabase
+    .from("product_discovery_insights")
+    .insert({
+      org_id: call.org_id,
+      source_call_id: call.id,
+      deal_id: call.deal_id,
+      account_id: call.account_id,
+      feature_requests: result.featureRequests as unknown as Json,
+      pain_points: result.painPoints as unknown as Json,
+      themes: result.themes as unknown as Json,
+      summary: result.summary,
+      analysis_method: "ai",
+      analyzed_at: new Date().toISOString(),
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(
+      `Failed to persist product discovery insight: ${error?.message ?? "no row returned"}`,
+    );
+  }
+
+  return toRecord(data);
+}
