@@ -71,10 +71,33 @@ If the transcript barely touches an axis, set confidence < 0.3 AND keep the scor
 EVIDENCE — verbatim only.
 Each evidence entry must be a literal quote from the transcript (German or English, as spoken). If you do not have a real quote for an axis or signal, return an empty evidence array. Never paraphrase into the evidence array. Inventing quotes is the worst failure mode here.
 
-ACUTE SIGNALS — a separate layer.
-Independently of the axes, list any concrete churn-risk events that surfaced. Use ONLY these signal types (same vocabulary as the Risk classifier — do not invent new ones): ${RISK_SIGNAL_TYPES.join(", ")}. Each signal: { type, severity (${ACUTE_SIGNAL_SEVERITIES.join(" | ")}), reasoning, evidence[] (verbatim only) }.
+ACUTE SIGNALS — a SEPARATE layer with a HARD event requirement.
 
-An acute signal is a SHARP event — champion leaving, budget frozen, blocking competitor preference, explicit stop-threat, late-stage decision-maker veto. Ongoing low scores on an axis are NOT acute signals — they belong inside the axes. If no acute signals appeared, return an empty array; do not stretch.
+An acute signal is a SHARP, DISCRETE EVENT named in the transcript — NOT a mood, NOT a trend, NOT a feeling. To emit a signal you MUST be able to point at a concrete event in a verbatim quote. No event in the transcript → no acute signal. Use ONLY these types (same vocabulary as the Risk classifier — do not invent new ones): ${RISK_SIGNAL_TYPES.join(", ")}. Each signal: { type, severity (${ACUTE_SIGNAL_SEVERITIES.join(" | ")}), reasoning, evidence[] (verbatim only) }.
+
+DETECT only when the transcript NAMES the event:
+- CHAMPION_LOSS — the champion has left, announced leaving, or lost mandate. Quote required.
+- BUDGET_FRICTION — a budget owner explicitly froze / cut / blocked the spend WITH a stop-threat or hard ROI hurdle ("wird nicht verlängert", "ohne harte Zahlen kein Vertrag"). Quote required.
+- COMPETITOR_PRESSURE — a competitor pilot has STARTED, or the customer has stated a preference / signed a competing offer. Not for "we sometimes compare".
+- STAKEHOLDER_CHURN — a key stakeholder has changed roles / left, OR a new senior procurement / VP has reset the vendor decision with power to switch.
+- LATE_DECISION_MAKER — a previously-uninvolved decision-maker enters late with veto power and new proof requirements.
+- STALLING_PATTERN — REPEATED, explicit postponement of a concrete next step ("nochmal nächste Woche", signature paused twice). Not for "we will discuss internally later".
+- ENGAGEMENT_DROP — a SHARP drop with a concrete TRIGGER (power-user left, QBR canceled twice, logins fell off after a named event). NOT for general flat usage or stalled adoption.
+- CHAMPION_DISENGAGEMENT — the champion has MATERIALLY stepped back: 2+ meeting cancellations, communication delegated to a named replacement, refusal of concrete next steps. NOT for a passing self-aware comment like "ich bin grade nicht so drin" without behavioral evidence.
+
+DO NOT DETECT — these belong in the AXES, NOT in acuteSignals:
+- "Wir wissen nicht ob es sich lohnt" / no concrete ROI win after months → LOW valueRealization, NOT a signal.
+- Stalled adoption, "they went back to their spreadsheet", "die nutzen es kaum" → LOW engagement, NOT ENGAGEMENT_DROP (unless a concrete trigger event AND date are named in the transcript).
+- Polite-but-flat tone, "ja, ja, läuft", sponsor reflectively distant → lower relationship and engagement axis scores, NOT a signal.
+- "Lukewarm" overall — no enthusiasm, no concrete win, but also no event → flat axes + EMPTY acuteSignals array.
+
+SEVERITY CALIBRATION:
+- critical — the event can KILL the account near-term: champion confirmed gone, budget explicitly stopped with no path back, competitor signed, signature paused awaiting new leadership. RESERVE for genuinely account-killing events.
+- high — real and imminent but unconfirmed or conditional: champion considering leaving, stop-threat that may yet be averted, new VP Procurement who MAY redo the decision.
+- medium — a single named event that doesn't yet threaten the account: one stakeholder change without a reset, one missed QBR with a stated reason.
+- low — minor named events that barely move the needle on their own.
+
+If you find yourself wanting to mark "general disengagement" or "they're just not into it" as critical, you are looking at AXIS evidence — push the engagement / valueRealization axis scores down instead, and leave acuteSignals empty. If no acute event is in the transcript, return an empty array. Do NOT stretch.
 
 SCORE / LEVEL — provide your honest healthScore (0-100) and healthLevel (${HEALTH_LEVELS.join(" | ")}). The downstream aggregator will recompute these deterministically from your axes + signals using fixed weights and severity caps; provide your own judgment regardless.
 
