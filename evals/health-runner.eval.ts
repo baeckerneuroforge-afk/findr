@@ -229,8 +229,12 @@ describe("CS Health Classifier Eval Suite", () => {
  *  - NFKC (compose composed/decomposed forms, normalize compatibility chars)
  *  - DE umlauts folded to ASCII pairs (ü→ue, ä→ae, ö→oe, ß→ss). Both sides
  *    are folded, so transcript "ü" matches quote "ue" (and vice versa).
- *  - Typographic double quotes („ " " « ») → ASCII ".
- *  - Typographic single quotes / apostrophes (' ') → ASCII '.
+ *  - ALL quote varieties — ASCII " and ', typographic doubles („ “ ” « »),
+ *    typographic singles (‘ ’ ‚ ‹ ›) — fold to a single character ("). The
+ *    classifier sometimes wraps a quoted-inside-quote with single quotes
+ *    where the transcript has doubles (or vice versa); after this collapse
+ *    they match regardless of wrapper style. Quote chars carry no
+ *    content-bearing signal for verbatim checks.
  *  - En-/em-dashes (– —) → ASCII -.
  *  - Whitespace collapsed, trimmed, lowercased.
  */
@@ -244,8 +248,7 @@ function fold(s: string): string {
     .replace(/Ü/g, "Ue")
     .replace(/ü/g, "ue")
     .replace(/ß/g, "ss")
-    .replace(/[„“”«»]/g, '"')
-    .replace(/[‘’]/g, "'")
+    .replace(/["'„“”«»‘’‚‹›]/g, '"')
     .replace(/[–—]/g, "-")
     .replace(/\s+/g, " ")
     .trim()
