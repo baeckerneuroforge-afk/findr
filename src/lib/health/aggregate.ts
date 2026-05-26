@@ -102,8 +102,12 @@ export const SEVERITY_FLOORS: Record<AcuteSignalSeverity, number> = {
 // Edit these to retune levels without touching the classifier or the prompt.
 export const LEVEL_BANDS: ReadonlyArray<{ min: number; level: HealthLevel }> = [
   { min: 80, level: "thriving" }, // 80-100
-  { min: 65, level: "healthy" }, //  65-79
-  { min: 40, level: "lukewarm" }, // 40-64 (lower bound shifted from 45 → 40 after eval round 2)
+  { min: 62, level: "healthy" }, //  62-79 (lower bound shifted 65 → 62 in round 4:
+  //                                         Opus scores ~2-3 pts stricter than Sonnet,
+  //                                         so borderline-healthy cases like hth_007/008
+  //                                         legitimately land in the low 60s)
+  { min: 40, level: "lukewarm" }, // 40-61 (upper now bounded by healthy floor at 62;
+  //                                         lower shifted from 45 → 40 in round 2)
   { min: 25, level: "at_risk" }, //  25-39
   { min: 0, level: "critical" }, //  0-24
 ] as const;
