@@ -10,8 +10,9 @@
     "test": "vitest run src",
     "test:watch": "vitest src",
     "test:ui": "vitest --ui src",
-    "eval": "vitest run evals/",
-    "eval:report": "vitest run evals/ --reporter=verbose"
+    "eval": "vitest run evals/runner.eval.ts",
+    "eval:report": "vitest run evals/runner.eval.ts --reporter=verbose",
+    "eval:health": "vitest run evals/health-runner.eval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
