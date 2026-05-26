@@ -12,7 +12,8 @@
     "test:ui": "vitest --ui src",
     "eval": "vitest run evals/runner.eval.ts",
     "eval:report": "vitest run evals/runner.eval.ts --reporter=verbose",
-    "eval:health": "vitest run evals/health-runner.eval.ts"
+    "eval:health": "vitest run evals/health-runner.eval.ts",
+    "eval:product-discovery": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-product-discovery/run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
