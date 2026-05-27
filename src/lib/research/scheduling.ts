@@ -198,11 +198,22 @@ export interface ScheduleInviteResult {
 }
 
 /**
- * Set scheduled_at on a research invite. v1 mutation surface — does NOT
- * send the email (that's the orchestration's job, see
+ * Set scheduled_at on a research invite AND advance the row's status to
+ * 'scheduled' in the same update. v1 mutation surface — does NOT send
+ * the email (that's the orchestration's job, see
  * src/lib/research/invite-orchestration.ts). Returns a typed result rather
  * than throwing for expected misses so the route layer can map them to
  * 404 / 409 / 422.
+ *
+ * Why bundle the status flip here? scheduled_at and status='scheduled'
+ * are synonymous in the lifecycle — a row with one and not the other is
+ * always a bug. Doing it in a single UPDATE keeps the row consistent
+ * regardless of whether the caller is the manual UI (Teil 2a) or the
+ * scheduling+send combo flow (Teil 2b). Re-scheduling a 'completed' or
+ * 'cancelled' invite would step the status back — the UI restricts
+ * which rows offer the action so that path isn't reachable in normal
+ * use; if it happens via direct API call, that's the caller's
+ * intent.
  *
  * Refuses to schedule into the past (defensive: a typo'd date doesn't
  * silently create a stale reminder window). Caller passes a Date; we
@@ -236,7 +247,10 @@ export async function scheduleInvite(
   const supabase = createResearchSupabase();
   const { data, error } = await supabase
     .from("research_invites")
-    .update({ scheduled_at: scheduledAt.toISOString() })
+    .update({
+      scheduled_at: scheduledAt.toISOString(),
+      status: "scheduled",
+    })
     .eq("org_id", orgId)
     .eq("id", inviteId)
     .select("*")

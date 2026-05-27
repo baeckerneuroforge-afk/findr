@@ -8,6 +8,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 import { InviteForm } from "@/components/dashboard/InviteForm";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
+import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
 
 /**
  * /dashboard/research-plans/[id] — Detail-Seite.
@@ -259,38 +260,59 @@ export default async function ResearchPlanDetailPage({
                   <TH>Contact</TH>
                   <TH>Email</TH>
                   <TH>Mode</TH>
+                  <TH>Scheduled</TH>
                   <TH>Status</TH>
                 </TR>
               </THead>
               <TBody>
-                {invites.map((invite) => (
-                  <TR key={invite.id}>
-                    <TD className="text-body-strong text-neutral-900">
-                      {invite.contact_label}
-                    </TD>
-                    <TD className="text-neutral-700">
-                      {invite.contact_email ?? (
-                        <span className="text-neutral-400">—</span>
-                      )}
-                    </TD>
-                    <TD className="text-neutral-700">
-                      {MODE_LABEL[invite.mode_preference] ??
-                        invite.mode_preference}
-                    </TD>
-                    <TD>
-                      <Badge
-                        variant={
-                          INVITE_STATUS_VARIANT[
-                            invite.status as InviteStatus
-                          ] ?? "default"
-                        }
-                      >
-                        {INVITE_STATUS_LABEL[invite.status as InviteStatus] ??
-                          invite.status}
-                      </Badge>
-                    </TD>
-                  </TR>
-                ))}
+                {invites.map((invite) => {
+                  // Disable rescheduling when the plan is no longer in a
+                  // workable state OR the invite has already moved to a
+                  // terminal status. Keeps the UI honest about which rows
+                  // are still actionable.
+                  const planLocked =
+                    plan.status === "archived" || plan.status === "completed";
+                  const inviteTerminal =
+                    invite.status === "completed" ||
+                    invite.status === "cancelled" ||
+                    invite.status === "no_show";
+                  const scheduleDisabled = planLocked || inviteTerminal;
+                  return (
+                    <TR key={invite.id}>
+                      <TD className="text-body-strong text-neutral-900">
+                        {invite.contact_label}
+                      </TD>
+                      <TD className="text-neutral-700">
+                        {invite.contact_email ?? (
+                          <span className="text-neutral-400">—</span>
+                        )}
+                      </TD>
+                      <TD className="text-neutral-700">
+                        {MODE_LABEL[invite.mode_preference] ??
+                          invite.mode_preference}
+                      </TD>
+                      <TD>
+                        <ScheduleInviteAction
+                          inviteId={invite.id}
+                          scheduledAt={invite.scheduled_at}
+                          disabled={scheduleDisabled}
+                        />
+                      </TD>
+                      <TD>
+                        <Badge
+                          variant={
+                            INVITE_STATUS_VARIANT[
+                              invite.status as InviteStatus
+                            ] ?? "default"
+                          }
+                        >
+                          {INVITE_STATUS_LABEL[invite.status as InviteStatus] ??
+                            invite.status}
+                        </Badge>
+                      </TD>
+                    </TR>
+                  );
+                })}
               </TBody>
             </Table>
           </Card>
