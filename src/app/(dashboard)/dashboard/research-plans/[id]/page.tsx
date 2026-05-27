@@ -9,6 +9,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 import { InviteForm } from "@/components/dashboard/InviteForm";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
+import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
 
 /**
  * /dashboard/research-plans/[id] — Detail-Seite.
@@ -262,6 +263,7 @@ export default async function ResearchPlanDetailPage({
                   <TH>Mode</TH>
                   <TH>Scheduled</TH>
                   <TH>Status</TH>
+                  <TH>Send</TH>
                 </TR>
               </THead>
               <TBody>
@@ -309,6 +311,20 @@ export default async function ResearchPlanDetailPage({
                           {INVITE_STATUS_LABEL[invite.status as InviteStatus] ??
                             invite.status}
                         </Badge>
+                      </TD>
+                      <TD>
+                        {/* Send-Button gating mirrors the API's pre-checks:
+                            need scheduled_at + contact_email; idempotency
+                            kicks in once invited_at is set. Same disabled
+                            flag as Schedule — terminal invite / locked plan
+                            → button locked too. */}
+                        <SendInviteAction
+                          inviteId={invite.id}
+                          scheduledAt={invite.scheduled_at}
+                          invitedAt={invite.invited_at}
+                          contactEmail={invite.contact_email}
+                          disabled={scheduleDisabled}
+                        />
                       </TD>
                     </TR>
                   );
