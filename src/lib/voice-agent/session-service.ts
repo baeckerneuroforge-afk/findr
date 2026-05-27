@@ -8,6 +8,7 @@ import {
   createResearchSupabase,
   type DatabaseWithResearch,
 } from "@/lib/research/db";
+import { findInviteByAccessToken } from "@/lib/research/scheduling";
 import { persistResearchTranscriptAndDiscovery } from "@/lib/research/transcript-service";
 import {
   DEFAULT_INTERVIEW_LANGUAGE,
@@ -288,12 +289,93 @@ export async function createInterviewSession(params: {
   return toSession(data);
 }
 
-/** Public read for the chat page — minimal view, by token only. */
+/**
+ * Public read for the chat page — minimal view, by token only.
+ *
+ * THREE PATHS (in this priority order):
+ *
+ *   (1) Existing interview_sessions row matches the token
+ *         → return it (unchanged behavior — covers post_loss + checkin,
+ *           and previously-created research sessions). NEVER re-creates;
+ *           an existing conversation is preserved across reloads.
+ *
+ *   (2) No session, but a research_invites row has access_token = token
+ *         → LAZY-create the session via createResearchInterview, which
+ *           fires the opening message and inserts an interview_sessions
+ *           row with the SAME access_token (so the invite's URL stays
+ *           stable through the mail it was embedded in). The session
+ *           is created only when the participant actually opens the
+ *           link — saves an Opus call per invite that never gets
+ *           clicked.
+ *
+ *   (3) Token matches neither table → null (404 from the page).
+ *
+ * post_loss + checkin always hit path (1): their sessions are created
+ * up-front in createAndInviteInterview / createAndInviteCheckin (see
+ * src/lib/voice-agent/interview-orchestration.ts +
+ * src/lib/voice-agent/checkin-orchestration.ts — both call
+ * createInterviewSession before returning). The lazy branch is
+ * research-flow-exclusive.
+ *
+ * RACE-SCHUTZ — wenn der Teilnehmer den Link doppelklickt oder zwei
+ * parallele requests reinkommen, kann es passieren, dass beide path
+ * (2) erreichen. createResearchInterview führt intern einen INSERT
+ * gegen interview_sessions aus, der durch interview_sessions.access_token
+ * (text not null UNIQUE, aus 20260529000000_interview_sessions.sql)
+ * geschützt ist. Der zweite INSERT wirft eine unique-violation, die
+ * createResearchInterview in seinem eigenen try/catch zu
+ * status='error' mappt. Wir UNTERSCHEIDEN das hier bewusst NICHT von
+ * einem echten Fehler — stattdessen läuft loadByToken im Anschluss
+ * IMMER. Wenn die Zeile existiert (egal wer von uns sie geschrieben
+ * hat), gewinnt der erste Insert, der zweite Request liest das
+ * Ergebnis und serviert dieselbe Session. Das löst den
+ * Korrektheits-Race auf Datenebene; ein Opus-Edge-Case bleibt (beide
+ * Requests generieren VOR dem INSERT eine Opening-Message), das ist
+ * akzeptiert, weil bei einem Teilnehmer-Doppelklick selten und
+ * Opening-Messages billig sind. Eine spätere Optimierung könnte ein
+ * pg_advisory_lock vor dem Opus-Call setzen.
+ */
 export async function getPublicSession(
   token: string,
 ): Promise<PublicInterviewView | null> {
-  const session = await loadByToken(token);
-  return session ? toPublicView(session) : null;
+  // Path (1) — existing session. Covers everything post_loss + checkin
+  // ever asks for, plus any previously-lazy-created research session.
+  const existing = await loadByToken(token);
+  if (existing) return toPublicView(existing);
+
+  // Path (2) — no session yet. Maybe it's a research invite whose session
+  // hasn't been created yet?
+  const invite = await findInviteByAccessToken(token);
+  if (!invite || !invite.org_id) {
+    // Path (3) — neither table knows this token, OR the invite has no
+    // org_id (reserved for the future external-research path that hasn't
+    // been wired yet).
+    return null;
+  }
+
+  // createResearchInterview is dynamically imported here to break a static
+  // circular dependency: research-orchestration.ts imports
+  // createInterviewSession from THIS file. Top-level static import would
+  // form session-service → research-orchestration → session-service. The
+  // lazy branch is a slow path anyway (Opus opening-message generation),
+  // so the import-cost is negligible.
+  const { createResearchInterview } = await import(
+    "@/lib/research/research-orchestration"
+  );
+
+  // Returns a status-result, NEVER throws — even when the internal INSERT
+  // hits a unique-violation from a concurrent racer (mapped to
+  // status='error' in createResearchInterview's catch). We don't act on
+  // the status here. Instead, loadByToken below decides: row present =
+  // we win, row absent = real failure.
+  await createResearchInterview({
+    orgId: invite.org_id,
+    planId: invite.plan_id,
+    inviteId: invite.id,
+  });
+
+  const created = await loadByToken(token);
+  return created ? toPublicView(created) : null;
 }
 
 /** Org-internal view of a deal's interview (for the dashboard deal page). */

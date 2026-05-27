@@ -126,6 +126,36 @@ export async function getResearchInvite(
 }
 
 /**
+ * Token-only lookup — no org filter. Used by the public /interview/[token]
+ * page (via getPublicSession) to resolve a research-invite link to its
+ * underlying invite row when no interview_sessions row exists yet. The
+ * lookup hits the partial UNIQUE index research_invites_access_token_idx
+ * (migration 20260615), so it's a primary-key-class read; the index's
+ * WHERE access_token IS NOT NULL clause keeps the index lean by skipping
+ * legacy invite rows that pre-date the access_token column.
+ *
+ * Security: this read is intentionally org-agnostic — the public chat
+ * page doesn't know which org owns the invite. The unguessable
+ * access_token IS the capability credential. We go through the service-
+ * role client (RLS-bypassing) and only ever match by access_token; we
+ * never list, never enumerate, and never trust an org_id from the
+ * request. Exactly the same security posture as loadByToken on
+ * interview_sessions.
+ */
+export async function findInviteByAccessToken(
+  token: string,
+): Promise<ResearchInviteRecord | null> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_invites")
+    .select("*")
+    .eq("access_token", token)
+    .maybeSingle();
+  if (error || !data) return null;
+  return toRecord(data);
+}
+
+/**
  * All invites for a single plan, newest first. Powers the participant list
  * on /dashboard/research-plans/[id]. Returns [] on any error (transient
  * failure reads as "no invites yet" in the UI, which is the safe degrade
