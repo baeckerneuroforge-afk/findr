@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Field, FIELD_INPUT_CLASS } from "@/components/ui/Field";
 import type { DealStage } from "@/lib/deals/types";
 
 const STAGES: Array<{ value: DealStage; label: string }> = [
@@ -238,22 +239,6 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
   );
 }
 
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-body-strong text-neutral-900">
-        {label}
-        {required && <span className="text-danger-700"> *</span>}
-      </span>
-      {children}
-    </label>
-  );
-}
+// Field + FIELD_INPUT_CLASS moved to src/components/ui/Field.tsx so the
+// research-plan editor (and future forms) can share the exact same visual
+// rhythm without inlining the markup. This file imports them from there.

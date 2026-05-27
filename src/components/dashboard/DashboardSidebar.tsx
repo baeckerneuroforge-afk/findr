@@ -44,15 +44,18 @@ const MODULES: NavGroupDef[] = [
       { href: "/dashboard/health", label: "Health Overview" },
     ],
   },
-  // Product Discovery is its own module: the AI brain pointed INWARD at the
-  // vendor's own product, not outward at customers. It draws on calls from
-  // BOTH Sales Intelligence (deals) and Customer Health (accounts), so it
-  // doesn't belong under either; a dedicated "Product" group keeps the
-  // navigation honest about which capability surfaces what.
+  // Product module — what we learn ABOUT the product, from two angles:
+  //   Product Discovery — retrospective extraction from existing calls
+  //                       (Sales + CS) via the per-call classifier.
+  //   Research Plans    — proactive: plan-driven research interviews, run
+  //                       by the AI agent against invited participants.
+  // Both surfaces feed the same product_discovery_insights table; the
+  // grouping reflects that they're two ways into the same learning loop.
   {
     label: "Product",
     items: [
       { href: "/dashboard/product-discovery", label: "Product Discovery" },
+      { href: "/dashboard/research-plans", label: "Research Plans" },
     ],
   },
 ];

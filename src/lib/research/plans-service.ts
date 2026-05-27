@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Json } from "@/types/database";
 import type {
   ResearchPlanContext,
   ResearchTopic,
@@ -7,13 +8,15 @@ import type {
 import { createResearchSupabase, type ResearchPlanRow } from "./db";
 
 /**
- * Read-side helpers for the research layer. Mirrors the read pattern of
+ * Read + write helpers for the research layer. Mirrors the pattern of
  * health-service / risk-service: typed admin client, always org-scoped, soft
  * shapes for the JSONB columns (topic_script is validated leniently — see
  * coerceTopics — so a partially-malformed row doesn't crash the agent).
  *
- * Write-side (createResearchPlan, addInvites …) lands when the plan-editor UI
- * is built. Today only the read path is needed to drive the agent.
+ * Write-side note: route handlers validate inputs with Zod BEFORE calling
+ * the create/update functions here. The service trusts what it gets and
+ * persists it; the only soft-coercion that happens client-side of DB is on
+ * READ (coerceTopics).
  */
 
 export interface ResearchPlanRecord {
@@ -106,4 +109,142 @@ export function planToAgentContext(plan: ResearchPlanRecord): ResearchPlanContex
     topics: plan.topics,
     persona: plan.persona,
   };
+}
+
+/**
+ * All plans for an org, newest first. Powers /dashboard/research-plans.
+ * Returns [] on any error — empty list reads as "no plans yet" in the UI,
+ * which is correct in both the no-data and the transient-failure case;
+ * the failure is logged at the supabase-js layer.
+ */
+export async function listResearchPlans(
+  orgId: string,
+): Promise<ResearchPlanRecord[]> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_plans")
+    .select("*")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map(toRecord);
+}
+
+// ── Writes ──────────────────────────────────────────────────────────────────
+
+export interface CreateResearchPlanInput {
+  title: string;
+  objective: string;
+  topics: ResearchTopic[];
+  persona?: string | null;
+  sampleTarget?: number | null;
+}
+
+/**
+ * Insert a new plan. Status defaults to 'draft' via the DB column default —
+ * we deliberately do NOT pass it here so the lifecycle starts on the floor
+ * (Activate / Complete / Archive happens via setResearchPlanStatus).
+ *
+ * Throws on insert failure (mirrors the existing risk/health write patterns).
+ * The route handler wraps and translates to an HTTP response.
+ */
+export async function createResearchPlan(
+  orgId: string,
+  input: CreateResearchPlanInput,
+): Promise<ResearchPlanRecord> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_plans")
+    .insert({
+      org_id: orgId,
+      title: input.title,
+      objective: input.objective,
+      topic_script: input.topics as unknown as Json,
+      persona: input.persona ?? null,
+      sample_target: input.sampleTarget ?? null,
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(
+      `Failed to create research plan: ${error?.message ?? "no row returned"}`,
+    );
+  }
+  return toRecord(data);
+}
+
+export interface UpdateResearchPlanInput {
+  title?: string;
+  objective?: string;
+  topics?: ResearchTopic[];
+  persona?: string | null;
+  sampleTarget?: number | null;
+  status?: ResearchPlanRecord["status"];
+}
+
+/**
+ * Partial update. Only the keys actually present in `input` are written —
+ * an empty input degrades to a re-read of the current row, which is the
+ * sensible no-op (the UI sometimes posts an unchanged form on Save).
+ *
+ * Returns null when the plan doesn't exist or belongs to another org.
+ * Throws ONLY on transport / DB-error after the row was found — the
+ * caller distinguishes between "not found" (null) and "could not save"
+ * (thrown error).
+ */
+export async function updateResearchPlan(
+  orgId: string,
+  planId: string,
+  input: UpdateResearchPlanInput,
+): Promise<ResearchPlanRecord | null> {
+  // Build a sparse update so we don't accidentally null-out columns the
+  // caller didn't mean to touch. supabase-js's Update type allows any
+  // subset.
+  const update: {
+    title?: string;
+    objective?: string;
+    topic_script?: Json;
+    persona?: string | null;
+    sample_target?: number | null;
+    status?: ResearchPlanRecord["status"];
+  } = {};
+  if (input.title !== undefined) update.title = input.title;
+  if (input.objective !== undefined) update.objective = input.objective;
+  if (input.topics !== undefined)
+    update.topic_script = input.topics as unknown as Json;
+  if (input.persona !== undefined) update.persona = input.persona;
+  if (input.sampleTarget !== undefined)
+    update.sample_target = input.sampleTarget;
+  if (input.status !== undefined) update.status = input.status;
+
+  if (Object.keys(update).length === 0) {
+    return getResearchPlan(orgId, planId);
+  }
+
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_plans")
+    .update(update)
+    .eq("org_id", orgId)
+    .eq("id", planId)
+    .select("*")
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return toRecord(data);
+}
+
+/**
+ * Status-only update — convenience wrapper around updateResearchPlan for
+ * lifecycle buttons (Activate / Mark complete / Archive). Keeps the
+ * status-transition policy out of the DB (the column CHECK is just an
+ * enum); the UI restricts which transitions are offered.
+ */
+export async function setResearchPlanStatus(
+  orgId: string,
+  planId: string,
+  status: ResearchPlanRecord["status"],
+): Promise<ResearchPlanRecord | null> {
+  return updateResearchPlan(orgId, planId, { status });
 }
