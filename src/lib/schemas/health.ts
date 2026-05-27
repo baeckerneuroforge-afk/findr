@@ -95,8 +95,13 @@ export const HealthAnalysisResultSchema = z.object({
   acuteSignals: z.array(AcuteSignalSchema).max(10).default([]),
   summary: z.string().min(1).max(5000),
   /** Single source for this etappe; richer sources (multi-call, CRM, telemetry)
-   *  can be added later as a discriminated union. */
-  source: z.literal("transcript"),
+   *  can be added later as a discriminated union. Default-injected so the
+   *  classifier doesn't fail validation when Opus elides this redundant
+   *  literal on lighter content (observed on mild cases in the churn-
+   *  severity eval — schema-validation log: `source: Invalid input:
+   *  expected "transcript"`). Behaviour-neutral: when present, the model
+   *  always writes "transcript"; when absent, the default fills it in. */
+  source: z.literal("transcript").default("transcript"),
 });
 
 export type HealthAnalysisResult = z.infer<typeof HealthAnalysisResultSchema>;

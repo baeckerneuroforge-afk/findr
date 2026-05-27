@@ -120,8 +120,12 @@ export const ProductDiscoveryResultSchema = z.object({
   summary: z.string().min(1).max(3000),
   /** Single source for this etappe; richer sources (multi-call rollups,
    *  in-app feedback, support tickets) can be added later as a
-   *  discriminated union — same evolution path as schemas/health.ts. */
-  source: z.literal("transcript"),
+   *  discriminated union — same evolution path as schemas/health.ts.
+   *  Default-injected, same reason as the matching field on
+   *  HealthAnalysisResultSchema: Opus occasionally elides this redundant
+   *  literal on lighter content, which used to throw schema-validation
+   *  before the default catch. Behaviour-neutral. */
+  source: z.literal("transcript").default("transcript"),
 });
 
 export type ProductDiscoveryResult = z.infer<
