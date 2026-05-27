@@ -39,12 +39,26 @@ export function defaultFrom(): string {
   return process.env.INTERVIEW_FROM_EMAIL ?? "onboarding@resend.dev";
 }
 
+/** One file attachment (ICS calendar, PDF, etc.). `content` is the raw
+ *  bytes — supabase-js / Resend will base64-encode for transport.
+ *  `contentType` defaults to "application/octet-stream" if omitted; for
+ *  ICS use "text/calendar; charset=utf-8; method=REQUEST" so mail clients
+ *  treat the file as a calendar invitation. */
+export interface EmailAttachment {
+  filename: string;
+  content: string | Buffer;
+  contentType?: string;
+}
+
 export interface SendEmailParams {
   to: string;
   subject: string;
   html: string;
   text?: string;
   from?: string;
+  /** Optional. Existing callers (interview / checkin invites) pass
+   *  no attachments — that branch keeps working identically. */
+  attachments?: EmailAttachment[];
 }
 
 export async function sendEmail(
@@ -57,6 +71,11 @@ export async function sendEmail(
     subject: params.subject,
     html: params.html,
     text: params.text,
+    attachments: params.attachments?.map((att) => ({
+      filename: att.filename,
+      content: att.content,
+      contentType: att.contentType,
+    })),
   });
 
   if (error) {
