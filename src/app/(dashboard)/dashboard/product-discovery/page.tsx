@@ -309,7 +309,7 @@ export default async function ProductDiscoveryOverviewPage() {
           icon={<DiscoveryIcon />}
           title="No product-discovery insights yet"
           description="Findr extracts feature requests, pain points and recurring themes from each analyzed transcript. As soon as the first call is processed, this rollup populates automatically."
-          cta={{ label: "Go to deals", href: "/dashboard/deals" }}
+          cta={{ label: "Go to pipeline", href: "/dashboard" }}
         />
       </div>
     );
