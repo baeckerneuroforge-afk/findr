@@ -545,15 +545,20 @@ STAY IN THE PLAN — strict scope rule, non-negotiable:
 - When all plan topics are covered, the interview is OVER. Set "done": true. Do NOT search for "one more thing to ask". This research has a defined scope; respect it.
 - If the participant brings up something off-plan themselves, acknowledge it briefly ("interesting — for this conversation we focus on X, though") and either return to a remaining plan topic OR close if all are covered.
 
-SATURATION — when to stop probing a topic:
-- If the participant signals TWICE in a row "nothing to add / I was happy with that / no experience there", treat the topic as PROBED-NO-SIGNAL and move on. Don't try a third angle.
-- "Twice in a row" means: their last two replies on this topic both signal absence (short answers, "alles gut", "nichts Konkretes", "kann ich nicht sagen", "war fine"). One vague answer is not enough — one targeted probe is allowed.
+SATURATION — when to stop probing a topic (substance, not length):
+- A topic counts as COVERED as soon as the participant has given AT LEAST ONE concrete statement or story about it. After that, ask AT MOST ONE deepening follow-up — to get a vivid example, a quote, a number — never a second.
+- If the next answer is VERBOSE but only restates / re-phrases what they already said (new wording, no new point), the topic is EXHAUSTED. Verbose ≠ informative. Move on or close — don't drill a third angle hoping for more.
+- If the participant signals absence ("alles gut", "nichts Konkretes", "kann ich nicht sagen", "war fine") ONCE on a topic, treat it as PROBED-NO-SIGNAL and move on. One vague answer is enough — no second probe.
+- Never drill a third agent question into the same topic. If you have asked twice and the participant has answered both times, the topic is done regardless of how much was said.
 
 WHEN TO STOP — set "done": true and write a short warm closing when ANY of:
 - Every topic in the plan has yielded at least one specific story OR was probed and produced no signal.
 - The participant signals fatigue, time pressure, or asks to end. ALWAYS respect that.
 - The conversation has clearly run out of new information (the participant is repeating themselves).
-- You have asked AT LEAST 2× (number of plan topics) agent questions already. After that ceiling, set "done": true UNLESS the participant is mid-sentence on a plan topic or just asked you a question.
+- ABSOLUTE STOP CEILING (overrides everything except the participant being mid-sentence or just having asked YOU a question):
+  · From 5 agent questions onward, actively work toward closing — finish the current topic, do NOT open a new one if a graceful wrap is in reach.
+  · From 6 agent questions onward, set "done": true. The only exceptions are: the participant is mid-sentence on a plan topic, OR has just asked YOU a question that you need to answer briefly before closing.
+  These are absolute counts from the COUNTERS section of your user message, NOT estimates from history. The numbers are picked to ALWAYS close the interview by saturation BEFORE the safety-net hardcap fires; relying on the hardcap is a failure mode, not a target.
 
 WHEN IN DOUBT: lean toward "done": true. A short focused interview is better than a long meandering one. The downstream classifier extracts insights — it does not reward length. If you are uncertain whether one more question is worth it, it is not.
 
@@ -597,15 +602,40 @@ function formatBrand(brand: ResearchBrand | null): string {
     : `Research on behalf of ${brand.orgName}. Use this ONLY to ground questions; never sell.`;
 }
 
+/**
+ * Build the research interviewer's user prompt. Signature is unchanged
+ * (input, history, language) — counters are computed inside so the
+ * model never has to estimate from history (which was unreliable in
+ * practice and the main reason the agent drilled into the 16-turn
+ * hardcap instead of closing by saturation).
+ *
+ * The two injected COUNTERS are:
+ *   - agentQuestionCount — turns in history where role === "agent".
+ *     Drives the absolute stop ceiling in the system prompt
+ *     (5: wind down, 6: done).
+ *   - topicsTotal — number of plan topics. Helps the agent pace itself
+ *     across topics without re-counting.
+ *
+ * Both are emitted as hard integers in a dedicated COUNTERS block so
+ * the system prompt's "From N agent questions onward" thresholds bind
+ * to a fact, not the model's own arithmetic.
+ */
 function buildResearchPrompt(
   input: ResearchInput,
   history: InterviewTurn[],
   language: InterviewLanguage,
 ): string {
   const persona = input.plan.persona?.trim();
+  const agentQuestionCount = history.filter((t) => t.role === "agent").length;
+  const topicsTotal = input.plan.topics.length;
+
   return `REQUIRED LANGUAGE: ${LANGUAGE_LABELS[language]} — write your message in this language, including the opening message.
 
 ${formatBrand(input.brand)}
+
+COUNTERS (calculated facts — trust these, do NOT estimate from history):
+- agent questions asked so far: ${agentQuestionCount}
+- plan topics in total:         ${topicsTotal}
 
 RESEARCH PLAN
 Title:     ${input.plan.title}
