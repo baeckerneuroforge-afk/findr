@@ -2,16 +2,20 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
+import { listInvitesForPlan } from "@/lib/research/scheduling";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
+import { InviteForm } from "@/components/dashboard/InviteForm";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
 
 /**
  * /dashboard/research-plans/[id] — Detail-Seite.
  *
- * Read-only Darstellung des Plans plus Status-Lifecycle-Buttons. Topics
- * werden hier nicht inline editiert (siehe Designentscheidung: Edit-Modal
- * folgt in Etappe B). Invite-Bereich folgt ebenfalls in Etappe B.
+ * Read-only Darstellung des Plans plus Status-Lifecycle-Buttons + Teilnehmer-
+ * Liste (Etappe B Teil 1). Topics werden hier nicht inline editiert (Edit-
+ * Modal kommt in einer späteren Etappe). Scheduling + Mailversand pro
+ * Invite (proposeSlots + scheduleAndSendInvite) sind Teil 2.
  */
 
 type Status = "draft" | "active" | "completed" | "archived";
@@ -28,6 +32,41 @@ const STATUS_VARIANT: Record<Status, BadgeVariant> = {
   active: "success",
   completed: "low",
   archived: "default",
+};
+
+// Invite-status-Mapping. Halbwegs konservativ — "completed" leuchtet grün,
+// "no_show" rot; die Zwischenzustände bleiben neutral, damit die Tabelle
+// nicht wie ein Ampelfeuerwerk aussieht.
+type InviteStatus =
+  | "pending"
+  | "scheduled"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "no_show";
+
+const INVITE_STATUS_LABEL: Record<InviteStatus, string> = {
+  pending: "Pending",
+  scheduled: "Scheduled",
+  in_progress: "In progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  no_show: "No show",
+};
+
+const INVITE_STATUS_VARIANT: Record<InviteStatus, BadgeVariant> = {
+  pending: "default",
+  scheduled: "default",
+  in_progress: "default",
+  completed: "success",
+  cancelled: "default",
+  no_show: "critical",
+};
+
+const MODE_LABEL: Record<string, string> = {
+  text: "Text",
+  voice: "Voice",
+  video: "Video",
 };
 
 function formatDate(iso: string): string {
@@ -60,6 +99,12 @@ export default async function ResearchPlanDetailPage({
   const { id: planId } = await params;
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) notFound();
+
+  // Etappe B Teil 1 — read invites alongside the plan. Empty list reads as
+  // "no participants yet"; listInvitesForPlan returns [] on transient
+  // failure (safe degrade — the UI shows the InviteForm and the user can
+  // refresh).
+  const invites = await listInvitesForPlan(orgId, planId);
 
   return (
     <div className="space-y-8">
@@ -188,6 +233,86 @@ export default async function ResearchPlanDetailPage({
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      {/* Participants (Etappe B Teil 1) — additive section below Topics,
+          above Lifecycle. Sequencing matches the mental model: define the
+          plan → add people → run the lifecycle. */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="text-h2 text-neutral-900">Participants</h2>
+            <p className="text-body text-neutral-500">
+              {invites.length === 0
+                ? "Add people you want to interview. Scheduling + sending the invite mail is the next step."
+                : `${invites.length} ${invites.length === 1 ? "participant" : "participants"} · scheduling + mail follow in the next step.`}
+            </p>
+          </div>
+        </div>
+
+        {invites.length > 0 && (
+          <Card>
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Contact</TH>
+                  <TH>Email</TH>
+                  <TH>Mode</TH>
+                  <TH>Status</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {invites.map((invite) => (
+                  <TR key={invite.id}>
+                    <TD className="text-body-strong text-neutral-900">
+                      {invite.contact_label}
+                    </TD>
+                    <TD className="text-neutral-700">
+                      {invite.contact_email ?? (
+                        <span className="text-neutral-400">—</span>
+                      )}
+                    </TD>
+                    <TD className="text-neutral-700">
+                      {MODE_LABEL[invite.mode_preference] ??
+                        invite.mode_preference}
+                    </TD>
+                    <TD>
+                      <Badge
+                        variant={
+                          INVITE_STATUS_VARIANT[
+                            invite.status as InviteStatus
+                          ] ?? "default"
+                        }
+                      >
+                        {INVITE_STATUS_LABEL[invite.status as InviteStatus] ??
+                          invite.status}
+                      </Badge>
+                    </TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          </Card>
+        )}
+
+        {plan.status === "archived" ? (
+          <Card>
+            <CardBody>
+              <p className="py-3 text-center text-small text-neutral-500">
+                This plan is archived — new participants can&apos;t be added.
+              </p>
+            </CardBody>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <h3 className="text-h3 text-neutral-900">Add participant</h3>
+            </CardHeader>
+            <CardBody>
+              <InviteForm planId={plan.id} />
+            </CardBody>
+          </Card>
         )}
       </section>
 

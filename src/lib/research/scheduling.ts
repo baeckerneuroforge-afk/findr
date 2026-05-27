@@ -126,6 +126,32 @@ export async function getResearchInvite(
 }
 
 /**
+ * All invites for a single plan, newest first. Powers the participant list
+ * on /dashboard/research-plans/[id]. Returns [] on any error (transient
+ * failure reads as "no invites yet" in the UI, which is the safe degrade
+ * — the user can refresh).
+ *
+ * Plan ownership is checked at the route layer via getResearchPlan; this
+ * function only filters by plan_id + org_id and trusts the caller. NOT
+ * combined with listInvitesDueForReminder — that one window-filters for
+ * the reminder cron, this one is for the plan-detail page (all statuses).
+ */
+export async function listInvitesForPlan(
+  orgId: string,
+  planId: string,
+): Promise<ResearchInviteRecord[]> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_invites")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("plan_id", planId)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map(toRecord);
+}
+
+/**
  * Cron-facing fetch: invites due for a 24h or 1h reminder. Pulls a single
  * window covering both buckets [now+30min, now+25h] and lets the caller
  * split into 24h vs 1h candidates client-side. Skips invites with no
