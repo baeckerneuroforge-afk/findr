@@ -354,6 +354,37 @@ export default async function ResearchPlanDetailPage({
         )}
       </section>
 
+      {/* Synthesis — link to the dedicated /synthesis route. Compact card,
+          no data fetched here so the plan-detail page stays cheap. The
+          synthesis page itself does the heavy lift (read + render + the
+          re-run trigger). Additive section — does NOT alter the surrounding
+          sections. */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">Synthesis</h2>
+          <p className="text-small text-neutral-500">
+            Cross-call themes and tensions distilled by the Stage-2 engine
+            from this plan&apos;s interviews.
+          </p>
+        </div>
+        <Card>
+          <CardBody>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-body text-neutral-700">
+                Emergente Themen, Spannungen und ein freitext-Overview, mit
+                klickbaren Quell-Interviews und wörtlichen Zitaten.
+              </p>
+              <Link
+                href={`/dashboard/research-plans/${plan.id}/synthesis`}
+                className="shrink-0 text-body-strong text-primary-700 hover:underline"
+              >
+                View synthesis →
+              </Link>
+            </div>
+          </CardBody>
+        </Card>
+      </section>
+
       {/* Status-Lifecycle */}
       <section className="space-y-3">
         <div>

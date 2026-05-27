@@ -217,6 +217,87 @@ type ResearchInviteUpdate = {
   created_at?: string;
 };
 
+// ── study_synthesis ────────────────────────────────────────────────────────
+//
+// Per 20260617000000_study_synthesis.sql. UNIQUE(org_id, plan_id) — re-run
+// is upsert, not history. The two JSONB columns hold the shapes recommended
+// (not enforced) by the migration's column comments; we mirror that here as
+// `Json` because the engine + the UI parse-narrow into their own typed
+// shapes (src/lib/synthesis/service.ts → StudySynthesisRecord).
+//
+// May collide at merge with the synthesis engine branch (Terminal 1) which
+// likely adds the same augmentation. Resolution: keep one copy — the rows
+// below are derived directly from the migration so both branches should
+// agree byte-for-byte.
+
+type StudySynthesisRow = {
+  id: string;
+  org_id: string;
+  plan_id: string;
+  emergent_themes: Json;
+  tensions: Json;
+  overview: string | null;
+  based_on_count: number;
+  synthesized_at: string | null;
+  model: string | null;
+  created_at: string;
+};
+
+type StudySynthesisInsert = {
+  id?: string;
+  org_id: string;
+  plan_id: string;
+  emergent_themes?: Json;
+  tensions?: Json;
+  overview?: string | null;
+  based_on_count?: number;
+  synthesized_at?: string | null;
+  model?: string | null;
+  created_at?: string;
+};
+
+type StudySynthesisUpdate = {
+  id?: string;
+  org_id?: string;
+  plan_id?: string;
+  emergent_themes?: Json;
+  tensions?: Json;
+  overview?: string | null;
+  based_on_count?: number;
+  synthesized_at?: string | null;
+  model?: string | null;
+  created_at?: string;
+};
+
+// ── product_discovery_insights — narrow read-only view ───────────────────
+//
+// Minimal augmentation for the synthesis UI's "new insights since last
+// synthesis"-count query. Only the four columns the count filter touches;
+// the canonical full shape lives in src/lib/product-discovery/service.ts via
+// its own augmented client (createPDSupabase). Once src/types/database.ts is
+// regenerated the two narrow views collapse.
+
+type ProductDiscoveryInsightsRow = {
+  id: string;
+  org_id: string;
+  plan_id: string | null;
+  analyzed_at: string;
+};
+
+type ProductDiscoveryInsightsInsert = {
+  id?: string;
+  org_id: string;
+  plan_id?: string | null;
+  analyzed_at?: string;
+};
+
+type ProductDiscoveryInsightsUpdate = {
+  id?: string;
+  org_id?: string;
+  plan_id?: string | null;
+  analyzed_at?: string;
+};
+
 // ── Augmented Database type ────────────────────────────────────────────────
 
 export type DatabaseWithResearch = {
@@ -239,6 +320,18 @@ export type DatabaseWithResearch = {
         Row: ResearchInviteRow;
         Insert: ResearchInviteInsert;
         Update: ResearchInviteUpdate;
+        Relationships: [];
+      };
+      study_synthesis: {
+        Row: StudySynthesisRow;
+        Insert: StudySynthesisInsert;
+        Update: StudySynthesisUpdate;
+        Relationships: [];
+      };
+      product_discovery_insights: {
+        Row: ProductDiscoveryInsightsRow;
+        Insert: ProductDiscoveryInsightsInsert;
+        Update: ProductDiscoveryInsightsUpdate;
         Relationships: [];
       };
     };
