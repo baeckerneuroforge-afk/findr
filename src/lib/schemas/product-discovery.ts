@@ -63,6 +63,19 @@ export type PainPointCategory = (typeof PAIN_POINT_CATEGORIES)[number];
 export const INTENSITY_LEVELS = ["low", "medium", "high", "blocker"] as const;
 export type IntensityLevel = (typeof INTENSITY_LEVELS)[number];
 
+// ── Sentiment ──────────────────────────────────────────────────────────────
+
+/** Tonalität des respondent ÜBER das Produkt, vom Classifier aus dem
+ *  Transkript abgeleitet. Spiegelt die Spalte product_discovery_insights.
+ *  sentiment (CHECK aus Migration 20260616). */
+export const SENTIMENT_VALUES = [
+  "positive",
+  "neutral",
+  "negative",
+  "mixed",
+] as const;
+export type Sentiment = (typeof SENTIMENT_VALUES)[number];
+
 // ── Item schemas ───────────────────────────────────────────────────────────
 
 const FeatureRequestSchema = z.object({
@@ -118,6 +131,25 @@ export const ProductDiscoveryResultSchema = z.object({
   painPoints: z.array(PainPointSchema).max(15).default([]),
   themes: z.array(ThemeSchema).max(8).default([]),
   summary: z.string().min(1).max(3000),
+  /** Respondent role — wie sich der Sprecher im Gespräch positioniert
+   *  ("Founder eines B2B-SaaS", "Head of Operations", "Werkstudent in
+   *  einer Agentur"). Vom Classifier aus dem Transkript extrahiert.
+   *  NULL wenn das Transkript keine Aussage darüber macht (z.B. reine
+   *  Feature-Discussion ohne Selbstauskunft); der Classifier soll nicht
+   *  erraten. Persistiert in product_discovery_insights.respondent_role. */
+  respondentRole: z.string().min(1).max(120).nullable().default(null),
+  /** Respondent segment — Branche / Reifegrad / Setup, soweit das
+   *  Transkript es hergibt ("B2B SaaS, 50-200 employees", "Beratung im
+   *  Mittelstand", "Solo-Founder, post-PMF"). Freitext, vom Classifier
+   *  aus dem Transkript abgeleitet. NULL wenn unklar — gleiche Posture
+   *  wie respondentRole. */
+  respondentSegment: z.string().min(1).max(120).nullable().default(null),
+  /** Tonalität des respondent zum PRODUKT, nicht zum Gespräch insgesamt.
+   *  Default neutral, falls Opus die Stelle elidiert (gleiche Behandlung
+   *  wie source). */
+  sentiment: z
+    .preprocess(toLowerString, z.enum(SENTIMENT_VALUES))
+    .default("neutral"),
   /** Single source for this etappe; richer sources (multi-call rollups,
    *  in-app feedback, support tickets) can be added later as a
    *  discriminated union — same evolution path as schemas/health.ts.

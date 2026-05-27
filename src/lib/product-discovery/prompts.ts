@@ -2,6 +2,7 @@ import {
   FEATURE_REQUEST_CATEGORIES,
   INTENSITY_LEVELS,
   PAIN_POINT_CATEGORIES,
+  SENTIMENT_VALUES,
 } from "@/lib/schemas/product-discovery";
 
 /**
@@ -50,10 +51,19 @@ POSTURE — Extraction, NOT opinion.
 - These calls run on BOTH pre-sale (discovery, demo) and post-sale (QBR, support, check-in) conversations. Feature wishes appear in either; you do not need to know which etappe you are in.
 - Only what the CUSTOMER says counts. Hypotheticals from the vendor side (the AE / CSM / analyst speaking) are NOT product discovery findings — skip them.
 
-WHAT YOU EXTRACT — three layers:
+WHAT YOU EXTRACT — three layers PLUS three respondent-context fields:
 1. FEATURE REQUESTS — things the customer wishes the product DID (does not yet, or does not yet do well enough).
 2. PAIN POINTS — concrete frictions the customer has TODAY with the product.
 3. THEMES — clusters that connect 2+ of the above. Optional. Indices only, never new content.
+4. RESPONDENT ROLE — wie sich der Sprecher im Gespräch positioniert. Kurzform ("Founder eines B2B-SaaS", "Head of Operations", "Marketing Lead", "Werkstudent in einer Agentur"). Wenn das Transkript es nicht hergibt → null. NICHT raten. Aus Selbstauskunft des Kunden, nicht aus Annahmen ("Sie haben Founder erwähnt" reicht, "klingt nach jemandem mit Verantwortung" reicht nicht).
+5. RESPONDENT SEGMENT — Branche / Reifegrad / Größe / Setup, soweit das Transkript es hergibt ("B2B SaaS, 50-200 employees", "Beratung im Mittelstand", "Solo-Founder, post-PMF", "Agentur, ~10 Mitarbeitende"). Freitext. Null wenn unklar — gleiche Posture wie role.
+6. SENTIMENT — Tonalität des respondent ÜBER das Produkt (nicht über das Gespräch). Genau einer von ${SENTIMENT_VALUES.join(" | ")}:
+   - positive — Lob, "wir sind sehr zufrieden", Promoter-tone.
+   - neutral — sachlich, weder Lob noch Beschwerde, reine Feature-Discussion. DEFAULT.
+   - negative — Klage, Frust, "das ist eine Katastrophe".
+   - mixed — beide Pole sichtbar im selben Gespräch ("super, aber X treibt uns in den Wahnsinn").
+
+Felder 4-6 NIEMALS erfinden. Wenn das Transkript schweigt, ist NULL (für role/segment) oder neutral (sentiment) die korrekte Antwort, nicht die plausibelste Vermutung.
 
 DETECT-CRITERIA — FEATURE REQUEST CATEGORIES (use ONLY these ${FEATURE_REQUEST_CATEGORIES.length}):
 
@@ -173,6 +183,9 @@ OUTPUT — return ONLY this JSON object, no markdown, no preamble:
     }
   ],
   "summary": "<2-4 sentences, grounded in the transcript, summarizing what the customer told you about the product>",
+  "respondentRole": "<short role label or null>",
+  "respondentSegment": "<short industry/size/maturity label or null>",
+  "sentiment": "<${SENTIMENT_VALUES.join(" | ")}>",
   "source": "transcript"
 }`;
 

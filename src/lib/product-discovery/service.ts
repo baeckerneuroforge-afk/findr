@@ -43,6 +43,13 @@ import { analyzeProductDiscovery } from "./classifier";
 // supabase-js's `.insert(...)` overload narrowing only resolves cleanly
 // against the same flavor of type. With interfaces the .insert() type
 // degrades to `never[]` (TS2353 "org_id does not exist in type 'never[]'").
+// Sentiment-Werte sind hier dupliziert (statt importiert) damit der DB-
+// Layer-Type unabhängig vom Zod-Schema-Modul bleibt — sonst entsteht eine
+// Cycle-Falle, wenn schemas/product-discovery jemals selbst aus service.ts
+// importieren sollte. Tatsächlich gleiche Werte wie SENTIMENT_VALUES.
+type SentimentValue = "positive" | "neutral" | "negative" | "mixed";
+type RespondentSource = "ai" | "screening";
+
 type ProductDiscoveryInsightRow = {
   id: string;
   org_id: string;
@@ -56,6 +63,13 @@ type ProductDiscoveryInsightRow = {
   analysis_method: string;
   analyzed_at: string;
   created_at: string;
+  // Spalten aus 20260616000000_product_discovery_respondent_context.sql.
+  // Alle nullable außer respondent_source (NOT NULL DEFAULT 'ai').
+  respondent_role: string | null;
+  respondent_segment: string | null;
+  sentiment: SentimentValue | null;
+  plan_id: string | null;
+  respondent_source: RespondentSource;
 };
 
 type ProductDiscoveryInsightInsert = {
@@ -71,6 +85,11 @@ type ProductDiscoveryInsightInsert = {
   analysis_method?: string;
   analyzed_at?: string;
   created_at?: string;
+  respondent_role?: string | null;
+  respondent_segment?: string | null;
+  sentiment?: SentimentValue | null;
+  plan_id?: string | null;
+  respondent_source?: RespondentSource;
 };
 
 type ProductDiscoveryInsightUpdate = {
@@ -86,6 +105,11 @@ type ProductDiscoveryInsightUpdate = {
   analysis_method?: string;
   analyzed_at?: string;
   created_at?: string;
+  respondent_role?: string | null;
+  respondent_segment?: string | null;
+  sentiment?: SentimentValue | null;
+  plan_id?: string | null;
+  respondent_source?: RespondentSource;
 };
 
 // Explicit reconstruction instead of `Database & {...}` intersection: the
@@ -175,6 +199,22 @@ export interface ProductDiscoveryInsightRecord {
    *  Derived from deal_id presence — XOR is enforced indirectly via the
    *  source call's calls.calls_single_parent_chk. */
   source_kind: "deal" | "account";
+  // Spalten aus 20260616000000_product_discovery_respondent_context.sql.
+  // Vom Stage-1-Classifier befüllt; gelesen von Stage-2-Synthese und vom
+  // /dashboard/product-discovery-Rollup (sobald die UI diese Spalten
+  // anzeigt). Legacy rows pre-Migration tragen null/null/null bzw.
+  // respondent_source='ai' (Backfill via DEFAULT).
+  respondent_role: string | null;
+  respondent_segment: string | null;
+  sentiment: "positive" | "neutral" | "negative" | "mixed" | null;
+  /** Studien-Bezug — set bei Calls aus einem research_plans-Flow, null
+   *  bei passiven Deal/Account-Calls. ON DELETE SET NULL: Insights
+   *  überleben das Löschen ihres Plans. */
+  plan_id: string | null;
+  /** Wie die respondent_*-Felder befüllt wurden ('ai' vom Classifier,
+   *  'screening' für späteren externen Recruiting-Pfad — heute immer
+   *  'ai'). */
+  respondent_source: "ai" | "screening";
 }
 
 function toRecord(
@@ -197,6 +237,11 @@ function toRecord(
     analyzed_at: row.analyzed_at,
     source_label: sourceLabel,
     source_kind: row.deal_id ? "deal" : "account",
+    respondent_role: row.respondent_role,
+    respondent_segment: row.respondent_segment,
+    sentiment: row.sentiment,
+    plan_id: row.plan_id,
+    respondent_source: row.respondent_source,
   };
 }
 
@@ -514,9 +559,17 @@ async function resolveAccountContext(
  * org_id. This mirrors the per-call analyze pattern that a future
  * /api/calls/[id]/product-discovery route would use after the Clerk +
  * org-membership check.
+ *
+ * `planId` (optional, second-arg) — set when the call belongs to a
+ * research_plans-Studie (Research-Flow via transcript-service.ts). Wird in
+ * product_discovery_insights.plan_id geschrieben und stellt damit den
+ * Studien-Bezug her, den Stage 2 (cross-call Synthese) zum Filtern nutzt.
+ * Bei passiven Deal/Account-Calls (Standard-Path) NULL — `null`/`undefined`
+ * werden beide als NULL persistiert.
  */
 export async function analyzeCallForProductDiscovery(
   callId: string,
+  options?: { planId?: string | null },
 ): Promise<ProductDiscoveryInsightRecord | null> {
   const call = await loadCall(callId);
   if (!call) return null;
@@ -543,6 +596,18 @@ export async function analyzeCallForProductDiscovery(
       summary: result.summary,
       analysis_method: "ai",
       analyzed_at: new Date().toISOString(),
+      // Stage-1-Respondent-Kontext aus dem Classifier — Schema hält Felder
+      // nullable, der Classifier liefert null wenn das Transkript nichts
+      // hergibt (Posture: nicht raten). respondent_source ist immer 'ai'
+      // auf diesem Pfad; der reservierte 'screening'-Wert kommt erst mit
+      // einem externen Recruiting-Pool, der per Definition nicht durch
+      // diesen analyze-Call läuft.
+      respondent_role: result.respondentRole,
+      respondent_segment: result.respondentSegment,
+      sentiment: result.sentiment,
+      respondent_source: "ai",
+      // Studien-Bezug — durchgereicht vom Caller. Null bei passiven Calls.
+      plan_id: options?.planId ?? null,
     })
     .select("*")
     .single();

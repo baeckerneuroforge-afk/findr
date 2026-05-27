@@ -87,7 +87,15 @@ export async function persistResearchTranscriptAndDiscovery(params: {
   // Discovery classifier — its own errors propagate. The calls row is
   // already saved, so a failure here leaves a recoverable state: the row
   // can be reanalysed later via /api/calls/[id]/product-discovery.
-  await analyzeCallForProductDiscovery(callRow.id);
+  //
+  // planId wird durchgereicht: dieser Call gehört zu einer Studie
+  // (research-Flow), und der Studien-Bezug landet in
+  // product_discovery_insights.plan_id — Voraussetzung für Stage-2
+  // (cross-call) Synthese. Bei null/missing planId (theoretischer
+  // Edge: research-Session ohne Plan-Link) bleibt das Feld null.
+  await analyzeCallForProductDiscovery(callRow.id, {
+    planId: params.planId,
+  });
 
   return { callId: callRow.id, discoveryRan: true };
 }
