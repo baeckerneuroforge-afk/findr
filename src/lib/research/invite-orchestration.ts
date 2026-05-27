@@ -140,7 +140,7 @@ export async function sendResearchInvite(
     const url = researchInterviewUrl(accessToken);
 
     const { subject, html, text } = buildResearchInvite({
-      contactName: invite.contact_name,
+      contactName: invite.contact_label,
       orgName,
       scheduledAt,
       durationMinutes: DEFAULT_DURATION_MINUTES,
@@ -328,7 +328,7 @@ export async function sendResearchReminder(
 
     const { subject, html, text } = buildResearchReminder({
       kind,
-      contactName: invite.contact_name,
+      contactName: invite.contact_label,
       orgName,
       scheduledAt,
       durationMinutes: DEFAULT_DURATION_MINUTES,

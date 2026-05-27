@@ -189,6 +189,12 @@ export async function createInterviewSession(params: {
   /** Research-only links. Ignored for post_loss / checkin sessions. */
   planId?: string | null;
   inviteId?: string | null;
+  /** OPTIONAL pre-generated access token. Use this when the token was
+   *  created earlier in the flow (e.g. at research-invite creation, so the
+   *  scheduling mail can carry the /interview/[token] link before the
+   *  session exists). If omitted, a fresh 256-bit token is generated here
+   *  (the original post_loss + checkin behavior, unchanged). */
+  accessToken?: string;
   language?: InterviewLanguage;
   model?: string;
 }): Promise<InterviewSession> {
@@ -241,7 +247,7 @@ export async function createInterviewSession(params: {
       plan_id: params.planId ?? null,
       invite_id: params.inviteId ?? null,
       transcript_source: mode === "text" ? "typed" : null,
-      access_token: generateToken(),
+      access_token: params.accessToken ?? generateToken(),
       status: "open",
       language,
       conversation: conversation as unknown as Json,

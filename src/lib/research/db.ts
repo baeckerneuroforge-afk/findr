@@ -163,6 +163,12 @@ type ResearchInviteStatus =
 
 type ResearchInviteModePreference = "text" | "voice" | "video";
 
+// Note on the four "scheduling" columns below:
+//   access_token / invited_at        — added by 20260615000000
+//   reminder_24h_sent_at / reminder_1h_sent_at — added by 20260614000000
+// Both migrations are additive `if not exists`; existing rows get NULL.
+// The augmented type-side has to know about them so the scheduling +
+// reminder-cron code can read/write them through this single shared client.
 export type ResearchInviteRow = {
   id: string;
   plan_id: string;
@@ -172,6 +178,10 @@ export type ResearchInviteRow = {
   mode_preference: ResearchInviteModePreference;
   status: ResearchInviteStatus;
   scheduled_at: string | null;
+  access_token: string | null;
+  invited_at: string | null;
+  reminder_24h_sent_at: string | null;
+  reminder_1h_sent_at: string | null;
   created_at: string;
 };
 
@@ -184,6 +194,10 @@ type ResearchInviteInsert = {
   mode_preference?: ResearchInviteModePreference;
   status?: ResearchInviteStatus;
   scheduled_at?: string | null;
+  access_token?: string | null;
+  invited_at?: string | null;
+  reminder_24h_sent_at?: string | null;
+  reminder_1h_sent_at?: string | null;
   created_at?: string;
 };
 
@@ -196,6 +210,10 @@ type ResearchInviteUpdate = {
   mode_preference?: ResearchInviteModePreference;
   status?: ResearchInviteStatus;
   scheduled_at?: string | null;
+  access_token?: string | null;
+  invited_at?: string | null;
+  reminder_24h_sent_at?: string | null;
+  reminder_1h_sent_at?: string | null;
   created_at?: string;
 };
 

@@ -1,9 +1,9 @@
 import "server-only";
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-
-import { createAdminSupabaseClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database";
+import {
+  createResearchSupabase,
+  type ResearchInviteRow,
+} from "./db";
 
 /**
  * Scheduling service for research interviews. Mirrors the read/write
@@ -21,107 +21,30 @@ import type { Database } from "@/types/database";
  * "video") that affects /interview/[token] rendering, NOT the schedule.
  * This service treats the value as opaque text.
  *
- * ── Schema assumption ─────────────────────────────────────────────────
- * `research_invites` lives in prod (sister-branch migration) but is NOT
- * yet in src/types/database.ts on this branch. Until the next types
- * regeneration we widen the Database type locally — same pattern used by
- * product-discovery's service.ts before its types regen. Drop the
- * DatabaseWithResearch block + createResearchSupabase once
- * `supabase gen types` has run after the sister-branch migration.
- *
- * The column set below is what this scheduling work touches plus what the
- * reminder cron reads. If the sister-branch schema differs, point it out
- * at merge and we adjust here only — no consumer code references the
- * augmentation.
+ * ── Merge note (proactive ↔ scheduling) ──────────────────────────────────
+ * Originally this file carried its own DatabaseWithResearch augmentation
+ * for research_invites with two columns differently named than what the
+ * proactive branch shipped: contact_name (we use contact_label) and
+ * research_plan_id (we use plan_id). At merge the DB-side won — those
+ * names live in prod via the proactive Migration 20260611000000_research_layer.sql.
+ * This file now imports the augmented client from ./db.ts (single source of
+ * truth) and uses contact_label / plan_id throughout. The four scheduling-
+ * specific columns (access_token, invited_at, reminder_24h_sent_at,
+ * reminder_1h_sent_at) come from Migrations 20260614000000_research_invite_
+ * reminders.sql and 20260615000000_research_invite_access_token.sql and
+ * are part of the shared augmented type in db.ts.
  */
-
-type ResearchInviteRow = {
-  id: string;
-  org_id: string | null;
-  research_plan_id: string;
-  contact_name: string | null;
-  contact_email: string;
-  scheduled_at: string | null;
-  mode_preference: string;
-  access_token: string | null;
-  invited_at: string | null;
-  reminder_24h_sent_at: string | null;
-  reminder_1h_sent_at: string | null;
-  status: string;
-  created_at: string;
-};
-
-type ResearchInviteInsert = {
-  id?: string;
-  org_id?: string | null;
-  research_plan_id: string;
-  contact_name?: string | null;
-  contact_email: string;
-  scheduled_at?: string | null;
-  mode_preference?: string;
-  access_token?: string | null;
-  invited_at?: string | null;
-  reminder_24h_sent_at?: string | null;
-  reminder_1h_sent_at?: string | null;
-  status?: string;
-  created_at?: string;
-};
-
-type ResearchInviteUpdate = {
-  id?: string;
-  org_id?: string | null;
-  research_plan_id?: string;
-  contact_name?: string | null;
-  contact_email?: string;
-  scheduled_at?: string | null;
-  mode_preference?: string;
-  access_token?: string | null;
-  invited_at?: string | null;
-  reminder_24h_sent_at?: string | null;
-  reminder_1h_sent_at?: string | null;
-  status?: string;
-  created_at?: string;
-};
-
-type DatabaseWithResearch = {
-  __InternalSupabase: Database["__InternalSupabase"];
-  public: {
-    Tables: Database["public"]["Tables"] & {
-      research_invites: {
-        Row: ResearchInviteRow;
-        Insert: ResearchInviteInsert;
-        Update: ResearchInviteUpdate;
-        Relationships: [];
-      };
-    };
-    Views: Database["public"]["Views"];
-    Functions: Database["public"]["Functions"];
-    Enums: Database["public"]["Enums"];
-    CompositeTypes: Database["public"]["CompositeTypes"];
-  };
-};
-
-function createResearchSupabase(): SupabaseClient<DatabaseWithResearch> {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceRoleKey) {
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY is not set. Required for admin operations.",
-    );
-  }
-  return createClient<DatabaseWithResearch>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  );
-}
 
 // ── Public record shape ─────────────────────────────────────────────────────
 
 export interface ResearchInviteRecord {
   id: string;
   org_id: string | null;
-  research_plan_id: string;
-  contact_name: string | null;
+  plan_id: string;
+  /** Display label for the participant — see research_invites.contact_label
+   *  in 20260611000000_research_layer.sql. May read as just a name or
+   *  "Name, Company"; the mail templates use it as-is. */
+  contact_label: string;
   contact_email: string;
   scheduled_at: string | null;
   mode_preference: string;
@@ -136,9 +59,9 @@ function toRecord(row: ResearchInviteRow): ResearchInviteRecord {
   return {
     id: row.id,
     org_id: row.org_id,
-    research_plan_id: row.research_plan_id,
-    contact_name: row.contact_name,
-    contact_email: row.contact_email,
+    plan_id: row.plan_id,
+    contact_label: row.contact_label,
+    contact_email: row.contact_email ?? "",
     scheduled_at: row.scheduled_at,
     mode_preference: row.mode_preference,
     access_token: row.access_token,
@@ -336,12 +259,12 @@ export async function markReminderSent(
   // signatures aren't assignable to `never`). Spell both branches out so
   // the Update type stays narrow.
   const now = new Date().toISOString();
-  const update: ResearchInviteUpdate =
+  const supabase = createResearchSupabase();
+  const update =
     kind === "24h"
       ? { reminder_24h_sent_at: now }
       : { reminder_1h_sent_at: now };
 
-  const supabase = createResearchSupabase();
   const { data, error } = await supabase
     .from("research_invites")
     .update(update)
