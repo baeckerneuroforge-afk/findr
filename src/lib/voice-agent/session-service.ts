@@ -42,11 +42,30 @@ type Row = DatabaseWithResearch["public"]["Tables"]["interview_sessions"]["Row"]
 
 const MAX_AGENT_TURNS = 6; // safety cap on conversation length / cost per session
 const MAX_CHECKIN_AGENT_TURNS = 4; // check-ins are short (2-3 questions)
-// Research interviews cover 2–4 turns per topic; with a typical plan of 3–5
-// topics that lands in the 8–14 turn range. Cap at 14 so a runaway plan or
-// a chatty participant can't drive cost arbitrarily high — the agent's own
-// done-flag remains the primary stop signal.
-const MAX_RESEARCH_AGENT_TURNS = 14;
+
+// Research interviews: total entries in conversation[] (User-Turns +
+// Agent-Turns zusammen). 16 ≙ ~8 Frage-Antwort-Runden.
+//
+// Warum TOTAL statt nur Agent-Turns? Die agentTurnCount-Variante zählt nur
+// rows mit role==='agent'. Bei alternierendem Verlauf bedeutet ein Cap von
+// N effektiv ~2N jsonb-Einträge — was die DB-Beobachtung mit jsonb_array_
+// length irreführend macht („14 turns" liest wie 14, ist aber 28). Ein
+// TOTAL-Cap deckt sich 1:1 mit jsonb_array_length(conversation), also
+// sind „16" im Code = „16" in der DB. Eindeutiger.
+//
+// Das ist die HARTE Obergrenze + das Sicherheitsnetz. Das Normalende
+// soll der Agent selbst per done=true setzen — der Prompt enforced die
+// Sättigungs-Regeln. Sollte der Agent driften (Topics außerhalb des Plans
+// erfinden, beide-zufrieden-Signale ignorieren), greift der Cap als
+// Stopper UND erzeugt ein generisches Closing statt einer ins Leere
+// laufenden Frage (siehe advanceInterview research-Branch).
+const MAX_RESEARCH_TOTAL_TURNS = 16;
+
+/** Generic warm closing used when the TOTAL-cap forces a stop while the
+ *  agent's own done flag is still false. The participant should never be
+ *  left with an unanswered question on the screen. */
+const RESEARCH_CAP_CLOSING_MESSAGE =
+  "Vielen Dank für Ihre Zeit und Ihre offenen Antworten — das war sehr hilfreich.";
 
 /**
  * dealContext is the per-session input bucket consumed by the agent prompt.
@@ -535,9 +554,24 @@ export async function advanceInterview(
       session.language,
       model,
     );
-    history.push({ role: "agent", text: message });
-    const finished =
-      done || agentTurnCount(history) >= MAX_RESEARCH_AGENT_TURNS;
+
+    // Decide BEFORE pushing the agent turn: would pushing the LLM message
+    // bring conversation.length to the cap? If so AND the agent isn't
+    // self-closing (done=false), the LLM just emitted "another question"
+    // when the system already has to stop. Swap that question for the
+    // generic warm closing so the participant doesn't end on an
+    // unanswered prompt.
+    //
+    // The cap is measured against `history.length + 1` because the agent's
+    // turn isn't appended yet — we're predicting the row we're about to
+    // push.
+    const wouldHitCap = history.length + 1 >= MAX_RESEARCH_TOTAL_TURNS;
+    const forceCapClose = wouldHitCap && !done;
+    const finalAgentText = forceCapClose
+      ? RESEARCH_CAP_CLOSING_MESSAGE
+      : message;
+    history.push({ role: "agent", text: finalAgentText });
+    const finished = done || forceCapClose;
 
     if (finished) {
       // Persist the completed transcript as a calls row (account_id = null,
