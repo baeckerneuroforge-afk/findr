@@ -10,7 +10,7 @@ import type { EmergentTheme } from "@/lib/synthesis/service";
  * (the auditability surface) plus the IDs of the source interviews this
  * theme was extracted from.
  *
- * The source_insight_ids are rendered as opaque uuids for now; once an
+ * The sourceInsightIds are rendered as opaque uuids for now; once an
  * insight-detail page exists they can become links. The IDs are still
  * useful today as a copy-paste handle when investigating a theme manually.
  */
@@ -92,13 +92,13 @@ export function SynthesisThemeCard({
             </div>
           )}
 
-          {theme.source_insight_ids.length > 0 && (
+          {theme.sourceInsightIds.length > 0 && (
             <div>
               <div className="mb-2 text-caption font-medium uppercase tracking-wider text-neutral-500">
-                Source interviews ({theme.source_insight_ids.length})
+                Source interviews ({theme.sourceInsightIds.length})
               </div>
               <ul className="space-y-1">
-                {theme.source_insight_ids.map((id) => (
+                {theme.sourceInsightIds.map((id) => (
                   <li
                     key={id}
                     className="font-mono text-caption text-neutral-500"
@@ -111,7 +111,7 @@ export function SynthesisThemeCard({
           )}
 
           {theme.quotes.length === 0 &&
-            theme.source_insight_ids.length === 0 && (
+            theme.sourceInsightIds.length === 0 && (
               <p className="text-small italic text-neutral-500">
                 No quotes or source interviews on this theme.
               </p>

@@ -3,9 +3,9 @@ import "server-only";
 import { createResearchSupabase } from "@/lib/research/db";
 import type {
   EmergentTheme,
-  StudySynthesisRecord,
   Tension,
-} from "./engine";
+  TensionSide,
+} from "@/lib/schemas/synthesis";
 
 /**
  * Read-side service for the study-synthesis UI. Two functions:
@@ -21,13 +21,33 @@ import type {
  *     analyzed_at > since. `since=null` is allowed for "no synthesis yet"
  *     and returns the count of all insights for the plan.
  *
- * Types come from engine.ts because the SAME shapes are written there
- * (by Stage 2) and read here (by the UI). One source of truth — at the
- * UI ↔ engine merge boundary either side breaking the contract surfaces
- * immediately at type-check.
+ * Types come from `@/lib/schemas/synthesis` — the same Zod schemas the
+ * Stage-2 engine validates against before persisting. The schema's
+ * StudySynthesisResult covers (overview / emergent_themes / tensions);
+ * the persisted study_synthesis row wraps that with DB-side metadata
+ * (id / org_id / plan_id / based_on_count / synthesized_at / model),
+ * which the local StudySynthesisRecord below adds.
  */
 
-export type { EmergentTheme, Tension, StudySynthesisRecord };
+/** Persisted-row view: schema's content fields PLUS the DB metadata the UI
+ *  needs for the "based on N · stand X · M new since" header. `overview`
+ *  is nullable here (the migration column is nullable; an empty-seed row
+ *  exists before the engine has ever run) — the schema's
+ *  StudySynthesisResult.overview is non-null, but that's the output
+ *  contract of a successful synth, not the DB state. */
+export interface StudySynthesisRecord {
+  id: string;
+  org_id: string;
+  plan_id: string;
+  overview: string | null;
+  emergent_themes: EmergentTheme[];
+  tensions: Tension[];
+  based_on_count: number;
+  synthesized_at: string | null;
+  model: string | null;
+}
+
+export type { EmergentTheme, Tension, TensionSide };
 
 export async function getStudySynthesis(
   orgId: string,

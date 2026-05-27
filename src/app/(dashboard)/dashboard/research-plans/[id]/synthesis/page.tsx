@@ -8,6 +8,7 @@ import {
   getStudySynthesis,
   type EmergentTheme,
   type Tension,
+  type TensionSide,
 } from "@/lib/synthesis/service";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -246,8 +247,8 @@ export default async function ResearchPlanSynthesisPage({
                         {tension.description}
                       </p>
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <TensionSidePanel side={tension.side_a} label="Side A" />
-                        <TensionSidePanel side={tension.side_b} label="Side B" />
+                        <TensionSidePanel side={tension.side_a} sideName="Side A" />
+                        <TensionSidePanel side={tension.side_b} sideName="Side B" />
                       </div>
                     </CardBody>
                   </Card>
@@ -268,35 +269,27 @@ export default async function ResearchPlanSynthesisPage({
 }
 
 /**
- * Pure-presentational side of a tension. Side.summary OR side.label is
- * shown as the lead — the migration's column comment uses `summary` but
- * the verbal spec mentioned `label`. We surface whichever exists; if
- * neither, we fall back to the column label ("Side A" / "Side B") that
- * the parent passed in so the card never reads as broken.
+ * Pure-presentational side of a tension. The schema requires `side.label`
+ * (3-160 chars) so it's always present — no fallback chain needed. The
+ * `sideName` prop ("Side A" / "Side B") is purely the column label above
+ * the heading, not a content fallback.
  */
 function TensionSidePanel({
   side,
-  label,
+  sideName,
 }: {
-  side: import("@/lib/synthesis/service").Tension["side_a"];
-  label: string;
+  side: TensionSide;
+  sideName: string;
 }) {
-  const heading = side.label ?? side.summary ?? label;
-  const sourceIds = side.source_insight_ids ?? [];
-  const quotes = side.quotes ?? [];
   return (
     <div className="rounded-md border border-neutral-200 bg-neutral-50/50 p-4">
       <div className="mb-1 text-caption font-medium uppercase tracking-wider text-neutral-500">
-        {label}
+        {sideName}
       </div>
-      <p className="text-body-strong text-neutral-900">{heading}</p>
-      {/* If both label AND summary exist, surface the summary as body. */}
-      {side.label && side.summary && side.summary !== side.label && (
-        <p className="mt-1 text-small text-neutral-600">{side.summary}</p>
-      )}
-      {quotes.length > 0 && (
+      <p className="text-body-strong text-neutral-900">{side.label}</p>
+      {side.quotes.length > 0 && (
         <ul className="mt-3 space-y-2">
-          {quotes.map((q, i) => (
+          {side.quotes.map((q, i) => (
             <li
               key={i}
               className="border-l-2 border-neutral-200 pl-3 text-small italic text-neutral-600"
@@ -306,10 +299,12 @@ function TensionSidePanel({
           ))}
         </ul>
       )}
-      {sourceIds.length > 0 && (
+      {side.sourceInsightIds.length > 0 && (
         <p className="mt-3 font-mono text-caption text-neutral-400">
-          {sourceIds.length}{" "}
-          {sourceIds.length === 1 ? "source interview" : "source interviews"}
+          {side.sourceInsightIds.length}{" "}
+          {side.sourceInsightIds.length === 1
+            ? "source interview"
+            : "source interviews"}
         </p>
       )}
     </div>
