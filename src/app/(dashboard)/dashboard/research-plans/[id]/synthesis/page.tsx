@@ -12,6 +12,7 @@ import {
 } from "@/lib/synthesis/service";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ExportSynthesisPdfButton } from "@/components/dashboard/ExportSynthesisPdfButton";
 import { SynthesisThemeCard } from "@/components/dashboard/SynthesisThemeCard";
 import { UpdateSynthesisButton } from "@/components/dashboard/UpdateSynthesisButton";
 
@@ -150,10 +151,18 @@ export default async function ResearchPlanSynthesisPage({
             </p>
           )}
         </div>
-        <UpdateSynthesisButton
-          planId={planId}
-          hasExisting={synthesis !== null && synthesis.synthesized_at !== null}
-        />
+        <div className="flex flex-col items-end gap-2">
+          <UpdateSynthesisButton
+            planId={planId}
+            hasExisting={synthesis !== null && synthesis.synthesized_at !== null}
+          />
+          {/* PDF-Export: nur sinnvoll wenn eine fertige Synthese da ist.
+              Bei einem unsynthesisierten Slot bleibt der Button weg —
+              kein „PDF eines leeren Reports". */}
+          {synthesis !== null && synthesis.synthesized_at !== null && (
+            <ExportSynthesisPdfButton planId={planId} />
+          )}
+        </div>
       </div>
 
       {/* Body — empty state OR overview + themes + tensions */}
