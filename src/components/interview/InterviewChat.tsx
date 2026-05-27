@@ -16,6 +16,20 @@ interface InterviewChatProps {
   initialConversation: InterviewTurn[];
   initialStatus: Status;
   company: string | null;
+  /** Drop Findr branding from the chrome — used by the research flow where
+   *  the participant is the customer of a Findr customer and has no
+   *  relationship with Findr. When true:
+   *    - the "findr." wordmark in the top bar is hidden,
+   *    - the bottom-of-input caption replaces "Powered by findr. · …"
+   *      with a neutral "Confidential research interview." line.
+   *  Defaults to false so post_loss / checkin renders unchanged. */
+  brandless?: boolean;
+  /** When set, used as the h1 in place of the default
+   *  "A short conversation [about ${company}]". The research page passes
+   *  the research-plan title here; if absent it falls back to a generic
+   *  "Research interview". For post_loss / checkin this stays null and the
+   *  original company-aware heading is rendered. */
+  headingOverride?: string | null;
 }
 
 const FONT = "var(--font-inter), Inter, system-ui, -apple-system, sans-serif";
@@ -77,6 +91,8 @@ export function InterviewChat({
   initialConversation,
   initialStatus,
   company,
+  brandless = false,
+  headingOverride = null,
 }: InterviewChatProps) {
   const [messages, setMessages] = useState<InterviewTurn[]>(initialConversation);
   const [status, setStatus] = useState<Status>(initialStatus);
@@ -145,11 +161,17 @@ export function InterviewChat({
       className="flex min-h-screen w-full flex-col bg-white text-[#0E0A1F]"
     >
       <header className="border-b border-[#E8E4F2] px-5 py-4">
-        <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <span className="flex items-center text-[20px] font-extrabold tracking-[-0.02em] text-[#0E0A1F]">
-            findr
-            <span className="mb-[10px] ml-[1px] inline-block h-[4px] w-[4px] rounded-full bg-[#B00]" />
-          </span>
+        <div
+          className={`mx-auto flex max-w-2xl items-center ${
+            brandless ? "justify-center" : "justify-between"
+          }`}
+        >
+          {!brandless && (
+            <span className="flex items-center text-[20px] font-extrabold tracking-[-0.02em] text-[#0E0A1F]">
+              findr
+              <span className="mb-[10px] ml-[1px] inline-block h-[4px] w-[4px] rounded-full bg-[#B00]" />
+            </span>
+          )}
           <span className="text-[12px] text-[#6B6680]">Confidential</span>
         </div>
       </header>
@@ -157,7 +179,11 @@ export function InterviewChat({
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 py-6">
         <div className="mb-6">
           <h1 className="text-[18px] font-semibold">
-            A short conversation{company ? ` about ${company}` : ""}
+            {headingOverride
+              ? headingOverride
+              : brandless
+                ? "Research interview"
+                : `A short conversation${company ? ` about ${company}` : ""}`}
           </h1>
           <p className="mt-1 text-[14px] leading-relaxed text-[#6B6680]">
             Your honest answers help us learn — there are no wrong answers.
@@ -200,7 +226,9 @@ export function InterviewChat({
               </button>
             </div>
             <p className="mt-3 text-center text-[11px] text-[#9B9BA3]">
-              Powered by findr. · Your response is confidential.
+              {brandless
+                ? "Confidential research interview."
+                : "Powered by findr. · Your response is confidential."}
             </p>
           </div>
         ) : (

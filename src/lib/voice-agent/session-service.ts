@@ -91,6 +91,15 @@ export interface PublicInterviewView {
   conversation: InterviewTurn[];
   /** A friendly company name for the greeting, if available. */
   company: string | null;
+  /** Flow kind — exposed so the public page can switch on it (e.g. drop the
+   *  Findr branding for `research`, since the participant is the customer
+   *  of a Findr customer and has no relationship with Findr). post_loss
+   *  and checkin keep the existing Findr-branded chrome. */
+  kind: "post_loss" | "checkin" | "research";
+  /** For `research` only: the research-plan title, used by the page as the
+   *  visible h1 + metadata title. Null for post_loss / checkin and when
+   *  the dealContext doesn't carry a plan title. */
+  planTitle: string | null;
 }
 
 function generateToken(): string {
@@ -143,10 +152,24 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
   } else {
     company = (session.dealContext as InterviewInput | null)?.deal.company ?? null;
   }
+
+  // planTitle is only populated for research, derived defensively from the
+  // dealContext shape so a schema change doesn't break the page (falls back
+  // to null → page renders the generic "Research interview" heading).
+  let planTitle: string | null = null;
+  if (session.kind === "research") {
+    const ctx = session.dealContext as
+      | { plan?: { title?: string | null } | null }
+      | null;
+    planTitle = ctx?.plan?.title?.trim() || null;
+  }
+
   return {
     status: session.status,
     conversation: session.conversation,
     company,
+    kind: session.kind,
+    planTitle,
   };
 }
 
