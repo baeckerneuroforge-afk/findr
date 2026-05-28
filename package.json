@@ -17,7 +17,8 @@
     "eval:save-play": "tsx --conditions=react-server evals-save-play/run.ts",
     "eval:churn-severity": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-churn-severity/run.ts",
     "eval:synthesis": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-synthesis/run.ts",
-    "eval:research-saturation": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-research-saturation/run.ts"
+    "eval:research-saturation": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-research-saturation/run.ts",
+    "eval:chat-with-data": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/chat-with-data/run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
