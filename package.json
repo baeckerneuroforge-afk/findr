@@ -19,7 +19,8 @@
     "eval:synthesis": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-synthesis/run.ts",
     "eval:research-saturation": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-research-saturation/run.ts",
     "eval:chat-with-data": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/chat-with-data/run.ts",
-    "eval:guide-generator": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/guide-generator/run.ts"
+    "eval:guide-generator": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/guide-generator/run.ts",
+    "eval:bridge-cs-research": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/bridge-cs-research/run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",

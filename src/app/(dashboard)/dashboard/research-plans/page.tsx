@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { listResearchPlans } from "@/lib/research/plans-service";
+import { listBridgeSuggestions } from "@/lib/bridge/cs-to-research";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { BridgeSuggestionsPanel } from "@/components/dashboard/BridgeSuggestionsPanel";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
@@ -73,7 +75,13 @@ export default async function ResearchPlansIndexPage() {
     throw err;
   }
 
-  const plans = await listResearchPlans(orgId);
+  // Plans + bridge suggestions load in parallel — independent reads, no
+  // ordering constraint. listBridgeSuggestions returns only `pending`
+  // suggestions; approved/dismissed don't show up here anymore.
+  const [plans, bridgeSuggestions] = await Promise.all([
+    listResearchPlans(orgId),
+    listBridgeSuggestions(orgId),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -92,6 +100,12 @@ export default async function ResearchPlansIndexPage() {
           + New plan
         </Link>
       </div>
+
+      {/* Bridge-Suggestions: CS-Health → Research. Pflicht-Human-Gate —
+          renderwert nur das pending-Set; approved/dismissed sind weg. Steht
+          BEWUSST oberhalb der Plans-Tabelle, damit ein neuer Vorschlag
+          sichtbar ist BEVOR der User in die Plans-Liste taucht. */}
+      <BridgeSuggestionsPanel initialSuggestions={bridgeSuggestions} />
 
       {plans.length === 0 ? (
         <EmptyState
