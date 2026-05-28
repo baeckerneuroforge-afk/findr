@@ -12,6 +12,7 @@ import {
 } from "@/lib/synthesis/service";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ChatWithDataPanel } from "@/components/dashboard/ChatWithDataPanel";
 import { ExportSynthesisPdfButton } from "@/components/dashboard/ExportSynthesisPdfButton";
 import { SynthesisThemeCard } from "@/components/dashboard/SynthesisThemeCard";
 import { UpdateSynthesisButton } from "@/components/dashboard/UpdateSynthesisButton";
@@ -271,6 +272,13 @@ export default async function ResearchPlanSynthesisPage({
               Model: {synthesis.model}
             </p>
           )}
+
+          {/* Chat-with-data — only when the synthesis actually exists. The
+              engine would short-circuit a zero-insight study server-side,
+              but the panel needs the synthesis surface to be coherent
+              before we offer "ask your data". `ready` is the same gate as
+              "PDF export button is shown". */}
+          <ChatWithDataPanel planId={planId} ready={true} />
         </>
       )}
     </div>
