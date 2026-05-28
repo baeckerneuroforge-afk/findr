@@ -83,6 +83,15 @@ export default async function ResearchPlansIndexPage() {
     listBridgeSuggestions(orgId),
   ]);
 
+  // Brücke #2 (sales_handover) teilt sich die bridge_suggestions-Tabelle.
+  // Hier rendert nur Brücke #1 (churn_cluster). Filtern wir defensiv
+  // kind-spezifisch, damit ein sales_handover-Vorschlag NICHT als
+  // research-Vorschlag mit undefined-Labels in BridgeSuggestionsPanel
+  // landet. Brücke #2's eigener Panel sitzt auf /dashboard/accounts.
+  const researchSuggestions = bridgeSuggestions.filter(
+    (s) => s.kind === "churn_cluster",
+  );
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -105,7 +114,7 @@ export default async function ResearchPlansIndexPage() {
           renderwert nur das pending-Set; approved/dismissed sind weg. Steht
           BEWUSST oberhalb der Plans-Tabelle, damit ein neuer Vorschlag
           sichtbar ist BEVOR der User in die Plans-Liste taucht. */}
-      <BridgeSuggestionsPanel initialSuggestions={bridgeSuggestions} />
+      <BridgeSuggestionsPanel initialSuggestions={researchSuggestions} />
 
       {plans.length === 0 ? (
         <EmptyState

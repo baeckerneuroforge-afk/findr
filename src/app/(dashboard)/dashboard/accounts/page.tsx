@@ -7,12 +7,14 @@ import {
   type HealthScoreRecord,
 } from "@/lib/accounts/health-service";
 import { getDealsByOrg } from "@/lib/deals/service";
+import { listSalesHandoverSuggestions } from "@/lib/bridge/sales-to-cs";
 import { ACCOUNT_STATUS_META } from "@/lib/accounts/status";
 import {
   AccountsToolbar,
   type ConvertibleDeal,
 } from "@/components/dashboard/AccountsToolbar";
 import { HealthBadge } from "@/components/dashboard/HealthBadge";
+import { SalesHandoverPanel } from "@/components/dashboard/SalesHandoverPanel";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
@@ -156,13 +158,16 @@ export default async function AccountsPage() {
   }
 
   const accounts = await getAccounts(orgId);
-  // Pure reads — no AI, no Opus. One batch query for all accounts' latest score.
-  const [deals, healthMap] = await Promise.all([
+  // Pure reads — no AI, no Opus. One batch query for all accounts' latest
+  // score, plus the kind='sales_handover' subset of bridge_suggestions so
+  // the Sales-Handover-Panel renders inline.
+  const [deals, healthMap, salesHandovers] = await Promise.all([
     getDealsByOrg(orgId),
     getLatestHealthScoresForAccounts(
       orgId,
       accounts.map((a) => a.id),
     ),
+    listSalesHandoverSuggestions(orgId),
   ]);
 
   // Won deals not yet turned into an account → offer one-click conversion.
@@ -247,6 +252,13 @@ export default async function AccountsPage() {
       )}
 
       <AccountsToolbar convertibleDeals={convertibleDeals} />
+
+      {/* Brücke #2: Sales-Won → CS-Account-Startkontext. Steht zwischen
+          Toolbar und Sections, damit eine frische Handover-Empfehlung
+          sichtbar ist, BEVOR der User die Accounts-Liste skimmt. Server-
+          gerendert mit der pending-Liste; die Client-Component führt
+          danach Scan/Approve/Dismiss eigenständig. */}
+      <SalesHandoverPanel initialSuggestions={salesHandovers} />
 
       {accounts.length === 0 ? (
         <EmptyState
