@@ -1,0 +1,88 @@
+{
+  "interview": {
+    "completed": {
+      "title": "Thank you for your time.",
+      "body": "Your input is genuinely valuable — thanks for taking a few minutes. Have a great day."
+    },
+    "header": {
+      "confidential": "Confidential",
+      "titleResearch": "Research interview",
+      "title": "A short conversation",
+      "titleWithCompany": "A short conversation about {company}",
+      "subtitle": "Your honest answers help us learn — there are no wrong answers."
+    },
+    "input": {
+      "placeholder": "Type your reply…",
+      "send": "Send"
+    },
+    "footer": {
+      "brandless": "Confidential research interview.",
+      "default": "Powered by findr. · Your response is confidential."
+    },
+    "error": {
+      "requestFailed": "Request failed. Please try again.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "meta": {
+      "defaultTitle": "A quick question about your decision — findr.",
+      "defaultDescription": "A short, confidential follow-up about a recent decision.",
+      "researchTitle": "Research interview",
+      "researchTitleWithPlan": "Research interview — {plan}",
+      "researchDescription": "A short, confidential research conversation."
+    }
+  },
+  "email": {
+    "common": {
+      "greetingNamed": "Hello {name},",
+      "greetingPlain": "Hello,",
+      "thanks": "Thank you for your time.",
+      "linkFallback": "If the button doesn't work, use this link:",
+      "signatureOrg": "Your team at {org}",
+      "orgFallback": "us"
+    },
+    "research": {
+      "invite": {
+        "subject": "Research interview on {date}",
+        "intro": "{org} would like to invite you to a short research interview.",
+        "whenLine": "When: {date} at {time} (Europe/Berlin)",
+        "durationLine": "Duration: approx. {minutes} minutes",
+        "formatLine": "Format: in your browser, no login required",
+        "aiDisclaimer": "The interview is led by our AI assistant — confidential, no sales pitch.",
+        "icsNote": "Attached is a calendar invite (.ics) you can import directly.",
+        "cta": "Join the interview",
+        "footer": "Confidential · AI-assisted research interview"
+      },
+      "reminder": {
+        "subject24h": "Tomorrow: research interview at {time}",
+        "subject1h": "Starting soon: research interview at {time}",
+        "lead24h": "a quick reminder: our research interview takes place tomorrow, {date} at {time}.",
+        "lead1h": "a quick reminder: our research interview starts in about an hour (at {time}).",
+        "body": "Duration approx. {minutes} minutes — AI-led, in your browser, no login required.",
+        "cta": "Join the interview",
+        "footer": "Reminder · AI-assisted research interview"
+      },
+      "ics": {
+        "summary": "Research interview · {org}",
+        "description": "AI-led research interview, approx. {minutes} minutes.\nJoin the interview: {url}"
+      }
+    },
+    "postLoss": {
+      "subjectWithCompany": "Quick feedback on {company}?",
+      "subject": "Quick, honest feedback?",
+      "intro": "It's a shame things didn't work out between us — we'd like to learn from it.",
+      "introWithCompany": "It's a shame things didn't work out between us and {company} — we'd like to learn from it.",
+      "body": "If you have 2 minutes, we'd really appreciate brief, honest feedback on what ultimately tipped the decision. A short, confidential chat — no sales pitch.",
+      "cta": "Give feedback",
+      "signature": "The findr team",
+      "footer": "Confidential · Powered by findr."
+    },
+    "checkin": {
+      "subject": "Quick check-in on {product}",
+      "intro": "{org} would like to hear how things are going with {product} — are you happy, is anything getting in the way, is usage going as planned?",
+      "body": "A short, confidential chat with our AI assistant — about 2 minutes, no sales pitch.",
+      "cta": "Start check-in",
+      "footer": "Confidential · AI-assisted check-in",
+      "productFallback": "your product"
+    }
+  }
+}

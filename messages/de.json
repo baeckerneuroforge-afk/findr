@@ -1,0 +1,88 @@
+{
+  "interview": {
+    "completed": {
+      "title": "Vielen Dank für Ihre Zeit.",
+      "body": "Ihre Rückmeldung ist wirklich wertvoll — danke, dass Sie sich ein paar Minuten genommen haben. Einen schönen Tag noch."
+    },
+    "header": {
+      "confidential": "Vertraulich",
+      "titleResearch": "Research-Interview",
+      "title": "Ein kurzes Gespräch",
+      "titleWithCompany": "Ein kurzes Gespräch über {company}",
+      "subtitle": "Ihre ehrlichen Antworten helfen uns weiter — es gibt keine falschen Antworten."
+    },
+    "input": {
+      "placeholder": "Antwort eingeben …",
+      "send": "Senden"
+    },
+    "footer": {
+      "brandless": "Vertrauliches Research-Interview.",
+      "default": "Bereitgestellt von findr. · Ihre Antwort ist vertraulich."
+    },
+    "error": {
+      "requestFailed": "Anfrage fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."
+    },
+    "meta": {
+      "defaultTitle": "Eine kurze Frage zu Ihrer Entscheidung — findr.",
+      "defaultDescription": "Eine kurze, vertrauliche Rückfrage zu einer kürzlichen Entscheidung.",
+      "researchTitle": "Research-Interview",
+      "researchTitleWithPlan": "Research-Interview — {plan}",
+      "researchDescription": "Ein kurzes, vertrauliches Research-Gespräch."
+    }
+  },
+  "email": {
+    "common": {
+      "greetingNamed": "Guten Tag {name},",
+      "greetingPlain": "Guten Tag,",
+      "thanks": "Vielen Dank für Ihre Zeit.",
+      "linkFallback": "Falls der Button nicht funktioniert, nutzen Sie diesen Link:",
+      "signatureOrg": "Ihr Team von {org}",
+      "orgFallback": "uns"
+    },
+    "research": {
+      "invite": {
+        "subject": "Research-Interview am {date}",
+        "intro": "wir von {org} laden Sie herzlich zu einem kurzen Research-Interview ein.",
+        "whenLine": "Termin: {date}, {time} Uhr (Europe/Berlin)",
+        "durationLine": "Dauer: ca. {minutes} Minuten",
+        "formatLine": "Format: über Ihren Browser — kein Login nötig",
+        "aiDisclaimer": "Das Interview wird von unserem KI-Assistenten geführt — vertraulich, keine Verkaufsmasche.",
+        "icsNote": "Im Anhang finden Sie eine Kalender-Einladung (.ics) zum direkten Import.",
+        "cta": "Zum Interview",
+        "footer": "Vertraulich · KI-gestütztes Research-Interview"
+      },
+      "reminder": {
+        "subject24h": "Morgen: Research-Interview um {time} Uhr",
+        "subject1h": "In Kürze: Research-Interview um {time} Uhr",
+        "lead24h": "kurze Erinnerung: morgen, {date} um {time} Uhr, findet unser Research-Interview statt.",
+        "lead1h": "kurze Erinnerung: in etwa einer Stunde ({time} Uhr) findet unser Research-Interview statt.",
+        "body": "Dauer ca. {minutes} Minuten — KI-geführt, über Ihren Browser, kein Login nötig.",
+        "cta": "Zum Interview",
+        "footer": "Erinnerung · KI-gestütztes Research-Interview"
+      },
+      "ics": {
+        "summary": "Research-Interview · {org}",
+        "description": "KI-geführtes Research-Interview, ca. {minutes} Minuten.\nZum Interview: {url}"
+      }
+    },
+    "postLoss": {
+      "subjectWithCompany": "Kurzes Feedback zu {company}?",
+      "subject": "Kurzes, ehrliches Feedback?",
+      "intro": "schade, dass es zwischen uns nicht geklappt hat — wir möchten daraus lernen.",
+      "introWithCompany": "schade, dass es zwischen uns mit {company} nicht geklappt hat — wir möchten daraus lernen.",
+      "body": "Wenn Sie 2 Minuten haben, würden wir uns sehr über kurzes, ehrliches Feedback freuen: was am Ende den Ausschlag gegeben hat. Ein kurzer, vertraulicher Chat — keine Verkaufsmasche.",
+      "cta": "Feedback geben",
+      "signature": "Ihr Findr-Team",
+      "footer": "Vertraulich · Powered by findr."
+    },
+    "checkin": {
+      "subject": "Kurzer Check-in zu {product}",
+      "intro": "wir von {org} möchten kurz hören, wie es mit {product} läuft — sind Sie zufrieden, hakt irgendwo etwas, läuft die Nutzung wie geplant?",
+      "body": "Ein kurzer, vertraulicher Chat mit unserem KI-Assistenten — etwa 2 Minuten, keine Verkaufsmasche.",
+      "cta": "Check-in starten",
+      "footer": "Vertraulich · KI-gestützter Check-in",
+      "productFallback": "Ihrem Produkt"
+    }
+  }
+}
