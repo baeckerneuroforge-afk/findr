@@ -4,6 +4,11 @@ import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { researchInterviewUrl } from "@/lib/email/research-invite";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { listInvitesForPlan } from "@/lib/research/scheduling";
+import {
+  listInvitedPoolMemberIds,
+  listPoolMembers,
+  listQuotaProgress,
+} from "@/lib/research/participant-pool";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
@@ -12,6 +17,8 @@ import { CopyInterviewLinkButton } from "@/components/dashboard/CopyInterviewLin
 import { DeleteParticipantButton } from "@/components/dashboard/DeleteParticipantButton";
 import { EditParticipantButton } from "@/components/dashboard/EditParticipantButton";
 import { InviteForm } from "@/components/dashboard/InviteForm";
+import { InviteFromPoolForm } from "@/components/dashboard/InviteFromPoolForm";
+import { PlanQuotaPanel } from "@/components/dashboard/PlanQuotaPanel";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
 import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
@@ -112,6 +119,17 @@ export default async function ResearchPlanDetailPage({
   // failure (safe degrade — the UI shows the InviteForm and the user can
   // refresh).
   const invites = await listInvitesForPlan(orgId, planId);
+
+  // Participant-Pool + Screening-Quoten. Additiv zum bestehenden Invite-Flow —
+  // unabhängige Reads, parallel. Alle drei degradieren auf [] bei Fehler.
+  const [poolMembers, invitedPoolMemberIds, quotas] = await Promise.all([
+    listPoolMembers(orgId),
+    listInvitedPoolMemberIds(orgId, planId),
+    listQuotaProgress(orgId, planId),
+  ]);
+  const poolRoles = [
+    ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
+  ].sort();
 
   return (
     <div className="space-y-8">
@@ -418,8 +436,44 @@ export default async function ResearchPlanDetailPage({
                 <BulkInviteForm planId={plan.id} />
               </CardBody>
             </Card>
+            <Card>
+              <CardHeader>
+                <h3 className="text-h3 text-neutral-900">Aus Pool einladen</h3>
+              </CardHeader>
+              <CardBody>
+                <InviteFromPoolForm
+                  planId={plan.id}
+                  poolMembers={poolMembers}
+                  invitedMemberIds={invitedPoolMemberIds}
+                />
+              </CardBody>
+            </Card>
           </>
         )}
+      </section>
+
+      {/* Screening-Quoten — manuelle Ziele pro Rolle, Fortschritt aus Pool-
+          Einladungen. Deterministisch, additiv. Auf archivierten Plänen
+          read-only (disabled). */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">Screening-Quoten</h2>
+          <p className="text-small text-neutral-500">
+            Manuelle Ziele pro Rolle. Der Fortschritt zählt aus dem Pool
+            eingeladene Personen – manuell angelegte Teilnehmer (ohne Rolle)
+            fließen nicht ein.
+          </p>
+        </div>
+        <Card>
+          <CardBody>
+            <PlanQuotaPanel
+              planId={plan.id}
+              quotas={quotas}
+              availableRoles={poolRoles}
+              disabled={plan.status === "archived"}
+            />
+          </CardBody>
+        </Card>
       </section>
 
       {/* Synthesis — link to the dedicated /synthesis route. Compact card,

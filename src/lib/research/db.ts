@@ -298,6 +298,116 @@ type ProductDiscoveryInsightsUpdate = {
   analyzed_at?: string;
 };
 
+// ── participant_pool ───────────────────────────────────────────────────────
+//
+// Per 20260620000000_participant_pool.sql. Org-weiter, wiederverwendbarer
+// Teilnehmer-Stamm mit deterministischen Screening-Attributen (role/segment/
+// tags). org_id NOT NULL (org-interner Pool); contact_email nullable wie bei
+// research_invites. Dedup (email case-insensitive unique pro org) ist ein
+// partial-unique-Index in der DB — der Insert/Update kann mit 23505 fehlen.
+
+export type ParticipantPoolRow = {
+  id: string;
+  org_id: string;
+  contact_label: string;
+  contact_email: string | null;
+  role: string | null;
+  segment: string | null;
+  tags: string[];
+  notes: string | null;
+  created_at: string;
+};
+
+type ParticipantPoolInsert = {
+  id?: string;
+  org_id: string;
+  contact_label: string;
+  contact_email?: string | null;
+  role?: string | null;
+  segment?: string | null;
+  tags?: string[];
+  notes?: string | null;
+  created_at?: string;
+};
+
+type ParticipantPoolUpdate = {
+  id?: string;
+  org_id?: string;
+  contact_label?: string;
+  contact_email?: string | null;
+  role?: string | null;
+  segment?: string | null;
+  tags?: string[];
+  notes?: string | null;
+  created_at?: string;
+};
+
+// ── participant_pool_invites ─────────────────────────────────────────────────
+//
+// Link Pool-Person ↔ research_invites-Zeile. UNIQUE(invite_id) +
+// UNIQUE(plan_id, pool_member_id) — letzteres ist der Pool-Dedup ("eine Person
+// höchstens einmal pro Studie aus dem Pool eingeladen").
+
+export type ParticipantPoolInviteRow = {
+  id: string;
+  org_id: string;
+  pool_member_id: string;
+  plan_id: string;
+  invite_id: string;
+  created_at: string;
+};
+
+type ParticipantPoolInviteInsert = {
+  id?: string;
+  org_id: string;
+  pool_member_id: string;
+  plan_id: string;
+  invite_id: string;
+  created_at?: string;
+};
+
+type ParticipantPoolInviteUpdate = {
+  id?: string;
+  org_id?: string;
+  pool_member_id?: string;
+  plan_id?: string;
+  invite_id?: string;
+  created_at?: string;
+};
+
+// ── research_plan_quotas ─────────────────────────────────────────────────────
+//
+// Manuelle role-Quoten pro Studie. UNIQUE(plan_id, role) — Upsert statt
+// Historie. Fortschritt wird app-seitig aus participant_pool_invites ⋈
+// participant_pool.role berechnet (siehe participant-pool.ts).
+
+export type ResearchPlanQuotaRow = {
+  id: string;
+  org_id: string;
+  plan_id: string;
+  role: string;
+  target: number;
+  created_at: string;
+};
+
+type ResearchPlanQuotaInsert = {
+  id?: string;
+  org_id: string;
+  plan_id: string;
+  role: string;
+  target: number;
+  created_at?: string;
+};
+
+type ResearchPlanQuotaUpdate = {
+  id?: string;
+  org_id?: string;
+  plan_id?: string;
+  role?: string;
+  target?: number;
+  created_at?: string;
+};
+
 // ── Augmented Database type ────────────────────────────────────────────────
 
 export type DatabaseWithResearch = {
@@ -332,6 +442,24 @@ export type DatabaseWithResearch = {
         Row: ProductDiscoveryInsightsRow;
         Insert: ProductDiscoveryInsightsInsert;
         Update: ProductDiscoveryInsightsUpdate;
+        Relationships: [];
+      };
+      participant_pool: {
+        Row: ParticipantPoolRow;
+        Insert: ParticipantPoolInsert;
+        Update: ParticipantPoolUpdate;
+        Relationships: [];
+      };
+      participant_pool_invites: {
+        Row: ParticipantPoolInviteRow;
+        Insert: ParticipantPoolInviteInsert;
+        Update: ParticipantPoolInviteUpdate;
+        Relationships: [];
+      };
+      research_plan_quotas: {
+        Row: ResearchPlanQuotaRow;
+        Insert: ResearchPlanQuotaInsert;
+        Update: ResearchPlanQuotaUpdate;
         Relationships: [];
       };
     };

@@ -56,6 +56,7 @@ const MODULES: NavGroupDef[] = [
     items: [
       { href: "/dashboard/product-discovery", label: "Product Discovery" },
       { href: "/dashboard/research-plans", label: "Research Plans" },
+      { href: "/dashboard/research-plans/pool", label: "Teilnehmer-Pool" },
     ],
   },
 ];
@@ -73,6 +74,16 @@ const WORKSPACE: NavGroupDef = {
 
 function isActive(href: string, pathname: string): boolean {
   if (href === "/dashboard") return pathname === "/dashboard";
+  if (href === "/dashboard/research-plans") {
+    // Der Teilnehmer-Pool hat einen eigenen Eintrag (/research-plans/pool) —
+    // hier NICHT mit-aktivieren, sonst leuchten beide. Plan-Detailseiten
+    // (/research-plans/[id]) bleiben dagegen unter "Research Plans".
+    return (
+      (pathname === href || pathname.startsWith(`${href}/`)) &&
+      pathname !== "/dashboard/research-plans/pool" &&
+      !pathname.startsWith("/dashboard/research-plans/pool/")
+    );
+  }
   if (href === "/dashboard/data-sources") {
     // Data Sources is the umbrella for /dashboard/integrations/*
     // (Gong / Hubspot / Slack). Treat the sidebar entry as active for
