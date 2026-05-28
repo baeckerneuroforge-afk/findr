@@ -14,6 +14,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ChatWithDataPanel } from "@/components/dashboard/ChatWithDataPanel";
 import { ExportSynthesisPdfButton } from "@/components/dashboard/ExportSynthesisPdfButton";
+import { ExportSynthesisPptxButton } from "@/components/dashboard/ExportSynthesisPptxButton";
 import { HighlightReelPanel } from "@/components/dashboard/HighlightReelPanel";
 import { SynthesisThemeCard } from "@/components/dashboard/SynthesisThemeCard";
 import { UpdateSynthesisButton } from "@/components/dashboard/UpdateSynthesisButton";
@@ -162,7 +163,10 @@ export default async function ResearchPlanSynthesisPage({
               Bei einem unsynthesisierten Slot bleibt der Button weg —
               kein „PDF eines leeren Reports". */}
           {synthesis !== null && synthesis.synthesized_at !== null && (
-            <ExportSynthesisPdfButton planId={planId} />
+            <>
+              <ExportSynthesisPdfButton planId={planId} />
+              <ExportSynthesisPptxButton planId={planId} />
+            </>
           )}
         </div>
       </div>
