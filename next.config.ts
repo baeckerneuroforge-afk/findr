@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   // pdfkit ships .afm font-metric files that must be read from node_modules at
@@ -21,4 +22,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// next-intl: point the plugin at the request config (i18n without routing).
+// Wraps the config above WITHOUT replacing it — serverExternalPackages and
+// outputFileTracingIncludes are preserved.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

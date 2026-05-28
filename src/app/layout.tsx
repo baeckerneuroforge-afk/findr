@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Inter, Bricolage_Grotesque, Space_Grotesk } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
+import { MESSAGES } from "@/i18n/messages";
 import "./globals.css";
 
 const inter = Inter({
@@ -40,11 +44,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // i18n without routing: the app-wide UI locale comes from the cookie
+  // (resolved in src/i18n/request.ts). The interview subtree overrides this
+  // with the session locale via its own provider.
+  const resolved = await getLocale();
+  const locale: Locale = isLocale(resolved) ? resolved : DEFAULT_LOCALE;
+
   return (
     <ClerkProvider
       afterSignOutUrl="/"
@@ -68,11 +78,16 @@ export default function RootLayout({
       }}
     >
       <html
-        lang="en"
+        lang={locale}
         className={`${inter.variable} ${GeistSans.variable} ${bricolage.variable} ${spaceGrotesk.variable} h-full scroll-smooth antialiased`}
       >
         <body className="min-h-full flex flex-col bg-obsidian text-white">
-          {children}
+          <NextIntlClientProvider
+            locale={locale}
+            messages={{ interview: MESSAGES[locale].interview }}
+          >
+            {children}
+          </NextIntlClientProvider>
         </body>
       </html>
     </ClerkProvider>

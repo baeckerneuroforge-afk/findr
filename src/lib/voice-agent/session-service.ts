@@ -120,6 +120,10 @@ export interface PublicInterviewView {
    *  visible h1 + metadata title. Null for post_loss / checkin and when
    *  the dealContext doesn't carry a plan title. */
   planTitle: string | null;
+  /** Buyer-facing language for this session. The public chat subtree uses it
+   *  as its NextIntlClientProvider locale, so the chrome matches the language
+   *  the agent + emails speak (closes the EN-chrome / DE-interview mismatch). */
+  language: InterviewLanguage;
 }
 
 function generateToken(): string {
@@ -190,6 +194,7 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
     company,
     kind: session.kind,
     planTitle,
+    language: session.language,
   };
 }
 
@@ -415,6 +420,9 @@ export async function getPublicSession(
     orgId: invite.org_id,
     planId: invite.plan_id,
     inviteId: invite.id,
+    // Single source of truth for the participant-facing language: the invite
+    // carries it, the lazily-created session inherits it, the chrome follows.
+    language: invite.language,
   });
   if (result.status === "created" && result.session) {
     return toPublicView(result.session);

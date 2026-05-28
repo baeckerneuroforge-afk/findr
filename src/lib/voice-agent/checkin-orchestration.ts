@@ -4,7 +4,10 @@ import { getAccount, markAccountCheckedIn } from "@/lib/accounts/service";
 import { getLatestHealthScore } from "@/lib/accounts/health-service";
 import { getOrgName } from "@/lib/auth/org";
 import { getOrgSettings } from "@/lib/settings/org-settings";
-import type { CheckinInput } from "@/lib/voice-agent/interviewer";
+import type {
+  CheckinInput,
+  InterviewLanguage,
+} from "@/lib/voice-agent/interviewer";
 import {
   createInterviewSession,
   getAccountCheckin,
@@ -66,6 +69,10 @@ export async function createAndInviteCheckin(
   }
 
   try {
+    // Single buyer-facing language for this flow — drives BOTH the session
+    // (agent output) and the invite email copy. DACH today.
+    const language: InterviewLanguage = "de";
+
     const [orgName, settings, health] = await Promise.all([
       getOrgName(orgId),
       getOrgSettings(orgId),
@@ -100,7 +107,7 @@ export async function createAndInviteCheckin(
         accountId,
         kind: "checkin",
         dealContext: context,
-        language: "de",
+        language,
       });
       accessToken = session.accessToken;
       created = true;
@@ -111,6 +118,7 @@ export async function createAndInviteCheckin(
       orgName,
       productName: productSetting ?? "",
       url: interviewUrl(accessToken),
+      locale: language,
     });
     await sendEmail({ to: email, subject, html, text });
     const invitedAt = await markInterviewInvited(orgId, accessToken);

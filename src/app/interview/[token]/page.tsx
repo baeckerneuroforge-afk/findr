@@ -1,8 +1,11 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { NextIntlClientProvider } from "next-intl";
 import { InterviewChat } from "@/components/interview/InterviewChat";
 import { getPublicSession } from "@/lib/voice-agent/session-service";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locale";
+import { MESSAGES, translate } from "@/i18n/messages";
 
 /**
  * Per-render memoization of getPublicSession. The Next App Router runs
@@ -37,23 +40,12 @@ import { getPublicSession } from "@/lib/voice-agent/session-service";
  */
 const getCachedPublicSession = cache(getPublicSession);
 
-// Default metadata for unauthenticated probes (no session found) and for
-// post_loss / checkin kinds — exactly the strings the page used to export
-// statically pre-research. Kept as a named const so generateMetadata's
-// non-research branch reads as "preserve the old behaviour" at a glance.
-const DEFAULT_METADATA: Metadata = {
-  title: "A quick question about your decision — findr.",
-  description: "A short, confidential follow-up about a recent decision.",
-  // Private capability links — never index them.
-  robots: { index: false, follow: false },
-};
-
 /**
- * Per-token metadata. Only `research` sessions get a custom title (derived
- * from the research-plan title so the browser tab reads as the sponsor
- * intended, not "findr."). Other kinds — and any probe with no matching
- * session — fall through to DEFAULT_METADATA, byte-identical to the
- * previous static export.
+ * Per-token metadata, localized to the session's language (post_loss, checkin
+ * AND research all carry one). Probes with no matching session fall back to the
+ * default UI locale. Only `research` sessions get a plan-derived title; the plan
+ * title is dynamic content interpolated as-is (never translated). Capability
+ * links are never indexed.
  */
 export async function generateMetadata({
   params,
@@ -62,13 +54,25 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { token } = await params;
   const session = await getCachedPublicSession(token);
-  if (!session || session.kind !== "research") return DEFAULT_METADATA;
+  const locale: Locale = session?.language ?? DEFAULT_LOCALE;
+  const robots = { index: false, follow: false } as const;
+
+  if (!session || session.kind !== "research") {
+    return {
+      title: translate(locale, "interview.meta.defaultTitle"),
+      description: translate(locale, "interview.meta.defaultDescription"),
+      robots,
+    };
+  }
+
   return {
     title: session.planTitle
-      ? `Research interview — ${session.planTitle}`
-      : "Research interview",
-    description: "A short, confidential research conversation.",
-    robots: { index: false, follow: false },
+      ? translate(locale, "interview.meta.researchTitleWithPlan", {
+          plan: session.planTitle,
+        })
+      : translate(locale, "interview.meta.researchTitle"),
+    description: translate(locale, "interview.meta.researchDescription"),
+    robots,
   };
 }
 
@@ -82,18 +86,27 @@ export default async function InterviewPage({
   if (!session) notFound();
 
   const isResearch = session.kind === "research";
+  // The session locale lives behind the unguessable token, not in a cookie, so
+  // we override the request-resolved locale for this subtree EXPLICITLY. Only
+  // the `interview` namespace is serialized to the client.
+  const locale = session.language;
 
   return (
-    <InterviewChat
-      token={token}
-      initialConversation={session.conversation}
-      initialStatus={session.status}
-      company={session.company}
-      // Research-only: drop the Findr branding (logo + "Powered by …"
-      // footer) and use the plan title as the h1. For post_loss / checkin
-      // both props default to false/null, so render is byte-identical.
-      brandless={isResearch}
-      headingOverride={isResearch ? session.planTitle : null}
-    />
+    <NextIntlClientProvider
+      locale={locale}
+      messages={{ interview: MESSAGES[locale].interview }}
+    >
+      <InterviewChat
+        token={token}
+        initialConversation={session.conversation}
+        initialStatus={session.status}
+        company={session.company}
+        // Research-only: drop the Findr branding (logo + "Powered by …"
+        // footer) and use the plan title as the h1. For post_loss / checkin
+        // both props default to false/null, so render is byte-identical.
+        brandless={isResearch}
+        headingOverride={isResearch ? session.planTitle : null}
+      />
+    </NextIntlClientProvider>
   );
 }

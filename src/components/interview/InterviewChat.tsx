@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 
 type Status = "open" | "completed" | "abandoned";
@@ -70,17 +71,17 @@ function TypingBubble() {
 }
 
 function CompletedPanel() {
+  const t = useTranslations("interview");
   return (
     <div className="mb-10 mt-8 rounded-2xl border border-[#E8E4F2] bg-[#FAFAFE] px-6 py-8 text-center">
       <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#2E9E6B] text-[18px] text-white">
         ✓
       </div>
       <h2 className="text-[18px] font-semibold text-[#0E0A1F]">
-        Thank you for your time.
+        {t("completed.title")}
       </h2>
       <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6680]">
-        Your input is genuinely valuable — thanks for taking a few minutes. Have
-        a great day.
+        {t("completed.body")}
       </p>
     </div>
   );
@@ -94,6 +95,8 @@ export function InterviewChat({
   brandless = false,
   headingOverride = null,
 }: InterviewChatProps) {
+  const t = useTranslations("interview");
+  const locale = useLocale();
   const [messages, setMessages] = useState<InterviewTurn[]>(initialConversation);
   const [status, setStatus] = useState<Status>(initialStatus);
   const [input, setInput] = useState("");
@@ -124,7 +127,7 @@ export function InterviewChat({
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error ?? "Request failed. Please try again.");
+        throw new Error(data.error ?? t("error.requestFailed"));
       }
       const data = (await res.json()) as { session: SessionView };
       setMessages(data.session.conversation);
@@ -138,11 +141,7 @@ export function InterviewChat({
         ),
       );
       setInput(text);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again.",
-      );
+      setError(err instanceof Error ? err.message : t("error.generic"));
     } finally {
       setLoading(false);
     }
@@ -157,6 +156,7 @@ export function InterviewChat({
 
   return (
     <div
+      lang={locale}
       style={{ fontFamily: FONT }}
       className="flex min-h-screen w-full flex-col bg-white text-[#0E0A1F]"
     >
@@ -172,7 +172,9 @@ export function InterviewChat({
               <span className="mb-[10px] ml-[1px] inline-block h-[4px] w-[4px] rounded-full bg-[#B00]" />
             </span>
           )}
-          <span className="text-[12px] text-[#6B6680]">Confidential</span>
+          <span className="text-[12px] text-[#6B6680]">
+            {t("header.confidential")}
+          </span>
         </div>
       </header>
 
@@ -182,11 +184,13 @@ export function InterviewChat({
             {headingOverride
               ? headingOverride
               : brandless
-                ? "Research interview"
-                : `A short conversation${company ? ` about ${company}` : ""}`}
+                ? t("header.titleResearch")
+                : company
+                  ? t("header.titleWithCompany", { company })
+                  : t("header.title")}
           </h1>
           <p className="mt-1 text-[14px] leading-relaxed text-[#6B6680]">
-            Your honest answers help us learn — there are no wrong answers.
+            {t("header.subtitle")}
           </p>
         </div>
 
@@ -213,7 +217,7 @@ export function InterviewChat({
                 onKeyDown={onKeyDown}
                 disabled={loading}
                 rows={1}
-                placeholder="Type your reply…"
+                placeholder={t("input.placeholder")}
                 className="max-h-40 min-h-[46px] flex-1 resize-none rounded-xl border border-[#E8E4F2] px-4 py-3 text-[15px] outline-none transition-colors focus:border-[#5B2FD4] disabled:opacity-60"
               />
               <button
@@ -222,13 +226,11 @@ export function InterviewChat({
                 disabled={loading || !input.trim()}
                 className="h-[46px] shrink-0 rounded-xl bg-[#5B2FD4] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4A22B0] disabled:opacity-50"
               >
-                {loading ? "…" : "Send"}
+                {loading ? "…" : t("input.send")}
               </button>
             </div>
             <p className="mt-3 text-center text-[11px] text-[#9B9BA3]">
-              {brandless
-                ? "Confidential research interview."
-                : "Powered by findr. · Your response is confidential."}
+              {brandless ? t("footer.brandless") : t("footer.default")}
             </p>
           </div>
         ) : (

@@ -182,6 +182,7 @@ export type ResearchInviteRow = {
   invited_at: string | null;
   reminder_24h_sent_at: string | null;
   reminder_1h_sent_at: string | null;
+  language: Language;
   created_at: string;
 };
 
@@ -198,6 +199,7 @@ type ResearchInviteInsert = {
   invited_at?: string | null;
   reminder_24h_sent_at?: string | null;
   reminder_1h_sent_at?: string | null;
+  language?: Language;
   created_at?: string;
 };
 
@@ -214,6 +216,7 @@ type ResearchInviteUpdate = {
   invited_at?: string | null;
   reminder_24h_sent_at?: string | null;
   reminder_1h_sent_at?: string | null;
+  language?: Language;
   created_at?: string;
 };
 

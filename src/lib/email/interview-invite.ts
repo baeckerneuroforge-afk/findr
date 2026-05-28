@@ -1,8 +1,17 @@
 import "server-only";
 
+import { translate } from "@/i18n/messages";
+import type { Locale } from "@/i18n/locale";
+
 /**
- * Builds the post-loss interview invitation email (German by default — the buyer
- * context is DACH). Polite, short, serious; no marketing noise.
+ * Post-loss interview invite + account check-in invite emails. Copy is sourced
+ * from the message catalog (messages/{de,en}.json, namespaces email.postLoss.*
+ * / email.checkin.* / email.common.*) via the direct catalog reader `translate`
+ * — NOT next-intl's request-scoped t(), because these run in routes / crons
+ * without a cookie. Locale defaults to "de" (DACH); callers thread it through.
+ *
+ * Static copy comes from the catalog; dynamic values (name, company, product,
+ * org, URL) are HTML-escaped before interpolation into the HTML body.
  */
 
 /** Resolve the app's public base URL for absolute links in emails. */
@@ -33,6 +42,8 @@ export interface InterviewInviteParams {
   company?: string | null;
   /** Absolute interview URL (build via interviewUrl()). */
   url: string;
+  /** Buyer-facing language. Defaults to "de" (DACH) when omitted. */
+  locale?: Locale;
 }
 
 export interface BuiltEmail {
@@ -42,51 +53,74 @@ export interface BuiltEmail {
 }
 
 export function buildInterviewInvite(params: InterviewInviteParams): BuiltEmail {
+  const locale = params.locale ?? "de";
   const name = params.contactName?.trim();
   const company = params.company?.trim();
   const url = params.url;
 
-  const greeting = name ? `Guten Tag ${name},` : "Guten Tag,";
-  const companyPhrase = company ? ` mit ${company}` : "";
+  const tvars = { name: name ?? "", company: company ?? "", url };
+  const hvars = {
+    name: escapeHtml(name ?? ""),
+    company: escapeHtml(company ?? ""),
+    url: escapeHtml(url),
+  };
+  const tt = (key: string, extra: Record<string, string | number> = {}) =>
+    translate(locale, key, { ...tvars, ...extra });
+  const th = (key: string, extra: Record<string, string | number> = {}) =>
+    translate(locale, key, { ...hvars, ...extra });
+
+  const greetingText = name
+    ? tt("email.common.greetingNamed")
+    : tt("email.common.greetingPlain");
+  const greetingHtml = name
+    ? th("email.common.greetingNamed")
+    : th("email.common.greetingPlain");
+
   const subject = company
-    ? `Kurzes Feedback zu ${company}?`
-    : "Kurzes, ehrliches Feedback?";
+    ? tt("email.postLoss.subjectWithCompany")
+    : tt("email.postLoss.subject");
+  const introText = company
+    ? tt("email.postLoss.introWithCompany")
+    : tt("email.postLoss.intro");
+  const introHtml = company
+    ? th("email.postLoss.introWithCompany")
+    : th("email.postLoss.intro");
 
   const text = [
-    greeting,
+    greetingText,
     "",
-    `schade, dass es zwischen uns${companyPhrase} nicht geklappt hat — wir möchten daraus lernen.`,
+    introText,
     "",
-    "Wenn Sie 2 Minuten haben, würden wir uns sehr über kurzes, ehrliches Feedback freuen: was am Ende den Ausschlag gegeben hat. Ein kurzer, vertraulicher Chat — keine Verkaufsmasche.",
+    tt("email.postLoss.body"),
     "",
-    `Feedback geben: ${url}`,
+    `${tt("email.postLoss.cta")}: ${url}`,
     "",
-    "Vielen Dank für Ihre Zeit.",
-    "Ihr Findr-Team",
+    tt("email.common.thanks"),
+    tt("email.postLoss.signature"),
   ].join("\n");
 
   const html = `<!doctype html>
-<html lang="de">
+<html lang="${locale}">
   <body style="margin:0;padding:0;background:#f5f4f8;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e8e4f2;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0e0a1f;">
           <tr><td style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#0e0a1f;padding-bottom:20px;">findr<span style="color:#b00;">.</span></td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
-            <p style="margin:0 0 14px;">${escapeHtml(greeting)}</p>
-            <p style="margin:0 0 14px;">schade, dass es zwischen uns${escapeHtml(companyPhrase)} nicht geklappt hat — wir möchten daraus lernen.</p>
-            <p style="margin:0 0 22px;">Wenn Sie <strong>2 Minuten</strong> haben, würden wir uns sehr über kurzes, ehrliches Feedback freuen: was am Ende den Ausschlag gegeben hat. Ein kurzer, vertraulicher Chat — keine Verkaufsmasche.</p>
+            <p style="margin:0 0 14px;">${greetingHtml}</p>
+            <p style="margin:0 0 14px;">${introHtml}</p>
+            <p style="margin:0 0 22px;">${th("email.postLoss.body")}</p>
           </td></tr>
           <tr><td style="padding-bottom:24px;">
-            <a href="${escapeHtml(url)}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">Feedback geben</a>
+            <a href="${hvars.url}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.postLoss.cta")}</a>
           </td></tr>
           <tr><td style="font-size:13px;line-height:1.6;color:#71717a;">
-            <p style="margin:0 0 4px;">Falls der Button nicht funktioniert, nutzen Sie diesen Link:</p>
-            <p style="margin:0 0 18px;word-break:break-all;"><a href="${escapeHtml(url)}" style="color:#5B2FD4;">${escapeHtml(url)}</a></p>
-            <p style="margin:0;">Vielen Dank für Ihre Zeit.<br/>Ihr Findr-Team</p>
+            <p style="margin:0 0 4px;">${th("email.common.linkFallback")}</p>
+            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:#5B2FD4;">${hvars.url}</a></p>
+            <p style="margin:0;">${th("email.common.thanks")}<br/>${th("email.postLoss.signature")}</p>
           </td></tr>
         </table>
-        <p style="font-size:11px;color:#9b9ba3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:16px 0 0;">Vertraulich · Powered by findr.</p>
+        <p style="font-size:11px;color:#9b9ba3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:16px 0 0;">${th("email.postLoss.footer")}</p>
       </td></tr>
     </table>
   </body>
@@ -103,57 +137,81 @@ export interface CheckinInviteParams {
   productName: string;
   /** Absolute interview URL (build via interviewUrl()). */
   url: string;
+  /** Buyer-facing language. Defaults to "de" (DACH) when omitted. */
+  locale?: Locale;
 }
 
 /**
  * Builds the account check-in invitation email — friendly, short, in the Findr
  * CUSTOMER's name (not findr.), and transparent that the chat is run by an AI
- * assistant. German by default (DACH). Distinct from the post-loss invite.
+ * assistant. Locale defaults to "de" (DACH). Distinct from the post-loss invite.
  */
 export function buildCheckinInvite(params: CheckinInviteParams): BuiltEmail {
+  const locale = params.locale ?? "de";
   const name = params.contactName?.trim();
-  const org = params.orgName.trim() || "uns";
-  const product = params.productName.trim() || "Ihrem Produkt";
+  const org =
+    params.orgName.trim() || translate(locale, "email.common.orgFallback");
+  const product =
+    params.productName.trim() ||
+    translate(locale, "email.checkin.productFallback");
   const url = params.url;
 
-  const greeting = name ? `Guten Tag ${name},` : "Guten Tag,";
-  const subject = `Kurzer Check-in zu ${product}`;
+  const tvars = { name: name ?? "", org, product, url };
+  const hvars = {
+    name: escapeHtml(name ?? ""),
+    org: escapeHtml(org),
+    product: escapeHtml(product),
+    url: escapeHtml(url),
+  };
+  const tt = (key: string, extra: Record<string, string | number> = {}) =>
+    translate(locale, key, { ...tvars, ...extra });
+  const th = (key: string, extra: Record<string, string | number> = {}) =>
+    translate(locale, key, { ...hvars, ...extra });
+
+  const greetingText = name
+    ? tt("email.common.greetingNamed")
+    : tt("email.common.greetingPlain");
+  const greetingHtml = name
+    ? th("email.common.greetingNamed")
+    : th("email.common.greetingPlain");
+
+  const subject = tt("email.checkin.subject");
 
   const text = [
-    greeting,
+    greetingText,
     "",
-    `wir von ${org} möchten kurz hören, wie es mit ${product} läuft — sind Sie zufrieden, hakt irgendwo etwas, läuft die Nutzung wie geplant?`,
+    tt("email.checkin.intro"),
     "",
-    "Ein kurzer, vertraulicher Chat mit unserem KI-Assistenten — etwa 2 Minuten, keine Verkaufsmasche.",
+    tt("email.checkin.body"),
     "",
-    `Check-in starten: ${url}`,
+    `${tt("email.checkin.cta")}: ${url}`,
     "",
-    "Vielen Dank für Ihre Zeit.",
-    `Ihr Team von ${org}`,
+    tt("email.common.thanks"),
+    tt("email.common.signatureOrg"),
   ].join("\n");
 
   const html = `<!doctype html>
-<html lang="de">
+<html lang="${locale}">
   <body style="margin:0;padding:0;background:#f5f4f8;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e8e4f2;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0e0a1f;">
-          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${escapeHtml(org)}</td></tr>
+          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${hvars.org}</td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
-            <p style="margin:0 0 14px;">${escapeHtml(greeting)}</p>
-            <p style="margin:0 0 14px;">wir von ${escapeHtml(org)} möchten kurz hören, wie es mit <strong>${escapeHtml(product)}</strong> läuft — sind Sie zufrieden, hakt irgendwo etwas, läuft die Nutzung wie geplant?</p>
-            <p style="margin:0 0 22px;">Ein kurzer, vertraulicher Chat mit unserem <strong>KI-Assistenten</strong> — etwa 2 Minuten, keine Verkaufsmasche.</p>
+            <p style="margin:0 0 14px;">${greetingHtml}</p>
+            <p style="margin:0 0 14px;">${th("email.checkin.intro")}</p>
+            <p style="margin:0 0 22px;">${th("email.checkin.body")}</p>
           </td></tr>
           <tr><td style="padding-bottom:24px;">
-            <a href="${escapeHtml(url)}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">Check-in starten</a>
+            <a href="${hvars.url}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.checkin.cta")}</a>
           </td></tr>
           <tr><td style="font-size:13px;line-height:1.6;color:#71717a;">
-            <p style="margin:0 0 4px;">Falls der Button nicht funktioniert, nutzen Sie diesen Link:</p>
-            <p style="margin:0 0 18px;word-break:break-all;"><a href="${escapeHtml(url)}" style="color:#5B2FD4;">${escapeHtml(url)}</a></p>
-            <p style="margin:0;">Vielen Dank für Ihre Zeit.<br/>Ihr Team von ${escapeHtml(org)}</p>
+            <p style="margin:0 0 4px;">${th("email.common.linkFallback")}</p>
+            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:#5B2FD4;">${hvars.url}</a></p>
+            <p style="margin:0;">${th("email.common.thanks")}<br/>${th("email.common.signatureOrg")}</p>
           </td></tr>
         </table>
-        <p style="font-size:11px;color:#9b9ba3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:16px 0 0;">Vertraulich · KI-gestützter Check-in</p>
+        <p style="font-size:11px;color:#9b9ba3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:16px 0 0;">${th("email.checkin.footer")}</p>
       </td></tr>
     </table>
   </body>

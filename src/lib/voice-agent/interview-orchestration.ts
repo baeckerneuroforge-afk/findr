@@ -2,7 +2,10 @@ import "server-only";
 
 import { getDealById } from "@/lib/deals/service";
 import { getLatestRiskScore } from "@/lib/risk/service";
-import type { InterviewInput } from "@/lib/voice-agent/interviewer";
+import type {
+  InterviewInput,
+  InterviewLanguage,
+} from "@/lib/voice-agent/interviewer";
 import {
   createInterviewSession,
   getDealInterview,
@@ -67,6 +70,11 @@ export async function createAndInviteInterview(
   }
 
   try {
+    // Single buyer-facing language for this flow — drives BOTH the session
+    // (agent output) and the invite email copy. DACH today; thread a per-deal
+    // column through here when one is added.
+    const language: InterviewLanguage = "de";
+
     // Idempotent: reuse the deal's existing interview, else create one.
     let accessToken: string;
     let status: "open" | "completed" | "abandoned";
@@ -106,7 +114,7 @@ export async function createAndInviteInterview(
         orgId,
         dealId,
         dealContext,
-        language: "de",
+        language,
       });
       accessToken = session.accessToken;
       status = session.status;
@@ -127,6 +135,7 @@ export async function createAndInviteInterview(
       contactName,
       company: deal.companyName,
       url: interviewUrl(accessToken),
+      locale: language,
     });
     await sendEmail({ to: email, subject, html, text });
     const invitedAt = await markInterviewInvited(orgId, accessToken);

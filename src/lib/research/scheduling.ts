@@ -4,6 +4,7 @@ import {
   createResearchSupabase,
   type ResearchInviteRow,
 } from "./db";
+import type { InterviewLanguage } from "@/lib/voice-agent/interviewer";
 
 /**
  * Scheduling service for research interviews. Mirrors the read/write
@@ -52,6 +53,9 @@ export interface ResearchInviteRecord {
   invited_at: string | null;
   reminder_24h_sent_at: string | null;
   reminder_1h_sent_at: string | null;
+  /** Buyer-facing language for the invite mail + the lazily-created session.
+   *  See 20260621000000_research_invite_language.sql (DEFAULT 'de'). */
+  language: InterviewLanguage;
   status: string;
 }
 
@@ -68,6 +72,7 @@ function toRecord(row: ResearchInviteRow): ResearchInviteRecord {
     invited_at: row.invited_at,
     reminder_24h_sent_at: row.reminder_24h_sent_at,
     reminder_1h_sent_at: row.reminder_1h_sent_at,
+    language: row.language,
     status: row.status,
   };
 }

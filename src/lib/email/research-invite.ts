@@ -1,20 +1,26 @@
 import "server-only";
 
 import type { EmailAttachment } from "./resend";
+import { translate } from "@/i18n/messages";
+import { toBcp47, type Locale } from "@/i18n/locale";
 
 /**
- * Research-interview invitation + reminder emails (German by default — same
- * DACH posture as the post-loss interview + account-checkin invites). The
- * tone matches buildCheckinInvite: short, transparent that it's a KI-driven
- * research interview, no marketing.
+ * Research-interview invitation + reminder emails. Copy is sourced from the
+ * message catalog (messages/{de,en}.json, namespace email.research.*) via the
+ * direct catalog reader `translate` — NOT next-intl's request-scoped t(),
+ * because these run in cron / route handlers without a cookie. The locale comes
+ * from research_invites.language (threaded through invite-orchestration.ts).
  *
- * Mode-agnostic by design — text / voice / video share the same copy. The
- * mode lives on research_invites.mode_preference and only changes what the
- * /interview/[token] page renders, never the invite copy.
+ * Static copy comes from the catalog; DYNAMIC values (org name, URL) are
+ * HTML-escaped before interpolation into the HTML body (see htmlVars). Dates /
+ * times are locale-aware via Intl in Europe/Berlin (the business timezone),
+ * NOT in the catalog.
  *
- * Duration default of 30 minutes is a Findr-side product choice (short
- * research interviews, not deep customer calls). If a per-plan duration is
- * later added to research_plans, the orchestration passes it through.
+ * Mode-agnostic by design — text / voice / video share the same copy.
+ *
+ * Duration default of 30 minutes is a Findr-side product choice. If a per-plan
+ * duration is later added to research_plans, the orchestration passes it
+ * through.
  */
 
 /** Resolve the app's public base URL — same logic as interview-invite.ts.
@@ -40,8 +46,8 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function formatDateDe(date: Date): string {
-  return new Intl.DateTimeFormat("de-DE", {
+function formatDate(date: Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(toBcp47(locale), {
     timeZone: "Europe/Berlin",
     weekday: "long",
     year: "numeric",
@@ -50,8 +56,8 @@ function formatDateDe(date: Date): string {
   }).format(date);
 }
 
-function formatTimeDe(date: Date): string {
-  return new Intl.DateTimeFormat("de-DE", {
+function formatTime(date: Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(toBcp47(locale), {
     timeZone: "Europe/Berlin",
     hour: "2-digit",
     minute: "2-digit",
@@ -74,65 +80,91 @@ export interface ResearchInviteParams {
   durationMinutes?: number;
   /** Absolute /interview/[token] URL. */
   url: string;
+  /** Buyer-facing language. Defaults to "de" (DACH) when omitted. */
+  locale?: Locale;
 }
 
 const DEFAULT_DURATION_MINUTES = 30;
 
-export function buildResearchInvite(
-  params: ResearchInviteParams,
-): BuiltEmail {
+export function buildResearchInvite(params: ResearchInviteParams): BuiltEmail {
+  const locale = params.locale ?? "de";
   const name = params.contactName?.trim();
-  const org = params.orgName.trim() || "uns";
-  const date = formatDateDe(params.scheduledAt);
-  const time = formatTimeDe(params.scheduledAt);
+  const org =
+    params.orgName.trim() || translate(locale, "email.common.orgFallback");
+  const date = formatDate(params.scheduledAt, locale);
+  const time = formatTime(params.scheduledAt, locale);
   const minutes = params.durationMinutes ?? DEFAULT_DURATION_MINUTES;
   const url = params.url;
 
-  const greeting = name ? `Guten Tag ${name},` : "Guten Tag,";
-  const subject = `Research-Interview am ${date}`;
+  // Raw values for the plain-text part; HTML-escaped values for the HTML part.
+  const tvars = { name: name ?? "", org, date, time, minutes, url };
+  const hvars = {
+    name: escapeHtml(name ?? ""),
+    org: escapeHtml(org),
+    date: escapeHtml(date),
+    time: escapeHtml(time),
+    minutes,
+    url: escapeHtml(url),
+  };
+  const tt = (key: string, extra: Record<string, string | number> = {}) =>
+    translate(locale, key, { ...tvars, ...extra });
+  const th = (key: string, extra: Record<string, string | number> = {}) =>
+    translate(locale, key, { ...hvars, ...extra });
+
+  const greetingText = name
+    ? tt("email.common.greetingNamed")
+    : tt("email.common.greetingPlain");
+  const greetingHtml = name
+    ? th("email.common.greetingNamed")
+    : th("email.common.greetingPlain");
+
+  const subject = tt("email.research.invite.subject");
 
   const text = [
-    greeting,
+    greetingText,
     "",
-    `wir von ${org} laden Sie herzlich zu einem kurzen Research-Interview ein. Termin: ${date} um ${time} Uhr (Europe/Berlin), Dauer ca. ${minutes} Minuten.`,
+    tt("email.research.invite.intro"),
     "",
-    "Das Interview wird von unserem KI-Assistenten geführt — vertraulich, keine Verkaufsmasche. Sie können bequem über Ihren Browser teilnehmen, kein Login nötig.",
+    tt("email.research.invite.whenLine"),
+    tt("email.research.invite.durationLine"),
+    tt("email.research.invite.formatLine"),
     "",
-    `Im Anhang dieser Mail finden Sie eine Kalender-Einladung (.ics) zum direkten Import.`,
+    tt("email.research.invite.aiDisclaimer"),
+    tt("email.research.invite.icsNote"),
     "",
-    `Zum Interview: ${url}`,
+    `${tt("email.research.invite.cta")}: ${url}`,
     "",
-    "Vielen Dank für Ihre Zeit.",
-    `Ihr Team von ${org}`,
+    tt("email.common.thanks"),
+    tt("email.common.signatureOrg"),
   ].join("\n");
 
   const html = `<!doctype html>
-<html lang="de">
+<html lang="${locale}">
   <body style="margin:0;padding:0;background:#f5f4f8;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e8e4f2;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0e0a1f;">
-          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${escapeHtml(org)}</td></tr>
+          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${hvars.org}</td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
-            <p style="margin:0 0 14px;">${escapeHtml(greeting)}</p>
-            <p style="margin:0 0 14px;">wir von ${escapeHtml(org)} laden Sie herzlich zu einem kurzen <strong>Research-Interview</strong> ein.</p>
+            <p style="margin:0 0 14px;">${greetingHtml}</p>
+            <p style="margin:0 0 14px;">${th("email.research.invite.intro")}</p>
             <p style="margin:0 0 14px;">
-              <strong>Termin:</strong> ${escapeHtml(date)}, ${escapeHtml(time)} Uhr (Europe/Berlin)<br/>
-              <strong>Dauer:</strong> ca. ${minutes} Minuten<br/>
-              <strong>Format:</strong> über Ihren Browser — kein Login nötig
+              ${th("email.research.invite.whenLine")}<br/>
+              ${th("email.research.invite.durationLine")}<br/>
+              ${th("email.research.invite.formatLine")}
             </p>
-            <p style="margin:0 0 22px;">Das Interview wird von unserem <strong>KI-Assistenten</strong> geführt — vertraulich, keine Verkaufsmasche. Im Anhang finden Sie eine Kalender-Einladung (.ics) zum direkten Import.</p>
+            <p style="margin:0 0 22px;">${th("email.research.invite.aiDisclaimer")} ${th("email.research.invite.icsNote")}</p>
           </td></tr>
           <tr><td style="padding-bottom:24px;">
-            <a href="${escapeHtml(url)}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">Zum Interview</a>
+            <a href="${hvars.url}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.research.invite.cta")}</a>
           </td></tr>
           <tr><td style="font-size:13px;line-height:1.6;color:#71717a;">
-            <p style="margin:0 0 4px;">Falls der Button nicht funktioniert, nutzen Sie diesen Link:</p>
-            <p style="margin:0 0 18px;word-break:break-all;"><a href="${escapeHtml(url)}" style="color:#5B2FD4;">${escapeHtml(url)}</a></p>
-            <p style="margin:0;">Vielen Dank für Ihre Zeit.<br/>Ihr Team von ${escapeHtml(org)}</p>
+            <p style="margin:0 0 4px;">${th("email.common.linkFallback")}</p>
+            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:#5B2FD4;">${hvars.url}</a></p>
+            <p style="margin:0;">${th("email.common.thanks")}<br/>${th("email.common.signatureOrg")}</p>
           </td></tr>
         </table>
-        <p style="font-size:11px;color:#9b9ba3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:16px 0 0;">Vertraulich · KI-gestütztes Research-Interview</p>
+        <p style="font-size:11px;color:#9b9ba3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:16px 0 0;">${th("email.research.invite.footer")}</p>
       </td></tr>
     </table>
   </body>
@@ -151,59 +183,82 @@ export interface ResearchReminderParams extends ResearchInviteParams {
 export function buildResearchReminder(
   params: ResearchReminderParams,
 ): BuiltEmail {
+  const locale = params.locale ?? "de";
   const name = params.contactName?.trim();
-  const org = params.orgName.trim() || "uns";
-  const date = formatDateDe(params.scheduledAt);
-  const time = formatTimeDe(params.scheduledAt);
+  const org =
+    params.orgName.trim() || translate(locale, "email.common.orgFallback");
+  const date = formatDate(params.scheduledAt, locale);
+  const time = formatTime(params.scheduledAt, locale);
   const minutes = params.durationMinutes ?? DEFAULT_DURATION_MINUTES;
   const url = params.url;
 
-  const greeting = name ? `Guten Tag ${name},` : "Guten Tag,";
-  const leadCopy =
-    params.kind === "24h"
-      ? `kurze Erinnerung: morgen, ${date} um ${time} Uhr, findet unser Research-Interview statt.`
-      : `kurze Erinnerung: in etwa einer Stunde (${time} Uhr) findet unser Research-Interview statt.`;
+  const tvars = { name: name ?? "", org, date, time, minutes, url };
+  const hvars = {
+    name: escapeHtml(name ?? ""),
+    org: escapeHtml(org),
+    date: escapeHtml(date),
+    time: escapeHtml(time),
+    minutes,
+    url: escapeHtml(url),
+  };
+  const tt = (key: string, extra: Record<string, string | number> = {}) =>
+    translate(locale, key, { ...tvars, ...extra });
+  const th = (key: string, extra: Record<string, string | number> = {}) =>
+    translate(locale, key, { ...hvars, ...extra });
 
-  const subject =
+  const greetingText = name
+    ? tt("email.common.greetingNamed")
+    : tt("email.common.greetingPlain");
+  const greetingHtml = name
+    ? th("email.common.greetingNamed")
+    : th("email.common.greetingPlain");
+
+  const subjectKey =
     params.kind === "24h"
-      ? `Morgen: Research-Interview um ${time} Uhr`
-      : `In Kürze: Research-Interview um ${time} Uhr`;
+      ? "email.research.reminder.subject24h"
+      : "email.research.reminder.subject1h";
+  const leadKey =
+    params.kind === "24h"
+      ? "email.research.reminder.lead24h"
+      : "email.research.reminder.lead1h";
+
+  const subject = tt(subjectKey);
 
   const text = [
-    greeting,
+    greetingText,
     "",
-    leadCopy,
+    tt(leadKey),
     "",
-    `Dauer: ca. ${minutes} Minuten. KI-geführt, über den Browser, kein Login nötig.`,
+    tt("email.research.reminder.body"),
     "",
-    `Zum Interview: ${url}`,
+    `${tt("email.research.reminder.cta")}: ${url}`,
     "",
-    "Vielen Dank für Ihre Zeit.",
-    `Ihr Team von ${org}`,
+    tt("email.common.thanks"),
+    tt("email.common.signatureOrg"),
   ].join("\n");
 
   const html = `<!doctype html>
-<html lang="de">
+<html lang="${locale}">
   <body style="margin:0;padding:0;background:#f5f4f8;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e8e4f2;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0e0a1f;">
-          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${escapeHtml(org)}</td></tr>
+          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${hvars.org}</td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
-            <p style="margin:0 0 14px;">${escapeHtml(greeting)}</p>
-            <p style="margin:0 0 14px;">${escapeHtml(leadCopy)}</p>
-            <p style="margin:0 0 22px;">Dauer ca. ${minutes} Minuten, KI-geführt, über Ihren Browser.</p>
+            <p style="margin:0 0 14px;">${greetingHtml}</p>
+            <p style="margin:0 0 14px;">${th(leadKey)}</p>
+            <p style="margin:0 0 22px;">${th("email.research.reminder.body")}</p>
           </td></tr>
           <tr><td style="padding-bottom:24px;">
-            <a href="${escapeHtml(url)}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">Zum Interview</a>
+            <a href="${hvars.url}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.research.reminder.cta")}</a>
           </td></tr>
           <tr><td style="font-size:13px;line-height:1.6;color:#71717a;">
-            <p style="margin:0 0 4px;">Falls der Button nicht funktioniert, nutzen Sie diesen Link:</p>
-            <p style="margin:0 0 18px;word-break:break-all;"><a href="${escapeHtml(url)}" style="color:#5B2FD4;">${escapeHtml(url)}</a></p>
-            <p style="margin:0;">Vielen Dank für Ihre Zeit.<br/>Ihr Team von ${escapeHtml(org)}</p>
+            <p style="margin:0 0 4px;">${th("email.common.linkFallback")}</p>
+            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:#5B2FD4;">${hvars.url}</a></p>
+            <p style="margin:0;">${th("email.common.thanks")}<br/>${th("email.common.signatureOrg")}</p>
           </td></tr>
         </table>
-        <p style="font-size:11px;color:#9b9ba3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:16px 0 0;">Erinnerung · KI-gestütztes Research-Interview</p>
+        <p style="font-size:11px;color:#9b9ba3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:16px 0 0;">${th("email.research.reminder.footer")}</p>
       </td></tr>
     </table>
   </body>
@@ -213,6 +268,11 @@ export function buildResearchReminder(
 }
 
 // ── ICS calendar attachment ─────────────────────────────────────────────────
+//
+// buildIcs assembles the RFC 5545 structure only; the human-visible SUMMARY /
+// DESCRIPTION copy is resolved from the catalog by the caller
+// (invite-orchestration.ts) so it can localize per invite. PRODID's trailing
+// language tag is technical metadata, not user-facing copy, so it stays static.
 
 function icsTimestamp(date: Date): string {
   // YYYYMMDDTHHmmssZ — strip ms and separators from ISO, force UTC.

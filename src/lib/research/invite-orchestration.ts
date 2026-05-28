@@ -8,6 +8,7 @@ import {
   buildResearchIcsAttachment,
   researchInterviewUrl,
 } from "@/lib/email/research-invite";
+import { translate } from "@/i18n/messages";
 import {
   getResearchInvite,
   markInviteSent,
@@ -138,6 +139,7 @@ export async function sendResearchInvite(
   try {
     const orgName = await getOrgName(orgId);
     const url = researchInterviewUrl(accessToken);
+    const locale = invite.language;
 
     const { subject, html, text } = buildResearchInvite({
       contactName: invite.contact_label,
@@ -145,13 +147,19 @@ export async function sendResearchInvite(
       scheduledAt,
       durationMinutes: DEFAULT_DURATION_MINUTES,
       url,
+      locale,
     });
 
     const ics = buildResearchIcsAttachment({
       uid: invite.id,
       orgName,
-      summary: `Research-Interview · ${orgName}`,
-      description: `KI-geführtes Research-Interview, ca. ${DEFAULT_DURATION_MINUTES} Minuten.\nZum Interview: ${url}`,
+      summary: translate(locale, "email.research.ics.summary", {
+        org: orgName,
+      }),
+      description: translate(locale, "email.research.ics.description", {
+        minutes: DEFAULT_DURATION_MINUTES,
+        url,
+      }),
       scheduledAt,
       durationMinutes: DEFAULT_DURATION_MINUTES,
       url,
@@ -333,6 +341,7 @@ export async function sendResearchReminder(
       scheduledAt,
       durationMinutes: DEFAULT_DURATION_MINUTES,
       url,
+      locale: invite.language,
     });
 
     await sendEmail({ to: email, subject, html, text });
