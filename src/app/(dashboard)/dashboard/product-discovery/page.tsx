@@ -81,7 +81,7 @@ function rollupFeatureRequestCategories(
   );
 
   for (const insight of insights) {
-    for (const fr of insight.feature_requests) {
+    for (const fr of insight.feature_requests ?? []) {
       const entry = seed.get(fr.category);
       if (!entry) continue;
       entry.count += 1;
@@ -114,7 +114,7 @@ function rollupPainPointCategories(
   );
 
   for (const insight of insights) {
-    for (const pp of insight.pain_points) {
+    for (const pp of insight.pain_points ?? []) {
       const entry = seed.get(pp.category);
       if (!entry) continue;
       entry.count += 1;
@@ -161,11 +161,11 @@ interface ThemeRollup {
 function rollupThemes(insights: ProductDiscoveryInsightRecord[]): ThemeRollup[] {
   const buckets = new Map<string, ThemeRollup>();
   for (const insight of insights) {
-    for (const theme of insight.themes) {
+    for (const theme of insight.themes ?? []) {
       const key = theme.label.trim().toLowerCase();
       const linked =
-        theme.relatedFeatureRequestIndices.length +
-        theme.relatedPainPointIndices.length;
+        (theme.relatedFeatureRequestIndices?.length ?? 0) +
+        (theme.relatedPainPointIndices?.length ?? 0);
       const existing = buckets.get(key);
       if (existing) {
         existing.count += 1;
@@ -200,12 +200,12 @@ interface CallRow {
 function topCalls(insights: ProductDiscoveryInsightRecord[]): CallRow[] {
   return insights
     .map((insight): CallRow => {
-      const featureRequestCount = insight.feature_requests.length;
-      const painPointCount = insight.pain_points.length;
-      const blockerFr = insight.feature_requests
+      const featureRequestCount = insight.feature_requests?.length ?? 0;
+      const painPointCount = insight.pain_points?.length ?? 0;
+      const blockerFr = (insight.feature_requests ?? [])
         .filter((fr) => fr.intensity === "blocker")
         .sort((a, b) => b.confidence - a.confidence)[0];
-      const blockerPp = insight.pain_points
+      const blockerPp = (insight.pain_points ?? [])
         .filter((pp) => pp.severity === "blocker")
         .sort((a, b) => b.confidence - a.confidence)[0];
       const topBlockerTitle =
@@ -320,12 +320,12 @@ export default async function ProductDiscoveryOverviewPage() {
   let painPointTotal = 0;
   let blockerTotal = 0;
   for (const insight of insights) {
-    featureRequestTotal += insight.feature_requests.length;
-    painPointTotal += insight.pain_points.length;
-    for (const fr of insight.feature_requests) {
+    featureRequestTotal += insight.feature_requests?.length ?? 0;
+    painPointTotal += insight.pain_points?.length ?? 0;
+    for (const fr of insight.feature_requests ?? []) {
       if (fr.intensity === "blocker") blockerTotal += 1;
     }
-    for (const pp of insight.pain_points) {
+    for (const pp of insight.pain_points ?? []) {
       if (pp.severity === "blocker") blockerTotal += 1;
     }
   }
