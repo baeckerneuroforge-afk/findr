@@ -6,7 +6,9 @@ import {
   forecastRiskImpact,
   dealRiskImpact,
 } from "@/lib/forecast/service";
+import { listResearchRiskSuggestions } from "@/lib/bridge/research-to-sales";
 import { ForecastScenarios } from "@/components/dashboard/ForecastScenarios";
+import { ResearchRiskPanel } from "@/components/dashboard/ResearchRiskPanel";
 import { StageBreakdownChart } from "@/components/dashboard/StageBreakdownChart";
 import { WinProbabilityBar } from "@/components/dashboard/WinProbabilityBar";
 import { Badge } from "@/components/ui/Badge";
@@ -67,7 +69,14 @@ export default async function ForecastPage() {
     throw err;
   }
 
-  const forecast = await getForecast(orgId);
+  // Parallel pure reads. researchRiskSuggestions is independent of the
+  // pipeline state — the watch-list should appear even when the forecast
+  // is empty (research-derived patterns are useful before a single deal
+  // is open).
+  const [forecast, researchRiskSuggestions] = await Promise.all([
+    getForecast(orgId),
+    listResearchRiskSuggestions(orgId),
+  ]);
   const riskImpact = forecastRiskImpact(forecast);
   const impactSignificant = riskImpact.percentage > 20;
 
@@ -88,6 +97,12 @@ export default async function ForecastPage() {
           description="Once you have active pipeline, Findr will show weighted projections, best-case and worst-case scenarios, and deal-level win probabilities here."
           cta={{ label: "Go to pipeline", href: "/dashboard" }}
         />
+
+        {/* Brücke #3: research-derived Risk-Watch-List bleibt sichtbar
+            auch wenn keine offenen Deals existieren — Sales-Teams können
+            so VOR der ersten Pipeline-Aktivität bekannte Research-Muster
+            ins Bewusstsein nehmen. */}
+        <ResearchRiskPanel initialSuggestions={researchRiskSuggestions} />
       </div>
     );
   }
@@ -178,6 +193,12 @@ export default async function ForecastPage() {
       />
 
       <StageBreakdownChart stages={forecast.by_stage} />
+
+      {/* Brücke #3: research-derived Risk-Watch-List. Steht zwischen den
+          aggregierten Stage/Forecast-Visuals und der Deal-Tabelle, damit
+          team-bestätigte Muster sichtbar sind, BEVOR der User in einzelne
+          Deals taucht. */}
+      <ResearchRiskPanel initialSuggestions={researchRiskSuggestions} />
 
       <Card>
         <Table>
