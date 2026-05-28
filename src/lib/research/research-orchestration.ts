@@ -43,6 +43,24 @@ export interface CreateResearchInterviewResult {
   /** Public capability token for /interview/[token]. */
   accessToken: string | null;
   sessionId: string | null;
+  /**
+   * The freshly inserted session row, present when status === 'created'.
+   * Threaded through verbatim from createInterviewSession's
+   * `.insert().select().single()` return so callers can render the public
+   * view WITHOUT a second DB read.
+   *
+   * Why this matters: getPublicSession's lazy-create path used to discard
+   * this result and re-read via loadByToken(token). That re-read could
+   * return null under cold-start latency (Anthropic Opus call front-loads
+   * the function-time budget, the subsequent supabase-js GET can abort)
+   * — surfacing as a first-hit 404 even though the row was committed.
+   * By handing back the in-memory session we make the read-after-write
+   * structurally unreachable for the happy path; the caller only needs a
+   * loadByToken fallback for cross-request racers (different request hit
+   * unique-violation on access_token → returns status='error' → fallback
+   * read picks up the winner's row).
+   */
+  session: InterviewSession | null;
   message: string | null;
 }
 
@@ -82,6 +100,7 @@ export async function createResearchInterview(params: {
     status: "error",
     accessToken: null,
     sessionId: null,
+    session: null,
     message: null,
   };
 
@@ -153,10 +172,14 @@ export async function createResearchInterview(params: {
       language: params.language ?? "de",
     });
 
+    // Thread the freshly inserted session through — getPublicSession's
+    // lazy-create path uses this to render directly via toPublicView,
+    // skipping the previously-fragile re-read via loadByToken(token).
     return {
       status: "created",
       accessToken: session.accessToken,
       sessionId: session.id,
+      session,
       message: null,
     };
   } catch (err) {

@@ -211,6 +211,16 @@ async function loadByToken(token: string): Promise<InterviewSession | null> {
     .select("*")
     .eq("access_token", token)
     .maybeSingle();
+  // Surface transient PostgREST / network failures in the Vercel log
+  // instead of swallowing them as "no such session". Before this log,
+  // a 5xx or aborted fetch would render as a 404 on the public page
+  // with no breadcrumbs — exactly the silent failure mode that masked
+  // the read-after-write 404 we just fixed structurally. Token itself
+  // stays out of the log (it's a capability credential) — only the
+  // error message is emitted.
+  if (error) {
+    console.error("[loadByToken] supabase read failed:", error.message);
+  }
   if (error || !data) return null;
   return toSession(data);
 }
@@ -384,14 +394,31 @@ export async function getPublicSession(
 
   // Returns a status-result, NEVER throws — even when the internal INSERT
   // hits a unique-violation from a concurrent racer (mapped to
-  // status='error' in createResearchInterview's catch). We don't act on
-  // the status here. Instead, loadByToken below decides: row present =
-  // we win, row absent = real failure.
-  await createResearchInterview({
+  // status='error' in createResearchInterview's catch).
+  //
+  // HAPPY PATH — we created the row ourselves: result.session is the
+  // freshly inserted InterviewSession (from createInterviewSession's
+  // .insert().select().single() return). Render it directly via
+  // toPublicView — NO second DB read. This closes the previous
+  // first-hit-404: the re-read via loadByToken was vulnerable to
+  // cold-start-latency-induced aborts after the front-loaded Opus call,
+  // and would silently return null even though the row was committed.
+  //
+  // CROSS-REQUEST RACER PATH — status !== 'created' AND a parallel
+  // request just inserted a row with our token: createInterviewSession
+  // threw on the UNIQUE constraint, the catch mapped it to status='error'.
+  // The winner's row IS now in the DB. Use loadByToken as a backstop to
+  // pick it up. (NOT the same as the previous re-read: this branch only
+  // fires when our OWN INSERT didn't succeed — meaning we never had the
+  // session in memory to begin with.)
+  const result = await createResearchInterview({
     orgId: invite.org_id,
     planId: invite.plan_id,
     inviteId: invite.id,
   });
+  if (result.status === "created" && result.session) {
+    return toPublicView(result.session);
+  }
 
   const created = await loadByToken(token);
   return created ? toPublicView(created) : null;
