@@ -14,6 +14,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ChatWithDataPanel } from "@/components/dashboard/ChatWithDataPanel";
 import { ExportSynthesisPdfButton } from "@/components/dashboard/ExportSynthesisPdfButton";
+import { HighlightReelPanel } from "@/components/dashboard/HighlightReelPanel";
 import { SynthesisThemeCard } from "@/components/dashboard/SynthesisThemeCard";
 import { UpdateSynthesisButton } from "@/components/dashboard/UpdateSynthesisButton";
 
@@ -279,6 +280,12 @@ export default async function ResearchPlanSynthesisPage({
               before we offer "ask your data". `ready` is the same gate as
               "PDF export button is shown". */}
           <ChatWithDataPanel planId={planId} ready={true} />
+
+          {/* Highlight-Reel — same readiness gate. The reel is derived
+              on-demand from the verdichtungen + synthesis (no persistence),
+              and the panel only triggers on an explicit click — the engine
+              short-circuits empty inputs to zero-token responses. */}
+          <HighlightReelPanel planId={planId} ready={true} />
         </>
       )}
     </div>
