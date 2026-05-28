@@ -6,14 +6,19 @@ import { Button } from "@/components/ui/Button";
 import { Field, FIELD_INPUT_CLASS } from "@/components/ui/Field";
 
 /**
- * Inline "+ Add participant" form for the plan-detail page (Etappe B Teil 1).
- * Mirrors ResearchPlanForm: client component, useState for form / submitting
- * / error, fetch POST to /api/research/plans/[id]/invites, then router.refresh
- * so the server-rendered invite list picks up the new row.
+ * Inline "+ Teilnehmer hinzufügen" form for the plan-detail page. Mirrors
+ * ResearchPlanForm: client component, useState for form / submitting /
+ * error, fetch POST to /api/research/plans/[id]/invites, then
+ * router.refresh so the server-rendered invite list picks up the new row.
  *
- * Scope: invite ANLAGE only — no schedule, no mail. The status lands as
- * 'pending' (DB default via createResearchInvite). The "Schedule + send"
- * action per-invite is Etappe B Teil 2.
+ * Scope: single-invite Anlage. The Bulk-Paste flow lives in
+ * BulkInviteForm (same plan-detail Card section, two side-by-side ways
+ * to land participants). Status is 'pending' at creation; scheduling +
+ * sending the mail are separate per-row actions on the table.
+ *
+ * E-Mail ist optional — der Send-Button bleibt für Rows ohne E-Mail
+ * deaktiviert (gating in SendInviteAction), aber alles andere (Link
+ * kopieren, Termin setzen, Löschen) funktioniert ohne.
  *
  * The agent currently only handles the text mode end-to-end; voice and
  * video are accepted as the participant's preference and stored, but the
@@ -23,9 +28,9 @@ import { Field, FIELD_INPUT_CLASS } from "@/components/ui/Field";
 type Mode = "text" | "voice" | "video";
 
 const MODE_OPTIONS: Array<{ value: Mode; label: string }> = [
-  { value: "text", label: "Text chat" },
-  { value: "voice", label: "Voice (preference — text fallback today)" },
-  { value: "video", label: "Video (preference — text fallback today)" },
+  { value: "text", label: "Text-Chat" },
+  { value: "voice", label: "Voice (Wunsch – heute Text-Fallback)" },
+  { value: "video", label: "Video (Wunsch – heute Text-Fallback)" },
 ];
 
 interface FormState {
@@ -56,7 +61,7 @@ export function InviteForm({ planId }: { planId: string }) {
 
     const contactLabel = form.contactLabel.trim();
     if (contactLabel.length === 0) {
-      setError("Contact label is required.");
+      setError("Name ist erforderlich.");
       return;
     }
 
@@ -64,7 +69,7 @@ export function InviteForm({ planId }: { planId: string }) {
     // the user doesn't see the API's generic Zod error.
     const contactEmail = form.contactEmail.trim();
     if (contactEmail !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-      setError("Contact email doesn't look valid.");
+      setError("Die E-Mail-Adresse sieht nicht gültig aus.");
       return;
     }
 
@@ -84,7 +89,7 @@ export function InviteForm({ planId }: { planId: string }) {
         inviteId?: string;
       };
       if (!res.ok || !data.inviteId) {
-        throw new Error(data.error ?? "Could not add the participant.");
+        throw new Error(data.error ?? "Teilnehmer konnte nicht hinzugefügt werden.");
       }
       setForm(INITIAL_FORM);
       // Server-rendered list refresh — picks up the new invite without a
@@ -92,7 +97,9 @@ export function InviteForm({ planId }: { planId: string }) {
       router.refresh();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not add the participant.",
+        err instanceof Error
+          ? err.message
+          : "Teilnehmer konnte nicht hinzugefügt werden.",
       );
     } finally {
       setSubmitting(false);
@@ -103,9 +110,9 @@ export function InviteForm({ planId }: { planId: string }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <Field
-          label="Contact label"
+          label="Name"
           required
-          hint="Shown in the participant list. A name or 'Name, Company' works."
+          hint='In der Teilnehmerliste angezeigt. "Vorname Nachname" oder "Name, Firma" sind beide ok.'
         >
           <input
             value={form.contactLabel}
@@ -117,8 +124,8 @@ export function InviteForm({ planId }: { planId: string }) {
         </Field>
 
         <Field
-          label="Contact email"
-          hint="Optional today — required when scheduling + sending in part 2."
+          label="E-Mail"
+          hint="Optional. Ohne E-Mail kein Mailversand – Link kopieren funktioniert trotzdem."
         >
           <input
             type="email"
@@ -131,8 +138,8 @@ export function InviteForm({ planId }: { planId: string }) {
         </Field>
 
         <Field
-          label="Mode preference"
-          hint="Stored as the participant's wish — only text is wired today."
+          label="Modus-Wunsch"
+          hint="Wird als Wunsch des Teilnehmers gespeichert – heute ist nur Text vollständig verdrahtet."
         >
           <select
             value={form.modePreference}
@@ -159,10 +166,11 @@ export function InviteForm({ planId }: { planId: string }) {
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={submitting}>
-          {submitting ? "Adding..." : "Add participant"}
+          {submitting ? "Lege an…" : "Teilnehmer hinzufügen"}
         </Button>
         <span className="text-small text-neutral-500">
-          Stored as pending — schedule + send the invite in the next step.
+          Wird als „ausstehend" gespeichert – Termin + Versand erfolgen pro
+          Zeile.
         </span>
       </div>
     </form>

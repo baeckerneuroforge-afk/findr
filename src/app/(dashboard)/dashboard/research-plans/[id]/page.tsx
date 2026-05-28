@@ -7,7 +7,9 @@ import { listInvitesForPlan } from "@/lib/research/scheduling";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
+import { BulkInviteForm } from "@/components/dashboard/BulkInviteForm";
 import { CopyInterviewLinkButton } from "@/components/dashboard/CopyInterviewLinkButton";
+import { DeleteParticipantButton } from "@/components/dashboard/DeleteParticipantButton";
 import { InviteForm } from "@/components/dashboard/InviteForm";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
@@ -50,12 +52,12 @@ type InviteStatus =
   | "no_show";
 
 const INVITE_STATUS_LABEL: Record<InviteStatus, string> = {
-  pending: "Pending",
-  scheduled: "Scheduled",
-  in_progress: "In progress",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  no_show: "No show",
+  pending: "Ausstehend",
+  scheduled: "Terminiert",
+  in_progress: "Läuft",
+  completed: "Abgeschlossen",
+  cancelled: "Abgesagt",
+  no_show: "Nicht erschienen",
 };
 
 const INVITE_STATUS_VARIANT: Record<InviteStatus, BadgeVariant> = {
@@ -240,17 +242,18 @@ export default async function ResearchPlanDetailPage({
         )}
       </section>
 
-      {/* Participants (Etappe B Teil 1) — additive section below Topics,
-          above Lifecycle. Sequencing matches the mental model: define the
-          plan → add people → run the lifecycle. */}
+      {/* Teilnehmer — Section unterhalb Topics, oberhalb Lifecycle.
+          Reihenfolge folgt dem Mental Model: Plan definieren → Leute
+          einladen → Lifecycle. Bulk-Anlage + Einzelanlage + Löschen
+          sind alle hier verortet. */}
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-h2 text-neutral-900">Participants</h2>
+            <h2 className="text-h2 text-neutral-900">Teilnehmer</h2>
             <p className="text-body text-neutral-500">
               {invites.length === 0
-                ? "Add people you want to interview. Scheduling + sending the invite mail is the next step."
-                : `${invites.length} ${invites.length === 1 ? "participant" : "participants"} · scheduling + mail follow in the next step.`}
+                ? "Personen für Interviews hinzufügen. Termin + Mailversand sind eigene Aktionen pro Zeile."
+                : `${invites.length} ${invites.length === 1 ? "Teilnehmer" : "Teilnehmer"} · Termin + Mailversand pro Zeile.`}
             </p>
           </div>
         </div>
@@ -260,21 +263,25 @@ export default async function ResearchPlanDetailPage({
             <Table>
               <THead>
                 <TR>
-                  <TH>Contact</TH>
-                  <TH>Email</TH>
-                  <TH>Mode</TH>
-                  <TH>Scheduled</TH>
+                  <TH>Name</TH>
+                  <TH>E-Mail</TH>
+                  <TH>Modus</TH>
+                  <TH>Termin</TH>
                   <TH>Status</TH>
-                  <TH>Send</TH>
+                  <TH>Senden</TH>
                   <TH>Link</TH>
+                  <TH>Löschen</TH>
                 </TR>
               </THead>
               <TBody>
                 {invites.map((invite) => {
-                  // Disable rescheduling when the plan is no longer in a
-                  // workable state OR the invite has already moved to a
-                  // terminal status. Keeps the UI honest about which rows
-                  // are still actionable.
+                  // Termin-/Versand-Aktionen deaktivieren wir, sobald der
+                  // Plan nicht mehr bearbeitbar ist ODER die Zeile selbst
+                  // einen Terminalstatus erreicht hat. Löschen bleibt
+                  // davon UNBERÜHRT — wir wollen aufräumen können, auch
+                  // wenn der Plan archiviert oder die Zeile abgesagt
+                  // ist. Nur ein vollständig archivierter Plan friert
+                  // alle Aktionen ein.
                   const planLocked =
                     plan.status === "archived" || plan.status === "completed";
                   const inviteTerminal =
@@ -282,6 +289,7 @@ export default async function ResearchPlanDetailPage({
                     invite.status === "cancelled" ||
                     invite.status === "no_show";
                   const scheduleDisabled = planLocked || inviteTerminal;
+                  const deleteDisabled = plan.status === "archived";
                   return (
                     <TR key={invite.id}>
                       <TD className="text-body-strong text-neutral-900">
@@ -320,7 +328,10 @@ export default async function ResearchPlanDetailPage({
                             need scheduled_at + contact_email; idempotency
                             kicks in once invited_at is set. Same disabled
                             flag as Schedule — terminal invite / locked plan
-                            → button locked too. */}
+                            → button locked too. Rows OHNE E-Mail haben
+                            den Button automatisch deaktiviert (Hint
+                            "E-Mail nötig") — Link kopieren funktioniert
+                            trotzdem in der nächsten Spalte. */}
                         <SendInviteAction
                           inviteId={invite.id}
                           scheduledAt={invite.scheduled_at}
@@ -336,13 +347,22 @@ export default async function ResearchPlanDetailPage({
                             so it matches the link the invite mail sends.
                             Independent of Send — useful when the user
                             wants to share through Slack/WhatsApp instead
-                            of (or in addition to) email. */}
+                            of (or in addition to) email, oder bei
+                            Teilnehmern ohne hinterlegte E-Mail. */}
                         <CopyInterviewLinkButton
                           link={
                             invite.access_token
                               ? researchInterviewUrl(invite.access_token)
                               : null
                           }
+                        />
+                      </TD>
+                      <TD>
+                        <DeleteParticipantButton
+                          planId={plan.id}
+                          participantId={invite.id}
+                          contactLabel={invite.contact_label}
+                          disabled={deleteDisabled}
                         />
                       </TD>
                     </TR>
@@ -357,19 +377,33 @@ export default async function ResearchPlanDetailPage({
           <Card>
             <CardBody>
               <p className="py-3 text-center text-small text-neutral-500">
-                This plan is archived — new participants can&apos;t be added.
+                Dieser Plan ist archiviert – keine neuen Teilnehmer möglich.
               </p>
             </CardBody>
           </Card>
         ) : (
-          <Card>
-            <CardHeader>
-              <h3 className="text-h3 text-neutral-900">Add participant</h3>
-            </CardHeader>
-            <CardBody>
-              <InviteForm planId={plan.id} />
-            </CardBody>
-          </Card>
+          <>
+            <Card>
+              <CardHeader>
+                <h3 className="text-h3 text-neutral-900">
+                  Teilnehmer hinzufügen
+                </h3>
+              </CardHeader>
+              <CardBody>
+                <InviteForm planId={plan.id} />
+              </CardBody>
+            </Card>
+            <Card>
+              <CardHeader>
+                <h3 className="text-h3 text-neutral-900">
+                  Mehrere auf einmal
+                </h3>
+              </CardHeader>
+              <CardBody>
+                <BulkInviteForm planId={plan.id} />
+              </CardBody>
+            </Card>
+          </>
         )}
       </section>
 
