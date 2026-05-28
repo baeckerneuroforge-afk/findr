@@ -43,10 +43,20 @@ export function SynthesisThemeCard({
 }: SynthesisThemeCardProps) {
   const [expanded, setExpanded] = useState(false);
 
+  // Defensive client-side dedup: the engine already runs Array.from(new Set(...))
+  // before persisting (engine.ts ~L318), so this is a no-op for fresh syntheses.
+  // It exists for older persisted rows / DB-roundtrip edge cases — keeps the
+  // displayed count and the rendered list consistent under any data shape.
+  const uniqueSourceIds = Array.from(new Set(theme.sourceInsightIds));
+
   const frequencyLabel =
     totalParticipants > 0
-      ? `${theme.frequency} of ${totalParticipants} participants`
-      : `${theme.frequency} ${theme.frequency === 1 ? "mention" : "mentions"}`;
+      ? `${theme.frequency} von ${totalParticipants} ${
+          totalParticipants === 1 ? "Teilnehmer" : "Teilnehmern"
+        }`
+      : `${theme.frequency} ${
+          theme.frequency === 1 ? "Erwähnung" : "Erwähnungen"
+        }`;
 
   return (
     <div
@@ -77,7 +87,7 @@ export function SynthesisThemeCard({
           {theme.quotes.length > 0 && (
             <div>
               <div className="mb-2 text-caption font-medium uppercase tracking-wider text-neutral-500">
-                Quotes ({theme.quotes.length})
+                Zitate ({theme.quotes.length})
               </div>
               <ul className="space-y-2">
                 {theme.quotes.map((q, i) => (
@@ -92,15 +102,15 @@ export function SynthesisThemeCard({
             </div>
           )}
 
-          {theme.sourceInsightIds.length > 0 && (
+          {uniqueSourceIds.length > 0 && (
             <div>
               <div className="mb-2 text-caption font-medium uppercase tracking-wider text-neutral-500">
-                Source interviews ({theme.sourceInsightIds.length})
+                Quell-Interviews ({uniqueSourceIds.length})
               </div>
               <ul className="space-y-1">
-                {theme.sourceInsightIds.map((id) => (
+                {uniqueSourceIds.map((id, idx) => (
                   <li
-                    key={id}
+                    key={`${id}-${idx}`}
                     className="font-mono text-caption text-neutral-500"
                   >
                     {id}
@@ -110,12 +120,11 @@ export function SynthesisThemeCard({
             </div>
           )}
 
-          {theme.quotes.length === 0 &&
-            theme.sourceInsightIds.length === 0 && (
-              <p className="text-small italic text-neutral-500">
-                No quotes or source interviews on this theme.
-              </p>
-            )}
+          {theme.quotes.length === 0 && uniqueSourceIds.length === 0 && (
+            <p className="text-small italic text-neutral-500">
+              Keine Zitate oder Quell-Interviews zu diesem Thema.
+            </p>
+          )}
         </div>
       )}
     </div>

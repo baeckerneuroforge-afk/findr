@@ -99,7 +99,7 @@ export default async function ResearchPlanSynthesisPage({
           href={`/dashboard/research-plans/${planId}`}
           className="text-small text-neutral-500 transition-colors hover:text-neutral-900"
         >
-          ← Back to plan
+          ← Zurück zum Plan
         </Link>
       </div>
 
@@ -184,7 +184,7 @@ export default async function ResearchPlanSynthesisPage({
           {synthesis.overview && (
             <Card>
               <CardHeader>
-                <h2 className="text-h3 text-neutral-900">Overview</h2>
+                <h2 className="text-h3 text-neutral-900">Überblick</h2>
               </CardHeader>
               <CardBody>
                 <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-700">
@@ -256,8 +256,8 @@ export default async function ResearchPlanSynthesisPage({
                         {tension.description}
                       </p>
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <TensionSidePanel side={tension.side_a} sideName="Side A" />
-                        <TensionSidePanel side={tension.side_b} sideName="Side B" />
+                        <TensionSidePanel side={tension.side_a} sideName="Seite A" />
+                        <TensionSidePanel side={tension.side_b} sideName="Seite B" />
                       </div>
                     </CardBody>
                   </Card>
@@ -312,8 +312,8 @@ function TensionSidePanel({
         <p className="mt-3 font-mono text-caption text-neutral-400">
           {side.sourceInsightIds.length}{" "}
           {side.sourceInsightIds.length === 1
-            ? "source interview"
-            : "source interviews"}
+            ? "Quell-Interview"
+            : "Quell-Interviews"}
         </p>
       )}
     </div>
