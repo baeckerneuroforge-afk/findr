@@ -10,6 +10,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 import { BulkInviteForm } from "@/components/dashboard/BulkInviteForm";
 import { CopyInterviewLinkButton } from "@/components/dashboard/CopyInterviewLinkButton";
 import { DeleteParticipantButton } from "@/components/dashboard/DeleteParticipantButton";
+import { EditParticipantButton } from "@/components/dashboard/EditParticipantButton";
 import { InviteForm } from "@/components/dashboard/InviteForm";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
@@ -270,7 +271,7 @@ export default async function ResearchPlanDetailPage({
                   <TH>Status</TH>
                   <TH>Senden</TH>
                   <TH>Link</TH>
-                  <TH>Löschen</TH>
+                  <TH>Aktionen</TH>
                 </TR>
               </THead>
               <TBody>
@@ -358,12 +359,26 @@ export default async function ResearchPlanDetailPage({
                         />
                       </TD>
                       <TD>
-                        <DeleteParticipantButton
-                          planId={plan.id}
-                          participantId={invite.id}
-                          contactLabel={invite.contact_label}
-                          disabled={deleteDisabled}
-                        />
+                        {/* Edit + Delete share this cell as the row's
+                            "Aktionen" column. Both are gated on the
+                            archived-plan flag (deleteDisabled) — editing
+                            a frozen plan is just as confusing as deleting
+                            from it. */}
+                        <div className="flex items-center gap-1">
+                          <EditParticipantButton
+                            planId={plan.id}
+                            participantId={invite.id}
+                            initialLabel={invite.contact_label}
+                            initialEmail={invite.contact_email}
+                            disabled={deleteDisabled}
+                          />
+                          <DeleteParticipantButton
+                            planId={plan.id}
+                            participantId={invite.id}
+                            contactLabel={invite.contact_label}
+                            disabled={deleteDisabled}
+                          />
+                        </div>
                       </TD>
                     </TR>
                   );
