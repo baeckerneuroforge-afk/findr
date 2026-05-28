@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
+import { researchInterviewUrl } from "@/lib/email/research-invite";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { listInvitesForPlan } from "@/lib/research/scheduling";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
+import { CopyInterviewLinkButton } from "@/components/dashboard/CopyInterviewLinkButton";
 import { InviteForm } from "@/components/dashboard/InviteForm";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
@@ -264,6 +266,7 @@ export default async function ResearchPlanDetailPage({
                   <TH>Scheduled</TH>
                   <TH>Status</TH>
                   <TH>Send</TH>
+                  <TH>Link</TH>
                 </TR>
               </THead>
               <TBody>
@@ -324,6 +327,22 @@ export default async function ResearchPlanDetailPage({
                           invitedAt={invite.invited_at}
                           contactEmail={invite.contact_email}
                           disabled={scheduleDisabled}
+                        />
+                      </TD>
+                      <TD>
+                        {/* Pure utility: copy the public interview URL to
+                            the clipboard. The URL is resolved server-side
+                            via the canonical researchInterviewUrl() helper
+                            so it matches the link the invite mail sends.
+                            Independent of Send — useful when the user
+                            wants to share through Slack/WhatsApp instead
+                            of (or in addition to) email. */}
+                        <CopyInterviewLinkButton
+                          link={
+                            invite.access_token
+                              ? researchInterviewUrl(invite.access_token)
+                              : null
+                          }
                         />
                       </TD>
                     </TR>
