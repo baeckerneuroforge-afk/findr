@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import type {
@@ -52,27 +53,29 @@ function strengthBadgeVariant(strength: WarningStrength): BadgeVariant {
   return "default";
 }
 
-function strengthLabel(strength: WarningStrength): string {
-  if (strength === "high") return "High";
-  if (strength === "medium") return "Medium";
-  return "Low";
+function strengthLabelKey(
+  strength: WarningStrength,
+): "ewStrengthHigh" | "ewStrengthMedium" | "ewStrengthLow" {
+  if (strength === "high") return "ewStrengthHigh";
+  if (strength === "medium") return "ewStrengthMedium";
+  return "ewStrengthLow";
 }
 
-export function EarlyWarningPanel({
+export async function EarlyWarningPanel({
   hasEnoughData,
   totalLossesAnalyzed,
   topLossReason,
   topLossPercentage,
   warnings,
 }: EarlyWarningPanelProps) {
+  const t = await getTranslations("sales.loss");
   if (!hasEnoughData) {
     return (
       <Card>
         <CardBody>
-          <h2 className="text-h2 text-neutral-900">Early warning</h2>
+          <h2 className="text-h2 text-neutral-900">{t("ewTitle")}</h2>
           <p className="mt-1 text-body text-neutral-500">
-            Need at least 3 closed-lost deals to detect loss patterns. Currently
-            tracking {totalLossesAnalyzed}.
+            {t("ewNeedData", { count: totalLossesAnalyzed })}
           </p>
         </CardBody>
       </Card>
@@ -81,7 +84,10 @@ export function EarlyWarningPanel({
 
   const headlineReason =
     topLossReason && topLossPercentage !== undefined
-      ? `${topLossPercentage}% of your losses were due to ${formatLossReason(topLossReason)}.`
+      ? t("ewHeadline", {
+          pct: topLossPercentage,
+          reason: formatLossReason(topLossReason),
+        })
       : null;
 
   return (
@@ -89,13 +95,11 @@ export function EarlyWarningPanel({
       <CardHeader>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
-            <h2 className="text-h2 text-neutral-900">Early warning</h2>
-            <p className="mt-1 text-small text-neutral-500">
-              Open deals showing patterns that led to past losses
-            </p>
+            <h2 className="text-h2 text-neutral-900">{t("ewTitle")}</h2>
+            <p className="mt-1 text-small text-neutral-500">{t("ewSubtitle")}</p>
           </div>
           <span className="text-caption text-neutral-500 uppercase tracking-wider">
-            {totalLossesAnalyzed} losses analyzed
+            {t("ewLossesAnalyzed", { count: totalLossesAnalyzed })}
           </span>
         </div>
       </CardHeader>
@@ -107,10 +111,7 @@ export function EarlyWarningPanel({
         )}
 
         {warnings.length === 0 ? (
-          <p className="text-body text-neutral-500">
-            No open deal currently shows a pattern that matches your past
-            losses. Good — keep monitoring.
-          </p>
+          <p className="text-body text-neutral-500">{t("ewNoWarnings")}</p>
         ) : (
           <ul className="divide-y divide-neutral-100">
             {warnings.map((warning) => (
@@ -127,12 +128,14 @@ export function EarlyWarningPanel({
                       {warning.deal_name}
                     </Link>
                     <Badge variant={strengthBadgeVariant(warning.warning_strength)}>
-                      {strengthLabel(warning.warning_strength)}
+                      {t(strengthLabelKey(warning.warning_strength))}
                     </Badge>
                   </div>
                   <p className="mt-1 text-small text-neutral-500">
-                    Shows {formatLossReason(warning.matched_pattern)} pattern —
-                    led to {warning.pattern_percentage}% of past losses
+                    {t("ewShowsPattern", {
+                      reason: formatLossReason(warning.matched_pattern),
+                      pct: warning.pattern_percentage,
+                    })}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {warning.matching_signals.map((sig) => (

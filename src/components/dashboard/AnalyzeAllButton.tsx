@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 
 interface DealMinimal {
@@ -14,6 +15,8 @@ interface AnalyzeAllButtonProps {
 }
 
 export function AnalyzeAllButton({ deals }: AnalyzeAllButtonProps) {
+  const t = useTranslations("sales.pipeline");
+  const tc = useTranslations("sales.common");
   const router = useRouter();
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
@@ -35,9 +38,7 @@ export function AnalyzeAllButton({ deals }: AnalyzeAllButtonProps) {
         });
         if (!response.ok) {
           if (response.status === 503) {
-            setError(
-              "AI analysis is not available right now. The team is working on it.",
-            );
+            setError(tc("analyzeUnavailable"));
             break;
           }
           const data = (await response.json().catch(() => ({}))) as {
@@ -51,7 +52,7 @@ export function AnalyzeAllButton({ deals }: AnalyzeAllButtonProps) {
           completedAny = true;
         }
       } catch (err) {
-        setError("AI analysis failed. Please try again later.");
+        setError(tc("analyzeFailed"));
         console.error(`Analyze failed for ${deal.name}:`, err);
         break;
       }
@@ -70,8 +71,8 @@ export function AnalyzeAllButton({ deals }: AnalyzeAllButtonProps) {
         disabled={analyzing || deals.length === 0}
       >
         {analyzing
-          ? `Analyzing ${progress.done}/${progress.total}…`
-          : "Analyze all deals"}
+          ? t("analyzing", { done: progress.done, total: progress.total })
+          : t("analyzeAll")}
       </Button>
       {error && (
         <span className="max-w-72 text-right text-caption text-danger-700">

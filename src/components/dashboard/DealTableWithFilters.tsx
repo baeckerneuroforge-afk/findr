@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnalyzeButton } from "@/components/dashboard/AnalyzeButton";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
@@ -43,13 +44,13 @@ const STAGE_ORDER: DealStage[] = [
   "closed_lost",
 ];
 
-const RISK_FILTERS: Array<{ value: DealRiskFilter; label: string }> = [
-  { value: "all", label: "All risk levels" },
-  { value: "critical", label: "Critical (80+)" },
-  { value: "high", label: "High (60-79)" },
-  { value: "medium", label: "Medium (35-59)" },
-  { value: "low", label: "Low (<35)" },
-  { value: "unanalyzed", label: "Not analyzed" },
+const RISK_FILTERS: Array<{ value: DealRiskFilter; labelKey: string }> = [
+  { value: "all", labelKey: "riskAll" },
+  { value: "critical", labelKey: "riskCritical" },
+  { value: "high", labelKey: "riskHigh" },
+  { value: "medium", labelKey: "riskMedium" },
+  { value: "low", labelKey: "riskLow" },
+  { value: "unanalyzed", labelKey: "riskUnanalyzed" },
 ];
 
 const SORT_KEYS: DealSortKey[] = [
@@ -95,11 +96,6 @@ function formatCurrency(value: number, currency: "EUR" | "USD") {
     currency,
     maximumFractionDigits: 0,
   }).format(value);
-}
-
-function formatLastActivity(days: number) {
-  if (days === 0) return "Today";
-  return `${days}d ago`;
 }
 
 function Select({
@@ -186,10 +182,14 @@ function StaticHeader({
 }
 
 export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
+  const t = useTranslations("sales.table");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const filters = getFilterState(searchParams);
+
+  const formatLastActivity = (days: number) =>
+    days === 0 ? t("today") : t("daysAgo", { days });
 
   const stages = useMemo(() => {
     const present = new Set(deals.map((deal) => deal.stage));
@@ -260,19 +260,19 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="search"
-          aria-label="Search deals"
-          placeholder="Search deals, companies, owners..."
+          aria-label={t("searchAria")}
+          placeholder={t("searchPlaceholder")}
           value={filters.search}
           onChange={(event) => updateParam("q", event.target.value)}
           className="h-9 min-w-[240px] flex-1 rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
         />
 
         <Select
-          label="Filter by stage"
+          label={t("filterStageAria")}
           value={filters.stage}
           onChange={(value) => updateParam("stage", value)}
         >
-          <option value="all">All stages</option>
+          <option value="all">{t("allStages")}</option>
           {stages.map((stage) => (
             <option key={stage} value={stage}>
               {STAGE_LABELS[stage]}
@@ -281,23 +281,23 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
         </Select>
 
         <Select
-          label="Filter by risk level"
+          label={t("filterRiskAria")}
           value={filters.risk}
           onChange={(value) => updateParam("risk", value)}
         >
           {RISK_FILTERS.map((filter) => (
             <option key={filter.value} value={filter.value}>
-              {filter.label}
+              {t(filter.labelKey)}
             </option>
           ))}
         </Select>
 
         <Select
-          label="Filter by owner"
+          label={t("filterOwnerAria")}
           value={filters.owner}
           onChange={(value) => updateParam("owner", value)}
         >
-          <option value="all">All owners</option>
+          <option value="all">{t("allOwners")}</option>
           {owners.map((owner) => (
             <option key={owner} value={owner}>
               {owner}
@@ -308,8 +308,8 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
 
       <div className="flex items-center justify-between gap-4">
         <span className="text-small text-neutral-500">
-          {filteredDeals.length} {filteredDeals.length === 1 ? "deal" : "deals"}
-          {hasFilters ? ` (filtered from ${deals.length})` : ""}
+          {t("count", { count: filteredDeals.length })}
+          {hasFilters ? t("filteredFrom", { total: deals.length }) : ""}
         </span>
         {hasFilters && (
           <button
@@ -317,7 +317,7 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
             onClick={clearFilters}
             className="text-small font-medium text-primary-600 transition-colors hover:text-primary-700"
           >
-            Clear filters
+            {t("clearFilters")}
           </button>
         )}
       </div>
@@ -325,10 +325,10 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
       {filteredDeals.length === 0 ? (
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 py-12 text-center">
           <div className="text-body-strong text-neutral-900">
-            No deals match your filters.
+            {t("noMatchTitle")}
           </div>
           <div className="mt-1 text-small text-neutral-500">
-            Adjust the search or clear filters to return to the full pipeline.
+            {t("noMatchDesc")}
           </div>
         </div>
       ) : (
@@ -337,16 +337,16 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
             <thead className="border-b border-neutral-200 bg-neutral-50">
               <TR>
                 <SortableHeader
-                  label="Deal"
+                  label={t("colDeal")}
                   sortKey="name"
                   currentSort={filters.sortBy}
                   currentDir={filters.sortDir}
                   onSort={updateSort}
                 />
-                <StaticHeader>Stage</StaticHeader>
-                <StaticHeader>Owner</StaticHeader>
+                <StaticHeader>{t("colStage")}</StaticHeader>
+                <StaticHeader>{t("colOwner")}</StaticHeader>
                 <SortableHeader
-                  label="Amount"
+                  label={t("colAmount")}
                   sortKey="amount"
                   currentSort={filters.sortBy}
                   currentDir={filters.sortDir}
@@ -354,27 +354,27 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
                   onSort={updateSort}
                 />
                 <SortableHeader
-                  label="Risk"
+                  label={t("colRisk")}
                   sortKey="risk"
                   currentSort={filters.sortBy}
                   currentDir={filters.sortDir}
                   onSort={updateSort}
                 />
                 <SortableHeader
-                  label="Win prob."
+                  label={t("colWinProb")}
                   sortKey="win_probability"
                   currentSort={filters.sortBy}
                   currentDir={filters.sortDir}
                   onSort={updateSort}
                 />
                 <SortableHeader
-                  label="Last activity"
+                  label={t("colLastActivity")}
                   sortKey="activity"
                   currentSort={filters.sortBy}
                   currentDir={filters.sortDir}
                   onSort={updateSort}
                 />
-                <StaticHeader align="right">Action</StaticHeader>
+                <StaticHeader align="right">{t("colAction")}</StaticHeader>
               </TR>
             </thead>
             <TBody>
@@ -410,7 +410,7 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
                   <TD className="text-small text-neutral-600 whitespace-nowrap">
                     {deal.winProbability !== undefined
                       ? `${deal.winProbability}%`
-                      : "n/a"}
+                      : t("winProbNa")}
                   </TD>
                   <TD className="text-small text-neutral-500 whitespace-nowrap">
                     {formatLastActivity(deal.daysSinceLastActivity)}

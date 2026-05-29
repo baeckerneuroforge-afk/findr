@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getRepCoachingProfiles } from "@/lib/coaching/service";
 import { CoachingDashboard } from "@/components/dashboard/CoachingDashboard";
@@ -16,15 +17,14 @@ export default async function CoachingPage() {
     throw err;
   }
 
+  const t = await getTranslations("sales.coaching");
   const profiles = await getRepCoachingProfiles(orgId);
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-display text-neutral-900 mb-1">Team coaching</h1>
-        <p className="text-body text-neutral-500">
-          Loss patterns and coaching recommendations per sales rep.
-        </p>
+        <h1 className="text-display text-neutral-900 mb-1">{t("title")}</h1>
+        <p className="text-body text-neutral-500">{t("subtitle")}</p>
       </div>
       <CoachingDashboard profiles={profiles} />
     </div>

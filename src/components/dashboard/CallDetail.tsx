@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface Speaker {
   id: string;
@@ -55,6 +56,7 @@ function formatTime(seconds: number): string {
 }
 
 export function CallDetail({ call }: CallDetailProps) {
+  const t = useTranslations("sales.deal");
   const [filter, setFilter] = useState<"all" | "signals">("all");
   const [showTranscript, setShowTranscript] = useState(false);
 
@@ -78,7 +80,7 @@ export function CallDetail({ call }: CallDetailProps) {
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <span className="text-caption uppercase tracking-wide text-primary-700 font-medium">
-              {call.call_type ?? "call"}
+              {call.call_type ?? t("callTypeFallback")}
             </span>
             <span className="text-caption text-neutral-400">·</span>
             <span className="text-caption text-neutral-500">
@@ -112,7 +114,7 @@ export function CallDetail({ call }: CallDetailProps) {
                     : "text-neutral-500 hover:text-neutral-900"
                 }`}
               >
-                All
+                {t("filterAll")}
               </button>
               <button
                 type="button"
@@ -123,7 +125,7 @@ export function CallDetail({ call }: CallDetailProps) {
                     : "text-neutral-500 hover:text-neutral-900"
                 }`}
               >
-                Risk signals
+                {t("filterSignals")}
               </button>
             </>
           ) : call.transcript ? (
@@ -132,7 +134,7 @@ export function CallDetail({ call }: CallDetailProps) {
               onClick={() => setShowTranscript((v) => !v)}
               className="rounded-md px-2.5 py-1 text-caption font-medium text-primary-700 transition-colors hover:bg-primary-50"
             >
-              {showTranscript ? "Hide transcript" : "Show transcript"}
+              {showTranscript ? t("hideTranscript") : t("showTranscript")}
             </button>
           ) : null}
         </div>
@@ -142,7 +144,7 @@ export function CallDetail({ call }: CallDetailProps) {
         <div className="max-h-[500px] space-y-3 overflow-y-auto pr-2">
           {segments.length === 0 ? (
             <p className="py-8 text-center text-small text-neutral-400">
-              No segments matching this filter.
+              {t("noSegments")}
             </p>
           ) : (
             segments.map((segment) => {
@@ -166,7 +168,7 @@ export function CallDetail({ call }: CallDetailProps) {
                           isSalesRep ? "text-primary-700" : "text-success-700"
                         }`}
                       >
-                        {speaker?.name ?? "Unknown"}
+                        {speaker?.name ?? t("speakerUnknown")}
                       </span>
                       <span className="text-caption text-neutral-400">
                         {formatTime(segment.start_seconds)}
@@ -208,7 +210,7 @@ export function CallDetail({ call }: CallDetailProps) {
         )
       ) : (
         <p className="py-8 text-center text-small text-neutral-400">
-          No transcript available for this call.
+          {t("noTranscript")}
         </p>
       )}
     </div>

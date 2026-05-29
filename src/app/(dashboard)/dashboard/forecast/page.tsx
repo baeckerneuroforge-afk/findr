@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import {
   getForecast,
@@ -73,6 +74,9 @@ export default async function ForecastPage() {
   // pipeline state — the watch-list should appear even when the forecast
   // is empty (research-derived patterns are useful before a single deal
   // is open).
+  const t = await getTranslations("sales.forecast");
+  const tc = await getTranslations("sales.common");
+
   const [forecast, researchRiskSuggestions] = await Promise.all([
     getForecast(orgId),
     listResearchRiskSuggestions(orgId),
@@ -84,18 +88,15 @@ export default async function ForecastPage() {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-display text-neutral-900">Forecast</h1>
-          <p className="text-body text-neutral-500 mt-1">
-            Risk-adjusted pipeline value from current deal stage, risk, and
-            engagement.
-          </p>
+          <h1 className="text-display text-neutral-900">{t("title")}</h1>
+          <p className="text-body text-neutral-500 mt-1">{t("subtitle")}</p>
         </div>
 
         <EmptyState
           icon={<ForecastIcon />}
-          title="No open deals to forecast"
-          description="Once you have active pipeline, Findr will show weighted projections, best-case and worst-case scenarios, and deal-level win probabilities here."
-          cta={{ label: "Go to pipeline", href: "/dashboard" }}
+          title={t("emptyTitle")}
+          description={t("emptyDesc")}
+          cta={{ label: t("goToPipeline"), href: "/dashboard" }}
         />
 
         {/* Brücke #3: research-derived Risk-Watch-List bleibt sichtbar
@@ -111,69 +112,69 @@ export default async function ForecastPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-display text-neutral-900">Forecast</h1>
-          <p className="text-body text-neutral-500 mt-1">
-            Risk-adjusted pipeline value from current deal stage, risk, and
-            engagement.
-          </p>
+          <h1 className="text-display text-neutral-900">{t("title")}</h1>
+          <p className="text-body text-neutral-500 mt-1">{t("subtitle")}</p>
         </div>
         <a
           href="/api/forecast/pdf"
           download
           className="inline-flex h-8 items-center justify-center rounded-md border border-neutral-200 bg-white px-3 text-body-strong text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
         >
-          Download PDF
+          {tc("downloadPdf")}
         </a>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <StatCard
-          label="Total pipeline"
+          label={t("statTotalPipeline")}
           value={formatCurrency(forecast.total_pipeline_value)}
-          subtitle={`${forecast.open_deal_count} open deals`}
+          subtitle={t("openDealsSubtitle", { count: forecast.open_deal_count })}
         />
         <StatCard
           label={
             <>
-              Weighted forecast
-              <InfoTooltip label="Pipeline value adjusted by each deal's win probability." />
+              {tc("weightedForecast")}
+              <InfoTooltip label={tc("weightedForecastTip")} />
             </>
           }
           value={formatCurrency(forecast.weighted_pipeline_value)}
-          subtitle="Likely case"
+          subtitle={t("likelyCase")}
           status="primary"
         />
         <StatCard
           label={
             <>
-              At-risk value
-              <InfoTooltip label="Total value of deals with risk score 60 or higher." />
+              {t("atRiskValue")}
+              <InfoTooltip label={t("atRiskValueTip")} />
             </>
           }
           value={formatCurrency(forecast.deals_at_risk_value)}
-          subtitle="Risk score 60+"
+          subtitle={t("riskScore60")}
           status={forecast.deals_at_risk_value > 0 ? "critical" : "default"}
         />
-        <StatCard label="Open deals" value={forecast.open_deal_count} />
+        <StatCard label={t("statOpenDeals")} value={forecast.open_deal_count} />
       </div>
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div className="min-w-0">
             <div className="text-caption uppercase tracking-wider text-neutral-500">
-              Forecast impact of risk
+              {t("impactLabel")}
             </div>
             <p className="mt-1 text-body text-neutral-700">
-              Risk and stage weighting are reducing your forecast by{" "}
-              <span
-                className={`font-semibold ${
-                  impactSignificant ? "text-danger-700" : "text-neutral-900"
-                }`}
-              >
-                {formatCurrency(riskImpact.absolute)} (
-                {Math.round(riskImpact.percentage)}%)
-              </span>{" "}
-              versus raw pipeline.
+              {t.rich("impactSentence", {
+                impact: formatCurrency(riskImpact.absolute),
+                pct: Math.round(riskImpact.percentage),
+                b: (chunks) => (
+                  <span
+                    className={`font-semibold ${
+                      impactSignificant ? "text-danger-700" : "text-neutral-900"
+                    }`}
+                  >
+                    {chunks}
+                  </span>
+                ),
+              })}
             </p>
           </div>
           <div
@@ -204,20 +205,20 @@ export default async function ForecastPage() {
         <Table>
           <THead>
             <TR>
-              <TH>Deal</TH>
-              <TH>Stage</TH>
-              <TH className="text-right">Amount</TH>
+              <TH>{t("colDeal")}</TH>
+              <TH>{t("colStage")}</TH>
+              <TH className="text-right">{t("colAmount")}</TH>
               <TH>
                 <span className="inline-flex items-center gap-1.5">
-                  Win probability
-                  <InfoTooltip label="Estimated from deal stage, risk score, and recent engagement." />
+                  {t("colWinProbability")}
+                  <InfoTooltip label={t("winProbTip")} />
                 </span>
               </TH>
-              <TH className="text-right">Weighted value</TH>
+              <TH className="text-right">{t("colWeightedValue")}</TH>
               <TH className="text-right">
                 <span className="inline-flex items-center gap-1.5">
-                  Risk impact
-                  <InfoTooltip label="Forecast value this deal loses to weighting (amount minus weighted value)." />
+                  {t("colRiskImpact")}
+                  <InfoTooltip label={t("riskImpactTip")} />
                 </span>
               </TH>
             </TR>
@@ -234,7 +235,7 @@ export default async function ForecastPage() {
                       {deal.deal_name}
                     </div>
                     <div className="text-small text-neutral-500">
-                      Risk score {deal.risk_score}/100
+                      {t("rowRiskScore", { score: deal.risk_score })}
                     </div>
                   </Link>
                 </TD>

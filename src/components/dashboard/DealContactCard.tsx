@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -26,6 +27,7 @@ export function DealContactCard({
   initialEmail,
   initialPhone,
 }: DealContactCardProps) {
+  const t = useTranslations("sales.deal");
   const [contact, setContact] = useState<Contact>({
     contactName: initialName,
     contactEmail: initialEmail,
@@ -68,7 +70,7 @@ export function DealContactCard({
         contact?: Contact;
       };
       if (!res.ok) {
-        throw new Error(data.error ?? "Could not save contact.");
+        throw new Error(data.error ?? t("errSaveContact"));
       }
       setContact({
         contactName: data.contact?.contactName ?? null,
@@ -77,7 +79,7 @@ export function DealContactCard({
       });
       setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save contact.");
+      setError(err instanceof Error ? err.message : t("errSaveContact"));
     } finally {
       setSaving(false);
     }
@@ -86,17 +88,17 @@ export function DealContactCard({
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
-        <h2 className="text-h2 text-neutral-900">Contact</h2>
+        <h2 className="text-h2 text-neutral-900">{t("contact")}</h2>
         {!editing && (
           <Button variant="secondary" size="sm" onClick={startEdit}>
-            {hasContact ? "Edit" : "Add contact"}
+            {hasContact ? t("edit") : t("addContact")}
           </Button>
         )}
       </CardHeader>
       <CardBody>
         {editing ? (
           <div className="space-y-4">
-            <Field label="Name">
+            <Field label={t("name")}>
               <input
                 className={INPUT_CLASS}
                 value={form.name}
@@ -107,7 +109,7 @@ export function DealContactCard({
                 disabled={saving}
               />
             </Field>
-            <Field label="Email">
+            <Field label={t("email")}>
               <input
                 className={INPUT_CLASS}
                 type="email"
@@ -119,7 +121,7 @@ export function DealContactCard({
                 disabled={saving}
               />
             </Field>
-            <Field label="Phone">
+            <Field label={t("phone")}>
               <input
                 className={INPUT_CLASS}
                 value={form.phone}
@@ -139,28 +141,33 @@ export function DealContactCard({
 
             <div className="flex items-center gap-2">
               <Button onClick={save} disabled={saving}>
-                {saving ? "Saving…" : "Save"}
+                {saving ? t("savingShort") : t("save")}
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => setEditing(false)}
                 disabled={saving}
               >
-                Cancel
+                {t("cancel")}
               </Button>
             </div>
           </div>
         ) : hasContact ? (
           <dl className="space-y-3">
-            <ContactRow label="Name" value={contact.contactName} />
-            <ContactRow label="Email" value={contact.contactEmail} kind="email" />
-            <ContactRow label="Phone" value={contact.contactPhone} kind="phone" />
+            <ContactRow label={t("name")} value={contact.contactName} />
+            <ContactRow
+              label={t("email")}
+              value={contact.contactEmail}
+              kind="email"
+            />
+            <ContactRow
+              label={t("phone")}
+              value={contact.contactPhone}
+              kind="phone"
+            />
           </dl>
         ) : (
-          <p className="text-body text-neutral-500">
-            No contact details yet. Add the buyer contact (name, email, or phone)
-            so a post-loss interview can be sent later.
-          </p>
+          <p className="text-body text-neutral-500">{t("noContact")}</p>
         )}
       </CardBody>
     </Card>

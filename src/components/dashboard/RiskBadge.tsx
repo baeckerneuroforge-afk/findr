@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import type { RiskLevel } from "@/lib/deals/types";
 
 interface RiskBadgeProps {
@@ -27,12 +30,13 @@ const SIZE_STYLES = {
 } as const;
 
 export function RiskBadge({ score, level, size = "md" }: RiskBadgeProps) {
+  const t = useTranslations("sales.common");
   if (score === undefined) {
     return (
       <span
         className={`inline-flex items-center rounded-md border border-neutral-200 bg-neutral-50 font-medium italic text-neutral-400 ${SIZE_STYLES[size]}`}
       >
-        Not analyzed
+        {t("notAnalyzed")}
       </span>
     );
   }

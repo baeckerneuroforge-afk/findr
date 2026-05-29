@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 
 function defaultStart(): string {
@@ -14,6 +15,8 @@ function today(): string {
 }
 
 export function LossReportPanel() {
+  const t = useTranslations("sales.loss");
+  const tc = useTranslations("sales.common");
   const [start, setStart] = useState(defaultStart());
   const [end, setEnd] = useState(today());
   const [loading, setLoading] = useState(false);
@@ -32,12 +35,12 @@ export function LossReportPanel() {
     setLoading(false);
 
     if (!response.ok || !data.success) {
-      setFeedback(data.error ?? "Report generation failed.");
+      setFeedback(data.error ?? t("reportFailed"));
       return;
     }
 
     setFeedback(
-      `Report generated for ${data.report?.total_lost_deals ?? 0} lost deals.`,
+      t("reportGenerated", { count: data.report?.total_lost_deals ?? 0 }),
     );
   }
 
@@ -49,16 +52,14 @@ export function LossReportPanel() {
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-5">
       <div className="mb-4">
-        <h3 className="text-h3 text-neutral-900">Quarterly report</h3>
-        <p className="text-small text-neutral-500">
-          Generate a cached loss report for board and VP Sales reviews.
-        </p>
+        <h3 className="text-h3 text-neutral-900">{t("quarterlyTitle")}</h3>
+        <p className="text-small text-neutral-500">{t("quarterlyDesc")}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
         <label>
           <span className="mb-1 block text-small font-medium text-neutral-700">
-            Start
+            {t("start")}
           </span>
           <input
             type="date"
@@ -70,7 +71,7 @@ export function LossReportPanel() {
 
         <label>
           <span className="mb-1 block text-small font-medium text-neutral-700">
-            End
+            {t("end")}
           </span>
           <input
             type="date"
@@ -81,7 +82,7 @@ export function LossReportPanel() {
         </label>
 
         <Button onClick={generateReport} disabled={loading}>
-          {loading ? "Generating..." : "Generate"}
+          {loading ? t("generating") : t("generate")}
         </Button>
 
         <a
@@ -89,7 +90,7 @@ export function LossReportPanel() {
           download
           className="inline-flex h-8 items-center justify-center rounded-md border border-neutral-200 bg-white px-3 text-body-strong text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
         >
-          Download PDF
+          {tc("downloadPdf")}
         </a>
       </div>
 

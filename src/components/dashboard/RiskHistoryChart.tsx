@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 
 interface RiskScorePoint {
   date: string;
@@ -27,10 +28,12 @@ const LEVEL_COLORS = {
 
 export function RiskHistoryChart({
   history,
-  title = "Risk score over time",
+  title,
   higherIsBetter = false,
   thresholdValue = 70,
 }: RiskHistoryChartProps) {
+  const t = useTranslations("sales.deal");
+  const resolvedTitle = title ?? t("chartTitle");
   const chartData = useMemo(() => {
     const sorted = [...history].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
@@ -59,7 +62,7 @@ export function RiskHistoryChart({
   if (history.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-neutral-200 bg-white p-8 text-center text-body text-neutral-500">
-        No history yet. Risk scores are tracked over time once daily analysis runs.
+        {t("chartNoHistory")}
       </div>
     );
   }
@@ -67,7 +70,7 @@ export function RiskHistoryChart({
   if (history.length === 1) {
     return (
       <div className="rounded-lg border border-dashed border-neutral-200 bg-white p-8 text-center text-body text-neutral-500">
-        Only one data point so far. The chart will appear after the next analysis.
+        {t("chartOnePoint")}
       </div>
     );
   }
@@ -96,16 +99,19 @@ export function RiskHistoryChart({
     <div className="rounded-lg border border-neutral-200 bg-white p-6">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-h2 text-neutral-900">{title}</h3>
+          <h3 className="text-h2 text-neutral-900">{resolvedTitle}</h3>
           <p className="mt-1 text-small text-neutral-500">
-            {chartData.points.length} data points · Trend{" "}
-            <span className={trendColor}>{trendLabel} points</span>
+            {t.rich("chartTrend", {
+              count: chartData.points.length,
+              trend: trendLabel,
+              b: (chunks) => <span className={trendColor}>{chunks}</span>,
+            })}
           </p>
         </div>
         <div className="text-right">
           <div className="text-display text-neutral-900">{latest.score}</div>
           <div className="text-caption text-neutral-500 uppercase tracking-wider">
-            Current
+            {t("chartCurrent")}
           </div>
         </div>
       </div>
@@ -114,7 +120,7 @@ export function RiskHistoryChart({
         viewBox={`0 0 ${chartData.width} ${chartData.height}`}
         className="w-full"
         role="img"
-        aria-label={`${title} chart`}
+        aria-label={t("chartAria", { title: resolvedTitle })}
       >
         {[0, 25, 50, 75, 100].map((value) => {
           const y =

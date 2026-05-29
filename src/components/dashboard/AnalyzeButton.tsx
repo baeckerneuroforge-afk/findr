@@ -2,6 +2,7 @@
 
 import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 interface AnalyzeButtonProps {
   dealId: string;
@@ -9,6 +10,8 @@ interface AnalyzeButtonProps {
 }
 
 export function AnalyzeButton({ dealId, hasScore }: AnalyzeButtonProps) {
+  const t = useTranslations("sales.table");
+  const tc = useTranslations("sales.common");
   const router = useRouter();
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,16 +33,14 @@ export function AnalyzeButton({ dealId, hasScore }: AnalyzeButtonProps) {
           error?: string;
         };
         if (res.status === 503) {
-          setError(
-            "AI analysis is not available right now. The team is working on it.",
-          );
+          setError(tc("analyzeUnavailable"));
         }
         console.error(`Analyze failed for ${dealId}:`, data.error ?? res.status);
         return;
       }
       router.refresh();
     } catch (err) {
-      setError("AI analysis failed. Please try again later.");
+      setError(tc("analyzeFailed"));
       console.error(`Analyze failed for ${dealId}:`, err);
     } finally {
       setAnalyzing(false);
@@ -54,7 +55,11 @@ export function AnalyzeButton({ dealId, hasScore }: AnalyzeButtonProps) {
         disabled={analyzing}
         className="text-caption font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50 transition-colors"
       >
-        {analyzing ? "Analyzing…" : hasScore ? "Re-analyze" : "Analyze"}
+        {analyzing
+          ? t("analyzingShort")
+          : hasScore
+            ? t("reanalyze")
+            : t("analyze")}
       </button>
       {error && (
         <span className="max-w-44 text-right text-caption text-danger-700">

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { LossReasonBreakdown } from "@/components/dashboard/LossReasonBreakdown";
 import { LossReportPanel } from "@/components/dashboard/LossReportPanel";
@@ -30,6 +31,8 @@ export default async function LossAnalysisPage() {
     throw err;
   }
 
+  const t = await getTranslations("sales.loss");
+
   const end = new Date();
   const start = new Date(end);
   start.setDate(start.getDate() - 90);
@@ -41,24 +44,24 @@ export default async function LossAnalysisPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-display text-neutral-900">Loss analysis</h1>
-        <p className="mt-1 text-body text-neutral-500">
-          Auto-tagged closed-lost reasons from CRM status changes and call
-          transcripts.
-        </p>
+        <h1 className="text-display text-neutral-900">{t("title")}</h1>
+        <p className="mt-1 text-body text-neutral-500">{t("subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard label="Lost deals" value={report.total_lost_deals} />
+        <StatCard label={t("statLostDeals")} value={report.total_lost_deals} />
         <StatCard
-          label="Lost value"
+          label={t("statLostValue")}
           value={formatCurrency(report.total_lost_value)}
           status={report.total_lost_value > 0 ? "critical" : "default"}
         />
         <StatCard
-          label="Top reason"
-          value={report.breakdown[0]?.reason.replaceAll("_", " ") ?? "None"}
-          subtitle="Last 90 days"
+          label={t("statTopReason")}
+          value={
+            report.breakdown[0]?.reason.replaceAll("_", " ") ??
+            t("topReasonNone")
+          }
+          subtitle={t("last90Days")}
         />
       </div>
 
@@ -74,28 +77,26 @@ export default async function LossAnalysisPage() {
 
       <section className="space-y-4">
         <div>
-          <h2 className="text-h2 text-neutral-900">Reason breakdown</h2>
-          <p className="text-body text-neutral-500">
-            Ranked by lost deal count, with sample call evidence.
-          </p>
+          <h2 className="text-h2 text-neutral-900">{t("breakdownTitle")}</h2>
+          <p className="text-body text-neutral-500">{t("breakdownSubtitle")}</p>
         </div>
         <LossReasonBreakdown breakdown={report.breakdown} />
       </section>
 
       <section className="space-y-4">
         <div>
-          <h2 className="text-h2 text-neutral-900">Top lost companies</h2>
+          <h2 className="text-h2 text-neutral-900">{t("topCompaniesTitle")}</h2>
           <p className="text-body text-neutral-500">
-            Largest closed-lost opportunities in the selected period.
+            {t("topCompaniesSubtitle")}
           </p>
         </div>
         <Card>
           <CardBody>
             {report.top_lost_companies.length === 0 ? (
               <EmptyState
-                title="No lost companies in this period"
-                description="Closed-lost deals will appear here with amount, company, and extracted loss reason once Hubspot reports them."
-                cta={{ label: "Review pipeline", href: "/dashboard" }}
+                title={t("noCompaniesTitle")}
+                description={t("noCompaniesDesc")}
+                cta={{ label: t("reviewPipeline"), href: "/dashboard" }}
                 variant="subtle"
               />
             ) : (

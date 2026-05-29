@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ConfidenceIndicator } from "@/components/dashboard/ConfidenceIndicator";
 import { EvidenceQuote } from "@/components/dashboard/EvidenceQuote";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -87,29 +88,25 @@ function getRiskBadgeStyle(level: string): string {
 }
 
 function getSeverityBadge(severity: number): {
-  label: string;
+  labelKey: "sevCritical" | "sevElevated" | "sevInformational";
   className: string;
 } {
   if (severity >= 4) {
     return {
-      label: "Critical",
+      labelKey: "sevCritical",
       className: "border-danger-500/30 bg-danger-50 text-danger-700",
     };
   }
   if (severity >= 3) {
     return {
-      label: "Elevated",
+      labelKey: "sevElevated",
       className: "border-primary-200 bg-primary-50 text-primary-700",
     };
   }
   return {
-    label: "Informational",
+    labelKey: "sevInformational",
     className: "border-neutral-200 bg-white text-neutral-600",
   };
-}
-
-function formatSignalCount(count: number): string {
-  return `${count} risk ${count === 1 ? "signal" : "signals"} detected`;
 }
 
 function parseEvidenceQuote(quote: string): {
@@ -139,6 +136,7 @@ export function RiskSignalDrilldown({
   sourceCallCount,
   analysisMethod,
 }: RiskSignalDrilldownProps) {
+  const t = useTranslations("sales.deal");
   const [expandedSignal, setExpandedSignal] = useState<string | null>(
     signals[0]?.type ?? null,
   );
@@ -160,7 +158,7 @@ export function RiskSignalDrilldown({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="mb-1 text-caption uppercase tracking-wider text-neutral-500">
-              Risk assessment
+              {t("riskAssessment")}
             </div>
             <div className="flex flex-wrap items-baseline gap-3">
               <span className="text-display text-neutral-900">{riskScore}</span>
@@ -175,30 +173,29 @@ export function RiskSignalDrilldown({
               {averageConfidence !== null && (
                 <span className="inline-flex items-center gap-1.5">
                   <span className="inline-flex items-center gap-1 text-caption uppercase tracking-wider text-neutral-500">
-                    Confidence
-                    <InfoTooltip label="How certain the analysis is, based on available call evidence." />
+                    {t("confidence")}
+                    <InfoTooltip label={t("confidenceTip")} />
                   </span>
                   <ConfidenceIndicator confidence={averageConfidence} size="md" />
                 </span>
               )}
               {sourceCallCount !== undefined && (
-                <span>
-                  Based on {sourceCallCount}{" "}
-                  {sourceCallCount === 1 ? "call" : "calls"}
-                </span>
+                <span>{t("basedOnCalls", { count: sourceCallCount })}</span>
               )}
-              <span>{formatSignalCount(signals.length)}</span>
+              <span>{t("signalsDetected", { count: signals.length })}</span>
               {analysisMethod === "heuristic" && (
                 <span className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-caption font-medium text-neutral-600">
-                  Heuristic analysis
-                  <InfoTooltip label="Rule-based fallback — the AI model was unavailable when this ran, so a deterministic heuristic was used instead of the Claude classifier." />
+                  {t("heuristic")}
+                  <InfoTooltip label={t("heuristicTip")} />
                 </span>
               )}
             </div>
           </div>
           {analyzedAt && (
             <div className="text-caption text-neutral-500">
-              Analyzed {new Date(analyzedAt).toLocaleString("de-DE")}
+              {t("analyzedAt", {
+                date: new Date(analyzedAt).toLocaleString("de-DE"),
+              })}
             </div>
           )}
         </div>
@@ -209,7 +206,7 @@ export function RiskSignalDrilldown({
 
       <div>
         <h3 className="mb-3 text-h3 uppercase tracking-wider text-neutral-500">
-          Detected signals ({signals.length})
+          {t("detectedSignals", { count: signals.length })}
         </h3>
         <div className="space-y-2">
           {sortedSignals.map((signal) => {
@@ -246,7 +243,7 @@ export function RiskSignalDrilldown({
                       <span
                         className={`rounded-md border px-1.5 py-0.5 text-caption font-medium ${severityBadge.className}`}
                       >
-                        {severityBadge.label}
+                        {t(severityBadge.labelKey)}
                       </span>
                       <span className="ml-auto">
                         <ConfidenceIndicator
@@ -282,7 +279,7 @@ export function RiskSignalDrilldown({
                     )}
                     <div>
                       <div className="mb-1 text-caption uppercase tracking-wider text-neutral-500">
-                        Reasoning
+                        {t("reasoning")}
                       </div>
                       <p className="text-body leading-relaxed text-neutral-700">
                         {signal.reasoning}
@@ -291,7 +288,7 @@ export function RiskSignalDrilldown({
                     {signal.quotes && signal.quotes.length > 0 && (
                       <div>
                         <div className="mb-2 text-caption uppercase tracking-wider text-neutral-500">
-                          Triggering quotes ({signal.quotes.length})
+                          {t("triggeringQuotes", { count: signal.quotes.length })}
                         </div>
                         <div className="space-y-2">
                           {signal.quotes.map((quote, i) => {
@@ -320,7 +317,7 @@ export function RiskSignalDrilldown({
       {recommendations.length > 0 && (
         <div>
           <h3 className="mb-3 text-h3 uppercase tracking-wider text-neutral-500">
-            Recommended actions
+            {t("recommendedActions")}
           </h3>
           <div className="space-y-2">
             {recommendations.map((rec, i) => (

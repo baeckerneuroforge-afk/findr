@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatCard } from "@/components/ui/StatCard";
@@ -84,6 +85,9 @@ export default async function DashboardPage() {
     throw err;
   }
 
+  const t = await getTranslations("sales.pipeline");
+  const tc = await getTranslations("sales.common");
+
   const [baseDeals, onboardingStatus] = await Promise.all([
     getDealsByOrg(orgId),
     getOnboardingStatus(orgId),
@@ -124,10 +128,10 @@ export default async function DashboardPage() {
   const analyzed = deals.filter((d) => d.riskScore !== undefined).length;
   const atRiskSubtitle =
     analyzed === 0
-      ? "No deals analyzed yet"
+      ? t("atRiskNone")
       : atRisk === 0
-        ? "All clear"
-        : `${analyzed} analyzed`;
+        ? t("atRiskAllClear")
+        : t("atRiskAnalyzed", { count: analyzed });
   const active = deals.filter((d) => ACTIVE_STAGES.has(d.stage)).length;
   const closingSoon = deals.filter((d) => {
     if (!ACTIVE_STAGES.has(d.stage)) return false;
@@ -140,18 +144,16 @@ export default async function DashboardPage() {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-display text-neutral-900">Pipeline</h1>
-          <p className="text-body text-neutral-500 mt-1">
-            Connect a data source or import a deal manually to start analyzing.
-          </p>
+          <h1 className="text-display text-neutral-900">{t("title")}</h1>
+          <p className="text-body text-neutral-500 mt-1">{t("leadEmpty")}</p>
         </div>
         <OnboardingChecklist status={onboardingStatus} />
         <EmptyState
           icon={<PlugIcon />}
-          title="No deals yet"
-          description="Connect Hubspot, Gong, or create a manual deal with pasted transcripts. Once deals land, Findr will show risk signals, weighted forecast, and deal-level recommendations here."
+          title={t("emptyTitle")}
+          description={t("emptyDesc")}
           action={{
-            label: "Open Data Sources",
+            label: t("openDataSources"),
             href: "/dashboard/data-sources",
           }}
         />
@@ -164,10 +166,9 @@ export default async function DashboardPage() {
       {/* Page header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-display text-neutral-900">Pipeline</h1>
+          <h1 className="text-display text-neutral-900">{t("title")}</h1>
           <p className="text-body text-neutral-500 mt-1">
-            {deals.length} {deals.length === 1 ? "deal" : "deals"} in your
-            active pipeline
+            {t("activeCount", { count: deals.length })}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -175,7 +176,7 @@ export default async function DashboardPage() {
             href="/dashboard/forecast"
             className="text-body-strong text-neutral-700 hover:text-neutral-900"
           >
-            View full forecast -&gt;
+            {t("viewFullForecast")}
           </Link>
           <AnalyzeAllButton
             deals={deals.map((d) => ({ id: d.id, name: d.name }))}
@@ -187,26 +188,26 @@ export default async function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Total deals" value={deals.length} />
+        <StatCard label={t("statTotalDeals")} value={deals.length} />
         <StatCard
-          label="Deals at risk"
+          label={tc("dealsAtRisk")}
           value={atRisk}
           subtitle={atRiskSubtitle}
           status={atRisk > 0 ? "critical" : "default"}
         />
-        <StatCard label="Active" value={active} />
+        <StatCard label={t("statActive")} value={active} />
         <StatCard
           label={
             <>
-              Weighted forecast
-              <InfoTooltip label="Pipeline value adjusted by each deal's win probability." />
+              {tc("weightedForecast")}
+              <InfoTooltip label={tc("weightedForecastTip")} />
             </>
           }
           value={formatCurrency(forecast.weighted_pipeline_value)}
-          subtitle="Risk-adjusted"
+          subtitle={t("riskAdjusted")}
           status="primary"
         />
-        <StatCard label="Closing in 30d" value={closingSoon} />
+        <StatCard label={t("statClosingSoon")} value={closingSoon} />
       </div>
 
       {/* Deal table */}
@@ -219,10 +220,7 @@ export default async function DashboardPage() {
       </Card>
 
       {/* Hint */}
-      <p className="text-small text-neutral-500">
-        Click a deal to view call history, risk-score timeline, and run a fresh
-        analysis. Risk signals are recalculated daily by the background cron.
-      </p>
+      <p className="text-small text-neutral-500">{t("tableHint")}</p>
     </div>
   );
 }

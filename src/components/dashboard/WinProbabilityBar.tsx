@@ -1,3 +1,5 @@
+import { getTranslations } from "next-intl/server";
+
 interface WinProbabilityBarProps {
   probability: number;
   confidence?: "high" | "medium" | "low";
@@ -9,7 +11,7 @@ function getProbabilityTone(probability: number) {
       bar: "bg-success-500",
       dot: "bg-success-500",
       text: "text-success-700",
-      label: "Strong",
+      labelKey: "wpStrong" as const,
     };
   }
   if (probability < 25) {
@@ -17,7 +19,7 @@ function getProbabilityTone(probability: number) {
       bar: "bg-danger-500",
       dot: "bg-danger-500",
       text: "text-danger-700",
-      label: "Unlikely",
+      labelKey: "wpUnlikely" as const,
     };
   }
 
@@ -25,14 +27,15 @@ function getProbabilityTone(probability: number) {
     bar: "bg-primary-500",
     dot: "bg-neutral-300",
     text: "text-neutral-700",
-    label: probability >= 50 ? "Likely" : "Possible",
+    labelKey: probability >= 50 ? ("wpLikely" as const) : ("wpPossible" as const),
   };
 }
 
-export function WinProbabilityBar({
+export async function WinProbabilityBar({
   probability,
   confidence,
 }: WinProbabilityBarProps) {
+  const t = await getTranslations("sales.forecast");
   const tone = getProbabilityTone(probability);
   const clamped = Math.max(0, Math.min(100, probability));
 
@@ -44,7 +47,7 @@ export function WinProbabilityBar({
           <span>{clamped}%</span>
         </span>
         <span className="text-caption text-neutral-500">
-          {tone.label}
+          {t(tone.labelKey)}
           {confidence ? (
             <span className="text-neutral-400"> · {confidence}</span>
           ) : null}

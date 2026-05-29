@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import type { StageForecastBreakdown } from "@/lib/forecast/service";
 
@@ -25,10 +26,11 @@ function formatCurrency(value: number, currency: "EUR" | "USD") {
   }).format(value);
 }
 
-export function StageBreakdownChart({
+export async function StageBreakdownChart({
   stages,
   currency = "EUR",
 }: StageBreakdownChartProps) {
+  const t = await getTranslations("sales.forecast");
   const width = 760;
   const rowHeight = 54;
   const labelWidth = 138;
@@ -43,19 +45,19 @@ export function StageBreakdownChart({
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-h2 text-neutral-900">Stage breakdown</h2>
+            <h2 className="text-h2 text-neutral-900">{t("stageTitle")}</h2>
             <p className="text-small text-neutral-500 mt-1">
-              Total value compared with risk-adjusted value.
+              {t("stageSubtitle")}
             </p>
           </div>
           <div className="flex items-center gap-4 text-caption text-neutral-500">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-neutral-300" />
-              Pipeline
+              {t("legendPipeline")}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-primary-500" />
-              Weighted
+              {t("legendWeighted")}
             </span>
           </div>
         </div>
@@ -63,14 +65,14 @@ export function StageBreakdownChart({
       <CardBody>
         {stages.length === 0 ? (
           <div className="py-8 text-center text-body text-neutral-500">
-            No open deals.
+            {t("noOpenDeals")}
           </div>
         ) : (
           <svg
             viewBox={`0 0 ${width} ${height}`}
             className="w-full"
             role="img"
-            aria-label="Forecast value by pipeline stage"
+            aria-label={t("stageAria")}
           >
             {stages.map((stage, index) => {
               const y = topPadding + index * rowHeight;
@@ -89,7 +91,7 @@ export function StageBreakdownChart({
                     {STAGE_LABELS[stage.stage] ?? stage.stage}
                   </text>
                   <text x="0" y={y + 40} fill="#737373" fontSize="11">
-                    {stage.count} {stage.count === 1 ? "deal" : "deals"}
+                    {t("stageDealCount", { count: stage.count })}
                   </text>
 
                   <rect
@@ -131,7 +133,9 @@ export function StageBreakdownChart({
                     fontSize="11"
                     textAnchor="end"
                   >
-                    {formatCurrency(stage.weighted, currency)} weighted
+                    {t("weightedSuffix", {
+                      value: formatCurrency(stage.weighted, currency),
+                    })}
                   </text>
                 </g>
               );

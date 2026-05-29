@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { RepCoachingProfile } from "@/lib/coaching/service";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatCard } from "@/components/ui/StatCard";
@@ -21,6 +22,7 @@ interface CoachingDashboardProps {
 }
 
 export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
+  const t = useTranslations("sales.coaching");
   const [expandedRep, setExpandedRep] = useState<string | null>(
     profiles[0]?.repName ?? null,
   );
@@ -28,9 +30,9 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
   if (profiles.length === 0) {
     return (
       <EmptyState
-        title="No coaching data yet"
-        description="Run risk analysis on a few deals to reveal team patterns, coaching recommendations, and rep-level risk trends."
-        cta={{ label: "Go to pipeline", href: "/dashboard" }}
+        title={t("emptyTitle")}
+        description={t("emptyDesc")}
+        cta={{ label: t("goToPipeline"), href: "/dashboard" }}
       />
     );
   }
@@ -47,10 +49,10 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
   return (
     <div className="space-y-4">
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard label="Reps tracked" value={profiles.length} />
-        <StatCard label="Total active deals" value={activeDeals} />
+        <StatCard label={t("statReps")} value={profiles.length} />
+        <StatCard label={t("statActiveDeals")} value={activeDeals} />
         <StatCard
-          label="Deals at risk"
+          label={t("statDealsAtRisk")}
           value={dealsAtRisk}
           status={dealsAtRisk > 0 ? "critical" : "default"}
         />
@@ -106,8 +108,11 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
                     {profile.repName}
                   </div>
                   <div className="mt-0.5 text-small text-neutral-500">
-                    {profile.activeDeals} active · {profile.dealsAtRisk} at risk ·
-                    avg risk {profile.avgRiskScore}
+                    {t("repSummary", {
+                      active: profile.activeDeals,
+                      atRisk: profile.dealsAtRisk,
+                      avg: profile.avgRiskScore,
+                    })}
                   </div>
                 </div>
               </div>
@@ -116,7 +121,7 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
                 {profile.topPattern && (
                   <div className="hidden text-right sm:block">
                     <div className="mb-1 text-caption text-neutral-500">
-                      Top pattern
+                      {t("topPattern")}
                     </div>
                     <div className="text-small font-medium text-warning-700">
                       {SIGNAL_LABELS[profile.topPattern.type] ??
@@ -127,7 +132,7 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
                 <div
                   className={`rounded-md px-3 py-1.5 text-small font-semibold ${ratioStyle}`}
                 >
-                  {atRiskRatio}% at risk
+                  {t("atRiskRatio", { pct: atRiskRatio })}
                 </div>
                 <svg
                   className={`h-4 w-4 text-neutral-400 transition-transform ${
@@ -153,24 +158,27 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
                 {profile.topPattern && (
                   <div className="rounded-lg border border-warning-500/30 bg-warning-50 p-4">
                     <div className="mb-1 text-caption font-medium uppercase tracking-wider text-warning-700">
-                      Manager insight
+                      {t("managerInsight")}
                     </div>
                     <p className="text-body leading-relaxed text-neutral-900">
-                      {profile.repName} shows{" "}
-                      {SIGNAL_LABELS[profile.topPattern.type] ??
-                        profile.topPattern.type}{" "}
-                      in {patternRatio}% of tracked deals.
+                      {t("insightSentence", {
+                        rep: profile.repName,
+                        pattern:
+                          SIGNAL_LABELS[profile.topPattern.type] ??
+                          profile.topPattern.type,
+                        pct: patternRatio,
+                      })}
                     </p>
                   </div>
                 )}
 
                 <div>
                   <h4 className="mb-3 text-h3 text-neutral-900">
-                    Loss pattern frequency
+                    {t("lossPatternFreq")}
                   </h4>
                   {signalEntries.length === 0 ? (
                     <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-body text-neutral-500">
-                      No loss patterns detected yet for this rep.
+                      {t("noPatterns")}
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -187,7 +195,7 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
                                 {SIGNAL_LABELS[type] ?? type}
                               </span>
                               <span className="shrink-0 text-caption text-neutral-500">
-                                {count}× detected
+                                {t("detectedCount", { count })}
                               </span>
                             </div>
                             <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
@@ -206,11 +214,13 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
                 {profile.recommendations.length > 0 && (
                   <div>
                     <h4 className="mb-3 text-h3 text-neutral-900">
-                      Coaching recommendations
+                      {t("coachingRecs")}
                     </h4>
                     <p className="mb-3 text-small text-neutral-500">
-                      Based on top pattern:{" "}
-                      {SIGNAL_LABELS[profile.topPattern?.type ?? ""] ?? ""}
+                      {t("basedOnPattern", {
+                        pattern:
+                          SIGNAL_LABELS[profile.topPattern?.type ?? ""] ?? "",
+                      })}
                     </p>
                     <div className="space-y-2">
                       {profile.recommendations.map((recommendation, i) => (

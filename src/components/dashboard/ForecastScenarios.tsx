@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Card, CardBody } from "@/components/ui/Card";
 
 interface ForecastScenariosProps {
@@ -15,29 +16,33 @@ function formatCurrency(value: number, currency: "EUR" | "USD") {
   }).format(value);
 }
 
-export function ForecastScenarios({
+export async function ForecastScenarios({
   bestCase,
   likelyCase,
   worstCase,
   currency = "EUR",
 }: ForecastScenariosProps) {
+  const t = await getTranslations("sales.forecast");
   const scenarios = [
     {
-      label: "Best case",
+      id: "best",
+      label: t("scenarioBest"),
       value: bestCase,
-      description: "High-probability deals close",
+      description: t("scenarioBestDesc"),
       tone: "text-success-700",
     },
     {
-      label: "Likely",
+      id: "likely",
+      label: t("scenarioLikely"),
       value: likelyCase,
-      description: "Risk-adjusted weighted forecast",
+      description: t("scenarioLikelyDesc"),
       tone: "text-primary-700",
     },
     {
-      label: "Worst case",
+      id: "worst",
+      label: t("scenarioWorst"),
       value: worstCase,
-      description: "Only near-certain deals close",
+      description: t("scenarioWorstDesc"),
       tone: "text-danger-700",
     },
   ];
@@ -45,7 +50,7 @@ export function ForecastScenarios({
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       {scenarios.map((scenario) => (
-        <Card key={scenario.label}>
+        <Card key={scenario.id}>
           <CardBody>
             <div className="text-caption text-neutral-500 mb-2 uppercase tracking-wider font-medium">
               {scenario.label}

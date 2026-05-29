@@ -90,6 +90,7 @@ export default async function RootLayout({
               command: MESSAGES[locale].command,
               settings: MESSAGES[locale].settings,
               common: MESSAGES[locale].common,
+              sales: MESSAGES[locale].sales,
             }}
           >
             {children}

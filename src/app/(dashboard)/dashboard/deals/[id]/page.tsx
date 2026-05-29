@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
@@ -55,6 +56,7 @@ export default async function DealDetailPage({
     throw err;
   }
 
+  const t = await getTranslations("sales.deal");
   const { id } = await params;
   const deal = await getDealById(orgId, id);
   if (!deal) notFound();
@@ -103,7 +105,7 @@ export default async function DealDetailPage({
           href="/dashboard"
           className="transition-colors hover:text-neutral-900"
         >
-          Pipeline
+          {t("breadcrumbPipeline")}
         </Link>
         <span aria-hidden="true">/</span>
         <span className="truncate text-neutral-900">{deal.name}</span>
@@ -130,7 +132,7 @@ export default async function DealDetailPage({
               }).format(deal.amount)}
             </span>
             <span aria-hidden="true">·</span>
-            <span>Champion: {deal.championName}</span>
+            <span>{t("champion", { name: deal.championName })}</span>
           </div>
         </div>
         <RiskBadge
@@ -176,9 +178,9 @@ export default async function DealDetailPage({
       {!latestRisk && (
         <div className="mb-8">
           <EmptyState
-            title="Not analyzed yet"
-            description="Run analysis from the pipeline table to see risk signals, confidence, evidence quotes, and recommended next steps for this deal."
-            action={{ label: "Back to pipeline", href: "/dashboard" }}
+            title={t("notAnalyzedTitle")}
+            description={t("notAnalyzedDesc")}
+            action={{ label: t("backToPipeline"), href: "/dashboard" }}
           />
         </div>
       )}
@@ -196,13 +198,13 @@ export default async function DealDetailPage({
       {/* Calls */}
       <div className="mb-8">
         <h2 className="mb-4 text-h2 text-neutral-900">
-          Call history ({calls.length})
+          {t("callHistory", { count: calls.length })}
         </h2>
         {calls.length === 0 ? (
           <EmptyState
             icon={<PhoneIcon />}
-            title="No calls recorded yet"
-            description="Once you connect a calling provider (Gong, Chorus, Zoom) or upload transcripts, Findr will analyze every conversation for risk signals."
+            title={t("noCallsTitle")}
+            description={t("noCallsDesc")}
             variant="default"
           />
         ) : (

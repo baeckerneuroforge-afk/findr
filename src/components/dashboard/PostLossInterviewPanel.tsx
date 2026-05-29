@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
@@ -33,11 +34,14 @@ interface PostLossInterviewPanelProps {
 
 const STATUS_META: Record<
   SessionView["status"],
-  { label: string; variant: BadgeVariant }
+  {
+    labelKey: "statusInProgress" | "statusCompleted" | "statusAbandoned";
+    variant: BadgeVariant;
+  }
 > = {
-  open: { label: "In progress", variant: "default" },
-  completed: { label: "Completed", variant: "success" },
-  abandoned: { label: "Abandoned", variant: "default" },
+  open: { labelKey: "statusInProgress", variant: "default" },
+  completed: { labelKey: "statusCompleted", variant: "success" },
+  abandoned: { labelKey: "statusAbandoned", variant: "default" },
 };
 
 // Human-readable labels for the loss-reason categories (the enum values stored
@@ -56,8 +60,7 @@ const LOSS_REASON_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-function lossReasonLabel(reason: string | null | undefined): string {
-  if (!reason) return "Unknown";
+function lossReasonLabel(reason: string): string {
   return (
     LOSS_REASON_LABELS[reason] ??
     reason
@@ -79,24 +82,27 @@ function matchBadgeStyle(m: MatchPrediction): string {
   return "border-warning-500/30 bg-warning-50 text-warning-700";
 }
 
-function matchBadgeLabel(m: MatchPrediction): string {
-  if (m === "yes") return "Yes";
-  if (m === "no") return "No";
-  return "Partially";
+function matchBadgeLabelKey(
+  m: MatchPrediction,
+): "matchYes" | "matchNo" | "matchPartial" {
+  if (m === "yes") return "matchYes";
+  if (m === "no") return "matchNo";
+  return "matchPartial";
 }
 
-function matchStatement(m: MatchPrediction): string {
-  if (m === "yes")
-    return "Findr's risk analysis predicted the real reason this deal was lost.";
-  if (m === "no")
-    return "The real reason differed from what Findr's risk analysis predicted.";
-  return "Findr's risk analysis caught part of the real reason, but not all of it.";
+function matchStatementKey(
+  m: MatchPrediction,
+): "matchStatementYes" | "matchStatementNo" | "matchStatementPartial" {
+  if (m === "yes") return "matchStatementYes";
+  if (m === "no") return "matchStatementNo";
+  return "matchStatementPartial";
 }
 
 const INPUT_CLASS =
   "h-9 min-w-0 flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-body text-neutral-700 outline-none";
 
 function CompletedResult({ session }: { session: SessionView }) {
+  const t = useTranslations("sales.deal");
   const [showConversation, setShowConversation] = useState(false);
   const mp = session.matchedRiskPrediction ?? null;
   const conversation = session.conversation ?? [];
@@ -107,15 +113,17 @@ function CompletedResult({ session }: { session: SessionView }) {
       {mp && (
         <div className={`rounded-lg border p-5 ${matchHeaderStyle(mp)}`}>
           <div className="mb-2 text-caption uppercase tracking-wider text-neutral-500">
-            Did Findr&apos;s risk analysis call it?
+            {t("didFindrCallIt")}
           </div>
           <span
             className={`inline-block rounded-md border px-2 py-0.5 text-caption font-semibold uppercase ${matchBadgeStyle(mp)}`}
           >
-            {matchBadgeLabel(mp)}
+            {t(matchBadgeLabelKey(mp))}
           </span>
           <p className="mt-3 text-body leading-relaxed text-neutral-700">
-            {session.reasoning?.trim() ? session.reasoning : matchStatement(mp)}
+            {session.reasoning?.trim()
+              ? session.reasoning
+              : t(matchStatementKey(mp))}
           </p>
         </div>
       )}
@@ -123,10 +131,12 @@ function CompletedResult({ session }: { session: SessionView }) {
       {/* Extracted real loss reason */}
       <div>
         <div className="mb-1.5 text-caption uppercase tracking-wider text-neutral-500">
-          Real loss reason
+          {t("realLossReason")}
         </div>
         <div className="text-h2 text-neutral-900">
-          {lossReasonLabel(session.extractedReason)}
+          {session.extractedReason
+            ? lossReasonLabel(session.extractedReason)
+            : t("lossReasonUnknown")}
         </div>
       </div>
 
@@ -134,7 +144,7 @@ function CompletedResult({ session }: { session: SessionView }) {
       {session.evidence?.trim() && (
         <div>
           <div className="mb-1.5 text-caption uppercase tracking-wider text-neutral-500">
-            In the buyer&apos;s words
+            {t("inBuyersWords")}
           </div>
           <EvidenceQuote quote={session.evidence} speakerRole="buyer" />
         </div>
@@ -148,14 +158,14 @@ function CompletedResult({ session }: { session: SessionView }) {
             onClick={() => setShowConversation((v) => !v)}
             className="rounded-md px-2.5 py-1 text-caption font-medium text-primary-700 transition-colors hover:bg-primary-50"
           >
-            {showConversation ? "Hide conversation" : "Show conversation"}
+            {showConversation ? t("hideConversation") : t("showConversation")}
           </button>
           {showConversation && (
             <div className="mt-2 max-h-[500px] space-y-3 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-4">
               {conversation.map((turn, i) => (
                 <div key={i}>
                   <div className="mb-0.5 text-caption font-medium text-neutral-500">
-                    {turn.role === "agent" ? "Findr" : "Buyer"}
+                    {turn.role === "agent" ? "Findr" : t("roleBuyer")}
                   </div>
                   <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-700">
                     {turn.text}
@@ -177,6 +187,8 @@ export function PostLossInterviewPanel({
   autoInterviewEnabled,
   initialSession,
 }: PostLossInterviewPanelProps) {
+  const t = useTranslations("sales.deal");
+  const tc = useTranslations("sales.common");
   const [session, setSession] = useState<SessionView | null>(initialSession);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,13 +217,11 @@ export function PostLossInterviewPanel({
         session?: SessionView;
       };
       if (!res.ok || !data.session) {
-        throw new Error(data.error ?? "Could not start the interview.");
+        throw new Error(data.error ?? t("errStart"));
       }
       setSession(data.session);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not start the interview.",
-      );
+      setError(err instanceof Error ? err.message : t("errStart"));
     } finally {
       setLoading(false);
     }
@@ -241,13 +251,11 @@ export function PostLossInterviewPanel({
         invitedAt?: string | null;
       };
       if (!res.ok) {
-        throw new Error(data.error ?? "Could not send the invitation.");
+        throw new Error(data.error ?? t("errInvite"));
       }
       setInvitedAt(data.invitedAt ?? new Date().toISOString());
     } catch (err) {
-      setInviteError(
-        err instanceof Error ? err.message : "Could not send the invitation.",
-      );
+      setInviteError(err instanceof Error ? err.message : t("errInvite"));
     } finally {
       setSending(false);
     }
@@ -258,19 +266,18 @@ export function PostLossInterviewPanel({
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-h2 text-neutral-900">Post-Loss Interview</h2>
-        <p className="mt-1 text-small text-neutral-500">
-          A short, confidential chat that surfaces the real reason this deal was
-          lost and checks it against the risk prediction.
-        </p>
+        <h2 className="text-h2 text-neutral-900">{t("panelTitle")}</h2>
+        <p className="mt-1 text-small text-neutral-500">{t("panelSubtitle")}</p>
       </CardHeader>
       <CardBody>
         {session ? (
           <div className="space-y-5">
             <div className="flex items-center gap-2">
-              <span className="text-body text-neutral-500">Status</span>
+              <span className="text-body text-neutral-500">
+                {t("statusLabel")}
+              </span>
               <Badge variant={STATUS_META[session.status].variant}>
-                {STATUS_META[session.status].label}
+                {t(STATUS_META[session.status].labelKey)}
               </Badge>
               {isCompleted && (
                 <a
@@ -278,7 +285,7 @@ export function PostLossInterviewPanel({
                   className="ml-auto"
                 >
                   <Button variant="secondary" size="sm">
-                    Export PDF
+                    {tc("exportPdf")}
                   </Button>
                 </a>
               )}
@@ -288,7 +295,7 @@ export function PostLossInterviewPanel({
 
             <div>
               <span className="mb-1.5 block text-body-strong text-neutral-900">
-                Interview link
+                {t("interviewLink")}
               </span>
               <div className="flex flex-wrap items-center gap-2">
                 <input
@@ -298,15 +305,15 @@ export function PostLossInterviewPanel({
                   className={INPUT_CLASS}
                 />
                 <Button variant="secondary" onClick={copy}>
-                  {copied ? "Copied" : "Copy link"}
+                  {copied ? t("copied") : t("copyLink")}
                 </Button>
                 <a href={link} target="_blank" rel="noreferrer">
-                  <Button variant="ghost">Open</Button>
+                  <Button variant="ghost">{t("open")}</Button>
                 </a>
               </div>
               {!isCompleted && (
                 <p className="mt-2 text-small text-neutral-500">
-                  Or copy the link to share it manually.
+                  {t("orCopyLink")}
                 </p>
               )}
             </div>
@@ -314,16 +321,19 @@ export function PostLossInterviewPanel({
             {session.status === "open" && (
               <div className="border-t border-neutral-100 pt-4">
                 <span className="mb-1.5 block text-body-strong text-neutral-900">
-                  Email invitation
+                  {t("emailInvitation")}
                 </span>
                 {!contactEmail ? (
                   <p className="text-small text-neutral-500">
-                    Add a contact email to send the invitation.
+                    {t("addEmailToSend")}
                   </p>
                 ) : invitedAt ? (
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-small text-success-700">
-                      Invitation sent to {contactEmail} · {invitedAt.slice(0, 10)}
+                      {t("invitationSent", {
+                        email: contactEmail,
+                        date: invitedAt.slice(0, 10),
+                      })}
                     </p>
                     <Button
                       variant="ghost"
@@ -331,16 +341,16 @@ export function PostLossInterviewPanel({
                       onClick={sendInvite}
                       disabled={sending}
                     >
-                      {sending ? "Sending…" : "Resend"}
+                      {sending ? t("sendingShort") : t("resend")}
                     </Button>
                   </div>
                 ) : (
                   <div className="flex flex-wrap items-center gap-2">
                     <Button onClick={sendInvite} disabled={sending}>
-                      {sending ? "Sending…" : "Send invitation"}
+                      {sending ? t("sendingShort") : t("sendInvitation")}
                     </Button>
                     <span className="text-small text-neutral-500">
-                      to {contactEmail}
+                      {t("toEmail", { email: contactEmail })}
                     </span>
                   </div>
                 )}
@@ -356,18 +366,17 @@ export function PostLossInterviewPanel({
           <div className="space-y-3">
             {autoInterviewEnabled && (!hasContact || !contactEmail) && (
               <div className="rounded-md border border-warning-500/30 bg-warning-50 px-3 py-2 text-small text-warning-700">
-                Auto-interview not started: a contact email is required. Add the
-                contact details above, then start it manually below.
+                {t("autoNotStarted")}
               </div>
             )}
             {!hasContact ? (
               <p className="text-body text-neutral-500">
-                Add contact details to start an interview.
+                {t("addContactToStart")}
               </p>
             ) : (
               <>
                 <p className="text-body text-neutral-700">
-                  Generate a one-time interview link for the buyer contact.
+                  {t("generateLinkPrompt")}
                 </p>
                 {error && (
                   <div className="rounded-md border border-danger-500/20 bg-danger-50 px-3 py-2 text-small text-danger-700">
@@ -375,7 +384,7 @@ export function PostLossInterviewPanel({
                   </div>
                 )}
                 <Button onClick={start} disabled={loading}>
-                  {loading ? "Starting…" : "Start interview"}
+                  {loading ? t("startingShort") : t("startInterview")}
                 </Button>
               </>
             )}

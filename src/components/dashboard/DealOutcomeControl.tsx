@@ -2,14 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { DealOutcome } from "@/lib/deals/types";
 
-const META: Record<DealOutcome, { label: string; variant: BadgeVariant }> = {
-  open: { label: "Open", variant: "default" },
-  won: { label: "Won", variant: "success" },
-  lost: { label: "Lost", variant: "critical" },
+const META: Record<
+  DealOutcome,
+  { labelKey: "outcomeOpen" | "outcomeWon" | "outcomeLost"; variant: BadgeVariant }
+> = {
+  open: { labelKey: "outcomeOpen", variant: "default" },
+  won: { labelKey: "outcomeWon", variant: "success" },
+  lost: { labelKey: "outcomeLost", variant: "critical" },
 };
 
 interface DealOutcomeControlProps {
@@ -21,6 +25,7 @@ export function DealOutcomeControl({
   dealId,
   initialOutcome,
 }: DealOutcomeControlProps) {
+  const tr = useTranslations("sales.deal");
   const router = useRouter();
   const [outcome, setOutcome] = useState<DealOutcome>(initialOutcome);
   const [busy, setBusy] = useState(false);
@@ -38,13 +43,13 @@ export function DealOutcomeControl({
         body: JSON.stringify({ outcome: next }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Could not update outcome.");
+      if (!res.ok) throw new Error(data.error ?? tr("errOutcome"));
       setOutcome(next);
       // Re-render the server component so the Post-Loss Interview section
       // appears/disappears for the new outcome.
       startTransition(() => router.refresh());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update outcome.");
+      setError(err instanceof Error ? err.message : tr("errOutcome"));
     } finally {
       setBusy(false);
     }
@@ -62,16 +67,20 @@ export function DealOutcomeControl({
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <Badge variant={meta.variant}>{meta.label}</Badge>
-      {transitions.map((t) => (
+      <Badge variant={meta.variant}>{tr(meta.labelKey)}</Badge>
+      {transitions.map((next) => (
         <Button
-          key={t}
+          key={next}
           size="sm"
-          variant={t === "lost" ? "danger" : "secondary"}
-          onClick={() => setTo(t)}
+          variant={next === "lost" ? "danger" : "secondary"}
+          onClick={() => setTo(next)}
           disabled={busy || pending}
         >
-          {t === "open" ? "Reopen" : `Mark as ${t}`}
+          {next === "open"
+            ? tr("reopen")
+            : next === "won"
+              ? tr("markAsWon")
+              : tr("markAsLost")}
         </Button>
       ))}
       {error && <span className="text-small text-danger-700">{error}</span>}

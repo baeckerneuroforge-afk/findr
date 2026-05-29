@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardBody } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -25,17 +26,18 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export function LossReasonBreakdown({
+export async function LossReasonBreakdown({
   breakdown,
 }: {
   breakdown: LossReportData["breakdown"];
 }) {
+  const t = await getTranslations("sales.loss");
   if (breakdown.length === 0) {
     return (
       <EmptyState
-        title="No closed-lost deals yet"
-        description="When deals are lost, Findr extracts the real reasons here so you can spot patterns before they repeat."
-        cta={{ label: "Review pipeline", href: "/dashboard" }}
+        title={t("lrNoneTitle")}
+        description={t("lrNoneDesc")}
+        cta={{ label: t("reviewPipeline"), href: "/dashboard" }}
       />
     );
   }
@@ -51,7 +53,7 @@ export function LossReasonBreakdown({
                   {REASON_LABELS[item.reason]}
                 </div>
                 <div className="text-small text-neutral-500">
-                  {item.count} lost {item.count === 1 ? "deal" : "deals"}
+                  {t("lrLostDeals", { count: item.count })}
                 </div>
               </div>
               <Badge variant={item.percentage >= 40 ? "critical" : "default"}>
@@ -63,13 +65,15 @@ export function LossReasonBreakdown({
               <div className="text-display text-neutral-900">
                 {formatCurrency(item.value)}
               </div>
-              <div className="text-small text-neutral-500">lost value</div>
+              <div className="text-small text-neutral-500">
+                {t("lrLostValue")}
+              </div>
             </div>
 
             {item.sample_quotes.length > 0 && (
               <div className="space-y-2">
                 <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-                  Evidence
+                  {t("lrEvidence")}
                 </div>
                 {item.sample_quotes.map((quote) => (
                   <blockquote

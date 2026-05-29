@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { EvidenceQuote } from "@/components/dashboard/EvidenceQuote";
 import type { SolutionReport } from "@/lib/solution/service";
@@ -31,10 +32,12 @@ function verdictBadgeStyle(s: Salvageable): string {
   return "border-primary-200 bg-primary-50 text-primary-700";
 }
 
-function verdictLabel(s: Salvageable): string {
-  if (s === "yes") return "Salvageable";
-  if (s === "no") return "Hard to save";
-  return "Uncertain";
+function verdictLabelKey(
+  s: Salvageable,
+): "verdictSalvageable" | "verdictHard" | "verdictUncertain" {
+  if (s === "yes") return "verdictSalvageable";
+  if (s === "no") return "verdictHard";
+  return "verdictUncertain";
 }
 
 function Spinner() {
@@ -63,6 +66,7 @@ function Spinner() {
 }
 
 function SolutionReportView({ report }: { report: SolutionReport }) {
+  const t = useTranslations("sales.deal");
   const salvageable: Salvageable =
     report.salvageable ?? report.overall.salvageable ?? "maybe";
   const reasoning = report.overall.reasoning;
@@ -73,12 +77,12 @@ function SolutionReportView({ report }: { report: SolutionReport }) {
       {/* Overall verdict */}
       <div className={`rounded-lg border p-6 ${verdictHeaderStyle(salvageable)}`}>
         <div className="mb-2 text-caption uppercase tracking-wider text-neutral-500">
-          Can this deal be saved?
+          {t("canBeSaved")}
         </div>
         <span
           className={`inline-block rounded-md border px-2 py-0.5 text-caption font-semibold uppercase ${verdictBadgeStyle(salvageable)}`}
         >
-          {verdictLabel(salvageable)}
+          {t(verdictLabelKey(salvageable))}
         </span>
         {reasoning && (
           <p className="mt-3 text-body leading-relaxed text-neutral-700">
@@ -90,13 +94,12 @@ function SolutionReportView({ report }: { report: SolutionReport }) {
       {/* Healthy deal — no recommendations */}
       {recommendations.length === 0 ? (
         <div className="rounded-lg border border-success-500/30 bg-success-50 px-4 py-4 text-body leading-relaxed text-success-700">
-          No rescue actions needed — this deal looks healthy. Keep the momentum
-          going.
+          {t("noRescue")}
         </div>
       ) : (
         <div>
           <h4 className="mb-3 text-h3 uppercase tracking-wider text-neutral-500">
-            Recommended moves ({recommendations.length})
+            {t("recommendedMoves", { count: recommendations.length })}
           </h4>
           <div className="space-y-3">
             {recommendations.map((rec, i) => (
@@ -115,7 +118,7 @@ function SolutionReportView({ report }: { report: SolutionReport }) {
                 {/* Next step — highlighted */}
                 <div className="rounded-md border border-primary-100 bg-primary-50 px-3 py-2">
                   <div className="mb-0.5 text-caption uppercase tracking-wider text-primary-700">
-                    Next step
+                    {t("nextStep")}
                   </div>
                   <p className="text-body-strong leading-relaxed text-neutral-900">
                     {rec.nextStep}
@@ -126,7 +129,7 @@ function SolutionReportView({ report }: { report: SolutionReport }) {
                 {rec.evidence && (
                   <EvidenceQuote
                     quote={rec.evidence}
-                    context="Evidence from this deal"
+                    context={t("evidenceFromDeal")}
                   />
                 )}
               </div>
@@ -139,6 +142,8 @@ function SolutionReportView({ report }: { report: SolutionReport }) {
 }
 
 export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
+  const t = useTranslations("sales.deal");
+  const tc = useTranslations("sales.common");
   const [report, setReport] = useState<SolutionReport | null>(initialReport);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -159,15 +164,11 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
           error?: string;
         };
         if (res.status === 404) {
-          setError("Run a risk analysis for this deal first.");
+          setError(t("errNoRisk"));
         } else if (res.status === 502) {
-          setError(
-            "The AI couldn't generate recommendations right now. Please try again.",
-          );
+          setError(t("errAi"));
         } else {
-          setError(
-            data.error ?? "Solution generation failed. Please try again later.",
-          );
+          setError(data.error ?? t("errSolution"));
         }
         console.error(
           `Solution generate failed for ${dealId}:`,
@@ -179,7 +180,7 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
       const data = (await res.json()) as { report: SolutionReport };
       setReport(data.report);
     } catch (err) {
-      setError("Solution generation failed. Please try again later.");
+      setError(t("errSolution"));
       console.error(`Solution generate failed for ${dealId}:`, err);
     } finally {
       setLoading(false);
@@ -191,13 +192,14 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-h3 uppercase tracking-wider text-neutral-500">
-            Solution recommendations
+            {t("solutionRecs")}
           </h3>
           {report && (
             <p className="mt-1 text-caption text-neutral-400">
-              Generated{" "}
-              {new Date(report.created_at).toLocaleString("de-DE")} ·{" "}
-              {report.model}
+              {t("generatedAt", {
+                date: new Date(report.created_at).toLocaleString("de-DE"),
+                model: report.model,
+              })}
             </p>
           )}
         </div>
@@ -208,7 +210,7 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
               download
               className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-white px-3 text-body-strong font-medium text-neutral-900 transition-colors duration-150 hover:border-neutral-300 hover:bg-neutral-50"
             >
-              Export PDF
+              {tc("exportPdf")}
             </a>
           )}
           <Button
@@ -218,12 +220,12 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
           >
             {loading ? (
               <>
-                <Spinner /> Generating…
+                <Spinner /> {t("generatingShort")}
               </>
             ) : report ? (
-              "Regenerate"
+              t("regenerate")
             ) : (
-              "Generate recommendations"
+              t("generateRecs")
             )}
           </Button>
         </div>
@@ -231,8 +233,7 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
 
       {loading && (
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-small text-neutral-500">
-          Generating rescue recommendations with AI — this can take a few
-          seconds.
+          {t("generatingHint")}
         </div>
       )}
 
@@ -244,8 +245,7 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
 
       {!report && !loading && !error && (
         <div className="rounded-lg border border-dashed border-neutral-200 bg-white px-4 py-6 text-center text-small text-neutral-500">
-          Generate AI rescue recommendations grounded in this deal&apos;s risk
-          signals and call evidence.
+          {t("generatePrompt")}
         </div>
       )}
 
