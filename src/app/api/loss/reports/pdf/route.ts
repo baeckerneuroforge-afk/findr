@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireOrgIdOrError, getOrgName } from "@/lib/auth/org";
 import { generateQuarterlyReport } from "@/lib/loss/reports";
 import { buildLossReportPdf } from "@/lib/pdf/generator";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
 
 function dateParam(value: string | null, fallback: Date): Date {
   if (!value) return fallback;
@@ -10,6 +12,11 @@ function dateParam(value: string | null, fallback: Date): Date {
 }
 
 export async function GET(req: NextRequest) {
+  const t = await getTranslations("errors");
+  const resolvedLocale = await getLocale();
+  const locale: Locale = isLocale(resolvedLocale)
+    ? resolvedLocale
+    : DEFAULT_LOCALE;
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const orgId = orgOrError.orgId;
@@ -25,7 +32,7 @@ export async function GET(req: NextRequest) {
       dateParam(req.nextUrl.searchParams.get("end"), now),
     );
     const orgName = await getOrgName(orgId);
-    const pdf = await buildLossReportPdf(report, orgName);
+    const pdf = await buildLossReportPdf(report, orgName, locale);
 
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
@@ -37,7 +44,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       {
-        error: "Failed to generate loss-report PDF",
+        error: t("loss.pdfFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
@@ -22,6 +23,7 @@ import {
  */
 
 export async function GET(_request: NextRequest): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -36,7 +38,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     );
     return NextResponse.json(
       {
-        error: "Could not list bridge suggestions",
+        error: t("bridge.couldNotList"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
@@ -45,6 +47,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(_request: NextRequest): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -62,7 +65,7 @@ export async function POST(_request: NextRequest): Promise<NextResponse> {
     );
     return NextResponse.json(
       {
-        error: "Could not scan for bridge suggestions",
+        error: t("bridge.couldNotScan"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

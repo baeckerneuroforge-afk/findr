@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type MouseEvent } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
+import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 
 /**
@@ -106,11 +107,14 @@ function signalTag(type: string): string {
   return SIGNAL_LABEL[type] ?? type;
 }
 
-function formatDate(iso: string | null | undefined): string | null {
+function formatDate(
+  iso: string | null | undefined,
+  locale: string,
+): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (!Number.isFinite(d.getTime())) return null;
-  return d.toLocaleDateString("de-DE", {
+  return d.toLocaleDateString(toBcp47(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -122,6 +126,7 @@ export function SalesHandoverPanel({
 }: SalesHandoverPanelProps) {
   const router = useRouter();
   const t = useTranslations("research.bridge");
+  const locale = useLocale();
   const [suggestions, setSuggestions] = useState(initialSuggestions);
   const [scanning, setScanning] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -286,7 +291,7 @@ export function SalesHandoverPanel({
             {suggestions.map((s) => {
               const refs = s.sourceRefs ?? {};
               const signals = Array.isArray(refs.signals) ? refs.signals : [];
-              const closedAt = formatDate(refs.closedAt);
+              const closedAt = formatDate(refs.closedAt, locale);
               return (
                 <li
                   key={s.id}

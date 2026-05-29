@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, type ReactNode } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { toBcp47 } from "@/i18n/locale";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnalyzeButton } from "@/components/dashboard/AnalyzeButton";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
@@ -90,8 +91,8 @@ function getFilterState(searchParams: ReturnType<typeof useSearchParams>) {
   } satisfies DealFilterState;
 }
 
-function formatCurrency(value: number, currency: "EUR" | "USD") {
-  return new Intl.NumberFormat("de-DE", {
+function formatCurrency(value: number, currency: "EUR" | "USD", locale: string) {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
@@ -183,6 +184,7 @@ function StaticHeader({
 
 export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
   const t = useTranslations("sales.table");
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -398,7 +400,7 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
                   </TD>
                   <TD className="text-neutral-700">{deal.ownerName}</TD>
                   <TD className="text-right font-medium text-neutral-900 whitespace-nowrap">
-                    {formatCurrency(deal.amount, deal.currency)}
+                    {formatCurrency(deal.amount, deal.currency, locale)}
                   </TD>
                   <TD>
                     <RiskBadge

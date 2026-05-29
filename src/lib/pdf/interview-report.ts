@@ -3,6 +3,8 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import PDFDocument from "pdfkit";
+import { translate } from "@/i18n/messages";
+import { toBcp47, type Locale } from "@/i18n/locale";
 
 /**
  * "Post-Loss Interview Report" PDF — a clean, forwardable loss record built from
@@ -70,6 +72,7 @@ interface Fonts {
 export type InterviewMatch = "yes" | "no" | "partial";
 
 export interface InterviewPdfInput {
+  locale: Locale;
   deal: {
     name: string;
     company: string;
@@ -109,24 +112,25 @@ function lossReasonLabel(reason: string | null): string {
   return LOSS_REASON_LABELS[reason] ?? humanize(reason);
 }
 
-function formatCurrency(value: number, currency: string): string {
+function formatCurrency(value: number, currency: string, locale: Locale): string {
+  const bcp47 = toBcp47(locale);
   try {
-    return new Intl.NumberFormat("de-DE", {
+    return new Intl.NumberFormat(bcp47, {
       style: "currency",
       currency,
       maximumFractionDigits: 0,
     }).format(value);
   } catch {
-    return `${currency} ${Math.round(value).toLocaleString("de-DE")}`;
+    return `${currency} ${Math.round(value).toLocaleString(bcp47)}`;
   }
 }
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, locale: Locale): string {
   if (!iso) return "—";
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? "—"
-    : d.toLocaleDateString("de-DE", {
+    : d.toLocaleDateString(toBcp47(locale), {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -154,10 +158,10 @@ function matchTint(m: InterviewMatch): string {
   return COLORS.warningTint;
 }
 
-function matchLabel(m: InterviewMatch): string {
-  if (m === "yes") return "Prediction was right";
-  if (m === "no") return "Prediction was off";
-  return "Partially right";
+function matchLabel(m: InterviewMatch, locale: Locale): string {
+  if (m === "yes") return translate(locale, "export.interview.predictionRight");
+  if (m === "no") return translate(locale, "export.interview.predictionOff");
+  return translate(locale, "export.interview.predictionPartial");
 }
 
 // ---- pdfkit helpers ---------------------------------------------------------
@@ -265,6 +269,7 @@ export async function buildInterviewReportPdf(
   }
   (doc as unknown as { text: unknown }).text = patchedText;
 
+  const locale = input.locale;
   const left = doc.page.margins.left;
   const width = contentWidth(doc);
   const completedAt = input.interview.completedAt ?? input.interview.createdAt;
@@ -280,17 +285,24 @@ export async function buildInterviewReportPdf(
     .font(fonts.regular)
     .fontSize(9)
     .fillColor(COLORS.muted)
-    .text(`Generated ${formatDate(completedAt)}`, left, topY + 2, {
-      width,
-      align: "right",
-      lineBreak: false,
-    });
+    .text(
+      translate(locale, "export.interview.generated", {
+        date: formatDate(completedAt, locale),
+      }),
+      left,
+      topY + 2,
+      {
+        width,
+        align: "right",
+        lineBreak: false,
+      },
+    );
   doc.y = topY + 26;
   doc
     .font(fonts.bold)
     .fontSize(23)
     .fillColor(COLORS.ink)
-    .text("Post-Loss Interview Report", left, doc.y);
+    .text(translate(locale, "export.interview.title"), left, doc.y);
   doc.moveDown(0.2);
   doc
     .font(fonts.regular)
@@ -308,10 +320,13 @@ export async function buildInterviewReportPdf(
       .filter((v): v is string => Boolean(v))
       .join(" · ") || "—";
   const dealRows: Array<[string, string]> = [
-    ["Company", input.deal.company],
-    ["Contact", contact],
-    ["Amount", formatCurrency(input.deal.amount, input.deal.currency)],
-    ["Stage", formatStage(input.deal.stage)],
+    [translate(locale, "export.interview.fieldCompany"), input.deal.company],
+    [translate(locale, "export.interview.fieldContact"), contact],
+    [
+      translate(locale, "export.interview.fieldAmount"),
+      formatCurrency(input.deal.amount, input.deal.currency, locale),
+    ],
+    [translate(locale, "export.interview.fieldStage"), formatStage(input.deal.stage)],
   ];
   const boxH = 34 + dealRows.length * 18 + 6;
   const bandY = doc.y;
@@ -320,7 +335,7 @@ export async function buildInterviewReportPdf(
     .font(fonts.bold)
     .fontSize(9)
     .fillColor(COLORS.violet)
-    .text("Deal context", left + 14, bandY + 14, {
+    .text(translate(locale, "export.interview.dealContext"), left + 14, bandY + 14, {
       width: width - 28,
       lineBreak: false,
     });
@@ -344,7 +359,7 @@ export async function buildInterviewReportPdf(
   doc.y = bandY + boxH;
 
   // ---- Interview result (centerpiece) ----
-  sectionHeading(doc, "Interview result", fonts.bold);
+  sectionHeading(doc, translate(locale, "export.interview.resultHeading"), fonts.bold);
   const mp = input.interview.matchedRiskPrediction;
 
   // Prominent, color-coded prediction-match banner (mirrors the solution
@@ -360,18 +375,28 @@ export async function buildInterviewReportPdf(
     .font(fonts.regular)
     .fontSize(8.5)
     .fillColor(COLORS.muted)
-    .text("Did Findr's risk analysis predict the real reason?", left + 26, by + 12, {
-      width: width - 40,
-      lineBreak: false,
-    });
+    .text(
+      translate(locale, "export.interview.predictionQuestion"),
+      left + 26,
+      by + 12,
+      {
+        width: width - 40,
+        lineBreak: false,
+      },
+    );
   doc
     .font(fonts.bold)
     .fontSize(17)
     .fillColor(color)
-    .text(mp ? matchLabel(mp) : "Not assessed", left + 26, by + 24, {
-      width: width - 40,
-      lineBreak: false,
-    });
+    .text(
+      mp ? matchLabel(mp, locale) : translate(locale, "export.interview.notAssessed"),
+      left + 26,
+      by + 24,
+      {
+        width: width - 40,
+        lineBreak: false,
+      },
+    );
   doc.y = by + bannerH + 16;
 
   // Real loss reason
@@ -379,7 +404,10 @@ export async function buildInterviewReportPdf(
     .font(fonts.regular)
     .fontSize(8.5)
     .fillColor(COLORS.muted)
-    .text("Real loss reason", left, doc.y, { width, lineBreak: false });
+    .text(translate(locale, "export.interview.realLossReason"), left, doc.y, {
+      width,
+      lineBreak: false,
+    });
   doc.y += 13;
   doc
     .font(fonts.bold)
@@ -413,7 +441,10 @@ export async function buildInterviewReportPdf(
       .font(fonts.regular)
       .fontSize(8.5)
       .fillColor(COLORS.muted)
-      .text("In the buyer's words", left, doc.y, { width, lineBreak: false });
+      .text(translate(locale, "export.interview.buyerWords"), left, doc.y, {
+        width,
+        lineBreak: false,
+      });
     doc.y += 13;
     const qy = doc.y;
     doc.roundedRect(left, qy, 3, qh, 1.5).fill(COLORS.violet);
@@ -427,19 +458,24 @@ export async function buildInterviewReportPdf(
   }
 
   // ---- Conversation ----
-  sectionHeading(doc, "Conversation", fonts.bold);
+  sectionHeading(doc, translate(locale, "export.interview.conversationHeading"), fonts.bold);
   const conversation = input.interview.conversation;
   if (conversation.length === 0) {
     doc
       .font(fonts.regular)
       .fontSize(10)
       .fillColor(COLORS.muted)
-      .text("No conversation recorded.", left, doc.y, { width });
+      .text(translate(locale, "export.interview.noConversation"), left, doc.y, {
+        width,
+      });
   } else {
     const usable =
       doc.page.height - doc.page.margins.top - doc.page.margins.bottom - 40;
     for (const turn of conversation) {
-      const speaker = turn.role === "agent" ? "Findr" : "Buyer";
+      const speaker =
+        turn.role === "agent"
+          ? "Findr"
+          : translate(locale, "export.interview.speakerBuyer");
       const text = cleanText(turn.text);
 
       doc.font(fonts.regular).fontSize(10);
@@ -475,16 +511,24 @@ export async function buildInterviewReportPdf(
       .font(fonts.regular)
       .fontSize(8)
       .fillColor(COLORS.faint)
-      .text("Findr · Post-Loss Interview Report · Confidential", left, fy, {
+      .text(translate(locale, "export.interview.footer"), left, fy, {
         width,
         align: "left",
         lineBreak: false,
       });
-    doc.text(`Page ${i + 1} of ${range.count}`, left, fy, {
-      width,
-      align: "right",
-      lineBreak: false,
-    });
+    doc.text(
+      translate(locale, "export.interview.pageOf", {
+        current: i + 1,
+        total: range.count,
+      }),
+      left,
+      fy,
+      {
+        width,
+        align: "right",
+        lineBreak: false,
+      },
+    );
   }
 
   return pdfToBuffer(doc);

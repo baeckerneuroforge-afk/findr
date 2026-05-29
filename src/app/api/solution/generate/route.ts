@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { SolutionUnavailableError } from "@/lib/solution/extractor";
@@ -9,6 +10,7 @@ const GenerateSolutionSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -16,7 +18,7 @@ export async function POST(req: NextRequest) {
   const parsed = GenerateSolutionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -30,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Deal not found, or no risk analysis exists yet. Run a risk analysis first.",
+            t("solution.noRiskAnalysis"),
         },
         { status: 404 },
       );
@@ -49,13 +51,13 @@ export async function POST(req: NextRequest) {
     }
     if (err instanceof SolutionUnavailableError) {
       return NextResponse.json(
-        { error: "Solution generation failed", detail: err.message },
+        { error: t("solution.generationFailed"), detail: err.message },
         { status: 502 },
       );
     }
     return NextResponse.json(
       {
-        error: "Solution generation failed",
+        error: t("solution.generationFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

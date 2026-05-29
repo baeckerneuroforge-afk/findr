@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getAccounts } from "@/lib/accounts/service";
 import {
@@ -61,20 +62,24 @@ interface AnalyzedRow {
   health: HealthScoreRecord;
 }
 
-function formatMrr(mrr: number | null, currency: "USD" | "EUR"): string {
+function formatMrr(
+  mrr: number | null,
+  currency: "USD" | "EUR",
+  locale: string,
+): string {
   if (mrr === null) return "—";
-  return new Intl.NumberFormat("de-DE", {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
   }).format(mrr);
 }
 
-function formatRenewal(renewalDate: string | null): string {
+function formatRenewal(renewalDate: string | null, locale: string): string {
   if (!renewalDate) return "—";
   const parsed = new Date(renewalDate);
   if (Number.isNaN(parsed.getTime())) return renewalDate;
-  return parsed.toLocaleDateString("de-DE", {
+  return parsed.toLocaleDateString(toBcp47(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -124,6 +129,7 @@ export default async function CustomerHealthOverviewPage() {
   }
 
   const t = await getTranslations("health.overview");
+  const locale = await getLocale();
 
   // One batch fetch per dimension — no AI, no Opus, all reads.
   const accounts = await getAccounts(orgId);
@@ -362,10 +368,10 @@ export default async function CustomerHealthOverviewPage() {
                       {topSignalType(health) ?? "—"}
                     </TD>
                     <TD className="text-right whitespace-nowrap font-medium text-neutral-900">
-                      {formatMrr(account.mrr, account.currency)}
+                      {formatMrr(account.mrr, account.currency, locale)}
                     </TD>
                     <TD className="text-neutral-700 whitespace-nowrap">
-                      {formatRenewal(account.renewalDate)}
+                      {formatRenewal(account.renewalDate, locale)}
                     </TD>
                   </TR>
                 ))}

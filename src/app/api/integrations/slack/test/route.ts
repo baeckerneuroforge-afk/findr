@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getSlackIntegration, sendSlackAlert } from "@/lib/slack/service";
 
 export async function POST() {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const orgId = orgOrError.orgId;
@@ -10,7 +12,7 @@ export async function POST() {
   const integration = await getSlackIntegration(orgId);
   if (!integration) {
     return NextResponse.json(
-      { success: false, error: "No Slack integration configured" },
+      { success: false, error: t("integrations.slackNotConfigured") },
       { status: 400 },
     );
   }

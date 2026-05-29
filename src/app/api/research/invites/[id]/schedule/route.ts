@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
@@ -40,6 +41,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -50,7 +52,7 @@ export async function POST(
   const parsed = ScheduleBodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -63,7 +65,7 @@ export async function POST(
   const scheduledAt = new Date(parsed.data.scheduledAt);
   if (Number.isNaN(scheduledAt.getTime())) {
     return NextResponse.json(
-      { error: "scheduledAt is not a valid date." },
+      { error: t("research.invalidScheduledAt") },
       { status: 400 },
     );
   }
@@ -72,7 +74,7 @@ export async function POST(
   const invite = await getResearchInvite(orgId, inviteId);
   if (!invite) {
     return NextResponse.json(
-      { error: "Research invite not found" },
+      { error: t("notFound.researchInvite") },
       { status: 404 },
     );
   }
@@ -81,7 +83,7 @@ export async function POST(
   const plan = await getResearchPlan(orgId, invite.plan_id);
   if (!plan) {
     return NextResponse.json(
-      { error: "Research invite not found" },
+      { error: t("notFound.researchInvite") },
       { status: 404 },
     );
   }
@@ -96,24 +98,24 @@ export async function POST(
       });
     case "in_past":
       return NextResponse.json(
-        { error: result.message ?? "scheduled_at must be in the future." },
+        { error: result.message ?? t("research.scheduleInFuture") },
         { status: 422 },
       );
     case "not_found":
       // Reachable in a race: the invite vanished between our pre-check and
       // the UPDATE. Treat the same as the up-front 404.
       return NextResponse.json(
-        { error: "Research invite not found" },
+        { error: t("notFound.researchInvite") },
         { status: 404 },
       );
     case "missing_org":
       return NextResponse.json(
-        { error: result.message ?? "Invite is missing an org." },
+        { error: result.message ?? t("research.inviteMissingOrg") },
         { status: 409 },
       );
     default:
       return NextResponse.json(
-        { error: "Could not schedule the invite." },
+        { error: t("research.couldNotSchedule") },
         { status: 500 },
       );
   }

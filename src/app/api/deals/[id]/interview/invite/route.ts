@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { createAndInviteInterview } from "@/lib/voice-agent/interview-orchestration";
@@ -17,13 +18,14 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
   const { id } = await params;
   const parsed = DealIdSchema.safeParse(id);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid dealId" }, { status: 400 });
+    return NextResponse.json({ error: t("solution.invalidDealId") }, { status: 400 });
   }
 
   const result = await createAndInviteInterview(orgOrError.orgId, parsed.data);
@@ -37,19 +39,19 @@ export async function POST(
       });
     case "missing_contact":
       return NextResponse.json(
-        { error: "Add a contact email to send the invitation." },
+        { error: t("deals.addContactEmailToInvite") },
         { status: 400 },
       );
     case "not_found":
-      return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+      return NextResponse.json({ error: t("notFound.deal") }, { status: 404 });
     case "not_open":
       return NextResponse.json(
-        { error: "This interview is no longer open." },
+        { error: t("deals.interviewClosed") },
         { status: 400 },
       );
     default:
       return NextResponse.json(
-        { error: "Could not send the invitation email. Please try again." },
+        { error: t("deals.couldNotSendInvite") },
         { status: 502 },
       );
   }

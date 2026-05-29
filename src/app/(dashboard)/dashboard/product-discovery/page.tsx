@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import {
   getAllInsightsForOrg,
@@ -243,10 +244,10 @@ function sourceHref(insight: ProductDiscoveryInsightRecord): string | null {
   return null;
 }
 
-function formatAnalyzedAt(iso: string): string {
+function formatAnalyzedAt(iso: string, locale: string): string {
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) return iso;
-  return parsed.toLocaleDateString("de-DE", {
+  return parsed.toLocaleDateString(toBcp47(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -297,6 +298,7 @@ export default async function ProductDiscoveryOverviewPage() {
   }
 
   const t = await getTranslations("research.discovery");
+  const locale = await getLocale();
   const insights = await getAllInsightsForOrg(orgId);
 
   if (insights.length === 0) {
@@ -521,7 +523,7 @@ export default async function ProductDiscoveryOverviewPage() {
                         )}
                       </TD>
                       <TD className="text-neutral-700 whitespace-nowrap">
-                        {formatAnalyzedAt(row.insight.analyzed_at)}
+                        {formatAnalyzedAt(row.insight.analyzed_at, locale)}
                       </TD>
                     </TR>
                   );

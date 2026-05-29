@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import {
   getForecast,
@@ -30,8 +31,8 @@ const STAGE_LABELS: Record<string, string> = {
   closed_lost: "Closed lost",
 };
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("de-DE", {
+function formatCurrency(value: number, locale: string) {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 0,
@@ -76,6 +77,7 @@ export default async function ForecastPage() {
   // is open).
   const t = await getTranslations("sales.forecast");
   const tc = await getTranslations("sales.common");
+  const locale = await getLocale();
 
   const [forecast, researchRiskSuggestions] = await Promise.all([
     getForecast(orgId),
@@ -127,7 +129,7 @@ export default async function ForecastPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <StatCard
           label={t("statTotalPipeline")}
-          value={formatCurrency(forecast.total_pipeline_value)}
+          value={formatCurrency(forecast.total_pipeline_value, locale)}
           subtitle={t("openDealsSubtitle", { count: forecast.open_deal_count })}
         />
         <StatCard
@@ -137,7 +139,7 @@ export default async function ForecastPage() {
               <InfoTooltip label={tc("weightedForecastTip")} />
             </>
           }
-          value={formatCurrency(forecast.weighted_pipeline_value)}
+          value={formatCurrency(forecast.weighted_pipeline_value, locale)}
           subtitle={t("likelyCase")}
           status="primary"
         />
@@ -148,7 +150,7 @@ export default async function ForecastPage() {
               <InfoTooltip label={t("atRiskValueTip")} />
             </>
           }
-          value={formatCurrency(forecast.deals_at_risk_value)}
+          value={formatCurrency(forecast.deals_at_risk_value, locale)}
           subtitle={t("riskScore60")}
           status={forecast.deals_at_risk_value > 0 ? "critical" : "default"}
         />
@@ -163,7 +165,7 @@ export default async function ForecastPage() {
             </div>
             <p className="mt-1 text-body text-neutral-700">
               {t.rich("impactSentence", {
-                impact: formatCurrency(riskImpact.absolute),
+                impact: formatCurrency(riskImpact.absolute, locale),
                 pct: Math.round(riskImpact.percentage),
                 b: (chunks) => (
                   <span
@@ -243,7 +245,7 @@ export default async function ForecastPage() {
                   <Badge>{STAGE_LABELS[deal.stage] ?? deal.stage}</Badge>
                 </TD>
                 <TD className="text-right font-medium text-neutral-900 whitespace-nowrap">
-                  {formatCurrency(deal.amount)}
+                  {formatCurrency(deal.amount, locale)}
                 </TD>
                 <TD>
                   <WinProbabilityBar
@@ -252,7 +254,7 @@ export default async function ForecastPage() {
                   />
                 </TD>
                 <TD className="text-right font-medium text-neutral-900 whitespace-nowrap">
-                  {formatCurrency(deal.weighted_value)}
+                  {formatCurrency(deal.weighted_value, locale)}
                 </TD>
                 <TD className="text-right whitespace-nowrap">
                   {(() => {
@@ -267,7 +269,7 @@ export default async function ForecastPage() {
                             : "text-neutral-500"
                         }
                       >
-                        −{formatCurrency(impact)}
+                        −{formatCurrency(impact, locale)}
                       </span>
                     );
                   })()}

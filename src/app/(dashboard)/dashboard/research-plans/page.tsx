@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { listResearchPlans } from "@/lib/research/plans-service";
 import { listBridgeSuggestions } from "@/lib/bridge/cs-to-research";
@@ -48,10 +49,10 @@ function ResearchIcon() {
   );
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("de-DE", {
+  return d.toLocaleDateString(toBcp47(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -72,6 +73,7 @@ export default async function ResearchPlansIndexPage() {
   }
 
   const t = await getTranslations("research.plans");
+  const locale = await getLocale();
 
   // Plans + bridge suggestions load in parallel — independent reads, no
   // ordering constraint. listBridgeSuggestions returns only `pending`
@@ -158,7 +160,7 @@ export default async function ResearchPlansIndexPage() {
                     {plan.sampleTarget ?? "—"}
                   </TD>
                   <TD className="text-neutral-700 whitespace-nowrap">
-                    {formatDate(plan.createdAt)}
+                    {formatDate(plan.createdAt, locale)}
                   </TD>
                 </TR>
               ))}

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
@@ -22,6 +23,7 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -38,12 +40,12 @@ export async function POST(
 
   if (lookupError) {
     return NextResponse.json(
-      { error: "Failed to look up call", detail: lookupError.message },
+      { error: t("calls.lookupFailed"), detail: lookupError.message },
       { status: 500 },
     );
   }
   if (!call) {
-    return NextResponse.json({ error: "Call not found" }, { status: 404 });
+    return NextResponse.json({ error: t("notFound.call") }, { status: 404 });
   }
 
   try {
@@ -53,7 +55,7 @@ export async function POST(
       // transcript (loadCall in the service returns null in that case).
       // Nothing for the classifier to chew on.
       return NextResponse.json(
-        { error: "Call has no transcript to analyze" },
+        { error: t("calls.noTranscript") },
         { status: 422 },
       );
     }
@@ -61,7 +63,7 @@ export async function POST(
   } catch (err) {
     return NextResponse.json(
       {
-        error: "Product discovery analysis failed",
+        error: t("calls.discoveryFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

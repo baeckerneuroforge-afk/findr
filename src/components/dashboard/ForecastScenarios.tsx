@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody } from "@/components/ui/Card";
 
 interface ForecastScenariosProps {
@@ -8,8 +9,12 @@ interface ForecastScenariosProps {
   currency?: "EUR" | "USD";
 }
 
-function formatCurrency(value: number, currency: "EUR" | "USD") {
-  return new Intl.NumberFormat("de-DE", {
+function formatCurrency(
+  value: number,
+  currency: "EUR" | "USD",
+  locale: string,
+) {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
@@ -23,6 +28,7 @@ export async function ForecastScenarios({
   currency = "EUR",
 }: ForecastScenariosProps) {
   const t = await getTranslations("sales.forecast");
+  const locale = await getLocale();
   const scenarios = [
     {
       id: "best",
@@ -56,7 +62,7 @@ export async function ForecastScenarios({
               {scenario.label}
             </div>
             <div className={`text-display ${scenario.tone}`}>
-              {formatCurrency(scenario.value, currency)}
+              {formatCurrency(scenario.value, currency, locale)}
             </div>
             <div className="mt-1 text-small text-neutral-500">
               {scenario.description}

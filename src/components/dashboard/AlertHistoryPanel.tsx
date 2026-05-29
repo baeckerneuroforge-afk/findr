@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getLocale } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import type { AlertHistoryItem, AlertSeverity, AlertType } from "@/lib/alerts/types";
 
 interface AlertHistoryPanelProps {
@@ -18,7 +20,8 @@ const SEVERITY_STYLES: Record<AlertSeverity, string> = {
   critical: "bg-danger-50 text-danger-700",
 };
 
-export function AlertHistoryPanel({ alerts }: AlertHistoryPanelProps) {
+export async function AlertHistoryPanel({ alerts }: AlertHistoryPanelProps) {
+  const locale = await getLocale();
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
@@ -42,7 +45,7 @@ export function AlertHistoryPanel({ alerts }: AlertHistoryPanelProps) {
               className="grid gap-3 py-3 md:grid-cols-[140px_1fr_auto]"
             >
               <div className="text-small text-neutral-500">
-                {new Date(alert.sent_at).toLocaleString("de-DE", {
+                {new Date(alert.sent_at).toLocaleString(toBcp47(locale), {
                   day: "2-digit",
                   month: "short",
                   hour: "2-digit",

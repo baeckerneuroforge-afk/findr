@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
+import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getEarlyWarnings } from "@/lib/loss/early-warning-service";
 
 export async function GET() {
-  let orgId: string;
-  try {
-    orgId = await requireOrgId();
-  } catch (err) {
-    if (err instanceof OrgResolutionError) {
-      return NextResponse.json({ error: err.code }, { status: 401 });
-    }
-    throw err;
-  }
+  // Canonical auth gate: returns a ready, locale-aware error response (and a
+  // stable `code`) instead of leaking the raw resolution code as the message.
+  const orgOrError = await requireOrgIdOrError();
+  if ("error" in orgOrError) return orgOrError.error;
 
-  const report = await getEarlyWarnings(orgId);
+  const report = await getEarlyWarnings(orgOrError.orgId);
   return NextResponse.json(report);
 }

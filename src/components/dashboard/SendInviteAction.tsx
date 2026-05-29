@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { toBcp47 } from "@/i18n/locale";
 import { Button } from "@/components/ui/Button";
 
 /**
@@ -34,10 +35,10 @@ interface SendInviteActionProps {
   disabled?: boolean;
 }
 
-function formatSentAt(iso: string): string {
+function formatSentAt(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return new Intl.DateTimeFormat("de-DE", {
+  return new Intl.DateTimeFormat(toBcp47(locale), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(d);
@@ -52,6 +53,7 @@ export function SendInviteAction({
 }: SendInviteActionProps) {
   const router = useRouter();
   const t = useTranslations("research.plans");
+  const locale = useLocale();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +61,7 @@ export function SendInviteAction({
   if (invitedAt) {
     return (
       <div className="text-small text-success-700 whitespace-nowrap">
-        {t("sentAt", { date: formatSentAt(invitedAt) })}
+        {t("sentAt", { date: formatSentAt(invitedAt, locale) })}
       </div>
     );
   }

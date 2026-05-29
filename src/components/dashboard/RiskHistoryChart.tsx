@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { toBcp47 } from "@/i18n/locale";
 
 interface RiskScorePoint {
   date: string;
@@ -33,6 +34,7 @@ export function RiskHistoryChart({
   thresholdValue = 70,
 }: RiskHistoryChartProps) {
   const t = useTranslations("sales.deal");
+  const locale = useLocale();
   const resolvedTitle = title ?? t("chartTitle");
   const chartData = useMemo(() => {
     const sorted = [...history].sort(
@@ -190,7 +192,7 @@ export function RiskHistoryChart({
               strokeWidth="2"
             />
             <title>
-              {new Date(point.date).toLocaleDateString("de-DE")} ·{" "}
+              {new Date(point.date).toLocaleDateString(toBcp47(locale))} ·{" "}
               {point.score}/100 ({point.level})
             </title>
           </g>
@@ -207,7 +209,7 @@ export function RiskHistoryChart({
               i === 0 ? "start" : i === labels.length - 1 ? "end" : "middle"
             }
           >
-            {new Date(point.date).toLocaleDateString("de-DE", {
+            {new Date(point.date).toLocaleDateString(toBcp47(locale), {
               day: "2-digit",
               month: "short",
             })}

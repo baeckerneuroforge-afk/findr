@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
   AnalyzeTranscriptSchema,
@@ -14,6 +15,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -22,7 +24,7 @@ export async function POST(
   const parsed = AnalyzeTranscriptSchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -34,7 +36,7 @@ export async function POST(
       parsed.data.transcript,
     );
     if (!result) {
-      return NextResponse.json({ error: "Account not found" }, { status: 404 });
+      return NextResponse.json({ error: t("notFound.account") }, { status: 404 });
     }
     return NextResponse.json({
       success: true,
@@ -43,7 +45,7 @@ export async function POST(
     });
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Analysis failed" },
+      { error: err instanceof Error ? err.message : t("unexpected") },
       { status: 500 },
     );
   }

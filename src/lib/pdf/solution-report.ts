@@ -3,6 +3,8 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import PDFDocument from "pdfkit";
+import { translate } from "@/i18n/messages";
+import { toBcp47, type Locale } from "@/i18n/locale";
 
 /**
  * "Deal Solution Report" PDF — a considered internal deal-review document, not a
@@ -56,6 +58,7 @@ interface Fonts {
 }
 
 export interface SolutionPdfInput {
+  locale: Locale;
   deal: {
     name: string;
     company: string;
@@ -111,24 +114,29 @@ function formatStage(stage: string): string {
   return STAGE_LABELS[stage] ?? formatSignal(stage);
 }
 
-function formatCurrency(value: number, currency: string): string {
+function formatCurrency(
+  value: number,
+  currency: string,
+  locale: Locale,
+): string {
+  const bcp47 = toBcp47(locale);
   try {
-    return new Intl.NumberFormat("de-DE", {
+    return new Intl.NumberFormat(bcp47, {
       style: "currency",
       currency,
       maximumFractionDigits: 0,
     }).format(value);
   } catch {
-    return `${currency} ${Math.round(value).toLocaleString("de-DE")}`;
+    return `${currency} ${Math.round(value).toLocaleString(bcp47)}`;
   }
 }
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, locale: Locale): string {
   if (!iso) return "—";
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? "—"
-    : d.toLocaleDateString("de-DE", {
+    : d.toLocaleDateString(toBcp47(locale), {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -165,10 +173,10 @@ function salvageableTint(s: "yes" | "no" | "maybe"): string {
   return COLORS.warningTint;
 }
 
-function salvageableLabel(s: "yes" | "no" | "maybe"): string {
-  if (s === "yes") return "Salvageable";
-  if (s === "no") return "Hard to save";
-  return "Uncertain";
+function salvageableLabel(s: "yes" | "no" | "maybe", locale: Locale): string {
+  if (s === "yes") return translate(locale, "export.solution.salvageableYes");
+  if (s === "no") return translate(locale, "export.solution.salvageableNo");
+  return translate(locale, "export.solution.salvageableMaybe");
 }
 
 // ---- pdfkit helpers ---------------------------------------------------------
@@ -279,6 +287,7 @@ function drawDonut(
 export async function buildSolutionReportPdf(
   input: SolutionPdfInput,
 ): Promise<Buffer> {
+  const { locale } = input;
   const doc = new PDFDocument({ size: "A4", margin: 46, bufferPages: true });
   const fonts = registerFonts(doc);
 
@@ -327,17 +336,24 @@ export async function buildSolutionReportPdf(
     .font(fonts.regular)
     .fontSize(9)
     .fillColor(COLORS.muted)
-    .text(`Generated ${formatDate(input.solution.createdAt)}`, left, topY + 2, {
-      width,
-      align: "right",
-      lineBreak: false,
-    });
+    .text(
+      translate(locale, "export.solution.generated", {
+        date: formatDate(input.solution.createdAt, locale),
+      }),
+      left,
+      topY + 2,
+      {
+        width,
+        align: "right",
+        lineBreak: false,
+      },
+    );
   doc.y = topY + 26;
   doc
     .font(fonts.bold)
     .fontSize(23)
     .fillColor(COLORS.ink)
-    .text("Deal Solution Report", left, doc.y);
+    .text(translate(locale, "export.solution.title"), left, doc.y);
   doc.moveDown(0.2);
   doc
     .font(fonts.regular)
@@ -362,16 +378,22 @@ export async function buildSolutionReportPdf(
     .font(fonts.bold)
     .fontSize(9)
     .fillColor(COLORS.violet)
-    .text("Deal context", left + 14, bandY + 14, {
+    .text(translate(locale, "export.solution.dealContext"), left + 14, bandY + 14, {
       width: leftW - 28,
       lineBreak: false,
     });
   let cy = bandY + 34;
   const dealRows: Array<[string, string]> = [
-    ["Company", input.deal.company],
-    ["Stage", formatStage(input.deal.stage)],
-    ["Amount", formatCurrency(input.deal.amount, input.deal.currency)],
-    ["Industry", input.deal.industry?.trim() || "—"],
+    [translate(locale, "export.solution.fieldCompany"), input.deal.company],
+    [translate(locale, "export.solution.fieldStage"), formatStage(input.deal.stage)],
+    [
+      translate(locale, "export.solution.fieldAmount"),
+      formatCurrency(input.deal.amount, input.deal.currency, locale),
+    ],
+    [
+      translate(locale, "export.solution.fieldIndustry"),
+      input.deal.industry?.trim() || "—",
+    ],
   ];
   for (const [k, v] of dealRows) {
     doc
@@ -396,7 +418,10 @@ export async function buildSolutionReportPdf(
     .font(fonts.bold)
     .fontSize(9)
     .fillColor(COLORS.violet)
-    .text("Risk", rx + 14, bandY + 14, { width: rightW - 28, lineBreak: false });
+    .text(translate(locale, "export.solution.risk"), rx + 14, bandY + 14, {
+      width: rightW - 28,
+      lineBreak: false,
+    });
   if (input.risk) {
     const lvlColor = riskLevelColor(input.risk.level);
     const dcx = rx + rightW / 2;
@@ -425,7 +450,13 @@ export async function buildSolutionReportPdf(
       .fontSize(8.5)
       .fillColor(COLORS.muted)
       .text(
-        `${input.risk.signals.length} signal${input.risk.signals.length === 1 ? "" : "s"}`,
+        translate(
+          locale,
+          input.risk.signals.length === 1
+            ? "export.solution.signalCountOne"
+            : "export.solution.signalCountOther",
+          { count: input.risk.signals.length },
+        ),
         rx + 14,
         bandY + 101,
         { width: rightW - 28, align: "center", lineBreak: false },
@@ -435,23 +466,34 @@ export async function buildSolutionReportPdf(
       .font(fonts.regular)
       .fontSize(10)
       .fillColor(COLORS.muted)
-      .text("No risk analysis on file", rx + 14, bandY + 52, {
-        width: rightW - 28,
-        align: "center",
-      });
+      .text(
+        translate(locale, "export.solution.noRiskAnalysis"),
+        rx + 14,
+        bandY + 52,
+        {
+          width: rightW - 28,
+          align: "center",
+        },
+      );
   }
   doc.y = bandY + boxH;
 
   // ---- Analyzed call ----
-  sectionHeading(doc, "Analyzed call", fonts.bold);
+  sectionHeading(doc, translate(locale, "export.solution.analyzedCall"), fonts.bold);
   if (input.call) {
     const participants =
       input.call.participants.length > 0
         ? input.call.participants.join(", ")
-        : "participants n/a";
+        : translate(locale, "export.solution.participantsNa");
     const more =
       input.call.totalCalls > 1
-        ? `  ·  +${input.call.totalCalls - 1} more call${input.call.totalCalls - 1 === 1 ? "" : "s"}`
+        ? `  ·  ${translate(
+            locale,
+            input.call.totalCalls - 1 === 1
+              ? "export.solution.moreCallsOne"
+              : "export.solution.moreCallsOther",
+            { count: input.call.totalCalls - 1 },
+          )}`
         : "";
     doc
       .font(fonts.bold)
@@ -464,7 +506,7 @@ export async function buildSolutionReportPdf(
       .fontSize(9.5)
       .fillColor(COLORS.muted)
       .text(
-        `${formatDate(input.call.date)} · ${truncate(participants, 95)}${more}`,
+        `${formatDate(input.call.date, locale)} · ${truncate(participants, 95)}${more}`,
         left,
         doc.y,
         { width },
@@ -474,12 +516,20 @@ export async function buildSolutionReportPdf(
       .font(fonts.regular)
       .fontSize(9.5)
       .fillColor(COLORS.muted)
-      .text("No call linked to this deal.", left, doc.y, { width });
+      .text(translate(locale, "export.solution.noCallLinked"), left, doc.y, {
+        width,
+      });
   }
 
   // ---- Risk signals (name + confidence, reasoning, quote) ----
   if (input.risk && input.risk.signals.length > 0) {
-    sectionHeading(doc, `Risk signals (${input.risk.signals.length})`, fonts.bold);
+    sectionHeading(
+      doc,
+      translate(locale, "export.solution.riskSignals", {
+        count: input.risk.signals.length,
+      }),
+      fonts.bold,
+    );
     const textW = width - 16;
     for (const s of input.risk.signals) {
       const reasoning = s.reasoning ? truncate(s.reasoning, 180) : "";
@@ -511,11 +561,18 @@ export async function buildSolutionReportPdf(
         .font(fonts.regular)
         .fontSize(9)
         .fillColor(COLORS.muted)
-        .text(`${Math.round(s.confidence * 100)}% confidence`, left, y, {
-          width,
-          align: "right",
-          lineBreak: false,
-        });
+        .text(
+          translate(locale, "export.solution.confidence", {
+            percent: Math.round(s.confidence * 100),
+          }),
+          left,
+          y,
+          {
+            width,
+            align: "right",
+            lineBreak: false,
+          },
+        );
       doc.y = y + 16;
       if (reasoning) {
         doc
@@ -537,7 +594,7 @@ export async function buildSolutionReportPdf(
   }
 
   // ---- Solution (centerpiece) ----
-  sectionHeading(doc, "Solution", fonts.bold);
+  sectionHeading(doc, translate(locale, "export.solution.solution"), fonts.bold);
   const sv = input.solution.salvageable;
 
   // Prominent, color-coded verdict banner.
@@ -550,7 +607,7 @@ export async function buildSolutionReportPdf(
     .font(fonts.regular)
     .fontSize(8.5)
     .fillColor(COLORS.muted)
-    .text("Can this deal be saved?", left + 26, by + 12, {
+    .text(translate(locale, "export.solution.canBeSaved"), left + 26, by + 12, {
       width: width - 40,
       lineBreak: false,
     });
@@ -558,7 +615,7 @@ export async function buildSolutionReportPdf(
     .font(fonts.bold)
     .fontSize(17)
     .fillColor(salvageableColor(sv))
-    .text(salvageableLabel(sv), left + 26, by + 24, {
+    .text(salvageableLabel(sv, locale), left + 26, by + 24, {
       width: width - 40,
       lineBreak: false,
     });
@@ -579,7 +636,7 @@ export async function buildSolutionReportPdf(
       .font(fonts.regular)
       .fontSize(10.5)
       .fillColor(COLORS.success)
-      .text("No rescue actions needed — this deal looks healthy.", left, doc.y, {
+      .text(translate(locale, "export.solution.noRescueActions"), left, doc.y, {
         width,
       });
   } else {
@@ -592,7 +649,11 @@ export async function buildSolutionReportPdf(
       doc.font(fonts.regular).fontSize(10.5);
       h += doc.heightOfString(rec.recommendation, { width }) + 5;
       doc.font(fonts.bold).fontSize(9.5);
-      h += doc.heightOfString(`Next step:  ${rec.nextStep}`, { width }) + 5;
+      h +=
+        doc.heightOfString(
+          `${translate(locale, "export.solution.nextStep")}${rec.nextStep}`,
+          { width },
+        ) + 5;
       if (evidence) {
         doc.font(fonts.italic).fontSize(9);
         h += doc.heightOfString(`“${evidence}”`, { width }) + 5;
@@ -623,7 +684,9 @@ export async function buildSolutionReportPdf(
         .font(fonts.bold)
         .fontSize(9.5)
         .fillColor(COLORS.violet)
-        .text("Next step:  ", left, doc.y, { continued: true });
+        .text(translate(locale, "export.solution.nextStep"), left, doc.y, {
+          continued: true,
+        });
       doc.font(fonts.regular).fillColor(COLORS.ink).text(rec.nextStep, { lineGap: 1 });
 
       // Evidence quote (anchors the recommendation)
@@ -651,16 +714,29 @@ export async function buildSolutionReportPdf(
       .font(fonts.regular)
       .fontSize(8)
       .fillColor(COLORS.faint)
-      .text(`Findr · Deal Solution Report · ${input.solution.model}`, left, fy, {
+      .text(
+        `Findr · ${translate(locale, "export.solution.title")} · ${input.solution.model}`,
+        left,
+        fy,
+        {
+          width,
+          align: "left",
+          lineBreak: false,
+        },
+      );
+    doc.text(
+      translate(locale, "export.solution.pageOf", {
+        current: i + 1,
+        total: range.count,
+      }),
+      left,
+      fy,
+      {
         width,
-        align: "left",
+        align: "right",
         lineBreak: false,
-      });
-    doc.text(`Page ${i + 1} of ${range.count}`, left, fy, {
-      width,
-      align: "right",
-      lineBreak: false,
-    });
+      },
+    );
   }
 
   return pdfToBuffer(doc);

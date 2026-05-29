@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { DealContactSchema, updateDealContact } from "@/lib/deals/service";
 
@@ -11,6 +12,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -19,14 +21,14 @@ export async function PATCH(
   const parsed = DealContactSchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
 
   const deal = await updateDealContact(orgOrError.orgId, id, parsed.data);
   if (!deal) {
-    return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+    return NextResponse.json({ error: t("notFound.deal") }, { status: 404 });
   }
 
   return NextResponse.json({

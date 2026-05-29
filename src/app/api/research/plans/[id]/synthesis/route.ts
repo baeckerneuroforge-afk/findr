@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
@@ -29,6 +30,7 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -41,7 +43,7 @@ export async function POST(
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) {
     return NextResponse.json(
-      { error: "Research plan not found" },
+      { error: t("notFound.researchPlan") },
       { status: 404 },
     );
   }
@@ -52,7 +54,7 @@ export async function POST(
   } catch (err) {
     return NextResponse.json(
       {
-        error: "Synthesis failed",
+        error: t("research.synthesisFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

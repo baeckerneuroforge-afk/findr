@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { dismissBridgeSuggestion } from "@/lib/bridge/cs-to-research";
@@ -22,6 +23,7 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -32,7 +34,7 @@ export async function POST(
     const suggestion = await dismissBridgeSuggestion(orgId, id);
     if (!suggestion) {
       return NextResponse.json(
-        { error: "Suggestion not found" },
+        { error: t("notFound.suggestion") },
         { status: 404 },
       );
     }
@@ -44,7 +46,7 @@ export async function POST(
     );
     return NextResponse.json(
       {
-        error: "Could not dismiss suggestion",
+        error: t("bridge.couldNotDismiss"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

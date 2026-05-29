@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { createAndInviteCheckin } from "@/lib/voice-agent/checkin-orchestration";
 
@@ -12,6 +13,7 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -28,14 +30,14 @@ export async function POST(
       });
     case "missing_contact":
       return NextResponse.json(
-        { error: "Add a sponsor email to send a check-in." },
+        { error: t("accounts.addSponsorEmail") },
         { status: 400 },
       );
     case "not_found":
-      return NextResponse.json({ error: "Account not found" }, { status: 404 });
+      return NextResponse.json({ error: t("notFound.account") }, { status: 404 });
     default:
       return NextResponse.json(
-        { error: "Could not send the check-in. Please try again." },
+        { error: t("accounts.couldNotSendCheckin") },
         { status: 502 },
       );
   }

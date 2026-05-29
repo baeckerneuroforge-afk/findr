@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { HealthBadge } from "@/components/dashboard/HealthBadge";
@@ -58,6 +59,7 @@ export function AccountHealthPanel({
 }: AccountHealthPanelProps) {
   const router = useRouter();
   const t = useTranslations("health.detail");
+  const locale = useLocale();
   const [transcript, setTranscript] = useState("");
   const [busy, setBusy] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -112,7 +114,7 @@ export function AccountHealthPanel({
             <p className="text-small text-neutral-500">
               {t("latestScoreLine", {
                 count: transcriptCount,
-                date: new Date(latest.analyzedAt).toLocaleString("de-DE"),
+                date: new Date(latest.analyzedAt).toLocaleString(toBcp47(locale)),
               })}
               {latest.analysisMethod === "heuristic" &&
                 t("heuristicSuffix")}

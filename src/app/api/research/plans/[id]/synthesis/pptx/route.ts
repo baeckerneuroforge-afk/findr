@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
 import { getOrgName, requireOrgIdOrError } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { getStudySynthesis } from "@/lib/synthesis/service";
@@ -24,6 +26,11 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
+  const resolvedLocale = await getLocale();
+  const locale: Locale = isLocale(resolvedLocale)
+    ? resolvedLocale
+    : DEFAULT_LOCALE;
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -33,7 +40,7 @@ export async function GET(
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) {
     return NextResponse.json(
-      { error: "Research plan not found" },
+      { error: t("notFound.researchPlan") },
       { status: 404 },
     );
   }
@@ -43,7 +50,7 @@ export async function GET(
     return NextResponse.json(
       {
         error:
-          "This study has no synthesis yet. Generate it from the synthesis page first.",
+          t("research.noSynthesisYet"),
       },
       { status: 404 },
     );
@@ -66,6 +73,7 @@ export async function GET(
         model: synthesis.model,
       },
       orgName,
+      locale,
     });
 
     const date = new Date().toISOString().split("T")[0];
@@ -84,7 +92,7 @@ export async function GET(
     );
     return NextResponse.json(
       {
-        error: "Failed to generate synthesis PPTX",
+        error: t("research.synthesisPptxFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

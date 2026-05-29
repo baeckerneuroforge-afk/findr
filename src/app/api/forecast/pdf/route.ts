@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireOrgIdOrError, getOrgName } from "@/lib/auth/org";
 import { getForecast } from "@/lib/forecast/service";
 import { buildForecastPdf } from "@/lib/pdf/generator";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
 
 export async function GET() {
+  const t = await getTranslations("errors");
+  const resolvedLocale = await getLocale();
+  const locale: Locale = isLocale(resolvedLocale)
+    ? resolvedLocale
+    : DEFAULT_LOCALE;
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const orgId = orgOrError.orgId;
@@ -11,7 +18,7 @@ export async function GET() {
   try {
     const forecast = await getForecast(orgId);
     const orgName = await getOrgName(orgId);
-    const pdf = await buildForecastPdf(forecast, orgName);
+    const pdf = await buildForecastPdf(forecast, orgName, locale);
 
     const date = new Date().toISOString().split("T")[0];
     return new NextResponse(new Uint8Array(pdf), {
@@ -24,7 +31,7 @@ export async function GET() {
   } catch (err) {
     return NextResponse.json(
       {
-        error: "Failed to generate forecast PDF",
+        error: t("forecast.pdfFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

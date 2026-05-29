@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatCard } from "@/components/ui/StatCard";
@@ -45,8 +46,8 @@ function DealTableFallback() {
   );
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("de-DE", {
+function formatCurrency(value: number, locale: string) {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 0,
@@ -87,6 +88,7 @@ export default async function DashboardPage() {
 
   const t = await getTranslations("sales.pipeline");
   const tc = await getTranslations("sales.common");
+  const locale = await getLocale();
 
   const [baseDeals, onboardingStatus] = await Promise.all([
     getDealsByOrg(orgId),
@@ -203,7 +205,7 @@ export default async function DashboardPage() {
               <InfoTooltip label={tc("weightedForecastTip")} />
             </>
           }
-          value={formatCurrency(forecast.weighted_pipeline_value)}
+          value={formatCurrency(forecast.weighted_pipeline_value, locale)}
           subtitle={t("riskAdjusted")}
           status="primary"
         />

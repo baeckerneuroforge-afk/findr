@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
@@ -23,6 +24,7 @@ import {
  *   200      — { scanned, created, skipped, refused, failed, suggestions }
  */
 export async function POST(_request: NextRequest): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -38,7 +40,7 @@ export async function POST(_request: NextRequest): Promise<NextResponse> {
     );
     return NextResponse.json(
       {
-        error: "Could not scan for research-to-risk suggestions",
+        error: t("bridge.couldNotScanResearchToRisk"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

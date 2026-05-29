@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
@@ -47,6 +48,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -58,7 +60,7 @@ export async function POST(
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) {
     return NextResponse.json(
-      { error: "Research plan not found" },
+      { error: t("notFound.researchPlan") },
       { status: 404 },
     );
   }
@@ -71,7 +73,7 @@ export async function POST(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Invalid JSON body" },
+      { error: t("invalidJsonBody") },
       { status: 400 },
     );
   }
@@ -79,7 +81,7 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json(
       {
-        error: "Invalid request body",
+        error: t("invalidRequestBody"),
         detail: parsed.error.flatten(),
       },
       { status: 400 },
@@ -106,7 +108,7 @@ export async function POST(
       err.message.includes("not found")
     ) {
       return NextResponse.json(
-        { error: "Research plan not found" },
+        { error: t("notFound.researchPlan") },
         { status: 404 },
       );
     }
@@ -116,7 +118,7 @@ export async function POST(
     );
     return NextResponse.json(
       {
-        error: "Guide generation failed",
+        error: t("research.guideFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

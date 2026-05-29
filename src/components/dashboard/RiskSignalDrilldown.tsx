@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { toBcp47 } from "@/i18n/locale";
 import { ConfidenceIndicator } from "@/components/dashboard/ConfidenceIndicator";
 import { EvidenceQuote } from "@/components/dashboard/EvidenceQuote";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -137,6 +138,7 @@ export function RiskSignalDrilldown({
   analysisMethod,
 }: RiskSignalDrilldownProps) {
   const t = useTranslations("sales.deal");
+  const locale = useLocale();
   const [expandedSignal, setExpandedSignal] = useState<string | null>(
     signals[0]?.type ?? null,
   );
@@ -194,7 +196,7 @@ export function RiskSignalDrilldown({
           {analyzedAt && (
             <div className="text-caption text-neutral-500">
               {t("analyzedAt", {
-                date: new Date(analyzedAt).toLocaleString("de-DE"),
+                date: new Date(analyzedAt).toLocaleString(toBcp47(locale)),
               })}
             </div>
           )}

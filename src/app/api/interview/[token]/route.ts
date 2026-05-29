@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
+import { DEFAULT_LOCALE } from "@/i18n/locale";
 import { VoiceUnavailableError } from "@/lib/voice-agent/interviewer";
 import {
   advanceInterview,
@@ -23,15 +25,16 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ token: string }> },
 ) {
+  const t = await getTranslations("errors");
   const { token } = await params;
   const parsed = TokenSchema.safeParse(token);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid link" }, { status: 400 });
+    return NextResponse.json({ error: t("interview.invalidLink") }, { status: 400 });
   }
 
   const session = await getPublicSession(parsed.data);
   if (!session) {
-    return NextResponse.json({ error: "Interview not found" }, { status: 404 });
+    return NextResponse.json({ error: t("notFound.interview") }, { status: 404 });
   }
   return NextResponse.json({ session });
 }
@@ -43,14 +46,30 @@ export async function POST(
   const { token } = await params;
   const tokenParsed = TokenSchema.safeParse(token);
   if (!tokenParsed.success) {
-    return NextResponse.json({ error: "Invalid link" }, { status: 400 });
+    // Pre-session (malformed token): no language signal yet → default locale.
+    const t = await getTranslations("errors");
+    return NextResponse.json(
+      { error: t("interview.invalidLink") },
+      { status: 400 },
+    );
+  }
+
+  // Participant-facing locale = the session's interview language (resolved from
+  // the token), NOT the UI cookie: participants are login-free and carry none.
+  const existing = await getPublicSession(tokenParsed.data);
+  const t = await getTranslations({
+    locale: existing?.language ?? DEFAULT_LOCALE,
+    namespace: "errors",
+  });
+  if (!existing) {
+    return NextResponse.json({ error: t("notFound.interview") }, { status: 404 });
   }
 
   const body = await req.json().catch(() => null);
   const parsed = MessageSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -59,7 +78,7 @@ export async function POST(
     const session = await advanceInterview(tokenParsed.data, parsed.data.message);
     if (!session) {
       return NextResponse.json(
-        { error: "Interview not found" },
+        { error: t("notFound.interview") },
         { status: 404 },
       );
     }
@@ -69,7 +88,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "The interview assistant is unavailable right now. Please try again in a moment.",
+            t("interview.assistantUnavailable"),
         },
         { status: 502 },
       );
@@ -79,7 +98,7 @@ export async function POST(
       err instanceof Error ? err.message : err,
     );
     return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
+      { error: t("unexpected") },
       { status: 500 },
     );
   }

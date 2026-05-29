@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { toBcp47 } from "@/i18n/locale";
 import { Button } from "@/components/ui/Button";
 import { FIELD_INPUT_CLASS } from "@/components/ui/Field";
 
@@ -48,10 +49,10 @@ function isoToLocalInput(iso: string | null): string {
   return local.toISOString().slice(0, 16);
 }
 
-function formatScheduledForDisplay(iso: string): string {
+function formatScheduledForDisplay(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return new Intl.DateTimeFormat("de-DE", {
+  return new Intl.DateTimeFormat(toBcp47(locale), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(d);
@@ -65,6 +66,7 @@ export function ScheduleInviteAction({
   const router = useRouter();
   const t = useTranslations("research.plans");
   const tc = useTranslations("research.common");
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(isoToLocalInput(scheduledAt));
   const [submitting, setSubmitting] = useState(false);
@@ -117,7 +119,7 @@ export function ScheduleInviteAction({
       <div className="flex flex-wrap items-center gap-2">
         {scheduledAt ? (
           <span className="text-body text-neutral-700 whitespace-nowrap">
-            {formatScheduledForDisplay(scheduledAt)}
+            {formatScheduledForDisplay(scheduledAt, locale)}
           </span>
         ) : (
           <span className="text-neutral-400">—</span>

@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { ensureSlackAlertPreferences } from "@/lib/alerts/service";
 import { upsertSlackIntegration } from "@/lib/slack/service";
 import { SlackIntegrationConfigSchema } from "@/lib/schemas/slack";
 
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const orgId = orgOrError.orgId;
@@ -16,7 +18,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid configuration",
+          error: t("integrations.invalidConfiguration"),
           details: parsed.error.flatten(),
         },
         { status: 400 },
@@ -30,7 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: err instanceof Error ? err.message : "Unknown error",
+        error: err instanceof Error ? err.message : t("unexpected"),
       },
       { status: 500 },
     );

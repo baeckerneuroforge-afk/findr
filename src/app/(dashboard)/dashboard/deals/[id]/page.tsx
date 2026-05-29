@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
@@ -57,6 +58,7 @@ export default async function DealDetailPage({
   }
 
   const t = await getTranslations("sales.deal");
+  const locale = await getLocale();
   const { id } = await params;
   const deal = await getDealById(orgId, id);
   if (!deal) notFound();
@@ -125,7 +127,7 @@ export default async function DealDetailPage({
             <span>{deal.stage}</span>
             <span aria-hidden="true">·</span>
             <span>
-              {new Intl.NumberFormat("de-DE", {
+              {new Intl.NumberFormat(toBcp47(locale), {
                 style: "currency",
                 currency: deal.currency,
                 maximumFractionDigits: 0,

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
   getOrgSettings,
@@ -18,6 +19,7 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -25,7 +27,7 @@ export async function PUT(req: NextRequest) {
   const parsed = OrgSettingsSchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid settings", details: parsed.error.flatten() },
+      { error: t("settings.invalidSettings"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -39,7 +41,7 @@ export async function PUT(req: NextRequest) {
       err instanceof Error ? err.message : err,
     );
     return NextResponse.json(
-      { error: "Could not save settings. Please try again." },
+      { error: t("settings.couldNotSave") },
       { status: 500 },
     );
   }

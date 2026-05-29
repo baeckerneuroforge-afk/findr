@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
   getSlackAlertPreferences,
@@ -15,6 +16,7 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -25,7 +27,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid alert preferences",
+          error: t("integrations.invalidAlertPreferences"),
           details: parsed.error.flatten(),
         },
         { status: 400 },
@@ -41,7 +43,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: err instanceof Error ? err.message : "Unknown error",
+        error: err instanceof Error ? err.message : t("unexpected"),
       },
       { status: 500 },
     );

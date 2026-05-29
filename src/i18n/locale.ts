@@ -29,8 +29,15 @@ const BCP47: Record<Locale, string> = {
   en: "en-US",
 };
 
-export function toBcp47(locale: Locale): string {
-  return BCP47[locale];
+/**
+ * BCP-47 tag for locale-aware Intl.* formatting. Accepts the untyped locale
+ * string that next-intl's `useLocale()` / `getLocale()` return (they widen to
+ * `string` because this app has no next-intl message augmentation), falling
+ * back to the default locale for anything outside the supported set — so call
+ * sites can write `toBcp47(useLocale())` without narrowing.
+ */
+export function toBcp47(locale: string): string {
+  return BCP47[isLocale(locale) ? locale : DEFAULT_LOCALE];
 }
 
 export function isLocale(value: unknown): value is Locale {

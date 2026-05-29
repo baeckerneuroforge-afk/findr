@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
@@ -27,6 +28,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -35,18 +37,18 @@ export async function POST(
 
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) {
-    return NextResponse.json({ error: "Research plan not found" }, { status: 404 });
+    return NextResponse.json({ error: t("notFound.researchPlan") }, { status: 404 });
   }
 
   const body = await req.json().catch(() => null);
   if (body === null || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json({ error: t("invalidRequestBody") }, { status: 400 });
   }
 
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: parsed.error.issues.some((i) => i.code === "too_big") ? 413 : 400 },
     );
   }

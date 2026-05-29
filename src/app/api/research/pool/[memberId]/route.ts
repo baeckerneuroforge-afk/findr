@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
@@ -66,6 +67,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ memberId: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -74,13 +76,13 @@ export async function PATCH(
 
   const body = await req.json().catch(() => null);
   if (body === null || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json({ error: t("invalidRequestBody") }, { status: 400 });
   }
 
   const parsed = PatchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -90,15 +92,15 @@ export async function PATCH(
     case "updated":
       return NextResponse.json({ success: true, member: result.member });
     case "not_found":
-      return NextResponse.json({ error: "Pool-Eintrag nicht gefunden" }, { status: 404 });
+      return NextResponse.json({ error: t("notFound.poolEntry") }, { status: 404 });
     case "duplicate_email":
       return NextResponse.json(
-        { error: "Diese E-Mail ist bereits einem anderen Pool-Eintrag zugeordnet." },
+        { error: t("pool.emailAssignedElsewhere") },
         { status: 409 },
       );
     default:
       return NextResponse.json(
-        { error: result.message ?? "Pool-Eintrag konnte nicht aktualisiert werden." },
+        { error: result.message ?? t("pool.couldNotUpdate") },
         { status: 500 },
       );
   }
@@ -108,6 +110,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ memberId: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -116,7 +119,7 @@ export async function DELETE(
 
   const deleted = await deletePoolMember(orgId, memberId);
   if (!deleted) {
-    return NextResponse.json({ error: "Pool-Eintrag nicht gefunden" }, { status: 404 });
+    return NextResponse.json({ error: t("notFound.poolEntry") }, { status: 404 });
   }
   return NextResponse.json({ success: true, memberId });
 }
