@@ -5,6 +5,10 @@ import { z } from "zod";
 
 import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
 import { normalizeThemes } from "@/lib/schemas/product-discovery";
+import {
+  normalizeEmergentThemes,
+  type EmergentTheme,
+} from "@/lib/schemas/synthesis";
 import type { Database, Json } from "@/types/database";
 
 /**
@@ -119,15 +123,12 @@ export interface ReelCondensationInput {
 
 /** Per-theme snapshot of the synthesis the engine needs — title + the
  *  schema-validated verbatim quotes already attached at theme level by
- *  Stage-2. The model can pick from these directly (faster path) OR
- *  reach down into the per-interview evidence. */
-export interface ReelSynthesisTheme {
-  title: string;
-  summary: string;
-  frequency: number;
-  sourceInsightIds: string[];
-  quotes: string[];
-}
+ *  Stage-2. The reel reads every field (title/summary/frequency/
+ *  sourceInsightIds/quotes), so this is the canonical synthesis
+ *  `EmergentTheme` itself — aliased here, not re-declared, so there is one
+ *  source of truth for the shape and `normalizeEmergentThemes` flows in
+ *  without a structural-twin type. */
+export type ReelSynthesisTheme = EmergentTheme;
 
 export interface ReelSynthesisInput {
   overview: string | null;
@@ -754,8 +755,12 @@ export async function generateHighlightReel(
 
   const synthesis: ReelSynthesisInput = {
     overview: synthResp.data.overview,
-    emergent_themes:
-      (synthResp.data.emergent_themes as unknown as ReelSynthesisTheme[]) ?? [],
+    // Defensive normalize, NOT a cast: the reel reaches each theme's INNER
+    // fields (`for (const q of t.quotes)` in the anchor-set + trivial-check),
+    // so a legacy/garbage row with `quotes` undefined would crash "not
+    // iterable". normalizeEmergentThemes guarantees the arrays/strings the
+    // engine reads — same root fix as normalizeThemes for the r.themes trio.
+    emergent_themes: normalizeEmergentThemes(synthResp.data.emergent_themes),
   };
 
   return generateReelFromInputs({ plan, synthesis, condensations }, model);

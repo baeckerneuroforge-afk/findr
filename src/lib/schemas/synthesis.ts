@@ -55,6 +55,51 @@ const EmergentThemeSchema = z.object({
 });
 export type EmergentTheme = z.infer<typeof EmergentThemeSchema>;
 
+/**
+ * Normalize persisted `emergent_themes` JSONB into honest `EmergentTheme[]`.
+ *
+ * `study_synthesis.emergent_themes` is written as validated JSONB (the engine
+ * parses the model result with `StudySynthesisResultSchema` before upsert), so
+ * every READ path CASTS the column rather than re-parsing it. Legacy / partial
+ * rows — or anything written before a field existed — therefore reach consumers
+ * with inner fields `undefined`. Code that iterates a theme's `quotes`
+ * (`for (const q of t.quotes)`) then crashes with "undefined is not iterable" /
+ * "Cannot read properties of undefined". The outer `?? []` that guards a
+ * missing column never reaches the inner fields.
+ *
+ * Mirrors `normalizeThemes` in product-discovery.ts EXACTLY: a defensive map,
+ * NOT `EmergentThemeSchema.parse`. parse would THROW on legacy rows that
+ * violate the title/summary length or the `.min(1)` source-id constraint,
+ * turning a render glitch into a total read failure. The map never throws,
+ * preserves all existing content, and defaults the inner fields — missing
+ * arrays → `[]`, missing strings → `""`, missing frequency → `0` — so the
+ * result genuinely satisfies `EmergentTheme` with no `as unknown` cast that
+ * lies about the shape.
+ *
+ * Single source for any synthesis read path that reaches a theme's INNER
+ * fields (currently highlight-reels.ts, which iterates `quotes`).
+ */
+export function normalizeEmergentThemes(value: unknown): EmergentTheme[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    const theme =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? (entry as Record<string, unknown>)
+        : {};
+    const sourceInsightIds = theme.sourceInsightIds;
+    const quotes = theme.quotes;
+    return {
+      title: typeof theme.title === "string" ? theme.title : "",
+      summary: typeof theme.summary === "string" ? theme.summary : "",
+      frequency: typeof theme.frequency === "number" ? theme.frequency : 0,
+      sourceInsightIds: Array.isArray(sourceInsightIds)
+        ? (sourceInsightIds as string[])
+        : [],
+      quotes: Array.isArray(quotes) ? (quotes as string[]) : [],
+    };
+  });
+}
+
 // ── Tension (two-sided disagreement) ────────────────────────────────────────
 
 /** One side of a tension — a coherent position taken by ≥1 respondent.
