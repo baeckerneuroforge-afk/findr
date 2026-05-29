@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getAccount } from "@/lib/accounts/service";
 import {
@@ -19,8 +20,12 @@ import { AccountMasterCard } from "@/components/dashboard/AccountMasterCard";
 import { AccountStatusControl } from "@/components/dashboard/AccountStatusControl";
 import { CallProductDiscoverySection } from "@/components/dashboard/CallProductDiscoverySection";
 
-function formatMrr(mrr: number | null, currency: "USD" | "EUR"): string {
-  if (mrr === null) return "MRR not set";
+function formatMrr(
+  mrr: number | null,
+  currency: "USD" | "EUR",
+  notSet: string,
+): string {
+  if (mrr === null) return notSet;
   return new Intl.NumberFormat("de-DE", {
     style: "currency",
     currency,
@@ -55,6 +60,8 @@ export default async function AccountDetailPage({
     }
     throw err;
   }
+
+  const t = await getTranslations("health.detail");
 
   const { id } = await params;
   const account = await getAccount(orgId, id);
@@ -109,7 +116,7 @@ export default async function AccountDetailPage({
           href="/dashboard/accounts"
           className="transition-colors hover:text-neutral-900"
         >
-          Accounts
+          {t("breadcrumbAccounts")}
         </Link>
         <span aria-hidden="true">/</span>
         <span className="truncate text-neutral-900">{account.companyName}</span>
@@ -128,11 +135,11 @@ export default async function AccountDetailPage({
             />
           </div>
           <div className="flex flex-wrap items-center gap-3 text-body text-neutral-500">
-            <span>{formatMrr(account.mrr, account.currency)}</span>
+            <span>{formatMrr(account.mrr, account.currency, t("mrrNotSet"))}</span>
             {renewal && (
               <>
                 <span aria-hidden="true">·</span>
-                <span>Renews {renewal}</span>
+                <span>{t("renews", { date: renewal })}</span>
               </>
             )}
             {account.sourceDealId && (
@@ -143,10 +150,10 @@ export default async function AccountDetailPage({
                     href={`/dashboard/deals/${account.sourceDealId}`}
                     className="text-primary-700 hover:underline"
                   >
-                    From deal: {sourceDeal.name}
+                    {t("fromDeal", { name: sourceDeal.name })}
                   </Link>
                 ) : (
-                  <span>Created from a won deal</span>
+                  <span>{t("createdFromWonDeal")}</span>
                 )}
               </>
             )}

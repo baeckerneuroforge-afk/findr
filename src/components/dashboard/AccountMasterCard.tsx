@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -46,6 +47,8 @@ function formatDate(date: string | null): string {
 
 export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps) {
   const router = useRouter();
+  const t = useTranslations("health.detail");
+  const tc = useTranslations("health.common");
   const [account, setAccount] = useState<AccountMaster>(initial);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -79,7 +82,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
 
   async function save() {
     if (form.companyName.trim() === "") {
-      setError("Company name is required.");
+      setError(tc("errCompanyRequired"));
       return;
     }
     setSaving(true);
@@ -104,7 +107,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
         account?: AccountMaster;
       };
       if (!res.ok || !data.account) {
-        throw new Error(data.error ?? "Could not save account.");
+        throw new Error(data.error ?? tc("errSaveAccount"));
       }
       setAccount({
         companyName: data.account.companyName,
@@ -120,7 +123,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
       // Sync the server-rendered header / breadcrumb (company name).
       startTransition(() => router.refresh());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save account.");
+      setError(err instanceof Error ? err.message : tc("errSaveAccount"));
     } finally {
       setSaving(false);
     }
@@ -131,17 +134,17 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
-        <h2 className="text-h2 text-neutral-900">Account details</h2>
+        <h2 className="text-h2 text-neutral-900">{t("detailsTitle")}</h2>
         {!editing && (
           <Button variant="secondary" size="sm" onClick={startEdit}>
-            Edit
+            {tc("edit")}
           </Button>
         )}
       </CardHeader>
       <CardBody>
         {editing ? (
           <div className="space-y-4">
-            <Field label="Company">
+            <Field label={tc("fldCompany")}>
               <input
                 className={INPUT_CLASS}
                 value={form.companyName}
@@ -152,7 +155,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
                 disabled={disabled}
               />
             </Field>
-            <Field label="Sponsor name">
+            <Field label={tc("fldSponsorName")}>
               <input
                 className={INPUT_CLASS}
                 value={form.sponsorName}
@@ -163,7 +166,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
                 disabled={disabled}
               />
             </Field>
-            <Field label="Sponsor email">
+            <Field label={tc("fldSponsorEmail")}>
               <input
                 className={INPUT_CLASS}
                 type="email"
@@ -175,7 +178,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
                 disabled={disabled}
               />
             </Field>
-            <Field label="Sponsor phone">
+            <Field label={tc("fldSponsorPhone")}>
               <input
                 className={INPUT_CLASS}
                 value={form.sponsorPhone}
@@ -187,7 +190,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
               />
             </Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="MRR">
+              <Field label={tc("fldMrr")}>
                 <input
                   className={INPUT_CLASS}
                   type="number"
@@ -201,7 +204,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
                   disabled={disabled}
                 />
               </Field>
-              <Field label="Currency">
+              <Field label={tc("fldCurrency")}>
                 <select
                   className={INPUT_CLASS}
                   value={form.currency}
@@ -218,7 +221,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
                 </select>
               </Field>
             </div>
-            <Field label="Renewal date">
+            <Field label={tc("fldRenewalDate")}>
               <input
                 className={INPUT_CLASS}
                 type="date"
@@ -229,14 +232,14 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
                 disabled={disabled}
               />
             </Field>
-            <Field label="Notes">
+            <Field label={tc("fldNotes")}>
               <textarea
                 className={`${INPUT_CLASS} h-24 resize-y py-2`}
                 value={form.notes}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, notes: e.target.value }))
                 }
-                placeholder="Internal notes about this account…"
+                placeholder={tc("phNotes")}
                 disabled={disabled}
               />
             </Field>
@@ -249,26 +252,26 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
 
             <div className="flex items-center gap-2">
               <Button onClick={save} disabled={disabled}>
-                {saving ? "Saving…" : "Save"}
+                {saving ? tc("saving") : tc("save")}
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => setEditing(false)}
                 disabled={disabled}
               >
-                Cancel
+                {tc("cancel")}
               </Button>
             </div>
           </div>
         ) : (
           <dl className="space-y-3">
-            <Row label="Company" value={account.companyName} />
-            <Row label="Sponsor" value={account.sponsorName} />
-            <Row label="Email" value={account.sponsorEmail} kind="email" />
-            <Row label="Phone" value={account.sponsorPhone} kind="phone" />
-            <Row label="MRR" value={formatMrr(account.mrr, account.currency)} />
-            <Row label="Renewal" value={formatDate(account.renewalDate)} />
-            <Row label="Notes" value={account.notes} />
+            <Row label={t("rowCompany")} value={account.companyName} />
+            <Row label={t("rowSponsor")} value={account.sponsorName} />
+            <Row label={t("rowEmail")} value={account.sponsorEmail} kind="email" />
+            <Row label={t("rowPhone")} value={account.sponsorPhone} kind="phone" />
+            <Row label={t("rowMrr")} value={formatMrr(account.mrr, account.currency)} />
+            <Row label={t("rowRenewal")} value={formatDate(account.renewalDate)} />
+            <Row label={t("rowNotes")} value={account.notes} />
           </dl>
         )}
       </CardBody>

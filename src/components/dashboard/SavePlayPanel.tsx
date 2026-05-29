@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { EvidenceQuote } from "@/components/dashboard/EvidenceQuote";
 import type { SavePlayReport } from "@/lib/accounts/save-play-service";
@@ -12,6 +13,8 @@ interface SavePlayPanelProps {
 
 type Salvageable = "yes" | "no" | "maybe";
 
+// Churn-signal name is analysis taxonomy — formatted from the raw type, kept in
+// the source language (interpolated into translated chrome). Not translated.
 function formatSignal(signal: string): string {
   return signal
     .split("_")
@@ -20,6 +23,15 @@ function formatSignal(signal: string): string {
     )
     .join(" ");
 }
+
+/** Maps the salvageable verdict (yes/no/maybe) to its translated chrome label
+ *  key. The verdict is a presentational rendering of the enum (like the
+ *  win-probability labels in Etappe 3), so it IS translated. */
+const VERDICT_KEY = {
+  yes: "verdictRetainable",
+  no: "verdictHardToRetain",
+  maybe: "verdictUncertain",
+} as const;
 
 function verdictHeaderStyle(s: Salvageable): string {
   if (s === "yes") return "bg-success-50 border-success-500/30";
@@ -31,12 +43,6 @@ function verdictBadgeStyle(s: Salvageable): string {
   if (s === "yes") return "border-success-500/30 bg-success-50 text-success-700";
   if (s === "no") return "border-danger-500 bg-danger-500 text-white";
   return "border-primary-200 bg-primary-50 text-primary-700";
-}
-
-function verdictLabel(s: Salvageable): string {
-  if (s === "yes") return "Retainable";
-  if (s === "no") return "Hard to retain";
-  return "Uncertain";
 }
 
 function Spinner() {
@@ -65,6 +71,7 @@ function Spinner() {
 }
 
 function SavePlayReportView({ report }: { report: SavePlayReport }) {
+  const t = useTranslations("health.detail");
   const salvageable: Salvageable =
     report.salvageable ?? report.overall.salvageable ?? "maybe";
   const reasoning = report.overall.reasoning;
@@ -75,12 +82,12 @@ function SavePlayReportView({ report }: { report: SavePlayReport }) {
       {/* Overall verdict */}
       <div className={`rounded-lg border p-6 ${verdictHeaderStyle(salvageable)}`}>
         <div className="mb-2 text-caption uppercase tracking-wider text-neutral-500">
-          Can this customer be retained?
+          {t("retainQuestion")}
         </div>
         <span
           className={`inline-block rounded-md border px-2 py-0.5 text-caption font-semibold uppercase ${verdictBadgeStyle(salvageable)}`}
         >
-          {verdictLabel(salvageable)}
+          {t(VERDICT_KEY[salvageable])}
         </span>
         {reasoning && (
           <p className="mt-3 text-body leading-relaxed text-neutral-700">
@@ -92,13 +99,12 @@ function SavePlayReportView({ report }: { report: SavePlayReport }) {
       {/* Healthy account — no save actions */}
       {recommendations.length === 0 ? (
         <div className="rounded-lg border border-success-500/30 bg-success-50 px-4 py-4 text-body leading-relaxed text-success-700">
-          No save actions needed — this account looks healthy. No churn signals to
-          act on.
+          {t("noSaveActions")}
         </div>
       ) : (
         <div>
           <h4 className="mb-3 text-h3 uppercase tracking-wider text-neutral-500">
-            Recommended save actions ({recommendations.length})
+            {t("recommendedActions", { count: recommendations.length })}
           </h4>
           <div className="space-y-3">
             {recommendations.map((rec, i) => (
@@ -117,7 +123,7 @@ function SavePlayReportView({ report }: { report: SavePlayReport }) {
                 {/* Next step — highlighted */}
                 <div className="rounded-md border border-primary-100 bg-primary-50 px-3 py-2">
                   <div className="mb-0.5 text-caption uppercase tracking-wider text-primary-700">
-                    Next step
+                    {t("nextStep")}
                   </div>
                   <p className="text-body-strong leading-relaxed text-neutral-900">
                     {rec.nextStep}
@@ -128,7 +134,7 @@ function SavePlayReportView({ report }: { report: SavePlayReport }) {
                 {rec.evidence && (
                   <EvidenceQuote
                     quote={rec.evidence}
-                    context="Evidence from this account"
+                    context={t("evidenceContext")}
                   />
                 )}
               </div>
@@ -141,6 +147,7 @@ function SavePlayReportView({ report }: { report: SavePlayReport }) {
 }
 
 export function SavePlayPanel({ accountId, initialReport }: SavePlayPanelProps) {
+  const t = useTranslations("health.detail");
   const [report, setReport] = useState<SavePlayReport | null>(initialReport);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -158,15 +165,11 @@ export function SavePlayPanel({ accountId, initialReport }: SavePlayPanelProps) 
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         if (res.status === 404) {
-          setError("Analyze a transcript for this account first.");
+          setError(t("errNoTranscript"));
         } else if (res.status === 502) {
-          setError(
-            "The AI couldn't generate a save-play right now. Please try again.",
-          );
+          setError(t("errAiUnavailable"));
         } else {
-          setError(
-            data.error ?? "Save-play generation failed. Please try again later.",
-          );
+          setError(data.error ?? t("errSavePlayGeneric"));
         }
         console.error(
           `Save-play generate failed for ${accountId}:`,
@@ -178,7 +181,7 @@ export function SavePlayPanel({ accountId, initialReport }: SavePlayPanelProps) 
       const data = (await res.json()) as { report: SavePlayReport };
       setReport(data.report);
     } catch (err) {
-      setError("Save-play generation failed. Please try again later.");
+      setError(t("errSavePlayGeneric"));
       console.error(`Save-play generate failed for ${accountId}:`, err);
     } finally {
       setLoading(false);
@@ -190,12 +193,14 @@ export function SavePlayPanel({ accountId, initialReport }: SavePlayPanelProps) 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-h3 uppercase tracking-wider text-neutral-500">
-            Save-play
+            {t("savePlayTitle")}
           </h3>
           {report && (
             <p className="mt-1 text-caption text-neutral-400">
-              Generated {new Date(report.created_at).toLocaleString("de-DE")} ·{" "}
-              {report.model}
+              {t("generatedAt", {
+                date: new Date(report.created_at).toLocaleString("de-DE"),
+                model: report.model,
+              })}
             </p>
           )}
         </div>
@@ -206,20 +211,19 @@ export function SavePlayPanel({ accountId, initialReport }: SavePlayPanelProps) 
         >
           {loading ? (
             <>
-              <Spinner /> Generating…
+              <Spinner /> {t("generating")}
             </>
           ) : report ? (
-            "Regenerate"
+            t("regenerate")
           ) : (
-            "Generate save-play"
+            t("generateSavePlay")
           )}
         </Button>
       </div>
 
       {loading && (
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-small text-neutral-500">
-          Generating retention recommendations with AI — this can take a few
-          seconds.
+          {t("generatingBox")}
         </div>
       )}
 
@@ -231,9 +235,7 @@ export function SavePlayPanel({ accountId, initialReport }: SavePlayPanelProps) 
 
       {!report && !loading && !error && (
         <div className="rounded-lg border border-dashed border-neutral-200 bg-white px-4 py-6 text-center text-small text-neutral-500">
-          Generate AI save-play recommendations grounded in this account&apos;s
-          churn signals and transcript evidence — one concrete action per signal,
-          plus a retention verdict.
+          {t("emptyBox")}
         </div>
       )}
 

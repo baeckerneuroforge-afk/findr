@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { HealthBadge } from "@/components/dashboard/HealthBadge";
@@ -56,6 +57,7 @@ export function AccountHealthPanel({
   transcriptCount,
 }: AccountHealthPanelProps) {
   const router = useRouter();
+  const t = useTranslations("health.detail");
   const [transcript, setTranscript] = useState("");
   const [busy, setBusy] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -72,11 +74,11 @@ export function AccountHealthPanel({
         body: JSON.stringify({ transcript }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Analysis failed.");
+      if (!res.ok) throw new Error(data.error ?? t("errAnalysis"));
       setTranscript("");
       startTransition(() => router.refresh());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Analysis failed.");
+      setError(err instanceof Error ? err.message : t("errAnalysis"));
     } finally {
       setBusy(false);
     }
@@ -95,7 +97,7 @@ export function AccountHealthPanel({
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex items-center justify-between">
-          <h2 className="text-h2 text-neutral-900">Health score</h2>
+          <h2 className="text-h2 text-neutral-900">{t("healthScoreTitle")}</h2>
           {latest && (
             <HealthBadge
               score={latest.healthScore}
@@ -108,22 +110,16 @@ export function AccountHealthPanel({
           {/* Honesty: always say what the score is based on. */}
           {latest ? (
             <p className="text-small text-neutral-500">
-              Latest score from 1 transcript ·{" "}
-              {transcriptCount === 1 ? "1 score" : `${transcriptCount} scores`}{" "}
-              total · last analyzed{" "}
-              {new Date(latest.analyzedAt).toLocaleString("de-DE")}
+              {t("latestScoreLine", {
+                count: transcriptCount,
+                date: new Date(latest.analyzedAt).toLocaleString("de-DE"),
+              })}
               {latest.analysisMethod === "heuristic" &&
-                " · heuristic fallback (AI model was unavailable)"}
-              {transcriptCount === 1 && (
-                <> — first data point; add more transcripts to see the trend.</>
-              )}
+                t("heuristicSuffix")}
+              {transcriptCount === 1 && t("firstPointSuffix")}
             </p>
           ) : (
-            <p className="text-small text-neutral-500">
-              No analysis yet. Paste a post-sale conversation transcript (a
-              check-in, support call, QBR…) and Findr will score the account&apos;s
-              health using the same engine that scores deal risk.
-            </p>
+            <p className="text-small text-neutral-500">{t("noAnalysisYet")}</p>
           )}
 
           <textarea
@@ -131,17 +127,17 @@ export function AccountHealthPanel({
             rows={6}
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
-            placeholder="Paste the call transcript here…"
+            placeholder={t("phTranscript")}
             disabled={disabled}
           />
 
           <div className="flex items-center gap-3">
             <Button onClick={analyze} disabled={disabled || transcript.trim() === ""}>
               {busy
-                ? "Analyzing… (Claude is reading the transcript)"
+                ? t("analyzing")
                 : latest
-                  ? "Analyze new transcript"
-                  : "Analyze transcript"}
+                  ? t("analyzeNew")
+                  : t("analyze")}
             </Button>
             {error && <span className="text-small text-danger-700">{error}</span>}
           </div>
@@ -151,7 +147,7 @@ export function AccountHealthPanel({
       {chartHistory.length >= 2 && (
         <RiskHistoryChart
           history={chartHistory}
-          title="Health score over time"
+          title={t("chartTitle")}
           higherIsBetter
           thresholdValue={40}
         />
@@ -159,11 +155,7 @@ export function AccountHealthPanel({
 
       {latest && riskScore !== undefined && (
         <div className="space-y-3">
-          <p className="text-small text-neutral-500">
-            These are the acute churn signals the health classifier picked up
-            in the transcript(s), each with verbatim evidence from the call.
-            Fewer and weaker signals mean a healthier account.
-          </p>
+          <p className="text-small text-neutral-500">{t("signalsIntro")}</p>
           <RiskSignalDrilldown
             riskScore={riskScore}
             riskLevel={riskLevelFromScore(riskScore)}

@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import type { HealthLevel } from "@/lib/accounts/types";
 
 interface HealthBadgeProps {
@@ -26,6 +29,10 @@ const LEVEL_STYLES: Record<HealthLevel, string> = {
   critical: "bg-danger-50 text-danger-700 border-danger-500/40",
 };
 
+// Health-level display labels are analysis taxonomy (the 5-level classifier's
+// output, parallel to the raw risk level in RiskSignalDrilldown) — kept in the
+// source language in BOTH locales, like SIGNAL_LABELS. Only the chrome around
+// them (the "Not analyzed" pill) is translated.
 const LEVEL_LABELS: Record<HealthLevel, string> = {
   thriving: "Thriving",
   healthy: "Healthy",
@@ -41,12 +48,13 @@ const SIZE_STYLES = {
 } as const;
 
 export function HealthBadge({ score, level, size = "md" }: HealthBadgeProps) {
+  const t = useTranslations("health.common");
   if (score === undefined) {
     return (
       <span
         className={`inline-flex items-center rounded-md border border-neutral-200 bg-neutral-50 font-medium italic text-neutral-400 ${SIZE_STYLES[size]}`}
       >
-        Not analyzed
+        {t("notAnalyzed")}
       </span>
     );
   }

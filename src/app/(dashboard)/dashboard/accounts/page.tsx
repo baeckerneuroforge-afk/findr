@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getAccounts } from "@/lib/accounts/service";
 import {
@@ -80,7 +81,7 @@ function BuildingIcon() {
  * Status column shows the MANUAL account.status, kept distinct from the COMPUTED
  * health level shown in the badge.
  */
-function Section({
+async function Section({
   title,
   count,
   rows,
@@ -91,6 +92,8 @@ function Section({
   rows: AccountRow[];
   muted?: boolean;
 }) {
+  const t = await getTranslations("health.accounts");
+  const tc = await getTranslations("health.common");
   return (
     <section>
       <h2 className="mb-3 text-h2 text-neutral-900">
@@ -100,14 +103,16 @@ function Section({
         <Table>
           <THead>
             <tr>
-              <TH>Account</TH>
-              <TH>Health</TH>
-              <TH>Top signal</TH>
-              <TH>Status</TH>
+              <TH>{t("colAccount")}</TH>
+              <TH>{t("colHealth")}</TH>
+              <TH>{t("colTopSignal")}</TH>
+              <TH>{t("colStatus")}</TH>
             </tr>
           </THead>
           <TBody>
             {rows.map(({ account, health }) => {
+              // Manual account status (active/at_risk/churned) is chrome — its
+              // label is translated; only the badge variant comes from the meta.
               const statusMeta = ACCOUNT_STATUS_META[account.status];
               return (
                 <TR key={account.id}>
@@ -131,7 +136,7 @@ function Section({
                   </TD>
                   <TD>
                     <Badge variant={statusMeta.variant}>
-                      {statusMeta.label}
+                      {tc(`status.${account.status}`)}
                     </Badge>
                   </TD>
                 </TR>
@@ -156,6 +161,8 @@ export default async function AccountsPage() {
     }
     throw err;
   }
+
+  const t = await getTranslations("health.accounts");
 
   const accounts = await getAccounts(orgId);
   // Pure reads — no AI, no Opus. One batch query for all accounts' latest
@@ -223,13 +230,11 @@ export default async function AccountsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-display text-neutral-900">Accounts</h1>
+        <h1 className="text-display text-neutral-900">{t("title")}</h1>
         <p className="mt-1 text-body text-neutral-500">
           {accounts.length === 0
-            ? "Create a customer account manually or from a won deal."
-            : `${accounts.length} customer ${
-                accounts.length === 1 ? "account" : "accounts"
-              } · health overview`}
+            ? t("subtitleEmpty")
+            : t("subtitleCount", { count: accounts.length })}
         </p>
       </div>
 
@@ -237,17 +242,17 @@ export default async function AccountsPage() {
       {accounts.length > 0 && (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <StatCard
-            label="Needs attention"
+            label={t("statNeedsAttention")}
             value={needsAttention.length}
             status={needsAttention.length > 0 ? "critical" : "default"}
           />
           <StatCard
-            label="Critical"
+            label={t("statCritical")}
             value={criticalCount}
             status={criticalCount > 0 ? "critical" : "default"}
           />
-          <StatCard label="Healthy" value={healthy.length} />
-          <StatCard label="Not analyzed" value={notAnalyzed.length} />
+          <StatCard label={t("statHealthy")} value={healthy.length} />
+          <StatCard label={t("statNotAnalyzed")} value={notAnalyzed.length} />
         </div>
       )}
 
@@ -263,30 +268,34 @@ export default async function AccountsPage() {
       {accounts.length === 0 ? (
         <EmptyState
           icon={<BuildingIcon />}
-          title="No accounts yet"
-          description="Customer accounts are the heart of CS Health. Add one manually, or create an account from a deal you've already won — its company and contact details are copied over."
+          title={t("emptyTitle")}
+          description={t("emptyDesc")}
         />
       ) : (
         <div className="space-y-8">
           {needsAttention.length > 0 ? (
             <Section
-              title="Needs attention"
+              title={t("sectionNeedsAttention")}
               count={needsAttention.length}
               rows={needsAttention}
             />
           ) : analyzed.length > 0 ? (
             <div className="rounded-lg border border-success-500/30 bg-success-50 px-4 py-3 text-body text-success-700">
-              All clear — no analyzed account currently needs attention.
+              {t("allClear")}
             </div>
           ) : null}
 
           {healthy.length > 0 && (
-            <Section title="Healthy" count={healthy.length} rows={healthy} />
+            <Section
+              title={t("sectionHealthy")}
+              count={healthy.length}
+              rows={healthy}
+            />
           )}
 
           {notAnalyzed.length > 0 && (
             <Section
-              title="Not analyzed"
+              title={t("sectionNotAnalyzed")}
               count={notAnalyzed.length}
               rows={notAnalyzed}
               muted

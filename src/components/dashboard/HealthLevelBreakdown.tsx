@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import type { HealthLevel } from "@/lib/accounts/types";
 
@@ -22,6 +23,8 @@ const ROW_ORDER: HealthLevel[] = [
   "thriving",
 ];
 
+// Row labels are health-level taxonomy (the classifier's 5 levels) — kept in
+// the source language in both locales, matching HealthBadge's LEVEL_LABELS.
 const ROW_META: Record<
   HealthLevel,
   { label: string; barColor: string; valueColor: string }
@@ -53,7 +56,10 @@ const ROW_META: Record<
   },
 };
 
-export function HealthLevelBreakdown({ counts }: HealthLevelBreakdownProps) {
+export async function HealthLevelBreakdown({
+  counts,
+}: HealthLevelBreakdownProps) {
+  const t = await getTranslations("health.overview");
   const total = ROW_ORDER.reduce((sum, level) => sum + (counts[level] ?? 0), 0);
   const max = Math.max(...ROW_ORDER.map((level) => counts[level] ?? 0), 1);
 
@@ -61,16 +67,16 @@ export function HealthLevelBreakdown({ counts }: HealthLevelBreakdownProps) {
     <Card>
       <CardHeader>
         <div>
-          <h2 className="text-h2 text-neutral-900">Health distribution</h2>
+          <h2 className="text-h2 text-neutral-900">{t("distTitle")}</h2>
           <p className="mt-1 text-small text-neutral-500">
-            How your analyzed accounts split across the five health levels.
+            {t("distSubtitle")}
           </p>
         </div>
       </CardHeader>
       <CardBody>
         {total === 0 ? (
           <div className="py-8 text-center text-body text-neutral-500">
-            No analyzed accounts yet.
+            {t("distEmpty")}
           </div>
         ) : (
           <ul className="space-y-3">

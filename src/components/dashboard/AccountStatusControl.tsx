@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ACCOUNT_STATUS_META } from "@/lib/accounts/status";
@@ -17,6 +18,7 @@ export function AccountStatusControl({
   initialStatus,
 }: AccountStatusControlProps) {
   const router = useRouter();
+  const tc = useTranslations("health.common");
   const [status, setStatus] = useState<AccountStatus>(initialStatus);
   const [busy, setBusy] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -33,11 +35,11 @@ export function AccountStatusControl({
         body: JSON.stringify({ status: next }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Could not update status.");
+      if (!res.ok) throw new Error(data.error ?? tc("errUpdateStatus"));
       setStatus(next);
       startTransition(() => router.refresh());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update status.");
+      setError(err instanceof Error ? err.message : tc("errUpdateStatus"));
     } finally {
       setBusy(false);
     }
@@ -48,7 +50,7 @@ export function AccountStatusControl({
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <Badge variant={meta.variant}>{meta.label}</Badge>
+      <Badge variant={meta.variant}>{tc(`status.${status}`)}</Badge>
       {transitions.map((next) => (
         <Button
           key={next}
@@ -57,7 +59,7 @@ export function AccountStatusControl({
           onClick={() => setTo(next)}
           disabled={busy || pending}
         >
-          {`Mark ${ACCOUNT_STATUS_META[next].label.toLowerCase()}`}
+          {tc("markAs", { status: tc(`status.${next}`).toLowerCase() })}
         </Button>
       ))}
       {error && <span className="text-small text-danger-700">{error}</span>}

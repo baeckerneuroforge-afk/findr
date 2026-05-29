@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ACCOUNT_STATUSES, type AccountStatus } from "@/lib/accounts/types";
-import { ACCOUNT_STATUS_META } from "@/lib/accounts/status";
 
 export interface ConvertibleDeal {
   id: string;
@@ -34,6 +34,8 @@ const EMPTY_FORM = {
 
 export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
   const router = useRouter();
+  const t = useTranslations("health.accounts");
+  const tc = useTranslations("health.common");
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
@@ -47,7 +49,7 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
 
   async function createAccount() {
     if (form.companyName.trim() === "") {
-      setError("Company name is required.");
+      setError(tc("errCompanyRequired"));
       return;
     }
     setSaving(true);
@@ -63,13 +65,13 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
         account?: { id: string };
       };
       if (!res.ok || !data.account) {
-        throw new Error(data.error ?? "Could not create account.");
+        throw new Error(data.error ?? t("errCreate"));
       }
       setForm(EMPTY_FORM);
       setAdding(false);
       router.push(`/dashboard/accounts/${data.account.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create account.");
+      setError(err instanceof Error ? err.message : t("errCreate"));
     } finally {
       setSaving(false);
     }
@@ -90,12 +92,12 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
         account?: { id: string };
       };
       if (!res.ok || !data.account) {
-        throw new Error(data.error ?? "Could not create account from deal.");
+        throw new Error(data.error ?? t("errCreateFromDeal"));
       }
       router.push(`/dashboard/accounts/${data.account.id}`);
     } catch (err) {
       setConvertError(
-        err instanceof Error ? err.message : "Could not create account.",
+        err instanceof Error ? err.message : t("errCreate"),
       );
     } finally {
       setConverting(false);
@@ -106,13 +108,13 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={() => setAdding((v) => !v)}>
-          {adding ? "Close" : "Add account"}
+          {adding ? tc("close") : t("addAccount")}
         </Button>
 
         {convertibleDeals.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-small text-neutral-500">
-              or from a won deal:
+              {t("orFromWonDeal")}
             </span>
             <select
               className={`${INPUT_CLASS} w-auto min-w-56`}
@@ -131,7 +133,7 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
               onClick={convertDeal}
               disabled={converting || !selectedDeal}
             >
-              {converting ? "Creating…" : "Create account"}
+              {converting ? t("creating") : t("createAccount")}
             </Button>
           </div>
         )}
@@ -144,11 +146,11 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
       {adding && (
         <Card>
           <CardHeader>
-            <h2 className="text-h2 text-neutral-900">New account</h2>
+            <h2 className="text-h2 text-neutral-900">{t("newAccount")}</h2>
           </CardHeader>
           <CardBody>
             <div className="space-y-4">
-              <Field label="Company *">
+              <Field label={tc("fldCompanyReq")}>
                 <input
                   className={INPUT_CLASS}
                   value={form.companyName}
@@ -160,7 +162,7 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                 />
               </Field>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Field label="Sponsor name">
+                <Field label={tc("fldSponsorName")}>
                   <input
                     className={INPUT_CLASS}
                     value={form.sponsorName}
@@ -171,7 +173,7 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                     disabled={saving}
                   />
                 </Field>
-                <Field label="Sponsor email">
+                <Field label={tc("fldSponsorEmail")}>
                   <input
                     className={INPUT_CLASS}
                     type="email"
@@ -183,7 +185,7 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                     disabled={saving}
                   />
                 </Field>
-                <Field label="Sponsor phone">
+                <Field label={tc("fldSponsorPhone")}>
                   <input
                     className={INPUT_CLASS}
                     value={form.sponsorPhone}
@@ -196,7 +198,7 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                 </Field>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                <Field label="MRR">
+                <Field label={tc("fldMrr")}>
                   <input
                     className={INPUT_CLASS}
                     type="number"
@@ -210,7 +212,7 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                     disabled={saving}
                   />
                 </Field>
-                <Field label="Currency">
+                <Field label={tc("fldCurrency")}>
                   <select
                     className={INPUT_CLASS}
                     value={form.currency}
@@ -226,7 +228,7 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                     <option value="USD">USD</option>
                   </select>
                 </Field>
-                <Field label="Renewal date">
+                <Field label={tc("fldRenewalDate")}>
                   <input
                     className={INPUT_CLASS}
                     type="date"
@@ -237,7 +239,7 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                     disabled={saving}
                   />
                 </Field>
-                <Field label="Status">
+                <Field label={tc("fldStatus")}>
                   <select
                     className={INPUT_CLASS}
                     value={form.status}
@@ -251,20 +253,20 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                   >
                     {ACCOUNT_STATUSES.map((s) => (
                       <option key={s} value={s}>
-                        {ACCOUNT_STATUS_META[s].label}
+                        {tc(`status.${s}`)}
                       </option>
                     ))}
                   </select>
                 </Field>
               </div>
-              <Field label="Notes">
+              <Field label={tc("fldNotes")}>
                 <textarea
                   className={`${INPUT_CLASS} h-24 resize-y py-2`}
                   value={form.notes}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, notes: e.target.value }))
                   }
-                  placeholder="Internal notes about this account…"
+                  placeholder={tc("phNotes")}
                   disabled={saving}
                 />
               </Field>
@@ -277,14 +279,14 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
 
               <div className="flex items-center gap-2">
                 <Button onClick={createAccount} disabled={saving}>
-                  {saving ? "Creating…" : "Create account"}
+                  {saving ? t("creating") : t("createAccount")}
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={() => setAdding(false)}
                   disabled={saving}
                 >
-                  Cancel
+                  {tc("cancel")}
                 </Button>
               </div>
             </div>

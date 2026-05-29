@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getAccounts } from "@/lib/accounts/service";
 import {
@@ -29,6 +30,9 @@ import { HealthLevelBreakdown } from "@/components/dashboard/HealthLevelBreakdow
 
 // ── Static label maps ──────────────────────────────────────────────────────
 
+// Churn-signal vocabulary is analysis taxonomy — kept in the source language
+// in both locales (mirrors Etappe 3's SIGNAL_LABELS) and interpolated into the
+// translated chrome as a {var}. Only the chrome around it is translated.
 const SIGNAL_LABELS: Record<string, string> = {
   CHAMPION_LOSS: "Champion Loss",
   CHAMPION_DISENGAGEMENT: "Champion Disengagement",
@@ -119,6 +123,8 @@ export default async function CustomerHealthOverviewPage() {
     throw err;
   }
 
+  const t = await getTranslations("health.overview");
+
   // One batch fetch per dimension — no AI, no Opus, all reads.
   const accounts = await getAccounts(orgId);
   const healthMap = await getLatestHealthScoresForAccounts(
@@ -139,23 +145,21 @@ export default async function CustomerHealthOverviewPage() {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-display text-neutral-900">Health overview</h1>
-          <p className="mt-1 text-body text-neutral-500">
-            A roll-up of the latest health analyses across all your customer
-            accounts.
-          </p>
+          <h1 className="text-display text-neutral-900">{t("title")}</h1>
+          <p className="mt-1 text-body text-neutral-500">{t("subtitle")}</p>
         </div>
 
         <EmptyState
           icon={<HealthIcon />}
-          title="No health analyses yet"
+          title={t("emptyTitle")}
           description={
             accounts.length === 0
-              ? "Create a customer account first, then analyze a post-sale transcript to populate the health overview."
-              : "Open an account and analyze a post-sale transcript to see it appear here. The roll-up below populates as soon as the first health snapshot exists."
+              ? t("emptyDescNoAccounts")
+              : t("emptyDescHasAccounts")
           }
           cta={{
-            label: accounts.length === 0 ? "Create an account" : "Go to Accounts",
+            label:
+              accounts.length === 0 ? t("ctaCreate") : t("ctaGoToAccounts"),
             href: "/dashboard/accounts",
           }}
         />
@@ -225,34 +229,30 @@ export default async function CustomerHealthOverviewPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-display text-neutral-900">Health overview</h1>
+        <h1 className="text-display text-neutral-900">{t("title")}</h1>
         <p className="mt-1 text-body text-neutral-500">
-          A roll-up of the latest health analyses across{" "}
-          {analyzed.length === 1
-            ? "1 customer account"
-            : `${analyzed.length} customer accounts`}
-          .
+          {t("subtitleCount", { count: analyzed.length })}
         </p>
       </div>
 
       {/* KPI tiles */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <StatCard label="Analyzed accounts" value={analyzed.length} />
+        <StatCard label={t("statAnalyzed")} value={analyzed.length} />
         <StatCard
-          label="Needs attention"
+          label={t("statNeedsAttention")}
           value={needsAttentionCount}
-          subtitle="Lukewarm + at_risk + critical"
+          subtitle={t("statNeedsAttentionSub")}
           status={needsAttentionCount > 0 ? "warning" : "default"}
         />
         <StatCard
-          label="Critical"
+          label={t("statCritical")}
           value={countByLevel.critical}
           status={countByLevel.critical > 0 ? "critical" : "default"}
         />
         <StatCard
-          label="With acute signals"
+          label={t("statWithSignals")}
           value={accountsWithSignals}
-          subtitle="Accounts with ≥ 1 churn signal"
+          subtitle={t("statWithSignalsSub")}
           status={accountsWithSignals > 0 ? "warning" : "default"}
         />
       </div>
@@ -263,18 +263,16 @@ export default async function CustomerHealthOverviewPage() {
       {/* Top churn signals */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-h2 text-neutral-900">Top churn signals</h2>
+          <h2 className="text-h2 text-neutral-900">{t("topSignalsTitle")}</h2>
           <p className="text-body text-neutral-500">
-            Most frequent acute signals detected across all latest health
-            analyses.
+            {t("topSignalsSubtitle")}
           </p>
         </div>
         {topSignals.length === 0 ? (
           <Card>
             <CardBody>
               <p className="py-4 text-center text-body text-neutral-500">
-                No acute churn signals detected — every analyzed account is
-                axis-driven only.
+                {t("noSignals")}
               </p>
             </CardBody>
           </Card>
@@ -291,7 +289,7 @@ export default async function CustomerHealthOverviewPage() {
                       <div>
                         <div className="text-h3 text-neutral-900">{label}</div>
                         <div className="text-small text-neutral-500">
-                          {s.count} {s.count === 1 ? "account" : "accounts"}
+                          {t("signalAccountCount", { count: s.count })}
                         </div>
                       </div>
                       <Badge variant={sharePct >= 25 ? "critical" : "default"}>
@@ -301,7 +299,7 @@ export default async function CustomerHealthOverviewPage() {
                     {s.sample && (
                       <div className="space-y-1">
                         <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-                          Sample — {s.sample.accountName}
+                          {t("sample", { account: s.sample.accountName })}
                         </div>
                         <blockquote className="border-l-2 border-neutral-200 pl-3 text-small text-neutral-600">
                           {s.sample.quote}
@@ -319,18 +317,14 @@ export default async function CustomerHealthOverviewPage() {
       {/* Most urgent accounts */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-h2 text-neutral-900">Most urgent accounts</h2>
-          <p className="text-body text-neutral-500">
-            Critical first, then at_risk and lukewarm. Lowest score within each
-            level sorts to the top.
-          </p>
+          <h2 className="text-h2 text-neutral-900">{t("urgentTitle")}</h2>
+          <p className="text-body text-neutral-500">{t("urgentSubtitle")}</p>
         </div>
         {urgent.length === 0 ? (
           <Card>
             <CardBody>
               <p className="py-4 text-center text-body text-neutral-500">
-                No accounts need attention right now — everything analyzed is
-                healthy or thriving.
+                {t("urgentEmpty")}
               </p>
             </CardBody>
           </Card>
@@ -339,11 +333,11 @@ export default async function CustomerHealthOverviewPage() {
             <Table>
               <THead>
                 <TR>
-                  <TH>Account</TH>
-                  <TH>Health</TH>
-                  <TH>Top signal</TH>
-                  <TH className="text-right">MRR</TH>
-                  <TH>Renewal</TH>
+                  <TH>{t("colAccount")}</TH>
+                  <TH>{t("colHealth")}</TH>
+                  <TH>{t("colTopSignal")}</TH>
+                  <TH className="text-right">{t("colMrr")}</TH>
+                  <TH>{t("colRenewal")}</TH>
                 </TR>
               </THead>
               <TBody>
