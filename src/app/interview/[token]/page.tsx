@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { InterviewChat } from "@/components/interview/InterviewChat";
 import { getPublicSession } from "@/lib/voice-agent/session-service";
+import { getOrgBranding } from "@/lib/settings/org-settings";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locale";
 import { MESSAGES, translate } from "@/i18n/messages";
 
@@ -91,6 +92,12 @@ export default async function InterviewPage({
   // the `interview` namespace is serialized to the client.
   const locale = session.language;
 
+  // White-label: ONLY the research surface (already brandless / neutral) gets
+  // the Findr customer's branding. post_loss / checkin keep the Findr chrome,
+  // so branding stays null there and the render is byte-identical to before.
+  // Service-role read by org_id (the participant is unauthenticated).
+  const branding = isResearch ? await getOrgBranding(session.orgId) : null;
+
   return (
     <NextIntlClientProvider
       locale={locale}
@@ -106,6 +113,10 @@ export default async function InterviewPage({
         // both props default to false/null, so render is byte-identical.
         brandless={isResearch}
         headingOverride={isResearch ? session.planTitle : null}
+        // White-label props (research only; null elsewhere → neutral fallback).
+        brandName={branding?.brandName ?? null}
+        accentColor={branding?.accentColor ?? null}
+        logoUrl={branding?.logoUrl ?? null}
       />
     </NextIntlClientProvider>
   );

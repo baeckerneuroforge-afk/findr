@@ -82,6 +82,17 @@ export interface ResearchInviteParams {
   url: string;
   /** Buyer-facing language. Defaults to "de" (DACH) when omitted. */
   locale?: Locale;
+  /**
+   * White-label branding for the Findr customer. When unset (or fields null)
+   * the mail falls back to today's behavior: org-name text header, #5B2FD4 CTA.
+   * accentColor is re-validated inside the builder before use; logoUrl is an
+   * absolute Supabase public URL (required for email clients).
+   */
+  branding?: {
+    brandName: string | null;
+    accentColor: string | null;
+    logoUrl: string | null;
+  };
 }
 
 const DEFAULT_DURATION_MINUTES = 30;
@@ -95,6 +106,20 @@ export function buildResearchInvite(params: ResearchInviteParams): BuiltEmail {
   const time = formatTime(params.scheduledAt, locale);
   const minutes = params.durationMinutes ?? DEFAULT_DURATION_MINUTES;
   const url = params.url;
+
+  // Validate the accent inline (never import the server-only branding-assets
+  // module here). Fall back to today's #5B2FD4 when unset / malformed.
+  const accent =
+    params.branding?.accentColor &&
+    /^#[0-9A-Fa-f]{6}$/.test(params.branding.accentColor)
+      ? params.branding.accentColor
+      : "#5B2FD4";
+  // Header: logo > brand name > org name (today's behavior).
+  const brandName = params.branding?.brandName?.trim();
+  const logoUrl = params.branding?.logoUrl;
+  const headerHtml = logoUrl
+    ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brandName || org)}" style="max-height:40px;display:block;"/>`
+    : escapeHtml(brandName || org);
 
   // Raw values for the plain-text part; HTML-escaped values for the HTML part.
   const tvars = { name: name ?? "", org, date, time, minutes, url };
@@ -144,7 +169,7 @@ export function buildResearchInvite(params: ResearchInviteParams): BuiltEmail {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e8e4f2;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0e0a1f;">
-          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${hvars.org}</td></tr>
+          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${headerHtml}</td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
             <p style="margin:0 0 14px;">${greetingHtml}</p>
             <p style="margin:0 0 14px;">${th("email.research.invite.intro")}</p>
@@ -156,11 +181,11 @@ export function buildResearchInvite(params: ResearchInviteParams): BuiltEmail {
             <p style="margin:0 0 22px;">${th("email.research.invite.aiDisclaimer")} ${th("email.research.invite.icsNote")}</p>
           </td></tr>
           <tr><td style="padding-bottom:24px;">
-            <a href="${hvars.url}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.research.invite.cta")}</a>
+            <a href="${hvars.url}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.research.invite.cta")}</a>
           </td></tr>
           <tr><td style="font-size:13px;line-height:1.6;color:#71717a;">
             <p style="margin:0 0 4px;">${th("email.common.linkFallback")}</p>
-            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:#5B2FD4;">${hvars.url}</a></p>
+            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:${accent};">${hvars.url}</a></p>
             <p style="margin:0;">${th("email.common.thanks")}<br/>${th("email.common.signatureOrg")}</p>
           </td></tr>
         </table>
@@ -191,6 +216,20 @@ export function buildResearchReminder(
   const time = formatTime(params.scheduledAt, locale);
   const minutes = params.durationMinutes ?? DEFAULT_DURATION_MINUTES;
   const url = params.url;
+
+  // Validate the accent inline (never import the server-only branding-assets
+  // module here). Fall back to today's #5B2FD4 when unset / malformed.
+  const accent =
+    params.branding?.accentColor &&
+    /^#[0-9A-Fa-f]{6}$/.test(params.branding.accentColor)
+      ? params.branding.accentColor
+      : "#5B2FD4";
+  // Header: logo > brand name > org name (today's behavior).
+  const brandName = params.branding?.brandName?.trim();
+  const logoUrl = params.branding?.logoUrl;
+  const headerHtml = logoUrl
+    ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brandName || org)}" style="max-height:40px;display:block;"/>`
+    : escapeHtml(brandName || org);
 
   const tvars = { name: name ?? "", org, date, time, minutes, url };
   const hvars = {
@@ -243,18 +282,18 @@ export function buildResearchReminder(
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e8e4f2;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0e0a1f;">
-          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${hvars.org}</td></tr>
+          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${headerHtml}</td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
             <p style="margin:0 0 14px;">${greetingHtml}</p>
             <p style="margin:0 0 14px;">${th(leadKey)}</p>
             <p style="margin:0 0 22px;">${th("email.research.reminder.body")}</p>
           </td></tr>
           <tr><td style="padding-bottom:24px;">
-            <a href="${hvars.url}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.research.reminder.cta")}</a>
+            <a href="${hvars.url}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.research.reminder.cta")}</a>
           </td></tr>
           <tr><td style="font-size:13px;line-height:1.6;color:#71717a;">
             <p style="margin:0 0 4px;">${th("email.common.linkFallback")}</p>
-            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:#5B2FD4;">${hvars.url}</a></p>
+            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:${accent};">${hvars.url}</a></p>
             <p style="margin:0;">${th("email.common.thanks")}<br/>${th("email.common.signatureOrg")}</p>
           </td></tr>
         </table>

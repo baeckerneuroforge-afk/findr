@@ -6,6 +6,7 @@ import { getOrgName, requireOrgIdOrError } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { getStudySynthesis } from "@/lib/synthesis/service";
 import { buildSynthesisPdf } from "@/lib/pdf/synthesis-report";
+import { resolveExportBranding } from "@/lib/settings/branding-assets";
 
 /**
  * GET /api/research/plans/[id]/synthesis/pdf
@@ -69,6 +70,7 @@ export async function GET(
 
   try {
     const orgName = await getOrgName(orgId);
+    const branding = await resolveExportBranding(orgId);
     const pdf = await buildSynthesisPdf({
       plan: {
         title: plan.title,
@@ -88,6 +90,7 @@ export async function GET(
       },
       orgName,
       locale,
+      branding,
     });
 
     const date = new Date().toISOString().split("T")[0];

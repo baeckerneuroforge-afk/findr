@@ -6,6 +6,7 @@ import { getOrgName, requireOrgIdOrError } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { getStudySynthesis } from "@/lib/synthesis/service";
 import { buildSynthesisPptx } from "@/lib/pptx/synthesis-deck";
+import { resolveExportBranding } from "@/lib/settings/branding-assets";
 
 /**
  * GET /api/research/plans/[id]/synthesis/pptx
@@ -58,6 +59,7 @@ export async function GET(
 
   try {
     const orgName = await getOrgName(orgId);
+    const branding = await resolveExportBranding(orgId);
     const deck = await buildSynthesisPptx({
       plan: {
         title: plan.title,
@@ -74,6 +76,7 @@ export async function GET(
       },
       orgName,
       locale,
+      branding,
     });
 
     const date = new Date().toISOString().split("T")[0];

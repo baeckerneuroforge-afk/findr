@@ -31,7 +31,21 @@ interface InterviewChatProps {
    *  "Research interview". For post_loss / checkin this stays null and the
    *  original company-aware heading is rendered. */
   headingOverride?: string | null;
+  /** White-label (research only). When a Findr customer has set branding, the
+   *  brandless research header shows their logo/name instead of staying empty,
+   *  and the accent color overrides the default violet. All null → byte-
+   *  identical neutral fallback (today's behavior). */
+  brandName?: string | null;
+  /** #RRGGBB accent; null → default Findr violet (#5B2FD4). */
+  accentColor?: string | null;
+  /** Public logo URL; null → fall back to the text brand name (or nothing). */
+  logoUrl?: string | null;
 }
+
+/** Default Findr accent — fallback when no org accent color is set. */
+const DEFAULT_ACCENT = "#5B2FD4";
+/** Only ever apply a caller-supplied accent if it's a strict #RRGGBB hex. */
+const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 
 const FONT = "var(--font-inter), Inter, system-ui, -apple-system, sans-serif";
 
@@ -43,7 +57,7 @@ function Bubble({ role, text }: { role: InterviewTurn["role"]; text: string }) {
         className={`max-w-[82%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${
           isAgent
             ? "rounded-tl-sm bg-[#F4F1FD] text-[#0E0A1F]"
-            : "rounded-tr-sm bg-[#5B2FD4] text-white"
+            : "rounded-tr-sm bg-[var(--brand-accent)] text-white"
         }`}
       >
         {text}
@@ -60,7 +74,7 @@ function TypingBubble() {
           {["0ms", "150ms", "300ms"].map((d) => (
             <span
               key={d}
-              className="inline-block h-[6px] w-[6px] animate-bounce rounded-full bg-[#5B2FD4]"
+              className="inline-block h-[6px] w-[6px] animate-bounce rounded-full bg-[var(--brand-accent)]"
               style={{ animationDelay: d }}
             />
           ))}
@@ -94,9 +108,21 @@ export function InterviewChat({
   company,
   brandless = false,
   headingOverride = null,
+  brandName = null,
+  accentColor = null,
+  logoUrl = null,
 }: InterviewChatProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
+
+  // Accent flows down as a CSS custom property on the root wrapper; the inline
+  // bg-[var(--brand-accent)] utilities (incl. the module-level Bubble /
+  // TypingBubble) read it via the cascade. Guarded to strict hex so a bad value
+  // can never inject into the style attribute.
+  const accent =
+    accentColor && HEX_COLOR.test(accentColor) ? accentColor : DEFAULT_ACCENT;
+  // White-label brand chrome only applies to the brandless (research) surface.
+  const hasBrand = brandless && Boolean(logoUrl || brandName);
   const [messages, setMessages] = useState<InterviewTurn[]>(initialConversation);
   const [status, setStatus] = useState<Status>(initialStatus);
   const [input, setInput] = useState("");
@@ -157,13 +183,13 @@ export function InterviewChat({
   return (
     <div
       lang={locale}
-      style={{ fontFamily: FONT }}
+      style={{ fontFamily: FONT, "--brand-accent": accent } as React.CSSProperties}
       className="flex min-h-screen w-full flex-col bg-white text-[#0E0A1F]"
     >
       <header className="border-b border-[#E8E4F2] px-5 py-4">
         <div
           className={`mx-auto flex max-w-2xl items-center ${
-            brandless ? "justify-center" : "justify-between"
+            brandless && !hasBrand ? "justify-center" : "justify-between"
           }`}
         >
           {!brandless && (
@@ -172,6 +198,19 @@ export function InterviewChat({
               <span className="mb-[10px] ml-[1px] inline-block h-[4px] w-[4px] rounded-full bg-[#B00]" />
             </span>
           )}
+          {hasBrand &&
+            (logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt={brandName ?? ""}
+                className="h-7 w-auto max-w-[180px] object-contain"
+              />
+            ) : (
+              <span className="text-[20px] font-extrabold tracking-[-0.02em] text-[#0E0A1F]">
+                {brandName}
+              </span>
+            ))}
           <span className="text-[12px] text-[#6B6680]">
             {t("header.confidential")}
           </span>
@@ -218,13 +257,17 @@ export function InterviewChat({
                 disabled={loading}
                 rows={1}
                 placeholder={t("input.placeholder")}
-                className="max-h-40 min-h-[46px] flex-1 resize-none rounded-xl border border-[#E8E4F2] px-4 py-3 text-[15px] outline-none transition-colors focus:border-[#5B2FD4] disabled:opacity-60"
+                className="max-h-40 min-h-[46px] flex-1 resize-none rounded-xl border border-[#E8E4F2] px-4 py-3 text-[15px] outline-none transition-colors focus:border-[var(--brand-accent)] disabled:opacity-60"
               />
               <button
                 type="button"
                 onClick={() => void send()}
                 disabled={loading || !input.trim()}
-                className="h-[46px] shrink-0 rounded-xl bg-[#5B2FD4] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4A22B0] disabled:opacity-50"
+                className={`h-[46px] shrink-0 rounded-xl bg-[var(--brand-accent)] px-5 text-[14px] font-medium text-white disabled:opacity-50 ${
+                  accent === DEFAULT_ACCENT
+                    ? "transition-colors hover:bg-[#4A22B0]"
+                    : "transition-opacity hover:opacity-90"
+                }`}
               >
                 {loading ? "…" : t("input.send")}
               </button>

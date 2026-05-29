@@ -36,7 +36,10 @@ export async function GET(
   if (!session) {
     return NextResponse.json({ error: t("notFound.interview") }, { status: 404 });
   }
-  return NextResponse.json({ session });
+  // orgId is server-only (white-label branding resolution); never expose the
+  // internal org UUID on this public, login-free endpoint.
+  const { orgId: _orgId, ...publicSession } = session;
+  return NextResponse.json({ session: publicSession });
 }
 
 export async function POST(
@@ -82,7 +85,9 @@ export async function POST(
         { status: 404 },
       );
     }
-    return NextResponse.json({ session });
+    // Strip server-only orgId before exposing the session to the public client.
+    const { orgId: _orgId, ...publicSession } = session;
+    return NextResponse.json({ session: publicSession });
   } catch (err) {
     if (err instanceof VoiceUnavailableError) {
       return NextResponse.json(

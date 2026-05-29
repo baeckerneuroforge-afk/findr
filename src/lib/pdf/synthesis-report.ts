@@ -9,6 +9,7 @@ import type {
   Tension,
   TensionSide,
 } from "@/lib/schemas/synthesis";
+import type { ExportBranding } from "@/lib/settings/branding-assets";
 import { translate } from "@/i18n/messages";
 import { type Locale, toBcp47 } from "@/i18n/locale";
 
@@ -67,6 +68,9 @@ export interface SynthesisPdfInput {
   /** Resolved UI locale (from the request cookie, via the route handler).
    *  Drives every chrome string + date formatting. */
   locale: Locale;
+  /** Optional white-label branding (brand name / accent / embedded logo).
+   *  When unset, falls back to today's exact "Findr" + violet #5B2FD4. */
+  branding?: ExportBranding;
 }
 
 // ── formatting helpers ──────────────────────────────────────────────────────
@@ -252,13 +256,34 @@ export async function buildSynthesisPdf(
   const width = contentWidth(doc);
   const { plan, synthesis, orgName, locale } = input;
 
+  // White-label brand mark + accent — fall back to today's exact "Findr" +
+  // violet #5B2FD4 when branding is unset.
+  const brandName = input.branding?.brandName || "Findr";
+  const accent = input.branding?.accentColorHex || COLORS.violet;
+
   // ── Header ──
   const topY = doc.y;
-  doc
-    .font(fonts.bold)
-    .fontSize(13)
-    .fillColor(COLORS.violet)
-    .text("Findr", left, topY, { lineBreak: false });
+  let brandRendered = false;
+  if (input.branding?.logo) {
+    try {
+      // Embed the customer logo INSTEAD of the brand text. height: 18 mirrors
+      // the brand-text cap height so the date line on the right still aligns.
+      doc.image(input.branding.logo.buffer, left, topY, { height: 18 });
+      brandRendered = true;
+    } catch (err) {
+      console.warn(
+        "[synthesis-pdf] logo embed failed; falling back to brand text:",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+  if (!brandRendered) {
+    doc
+      .font(fonts.bold)
+      .fontSize(13)
+      .fillColor(accent)
+      .text(brandName, left, topY, { lineBreak: false });
+  }
   doc
     .font(fonts.regular)
     .fontSize(9)
@@ -288,7 +313,7 @@ export async function buildSynthesisPdf(
     .fillColor(COLORS.muted)
     .text(plan.title, left, doc.y, { width });
   doc.moveDown(0.5);
-  doc.rect(left, doc.y, 64, 2.5).fill(COLORS.violet);
+  doc.rect(left, doc.y, 64, 2.5).fill(accent);
   doc.y += 22;
 
   // Subtitle band — "Based on N interviews · synthesized DATE · org"

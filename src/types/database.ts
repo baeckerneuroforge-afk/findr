@@ -986,22 +986,31 @@ export type Database = {
       }
       org_settings: {
         Row: {
+          accent_color: string | null
           auto_start_post_loss_interview: boolean
+          brand_name: string | null
           created_at: string
+          logo_url: string | null
           org_id: string
           product_name: string | null
           updated_at: string
         }
         Insert: {
+          accent_color?: string | null
           auto_start_post_loss_interview?: boolean
+          brand_name?: string | null
           created_at?: string
+          logo_url?: string | null
           org_id: string
           product_name?: string | null
           updated_at?: string
         }
         Update: {
+          accent_color?: string | null
           auto_start_post_loss_interview?: boolean
+          brand_name?: string | null
           created_at?: string
+          logo_url?: string | null
           org_id?: string
           product_name?: string | null
           updated_at?: string

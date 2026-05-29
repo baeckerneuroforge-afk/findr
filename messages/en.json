@@ -1393,5 +1393,34 @@
       "footer": "Findr · Post-Loss Interview Report · Confidential",
       "pageOf": "Page {current} of {total}"
     }
+  },
+  "branding": {
+    "title": "Branding (white-label)",
+    "subtitle": "Apply your own branding to the participant- and stakeholder-facing surfaces (research interview, invitation emails, exports).",
+    "brandName": {
+      "label": "Brand name",
+      "placeholder": "e.g. Acme Research",
+      "help": "Shown in the header instead of the findr wordmark. Leave empty for the default."
+    },
+    "accentColor": {
+      "label": "Accent color",
+      "help": "Hex value like #5B2FD4. Used for buttons and highlights.",
+      "invalid": "Please enter a valid hex color (e.g. #5B2FD4)."
+    },
+    "logo": {
+      "label": "Logo",
+      "help": "PNG, JPG or WebP, max 1 MB.",
+      "upload": "Upload logo",
+      "uploading": "Uploading …",
+      "remove": "Remove",
+      "current": "Current logo",
+      "tooLarge": "File is too large (max 1 MB).",
+      "invalidType": "Unsupported file type."
+    },
+    "save": "Save",
+    "saving": "Saving …",
+    "saved": "Saved.",
+    "saveError": "Could not save. Please try again.",
+    "adminOnly": "Only organization admins can change branding."
   }
 }

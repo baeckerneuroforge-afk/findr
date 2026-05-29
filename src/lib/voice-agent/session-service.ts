@@ -109,6 +109,10 @@ export interface InterviewSession {
 export interface PublicInterviewView {
   status: "open" | "completed" | "abandoned";
   conversation: InterviewTurn[];
+  /** Internal org UUID that owns this session. Used server-side ONLY (in the
+   *  page server component) to resolve white-label branding for the research
+   *  participant surface — never rendered, never sent to the client. */
+  orgId: string;
   /** A friendly company name for the greeting, if available. */
   company: string | null;
   /** Flow kind — exposed so the public page can switch on it (e.g. drop the
@@ -191,6 +195,7 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
   return {
     status: session.status,
     conversation: session.conversation,
+    orgId: session.orgId,
     company,
     kind: session.kind,
     planTitle,

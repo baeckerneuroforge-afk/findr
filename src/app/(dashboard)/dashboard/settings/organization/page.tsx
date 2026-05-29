@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { OrganizationSettingsForm } from "@/components/settings/OrganizationSettingsForm";
 import { AutoInterviewSettingForm } from "@/components/settings/AutoInterviewSettingForm";
+import { BrandingSettingsForm } from "@/components/settings/BrandingSettingsForm";
 
 export default async function OrganizationSettingsPage() {
   const t = await getTranslations("settings");
@@ -15,6 +16,7 @@ export default async function OrganizationSettingsPage() {
       </div>
       <OrganizationSettingsForm />
       <AutoInterviewSettingForm />
+      <BrandingSettingsForm />
     </div>
   );
 }

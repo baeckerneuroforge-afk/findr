@@ -80,14 +80,20 @@ function sourceLabel(side: TensionSide, locale: Locale): string {
 
 type Slide = PptxGenJS.Slide;
 
-/** Small "Findr" wordmark + violet accent bar in the top-left of a content
+/** Small brand wordmark + accent bar in the top-left of a content
  *  slide, plus a discreet footer. Returns the y-offset where body content
- *  may begin. */
-function chrome(slide: Slide, kicker: string, locale: Locale): number {
+ *  may begin. Falls back to "Findr" + violet #5B2FD4 when branding is unset. */
+function chrome(
+  slide: Slide,
+  kicker: string,
+  locale: Locale,
+  brandName: string,
+  accentNoHash: string,
+): number {
   slide.background = { color: COLORS.white };
   slide.addText(
     [
-      { text: "Findr", options: { color: COLORS.violet, bold: true } },
+      { text: brandName, options: { color: accentNoHash, bold: true } },
       { text: `   ${kicker}`, options: { color: COLORS.muted, bold: false } },
     ],
     {
@@ -106,7 +112,7 @@ function chrome(slide: Slide, kicker: string, locale: Locale): number {
     y: 0.72,
     w: 0.55,
     h: 0.03,
-    fill: { color: COLORS.violet },
+    fill: { color: accentNoHash },
   });
   slide.addText(translate(locale, "export.synthesis.confidentialFooter"), {
     x: MARGIN,
@@ -127,20 +133,29 @@ function chrome(slide: Slide, kicker: string, locale: Locale): number {
 export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buffer> {
   const { plan, synthesis, orgName, locale } = input;
 
+  // White-label brand mark + accent — fall back to today's exact "Findr" +
+  // violet #5B2FD4 when branding is unset. COLORS here are hex WITHOUT '#',
+  // so strip a leading '#' from the resolved accent.
+  const brandName = input.branding?.brandName || "Findr";
+  const accentNoHash = (input.branding?.accentColorHex || "#" + COLORS.violet).replace(
+    /^#/,
+    "",
+  );
+
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
-  pptx.author = "Findr";
+  pptx.author = brandName;
   pptx.company = orgName;
   pptx.title = `${translate(locale, "export.synthesis.title")} — ${plan.title}`;
 
-  addTitleSlide(pptx, input);
+  addTitleSlide(pptx, input, brandName, accentNoHash);
   for (const theme of synthesis.emergent_themes) {
-    addThemeSlide(pptx, theme, synthesis.based_on_count, locale);
+    addThemeSlide(pptx, theme, synthesis.based_on_count, locale, brandName, accentNoHash);
   }
   for (const tension of synthesis.tensions) {
-    addTensionSlide(pptx, tension, locale);
+    addTensionSlide(pptx, tension, locale, brandName, accentNoHash);
   }
-  addClosingSlide(pptx, input);
+  addClosingSlide(pptx, input, brandName, accentNoHash);
 
   // pptxgenjs returns a Node Buffer for outputType "nodebuffer" (its public
   // type union omits Buffer, hence the assertion).
@@ -150,22 +165,50 @@ export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buff
 
 // ── slides ────────────────────────────────────────────────────────────────────
 
-function addTitleSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
+function addTitleSlide(
+  pptx: PptxGenJS,
+  input: SynthesisPdfInput,
+  brandName: string,
+  accentNoHash: string,
+): void {
   const { plan, synthesis, orgName, locale } = input;
   const slide = pptx.addSlide();
   slide.background = { color: COLORS.white };
 
-  slide.addText("Findr", {
-    x: MARGIN,
-    y: 0.7,
-    w: CONTENT_W,
-    h: 0.4,
-    fontFace: FONT,
-    fontSize: 14,
-    bold: true,
-    color: COLORS.violet,
-    align: "left",
-  });
+  // Customer logo INSTEAD of the brand text when present; fall back to text on
+  // any addImage failure so the deck never breaks on a bad asset.
+  let brandRendered = false;
+  if (input.branding?.logo) {
+    try {
+      slide.addImage({
+        data: input.branding.logo.dataUrl,
+        x: MARGIN,
+        y: 0.7,
+        // contain: fit within the box preserving aspect ratio (no stretch),
+        // mirroring the PDF path's height-only embed.
+        sizing: { type: "contain", w: 1.2, h: 0.45 },
+      });
+      brandRendered = true;
+    } catch (err) {
+      console.warn(
+        "[synthesis-pptx] logo embed failed; falling back to brand text:",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+  if (!brandRendered) {
+    slide.addText(brandName, {
+      x: MARGIN,
+      y: 0.7,
+      w: CONTENT_W,
+      h: 0.4,
+      fontFace: FONT,
+      fontSize: 14,
+      bold: true,
+      color: accentNoHash,
+      align: "left",
+    });
+  }
 
   slide.addText(translate(locale, "export.synthesis.title"), {
     x: MARGIN,
@@ -195,7 +238,7 @@ function addTitleSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
     y: 3.85,
     w: 1.1,
     h: 0.05,
-    fill: { color: COLORS.violet },
+    fill: { color: accentNoHash },
   });
 
   const interviewsLabel =
@@ -268,12 +311,16 @@ function addThemeSlide(
   theme: EmergentTheme,
   totalParticipants: number,
   locale: Locale,
+  brandName: string,
+  accentNoHash: string,
 ): void {
   const slide = pptx.addSlide();
   const top = chrome(
     slide,
     translate(locale, "export.synthesis.kickerTheme"),
     locale,
+    brandName,
+    accentNoHash,
   );
 
   // Title + frequency chip on the same row.
@@ -381,12 +428,20 @@ function addThemeSlide(
   });
 }
 
-function addTensionSlide(pptx: PptxGenJS, tension: Tension, locale: Locale): void {
+function addTensionSlide(
+  pptx: PptxGenJS,
+  tension: Tension,
+  locale: Locale,
+  brandName: string,
+  accentNoHash: string,
+): void {
   const slide = pptx.addSlide();
   const top = chrome(
     slide,
     translate(locale, "export.synthesis.kickerTension"),
     locale,
+    brandName,
+    accentNoHash,
   );
 
   slide.addText(truncate(tension.description, 320), {
@@ -483,11 +538,16 @@ function renderTensionColumn(
   });
 }
 
-function addClosingSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
+function addClosingSlide(
+  pptx: PptxGenJS,
+  input: SynthesisPdfInput,
+  brandName: string,
+  accentNoHash: string,
+): void {
   const { synthesis, locale } = input;
   const slide = pptx.addSlide();
   const overviewHeading = translate(locale, "export.synthesis.overview");
-  const top = chrome(slide, overviewHeading, locale);
+  const top = chrome(slide, overviewHeading, locale, brandName, accentNoHash);
 
   slide.addText(overviewHeading, {
     x: MARGIN,

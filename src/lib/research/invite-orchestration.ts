@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getOrgName } from "@/lib/auth/org";
+import { getOrgBranding } from "@/lib/settings/org-settings";
 import { sendEmail } from "@/lib/email/resend";
 import {
   buildResearchInvite,
@@ -138,6 +139,7 @@ export async function sendResearchInvite(
 
   try {
     const orgName = await getOrgName(orgId);
+    const branding = await getOrgBranding(orgId);
     const url = researchInterviewUrl(accessToken);
     const locale = invite.language;
 
@@ -148,6 +150,7 @@ export async function sendResearchInvite(
       durationMinutes: DEFAULT_DURATION_MINUTES,
       url,
       locale,
+      branding,
     });
 
     const ics = buildResearchIcsAttachment({
@@ -330,6 +333,7 @@ export async function sendResearchReminder(
 
   try {
     const orgName = await getOrgName(orgId);
+    const branding = await getOrgBranding(orgId);
     const scheduledAt = new Date(invite.scheduled_at);
     const url = researchInterviewUrl(invite.access_token);
     const email = invite.contact_email.trim();
@@ -342,6 +346,7 @@ export async function sendResearchReminder(
       durationMinutes: DEFAULT_DURATION_MINUTES,
       url,
       locale: invite.language,
+      branding,
     });
 
     await sendEmail({ to: email, subject, html, text });

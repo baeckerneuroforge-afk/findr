@@ -1393,5 +1393,34 @@
       "footer": "Findr · Post-Loss-Interview-Bericht · Vertraulich",
       "pageOf": "Seite {current} von {total}"
     }
+  },
+  "branding": {
+    "title": "Branding (White-Label)",
+    "subtitle": "Versehen Sie die für Teilnehmer und Stakeholder sichtbaren Flächen (Research-Interview, Einladungs-E-Mails, Export) mit Ihrem eigenen Branding.",
+    "brandName": {
+      "label": "Markenname",
+      "placeholder": "z. B. Acme Research",
+      "help": "Wird im Kopfbereich anstelle des findr-Schriftzugs angezeigt. Leer lassen für den Standard."
+    },
+    "accentColor": {
+      "label": "Akzentfarbe",
+      "help": "Hex-Wert wie #5B2FD4. Wird für Buttons und Hervorhebungen verwendet.",
+      "invalid": "Bitte einen gültigen Hex-Farbwert angeben (z. B. #5B2FD4)."
+    },
+    "logo": {
+      "label": "Logo",
+      "help": "PNG, JPG oder WebP, max. 1 MB.",
+      "upload": "Logo hochladen",
+      "uploading": "Wird hochgeladen …",
+      "remove": "Entfernen",
+      "current": "Aktuelles Logo",
+      "tooLarge": "Die Datei ist zu groß (max. 1 MB).",
+      "invalidType": "Nicht unterstütztes Dateiformat."
+    },
+    "save": "Speichern",
+    "saving": "Wird gespeichert …",
+    "saved": "Gespeichert.",
+    "saveError": "Konnte nicht gespeichert werden. Bitte erneut versuchen.",
+    "adminOnly": "Nur Organisations-Admins können das Branding ändern."
   }
 }
