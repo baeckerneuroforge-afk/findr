@@ -411,6 +411,52 @@ type ResearchPlanQuotaUpdate = {
   created_at?: string;
 };
 
+// ── synthesis_shares ─────────────────────────────────────────────────────────
+//
+// Per 20260622000000_synthesis_shares.sql. Public read-only share links for a
+// study synthesis. token = 256-bit capability credential (base64url), UNIQUE —
+// the same access model as interview_sessions.access_token. org_id NOT NULL +
+// org_isolation RLS for dashboard management; the PUBLIC read path goes through
+// the service-role client by token (RLS bypassed). `language` drives the public
+// subtree's locale (no cookie for an account-less stakeholder); `show_quotes`
+// is the DSGVO opt-in for verbatim participant quotes (default false).
+
+export type SynthesisShareRow = {
+  id: string;
+  token: string;
+  org_id: string;
+  plan_id: string;
+  language: Language;
+  show_quotes: boolean;
+  expires_at: string | null;
+  revoked: boolean;
+  created_at: string;
+};
+
+type SynthesisShareInsert = {
+  id?: string;
+  token: string;
+  org_id: string;
+  plan_id: string;
+  language?: Language;
+  show_quotes?: boolean;
+  expires_at?: string | null;
+  revoked?: boolean;
+  created_at?: string;
+};
+
+type SynthesisShareUpdate = {
+  id?: string;
+  token?: string;
+  org_id?: string;
+  plan_id?: string;
+  language?: Language;
+  show_quotes?: boolean;
+  expires_at?: string | null;
+  revoked?: boolean;
+  created_at?: string;
+};
+
 // ── Augmented Database type ────────────────────────────────────────────────
 
 export type DatabaseWithResearch = {
@@ -463,6 +509,12 @@ export type DatabaseWithResearch = {
         Row: ResearchPlanQuotaRow;
         Insert: ResearchPlanQuotaInsert;
         Update: ResearchPlanQuotaUpdate;
+        Relationships: [];
+      };
+      synthesis_shares: {
+        Row: SynthesisShareRow;
+        Insert: SynthesisShareInsert;
+        Update: SynthesisShareUpdate;
         Relationships: [];
       };
     };
