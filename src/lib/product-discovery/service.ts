@@ -217,6 +217,47 @@ export interface ProductDiscoveryInsightRecord {
   respondent_source: "ai" | "screening";
 }
 
+/**
+ * Normalize the persisted `themes` JSONB into honest `Theme[]` values.
+ *
+ * The read path CASTS the JSONB rather than re-parsing it (the classifier
+ * validated it on WRITE via ProductDiscoveryResultSchema.safeParse). So
+ * legacy/partial rows written before `relatedFeatureRequestIndices` /
+ * `relatedPainPointIndices` existed reach the UI with those inner array
+ * fields `undefined` — and any component doing
+ * `theme.relatedFeatureRequestIndices.length` crashes. The outer `?? []` on
+ * the array only guards a missing themes column, never the inner fields.
+ *
+ * We default the inner fields here with an explicit map rather than
+ * `ThemeSchema.parse`: parse would THROW on legacy rows that violate the
+ * label/summary length constraints, turning a localized render bug into a
+ * total read failure for the whole insight list. The map never throws and
+ * preserves all existing content; missing array fields fall back to `[]`,
+ * missing strings to `""`. The result genuinely satisfies `Theme`, so no
+ * `as unknown` cast that lies about the shape.
+ */
+function normalizeThemes(value: Json): Theme[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    const theme =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? (entry as Record<string, Json>)
+        : {};
+    const featureIndices = theme.relatedFeatureRequestIndices;
+    const painIndices = theme.relatedPainPointIndices;
+    return {
+      label: typeof theme.label === "string" ? theme.label : "",
+      summary: typeof theme.summary === "string" ? theme.summary : "",
+      relatedFeatureRequestIndices: Array.isArray(featureIndices)
+        ? (featureIndices as number[])
+        : [],
+      relatedPainPointIndices: Array.isArray(painIndices)
+        ? (painIndices as number[])
+        : [],
+    };
+  });
+}
+
 function toRecord(
   row: ProductDiscoveryInsightRow,
   sourceLabel: string | null = null,
@@ -230,7 +271,7 @@ function toRecord(
     feature_requests:
       (row.feature_requests as unknown as FeatureRequest[]) ?? [],
     pain_points: (row.pain_points as unknown as PainPoint[]) ?? [],
-    themes: (row.themes as unknown as Theme[]) ?? [],
+    themes: normalizeThemes(row.themes),
     summary: row.summary,
     analysis_method:
       (row.analysis_method as "ai" | "heuristic" | undefined) ?? "ai",
