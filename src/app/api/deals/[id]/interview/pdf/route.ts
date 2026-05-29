@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getDealInterview } from "@/lib/voice-agent/session-service";
 import { buildInterviewReportPdf } from "@/lib/pdf/interview-report";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
 
 /**
  * Download the "Post-Loss Interview Report" PDF for a deal's completed interview.
@@ -28,6 +30,11 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
+  const resolvedLocale = await getLocale();
+  const locale: Locale = isLocale(resolvedLocale)
+    ? resolvedLocale
+    : DEFAULT_LOCALE;
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const orgId = orgOrError.orgId;
@@ -35,25 +42,26 @@ export async function GET(
   const { id } = await params;
   const parsed = DealIdSchema.safeParse(id);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid dealId" }, { status: 400 });
+    return NextResponse.json({ error: t("solution.invalidDealId") }, { status: 400 });
   }
   const dealId = parsed.data;
 
   try {
     const deal = await getDealById(orgId, dealId);
     if (!deal) {
-      return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+      return NextResponse.json({ error: t("notFound.deal") }, { status: 404 });
     }
 
     const interview = await getDealInterview(orgId, dealId);
     if (!interview || interview.status !== "completed") {
       return NextResponse.json(
-        { error: "No completed interview for this deal yet." },
+        { error: t("deals.noCompletedInterview") },
         { status: 404 },
       );
     }
 
     const pdf = await buildInterviewReportPdf({
+      locale,
       deal: {
         name: deal.name,
         company: deal.companyName,
@@ -93,7 +101,7 @@ export async function GET(
     console.error(`[deals/${dealId}/interview/pdf] failed:`, err);
     return NextResponse.json(
       {
-        error: "Failed to generate interview PDF",
+        error: t("deals.interviewPdfFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

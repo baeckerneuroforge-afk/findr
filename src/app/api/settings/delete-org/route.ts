@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { requireSettingsAdminOrError } from "@/lib/settings/server-auth";
@@ -9,6 +10,7 @@ const DeleteOrgSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const t = await getTranslations("errors");
   const admin = await requireSettingsAdminOrError();
   if ("error" in admin) return admin.error;
 
@@ -16,7 +18,7 @@ export async function POST(request: Request) {
   const parsed = DeleteOrgSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(
-      { success: false, error: "Invalid confirmation" },
+      { success: false, error: t("settings.invalidConfirmation") },
       { status: 400 },
     );
   }
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
 
   if (error || !organization) {
     return NextResponse.json(
-      { success: false, error: "Organization not found" },
+      { success: false, error: t("notFound.organization") },
       { status: 404 },
     );
   }
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: err instanceof Error ? err.message : "Delete failed",
+        error: err instanceof Error ? err.message : t("unexpected"),
       },
       { status: 400 },
     );

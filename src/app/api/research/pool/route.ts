@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
@@ -55,19 +56,20 @@ const PoolMemberSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
 
   const body = await req.json().catch(() => null);
   if (body === null || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json({ error: t("invalidRequestBody") }, { status: 400 });
   }
 
   const parsed = PoolMemberSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -78,12 +80,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, member: result.member });
     case "duplicate_email":
       return NextResponse.json(
-        { error: "Diese E-Mail existiert bereits im Pool." },
+        { error: t("pool.emailExists") },
         { status: 409 },
       );
     default:
       return NextResponse.json(
-        { error: result.message ?? "Pool-Eintrag konnte nicht angelegt werden." },
+        { error: result.message ?? t("pool.couldNotCreate") },
         { status: 500 },
       );
   }

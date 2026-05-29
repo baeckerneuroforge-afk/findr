@@ -14,6 +14,7 @@ import { buildInterviewReportPdf } from "@/lib/pdf/interview-report";
 
 async function main(): Promise<void> {
   const pdf = await buildInterviewReportPdf({
+    locale: "de",
     deal: {
       name: "Q2 Renewal",
       company: "Nordwind Logistik GmbH",

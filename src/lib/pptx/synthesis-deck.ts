@@ -4,6 +4,8 @@ import PptxGenJS from "pptxgenjs";
 
 import type { EmergentTheme, Tension, TensionSide } from "@/lib/schemas/synthesis";
 import type { SynthesisPdfInput } from "@/lib/pdf/synthesis-report";
+import { translate } from "@/i18n/messages";
+import { type Locale, toBcp47 } from "@/i18n/locale";
 
 /**
  * "Research Synthesis" PowerPoint — a forwardable, presentable read-out of a
@@ -45,12 +47,12 @@ const CONTENT_W = PAGE_W - MARGIN * 2;
 
 // ── formatting helpers (mirror synthesis-report.ts) ──────────────────────────
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, locale: Locale): string {
   if (!iso) return "—";
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? "—"
-    : d.toLocaleDateString("de-DE", {
+    : d.toLocaleDateString(toBcp47(locale), {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -66,10 +68,12 @@ function truncate(text: string, max: number): string {
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
 }
 
-function sourceLabel(side: TensionSide): string {
+function sourceLabel(side: TensionSide, locale: Locale): string {
   return side.sourceInsightIds.length === 1
-    ? "1 Quell-Interview"
-    : `${side.sourceInsightIds.length} Quell-Interviews`;
+    ? translate(locale, "export.synthesis.sourceOne")
+    : translate(locale, "export.synthesis.sourceMany", {
+        n: side.sourceInsightIds.length,
+      });
 }
 
 // ── slide chrome ─────────────────────────────────────────────────────────────
@@ -79,7 +83,7 @@ type Slide = PptxGenJS.Slide;
 /** Small "Findr" wordmark + violet accent bar in the top-left of a content
  *  slide, plus a discreet footer. Returns the y-offset where body content
  *  may begin. */
-function chrome(slide: Slide, kicker: string): number {
+function chrome(slide: Slide, kicker: string, locale: Locale): number {
   slide.background = { color: COLORS.white };
   slide.addText(
     [
@@ -104,7 +108,7 @@ function chrome(slide: Slide, kicker: string): number {
     h: 0.03,
     fill: { color: COLORS.violet },
   });
-  slide.addText("Findr · Research Synthesis · Vertraulich", {
+  slide.addText(translate(locale, "export.synthesis.confidentialFooter"), {
     x: MARGIN,
     y: PAGE_H - 0.42,
     w: CONTENT_W,
@@ -121,20 +125,20 @@ function chrome(slide: Slide, kicker: string): number {
 // ── builder ──────────────────────────────────────────────────────────────────
 
 export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buffer> {
-  const { plan, synthesis, orgName } = input;
+  const { plan, synthesis, orgName, locale } = input;
 
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
   pptx.author = "Findr";
   pptx.company = orgName;
-  pptx.title = `Research Synthesis — ${plan.title}`;
+  pptx.title = `${translate(locale, "export.synthesis.title")} — ${plan.title}`;
 
   addTitleSlide(pptx, input);
   for (const theme of synthesis.emergent_themes) {
-    addThemeSlide(pptx, theme, synthesis.based_on_count);
+    addThemeSlide(pptx, theme, synthesis.based_on_count, locale);
   }
   for (const tension of synthesis.tensions) {
-    addTensionSlide(pptx, tension);
+    addTensionSlide(pptx, tension, locale);
   }
   addClosingSlide(pptx, input);
 
@@ -147,7 +151,7 @@ export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buff
 // ── slides ────────────────────────────────────────────────────────────────────
 
 function addTitleSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
-  const { plan, synthesis, orgName } = input;
+  const { plan, synthesis, orgName, locale } = input;
   const slide = pptx.addSlide();
   slide.background = { color: COLORS.white };
 
@@ -163,7 +167,7 @@ function addTitleSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
     align: "left",
   });
 
-  slide.addText("Research Synthesis", {
+  slide.addText(translate(locale, "export.synthesis.title"), {
     x: MARGIN,
     y: 2.0,
     w: CONTENT_W,
@@ -196,12 +200,16 @@ function addTitleSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
 
   const interviewsLabel =
     synthesis.based_on_count === 1
-      ? "1 Interview"
-      : `${synthesis.based_on_count} Interviews`;
+      ? translate(locale, "export.synthesis.interviewsOne")
+      : translate(locale, "export.synthesis.interviewsMany", {
+          n: synthesis.based_on_count,
+        });
   slide.addText(
-    `Basiert auf ${interviewsLabel}   ·   synthetisiert ${formatDate(
-      synthesis.synthesized_at,
-    )}   ·   ${orgName}`,
+    translate(locale, "export.synthesis.subtitleLine", {
+      interviews: interviewsLabel,
+      date: formatDate(synthesis.synthesized_at, locale),
+      org: orgName,
+    }),
     {
       x: MARGIN,
       y: 4.2,
@@ -217,7 +225,7 @@ function addTitleSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
   // Study context: objective + optional persona.
   const ctx: PptxGenJS.TextProps[] = [
     {
-      text: "Ziel",
+      text: translate(locale, "export.synthesis.objective"),
       options: { color: COLORS.violet, bold: true, fontSize: 11, breakLine: true },
     },
     {
@@ -227,7 +235,7 @@ function addTitleSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
   ];
   if (plan.persona && plan.persona.trim() !== "") {
     ctx.push({
-      text: "Persona",
+      text: translate(locale, "export.synthesis.persona"),
       options: {
         color: COLORS.violet,
         bold: true,
@@ -259,9 +267,14 @@ function addThemeSlide(
   pptx: PptxGenJS,
   theme: EmergentTheme,
   totalParticipants: number,
+  locale: Locale,
 ): void {
   const slide = pptx.addSlide();
-  const top = chrome(slide, "Emergentes Thema");
+  const top = chrome(
+    slide,
+    translate(locale, "export.synthesis.kickerTheme"),
+    locale,
+  );
 
   // Title + frequency chip on the same row.
   slide.addText(truncate(theme.title, 120), {
@@ -279,8 +292,11 @@ function addThemeSlide(
 
   const chipText =
     theme.frequency === 1
-      ? "1 Interview"
-      : `${theme.frequency} von ${totalParticipants}`;
+      ? translate(locale, "export.synthesis.interviewsOne")
+      : translate(locale, "export.synthesis.freqOfTotal", {
+          freq: theme.frequency,
+          total: totalParticipants,
+        });
   slide.addText(chipText, {
     x: PAGE_W - MARGIN - 2.3,
     y: top + 0.05,
@@ -343,11 +359,15 @@ function addThemeSlide(
   // mapped to a single interview in the synthesis data).
   const srcLabel =
     theme.sourceInsightIds.length === 1
-      ? "1 Quell-Interview"
-      : `${theme.sourceInsightIds.length} Quell-Interviews`;
+      ? translate(locale, "export.synthesis.sourceOne")
+      : translate(locale, "export.synthesis.sourceMany", {
+          n: theme.sourceInsightIds.length,
+        });
   const extra =
     theme.quotes.length > quotes.length
-      ? `   ·   + ${theme.quotes.length - quotes.length} weitere Zitate im Dashboard`
+      ? `   ·   ${translate(locale, "export.synthesis.moreQuotesInDashboard", {
+          count: theme.quotes.length - quotes.length,
+        })}`
       : "";
   slide.addText(`${srcLabel}${extra}`, {
     x: MARGIN,
@@ -361,9 +381,13 @@ function addThemeSlide(
   });
 }
 
-function addTensionSlide(pptx: PptxGenJS, tension: Tension): void {
+function addTensionSlide(pptx: PptxGenJS, tension: Tension, locale: Locale): void {
   const slide = pptx.addSlide();
-  const top = chrome(slide, "Spannung");
+  const top = chrome(
+    slide,
+    translate(locale, "export.synthesis.kickerTension"),
+    locale,
+  );
 
   slide.addText(truncate(tension.description, 320), {
     x: MARGIN,
@@ -382,8 +406,16 @@ function addTensionSlide(pptx: PptxGenJS, tension: Tension): void {
   const colW = (CONTENT_W - 0.5) / 2;
   const colY = top + 1.2;
   const colH = PAGE_H - colY - 0.6;
-  renderTensionColumn(slide, tension.side_a, MARGIN, colY, colW, colH);
-  renderTensionColumn(slide, tension.side_b, MARGIN + colW + 0.5, colY, colW, colH);
+  renderTensionColumn(slide, tension.side_a, MARGIN, colY, colW, colH, locale);
+  renderTensionColumn(
+    slide,
+    tension.side_b,
+    MARGIN + colW + 0.5,
+    colY,
+    colW,
+    colH,
+    locale,
+  );
 }
 
 function renderTensionColumn(
@@ -393,6 +425,7 @@ function renderTensionColumn(
   y: number,
   w: number,
   h: number,
+  locale: Locale,
 ): void {
   slide.addShape("roundRect", {
     x,
@@ -410,7 +443,7 @@ function renderTensionColumn(
       options: { color: COLORS.ink, bold: true, fontSize: 15, breakLine: true },
     },
     {
-      text: sourceLabel(side),
+      text: sourceLabel(side, locale),
       options: {
         color: COLORS.faint,
         fontSize: 9.5,
@@ -433,7 +466,9 @@ function renderTensionColumn(
   }
   if (side.quotes.length > 3) {
     runs.push({
-      text: `+ ${side.quotes.length - 3} weitere Zitate im Dashboard`,
+      text: translate(locale, "export.synthesis.moreQuotesInDashboard", {
+        count: side.quotes.length - 3,
+      }),
       options: { color: COLORS.faint, fontSize: 9, breakLine: true, paraSpaceBefore: 6 },
     });
   }
@@ -449,11 +484,12 @@ function renderTensionColumn(
 }
 
 function addClosingSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
-  const { synthesis } = input;
+  const { synthesis, locale } = input;
   const slide = pptx.addSlide();
-  const top = chrome(slide, "Überblick");
+  const overviewHeading = translate(locale, "export.synthesis.overview");
+  const top = chrome(slide, overviewHeading, locale);
 
-  slide.addText("Überblick", {
+  slide.addText(overviewHeading, {
     x: MARGIN,
     y: top,
     w: CONTENT_W,
@@ -475,7 +511,7 @@ function addClosingSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
   const overview =
     synthesis.overview && synthesis.overview.trim() !== ""
       ? cleanText(synthesis.overview)
-      : "Für diese Synthese wurde kein Überblick erzeugt.";
+      : translate(locale, "export.synthesis.overviewEmpty");
   slide.addText(truncate(overview, 1400), {
     x: MARGIN,
     y: top + 1.0,
@@ -491,15 +527,20 @@ function addClosingSlide(pptx: PptxGenJS, input: SynthesisPdfInput): void {
   });
 
   if (synthesis.model) {
-    slide.addText(`Modell: ${synthesis.model}`, {
-      x: MARGIN,
-      y: PAGE_H - 0.78,
-      w: CONTENT_W,
-      h: 0.3,
-      fontFace: FONT,
-      fontSize: 9,
-      color: COLORS.faint,
-      align: "left",
-    });
+    slide.addText(
+      translate(locale, "export.synthesis.modelFootnote", {
+        model: synthesis.model,
+      }),
+      {
+        x: MARGIN,
+        y: PAGE_H - 0.78,
+        w: CONTENT_W,
+        h: 0.3,
+        fontFace: FONT,
+        fontSize: 9,
+        color: COLORS.faint,
+        align: "left",
+      },
+    );
   }
 }

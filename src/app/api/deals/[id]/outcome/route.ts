@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { DealOutcomeSchema, updateDealOutcome } from "@/lib/deals/service";
 import { getOrgSettings } from "@/lib/settings/org-settings";
@@ -19,6 +20,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const orgId = orgOrError.orgId;
@@ -28,14 +30,14 @@ export async function PATCH(
   const parsed = DealOutcomeSchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
 
   const deal = await updateDealOutcome(orgId, id, parsed.data.outcome);
   if (!deal) {
-    return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+    return NextResponse.json({ error: t("notFound.deal") }, { status: 404 });
   }
 
   let autoInterview: { status: string; sentTo?: string | null } | null = null;

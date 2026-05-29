@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { createAccountFromWonDeal } from "@/lib/accounts/service";
@@ -9,6 +10,7 @@ const FromDealSchema = z.object({
 
 /** Create an account from a won deal (copies company + contact + amount). */
 export async function POST(request: NextRequest) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -16,7 +18,7 @@ export async function POST(request: NextRequest) {
   const parsed = FromDealSchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest) {
     );
     if (!account) {
       return NextResponse.json(
-        { error: "Deal not found or not marked won" },
+        { error: t("deals.notWon") },
         { status: 404 },
       );
     }
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       {
-        error: err instanceof Error ? err.message : "Could not create account",
+        error: err instanceof Error ? err.message : t("unexpected"),
       },
       { status: 500 },
     );

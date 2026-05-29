@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireSettingsAdminOrError } from "@/lib/settings/server-auth";
 import { buildDataExport } from "@/lib/settings/export";
 
 export async function GET() {
+  const t = await getTranslations("errors");
   const admin = await requireSettingsAdminOrError();
   if ("error" in admin) return admin.error;
 
@@ -23,7 +25,7 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        error: err instanceof Error ? err.message : "Export failed",
+        error: err instanceof Error ? err.message : t("unexpected"),
       },
       { status: 500 },
     );

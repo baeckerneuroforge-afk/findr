@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
   SavePlayUnavailableError,
@@ -13,6 +14,7 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -24,7 +26,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Account not found, or no health score exists yet. Analyze a transcript first.",
+            t("accounts.noHealthScore"),
         },
         { status: 404 },
       );
@@ -42,13 +44,13 @@ export async function POST(
     }
     if (err instanceof SavePlayUnavailableError) {
       return NextResponse.json(
-        { error: "Save-play generation failed", detail: err.message },
+        { error: t("accounts.savePlayFailed"), detail: err.message },
         { status: 502 },
       );
     }
     return NextResponse.json(
       {
-        error: "Save-play generation failed",
+        error: t("accounts.savePlayFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

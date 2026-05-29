@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { listResearchRiskSuggestions } from "@/lib/bridge/research-to-sales";
@@ -15,6 +16,7 @@ import { listResearchRiskSuggestions } from "@/lib/bridge/research-to-sales";
  * other bridges and so the route is greppable by name).
  */
 export async function GET(_request: NextRequest): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -29,7 +31,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     );
     return NextResponse.json(
       {
-        error: "Could not list research-to-risk suggestions",
+        error: t("bridge.couldNotListResearchToRisk"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

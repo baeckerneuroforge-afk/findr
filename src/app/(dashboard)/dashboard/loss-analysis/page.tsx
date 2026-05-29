@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { LossReasonBreakdown } from "@/components/dashboard/LossReasonBreakdown";
 import { LossReportPanel } from "@/components/dashboard/LossReportPanel";
@@ -10,8 +11,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { generateQuarterlyReport } from "@/lib/loss/reports";
 import { getEarlyWarnings } from "@/lib/loss/early-warning-service";
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("de-DE", {
+function formatCurrency(value: number, locale: string): string {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 0,
@@ -32,6 +33,7 @@ export default async function LossAnalysisPage() {
   }
 
   const t = await getTranslations("sales.loss");
+  const locale = await getLocale();
 
   const end = new Date();
   const start = new Date(end);
@@ -52,7 +54,7 @@ export default async function LossAnalysisPage() {
         <StatCard label={t("statLostDeals")} value={report.total_lost_deals} />
         <StatCard
           label={t("statLostValue")}
-          value={formatCurrency(report.total_lost_value)}
+          value={formatCurrency(report.total_lost_value, locale)}
           status={report.total_lost_value > 0 ? "critical" : "default"}
         />
         <StatCard
@@ -110,7 +112,7 @@ export default async function LossAnalysisPage() {
                       {company.name}
                     </div>
                     <div className="text-body text-neutral-700">
-                      {formatCurrency(company.value)}
+                      {formatCurrency(company.value, locale)}
                     </div>
                     <div className="text-small text-neutral-500">
                       {company.reason.replaceAll("_", " ")}

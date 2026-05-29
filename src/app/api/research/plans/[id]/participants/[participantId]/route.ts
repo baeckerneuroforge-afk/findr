@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
@@ -34,6 +35,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; participantId: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -45,7 +47,7 @@ export async function DELETE(
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) {
     return NextResponse.json(
-      { error: "Research plan not found" },
+      { error: t("notFound.researchPlan") },
       { status: 404 },
     );
   }
@@ -71,13 +73,13 @@ export async function DELETE(
       error.message,
     );
     return NextResponse.json(
-      { error: "Could not delete the participant." },
+      { error: t("research.couldNotDeleteParticipant") },
       { status: 500 },
     );
   }
   if (!data) {
     return NextResponse.json(
-      { error: "Participant not found" },
+      { error: t("notFound.participant") },
       { status: 404 },
     );
   }
@@ -142,6 +144,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; participantId: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -152,20 +155,20 @@ export async function PATCH(
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) {
     return NextResponse.json(
-      { error: "Research plan not found" },
+      { error: t("notFound.researchPlan") },
       { status: 404 },
     );
   }
 
   const body = await req.json().catch(() => null);
   if (body === null || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json({ error: t("invalidRequestBody") }, { status: 400 });
   }
 
   const parsed = PatchBodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -192,7 +195,7 @@ export async function PATCH(
         dupeError.message,
       );
       return NextResponse.json(
-        { error: "Could not update the participant." },
+        { error: t("research.couldNotUpdateParticipant") },
         { status: 500 },
       );
     }
@@ -201,7 +204,7 @@ export async function PATCH(
     );
     if (clash) {
       return NextResponse.json(
-        { error: "Diese E-Mail ist bereits einem anderen Teilnehmer in diesem Plan zugeordnet." },
+        { error: t("research.emailAssignedToParticipant") },
         { status: 409 },
       );
     }
@@ -233,13 +236,13 @@ export async function PATCH(
       error.message,
     );
     return NextResponse.json(
-      { error: "Could not update the participant." },
+      { error: t("research.couldNotUpdateParticipant") },
       { status: 500 },
     );
   }
   if (!data) {
     return NextResponse.json(
-      { error: "Participant not found" },
+      { error: t("notFound.participant") },
       { status: 404 },
     );
   }

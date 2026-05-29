@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { approveResearchRiskSuggestion } from "@/lib/bridge/research-to-sales";
@@ -26,6 +27,7 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -36,7 +38,7 @@ export async function POST(
     const suggestion = await approveResearchRiskSuggestion(orgId, id);
     if (!suggestion) {
       return NextResponse.json(
-        { error: "Suggestion not found, not pending, or wrong kind" },
+        { error: t("bridge.suggestionWrongState") },
         { status: 404 },
       );
     }
@@ -48,7 +50,7 @@ export async function POST(
     );
     return NextResponse.json(
       {
-        error: "Could not approve research-to-risk suggestion",
+        error: t("bridge.couldNotApproveResearchToRisk"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

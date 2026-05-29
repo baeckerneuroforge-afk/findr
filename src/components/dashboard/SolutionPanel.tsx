@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { toBcp47 } from "@/i18n/locale";
 import { Button } from "@/components/ui/Button";
 import { EvidenceQuote } from "@/components/dashboard/EvidenceQuote";
 import type { SolutionReport } from "@/lib/solution/service";
@@ -144,6 +145,7 @@ function SolutionReportView({ report }: { report: SolutionReport }) {
 export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
   const t = useTranslations("sales.deal");
   const tc = useTranslations("sales.common");
+  const locale = useLocale();
   const [report, setReport] = useState<SolutionReport | null>(initialReport);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -197,7 +199,9 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
           {report && (
             <p className="mt-1 text-caption text-neutral-400">
               {t("generatedAt", {
-                date: new Date(report.created_at).toLocaleString("de-DE"),
+                date: new Date(report.created_at).toLocaleString(
+                  toBcp47(locale),
+                ),
                 model: report.model,
               })}
             </p>

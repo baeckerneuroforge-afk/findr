@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getLatestRiskScore } from "@/lib/risk/service";
@@ -25,6 +26,7 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const orgId = orgOrError.orgId;
@@ -32,18 +34,18 @@ export async function POST(
 
   const deal = await getDealById(orgId, id);
   if (!deal) {
-    return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+    return NextResponse.json({ error: t("notFound.deal") }, { status: 404 });
   }
   if (deal.outcome !== "lost") {
     return NextResponse.json(
-      { error: "Mark the deal as lost before starting a post-loss interview." },
+      { error: t("deals.markLostFirst") },
       { status: 400 },
     );
   }
   const contactName = deal.contactName?.trim();
   if (!contactName) {
     return NextResponse.json(
-      { error: "Add contact details (at least a name) before starting an interview." },
+      { error: t("deals.addContactBeforeInterview") },
       { status: 400 },
     );
   }
@@ -115,13 +117,13 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "The interview assistant is unavailable right now. Please try again in a moment.",
+            t("interview.assistantUnavailable"),
         },
         { status: 502 },
       );
     }
     return NextResponse.json(
-      { error: "Could not start the interview. Please try again." },
+      { error: t("deals.couldNotStartInterview") },
       { status: 500 },
     );
   }

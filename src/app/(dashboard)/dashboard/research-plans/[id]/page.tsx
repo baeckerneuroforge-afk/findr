@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { researchInterviewUrl } from "@/lib/email/research-invite";
 import { getResearchPlan } from "@/lib/research/plans-service";
@@ -70,10 +71,10 @@ const MODE_LABEL: Record<string, string> = {
   video: "Video",
 };
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("de-DE", {
+  return d.toLocaleDateString(toBcp47(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -98,6 +99,7 @@ export default async function ResearchPlanDetailPage({
   }
 
   const t = await getTranslations("research.plans");
+  const locale = await getLocale();
 
   const { id: planId } = await params;
   const plan = await getResearchPlan(orgId, planId);
@@ -141,7 +143,7 @@ export default async function ResearchPlanDetailPage({
               </Badge>
             </div>
             <p className="mt-1 text-small text-neutral-500">
-              {t("createdAt", { date: formatDate(plan.createdAt) })}
+              {t("createdAt", { date: formatDate(plan.createdAt, locale) })}
             </p>
           </div>
         </div>

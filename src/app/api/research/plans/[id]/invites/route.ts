@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
@@ -72,6 +73,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -83,14 +85,14 @@ export async function POST(
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) {
     return NextResponse.json(
-      { error: "Research plan not found" },
+      { error: t("notFound.researchPlan") },
       { status: 404 },
     );
   }
 
   const body = await req.json().catch(() => null);
   if (body === null || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json({ error: t("invalidRequestBody") }, { status: 400 });
   }
 
   // ── Bulk path ─────────────────────────────────────────────────────────
@@ -100,7 +102,7 @@ export async function POST(
       // Top-level shape error (e.g. > 200 items, empty array). Item-level
       // errors are surfaced per-item inside the loop, not here.
       return NextResponse.json(
-        { error: "Invalid bulk body", details: parsed.error.flatten() },
+        { error: t("research.invalidBulkBody"), details: parsed.error.flatten() },
         { status: parsed.error.issues.some((i) => i.code === "too_big") ? 413 : 400 },
       );
     }
@@ -139,7 +141,7 @@ export async function POST(
           contactLabel: item.contactLabel,
           contactEmail: item.contactEmail ?? null,
           status: "skipped_duplicate",
-          message: "Diese E-Mail existiert bereits in diesem Plan.",
+          message: t("research.bulkEmailExistsInPlan"),
         });
         skipped++;
         continue;
@@ -149,7 +151,7 @@ export async function POST(
           contactLabel: item.contactLabel,
           contactEmail: item.contactEmail ?? null,
           status: "skipped_duplicate",
-          message: "Diese E-Mail kommt in der Liste mehrfach vor.",
+          message: t("research.bulkEmailDuplicateInList"),
         });
         skipped++;
         continue;
@@ -181,7 +183,7 @@ export async function POST(
           contactLabel: item.contactLabel,
           contactEmail: item.contactEmail ?? null,
           status: "error",
-          message: result.message ?? "Anlage fehlgeschlagen.",
+          message: result.message ?? t("research.bulkCreateFailed"),
         });
         errors++;
       }
@@ -198,7 +200,7 @@ export async function POST(
   const parsed = SingleBodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -220,12 +222,12 @@ export async function POST(
       });
     case "plan_not_found":
       return NextResponse.json(
-        { error: "Research plan not found" },
+        { error: t("notFound.researchPlan") },
         { status: 404 },
       );
     default:
       return NextResponse.json(
-        { error: result.message ?? "Could not create the invite." },
+        { error: result.message ?? t("research.couldNotCreateInvite") },
         { status: 500 },
       );
   }

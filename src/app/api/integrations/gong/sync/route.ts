@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
   GongAuthError,
@@ -7,6 +8,7 @@ import {
 } from "@/lib/gong/service";
 
 export async function POST() {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -24,7 +26,7 @@ export async function POST() {
       return NextResponse.json(
         {
           success: false,
-          error: "Gong integration not configured. Contact administrator.",
+          error: t("integrations.gongNotConfiguredAdmin"),
           code: "GONG_NOT_CONFIGURED",
         },
         { status: 503 },
@@ -35,7 +37,7 @@ export async function POST() {
       return NextResponse.json(
         {
           success: false,
-          error: "Gong connection lost. Please reconnect.",
+          error: t("integrations.gongConnectionLost"),
           code: "GONG_AUTH_LOST",
         },
         { status: 401 },
@@ -45,7 +47,7 @@ export async function POST() {
     return NextResponse.json(
       {
         success: false,
-        error: err instanceof Error ? err.message : "Unknown Gong sync error",
+        error: err instanceof Error ? err.message : t("unexpected"),
       },
       { status: 500 },
     );

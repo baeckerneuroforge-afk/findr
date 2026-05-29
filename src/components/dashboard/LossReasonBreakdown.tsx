@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardBody } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -18,8 +19,8 @@ const REASON_LABELS: Record<LossReasonType, string> = {
   other: "Other",
 };
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("de-DE", {
+function formatCurrency(value: number, locale: string): string {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 0,
@@ -32,6 +33,7 @@ export async function LossReasonBreakdown({
   breakdown: LossReportData["breakdown"];
 }) {
   const t = await getTranslations("sales.loss");
+  const locale = await getLocale();
   if (breakdown.length === 0) {
     return (
       <EmptyState
@@ -63,7 +65,7 @@ export async function LossReasonBreakdown({
 
             <div>
               <div className="text-display text-neutral-900">
-                {formatCurrency(item.value)}
+                {formatCurrency(item.value, locale)}
               </div>
               <div className="text-small text-neutral-500">
                 {t("lrLostValue")}

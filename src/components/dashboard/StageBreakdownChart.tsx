@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import type { StageForecastBreakdown } from "@/lib/forecast/service";
 
@@ -18,8 +19,12 @@ const STAGE_LABELS: Record<string, string> = {
   closed_lost: "Closed lost",
 };
 
-function formatCurrency(value: number, currency: "EUR" | "USD") {
-  return new Intl.NumberFormat("de-DE", {
+function formatCurrency(
+  value: number,
+  currency: "EUR" | "USD",
+  locale: string,
+) {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
@@ -31,6 +36,7 @@ export async function StageBreakdownChart({
   currency = "EUR",
 }: StageBreakdownChartProps) {
   const t = await getTranslations("sales.forecast");
+  const locale = await getLocale();
   const width = 760;
   const rowHeight = 54;
   const labelWidth = 138;
@@ -134,7 +140,7 @@ export async function StageBreakdownChart({
                     textAnchor="end"
                   >
                     {t("weightedSuffix", {
-                      value: formatCurrency(stage.weighted, currency),
+                      value: formatCurrency(stage.weighted, currency, locale),
                     })}
                   </text>
                 </g>

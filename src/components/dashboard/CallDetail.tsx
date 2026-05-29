@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { toBcp47 } from "@/i18n/locale";
 
 interface Speaker {
   id: string;
@@ -57,6 +58,7 @@ function formatTime(seconds: number): string {
 
 export function CallDetail({ call }: CallDetailProps) {
   const t = useTranslations("sales.deal");
+  const locale = useLocale();
   const [filter, setFilter] = useState<"all" | "signals">("all");
   const [showTranscript, setShowTranscript] = useState(false);
 
@@ -90,7 +92,7 @@ export function CallDetail({ call }: CallDetailProps) {
               <>
                 <span className="text-caption text-neutral-400">·</span>
                 <span className="text-caption text-neutral-500">
-                  {new Date(call.recorded_at).toLocaleDateString("de-DE")}
+                  {new Date(call.recorded_at).toLocaleDateString(toBcp47(locale))}
                 </span>
               </>
             )}

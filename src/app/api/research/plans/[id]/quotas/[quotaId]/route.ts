@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
@@ -13,6 +14,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; quotaId: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -21,12 +23,12 @@ export async function DELETE(
 
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) {
-    return NextResponse.json({ error: "Research plan not found" }, { status: 404 });
+    return NextResponse.json({ error: t("notFound.researchPlan") }, { status: 404 });
   }
 
   const deleted = await deleteQuota(orgId, planId, quotaId);
   if (!deleted) {
-    return NextResponse.json({ error: "Quote nicht gefunden" }, { status: 404 });
+    return NextResponse.json({ error: t("notFound.quota") }, { status: 404 });
   }
   return NextResponse.json({ success: true, quotaId });
 }

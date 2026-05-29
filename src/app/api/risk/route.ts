@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
 import { getCallsByDealId } from "@/lib/calls/service";
@@ -20,6 +21,7 @@ function getMockDealId(rawData: Json | null, externalId: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const orgId = orgOrError.orgId;
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest) {
   const parsed = AnalyzeRiskRequestSchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
 
   const deal = await getDealById(orgId, dealId);
   if (!deal) {
-    return NextResponse.json({ error: "deal not found" }, { status: 404 });
+    return NextResponse.json({ error: t("notFound.deal") }, { status: 404 });
   }
 
   const supabase = createAdminSupabaseClient();
@@ -193,7 +195,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       {
-        error: "Risk analysis failed",
+        error: t("risk.analysisFailed"),
         detail: error instanceof Error ? error.message : "unknown",
       },
       { status: 500 },

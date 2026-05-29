@@ -2,6 +2,7 @@ import "server-only";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { getDevOrgId } from "./dev-org";
 
@@ -142,20 +143,24 @@ export async function requireOrgIdOrError(): Promise<
     const orgId = await requireOrgId();
     return { orgId };
   } catch (err) {
+    const t = await getTranslations("errors");
     if (err instanceof OrgResolutionError) {
       const status = err.code === "no_auth" ? 401 : 403;
+      // Map the stable resolution code → a user-facing message. The raw
+      // err.message (which can leak Clerk/DB details) stays server-side; `code`
+      // remains in the payload as a stable, non-display discriminator.
+      const message =
+        err.code === "no_auth"
+          ? t("unauthorized")
+          : err.code === "no_org"
+            ? t("settings.noActiveOrg")
+            : t("settings.couldNotResolveOrg");
       return {
-        error: NextResponse.json(
-          { error: err.message, code: err.code },
-          { status },
-        ),
+        error: NextResponse.json({ error: message, code: err.code }, { status }),
       };
     }
     return {
-      error: NextResponse.json(
-        { error: "Internal error resolving org" },
-        { status: 500 },
-      ),
+      error: NextResponse.json({ error: t("unexpected") }, { status: 500 }),
     };
   }
 }

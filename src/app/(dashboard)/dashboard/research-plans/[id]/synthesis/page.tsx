@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
+import { toBcp47 } from "@/i18n/locale";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import {
@@ -35,10 +36,10 @@ import { UpdateSynthesisButton } from "@/components/dashboard/UpdateSynthesisBut
  * pointing here. No changes to existing sections of that page.
  */
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("de-DE", {
+  return d.toLocaleString(toBcp47(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -96,6 +97,7 @@ export default async function ResearchPlanSynthesisPage({
   );
 
   const t = await getTranslations("research.synthesis");
+  const locale = await getLocale();
 
   return (
     <div className="space-y-8">
@@ -126,7 +128,9 @@ export default async function ResearchPlanSynthesisPage({
                   </span>
                   {" · "}
                   <span className="font-medium text-neutral-700">
-                    {t("asOf", { date: formatDate(synthesis.synthesized_at) })}
+                    {t("asOf", {
+                      date: formatDate(synthesis.synthesized_at, locale),
+                    })}
                   </span>
                   {newInsightCount > 0 && (
                     <>

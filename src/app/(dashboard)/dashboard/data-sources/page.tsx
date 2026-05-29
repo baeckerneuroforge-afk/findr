@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
@@ -67,6 +69,7 @@ export default async function DataSourcesPage() {
     throw err;
   }
 
+  const locale = await getLocale();
   const supabase = createAdminSupabaseClient();
   const [hubspot, gong, slack, manualCountResult] = await Promise.all([
     getHubspotIntegration(orgId),
@@ -89,7 +92,7 @@ export default async function DataSourcesPage() {
       cta: hubspot ? "Manage Hubspot" : "Connect Hubspot",
       status: hubspot?.enabled ? "connected" : "not_connected",
       detail: hubspot?.last_synced_at
-        ? `Last sync ${new Date(hubspot.last_synced_at).toLocaleString("de-DE")}`
+        ? `Last sync ${new Date(hubspot.last_synced_at).toLocaleString(toBcp47(locale))}`
         : undefined,
       icon: (
         <InlineIcon path="M8 7h8M8 12h8M8 17h5M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
@@ -103,7 +106,7 @@ export default async function DataSourcesPage() {
       cta: gong ? "Manage Gong" : "Connect Gong",
       status: gong?.enabled ? "connected" : "not_connected",
       detail: gong?.last_synced_at
-        ? `Last sync ${new Date(gong.last_synced_at).toLocaleString("de-DE")}`
+        ? `Last sync ${new Date(gong.last_synced_at).toLocaleString(toBcp47(locale))}`
         : undefined,
       icon: (
         <InlineIcon path="M7 8v8m5-11v14m5-10v6M4 18h16M4 6h16" />

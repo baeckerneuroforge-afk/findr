@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import type {
   FeatureRequest,
   FeatureRequestCategory,
@@ -60,10 +61,10 @@ const INTENSITY_BADGE: Record<IntensityLevel, string> = {
   low: "border-neutral-200 bg-white text-neutral-500",
 };
 
-function formatAnalyzedAt(iso: string): string {
+function formatAnalyzedAt(iso: string, locale: string): string {
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) return iso;
-  return parsed.toLocaleString("de-DE");
+  return parsed.toLocaleString(toBcp47(locale));
 }
 
 function ItemCard({
@@ -115,6 +116,7 @@ export async function ProductDiscoveryPanel({
   insight: ProductDiscoveryInsightRecord;
 }) {
   const t = await getTranslations("research.discovery");
+  const locale = await getLocale();
   const featureRequests = insight.feature_requests;
   const painPoints = insight.pain_points;
   const themes = insight.themes;
@@ -133,7 +135,9 @@ export async function ProductDiscoveryPanel({
                 themes: themes.length,
               })}
           {" · "}
-          {t("panelAnalyzed", { date: formatAnalyzedAt(insight.analyzed_at) })}
+          {t("panelAnalyzed", {
+            date: formatAnalyzedAt(insight.analyzed_at, locale),
+          })}
         </span>
       </div>
 

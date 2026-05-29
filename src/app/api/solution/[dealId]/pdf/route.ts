@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
@@ -6,6 +7,7 @@ import { getCallsByDealId } from "@/lib/calls/service";
 import { getLatestRiskScore } from "@/lib/risk/service";
 import { getSolutionReports } from "@/lib/solution/service";
 import { buildSolutionReportPdf } from "@/lib/pdf/solution-report";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
 
 const DealIdSchema = z.string().uuid();
 
@@ -31,6 +33,11 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ dealId: string }> },
 ) {
+  const t = await getTranslations("errors");
+  const resolvedLocale = await getLocale();
+  const locale: Locale = isLocale(resolvedLocale)
+    ? resolvedLocale
+    : DEFAULT_LOCALE;
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const orgId = orgOrError.orgId;
@@ -38,21 +45,21 @@ export async function GET(
   const { dealId } = await params;
   const parsed = DealIdSchema.safeParse(dealId);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid dealId" }, { status: 400 });
+    return NextResponse.json({ error: t("solution.invalidDealId") }, { status: 400 });
   }
   const id = parsed.data;
 
   try {
     const deal = await getDealById(orgId, id);
     if (!deal) {
-      return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+      return NextResponse.json({ error: t("notFound.deal") }, { status: 404 });
     }
 
     const reports = await getSolutionReports(orgId, id, 1);
     const report = reports[0];
     if (!report) {
       return NextResponse.json(
-        { error: "No solution report for this deal yet." },
+        { error: t("solution.noReport") },
         { status: 404 },
       );
     }
@@ -64,6 +71,7 @@ export async function GET(
     const latestCall = calls[0] ?? null;
 
     const pdf = await buildSolutionReportPdf({
+      locale,
       deal: {
         name: deal.name,
         company: deal.companyName,
@@ -122,7 +130,7 @@ export async function GET(
     console.error(`[solution/pdf] failed for deal ${id}:`, err);
     return NextResponse.json(
       {
-        error: "Failed to generate solution PDF",
+        error: t("solution.pdfFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

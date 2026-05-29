@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
@@ -24,6 +25,7 @@ import {
  * at /api/bridge/suggestions; we do NOT touch it.
  */
 export async function POST(_request: NextRequest): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -39,7 +41,7 @@ export async function POST(_request: NextRequest): Promise<NextResponse> {
     );
     return NextResponse.json(
       {
-        error: "Could not scan for sales-handover suggestions",
+        error: t("bridge.couldNotScanHandover"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

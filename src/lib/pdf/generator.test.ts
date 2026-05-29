@@ -114,13 +114,13 @@ function isPdf(buf: Buffer): boolean {
 
 describe("buildLossReportPdf", () => {
   it("returns a non-empty buffer starting with the PDF magic bytes", async () => {
-    const buf = await buildLossReportPdf(fullReport, "Test Org");
+    const buf = await buildLossReportPdf(fullReport, "Test Org", "de");
     expect(buf.length).toBeGreaterThan(0);
     expect(isPdf(buf)).toBe(true);
   });
 
   it("handles an empty report without crashing", async () => {
-    const buf = await buildLossReportPdf(emptyReport, "Test Org");
+    const buf = await buildLossReportPdf(emptyReport, "Test Org", "de");
     expect(buf.length).toBeGreaterThan(0);
     expect(isPdf(buf)).toBe(true);
   });
@@ -133,7 +133,7 @@ describe("buildLossReportPdf", () => {
         sample_quotes: [],
       })),
     };
-    const buf = await buildLossReportPdf(noQuotes, "Test Org");
+    const buf = await buildLossReportPdf(noQuotes, "Test Org", "de");
     expect(isPdf(buf)).toBe(true);
   });
 
@@ -141,6 +141,7 @@ describe("buildLossReportPdf", () => {
     const buf = await buildLossReportPdf(
       fullReport,
       "A Very Long Organization Name That Could Wrap GmbH & Co. KG",
+      "de",
     );
     expect(isPdf(buf)).toBe(true);
   });
@@ -148,13 +149,13 @@ describe("buildLossReportPdf", () => {
 
 describe("buildForecastPdf", () => {
   it("returns a non-empty buffer starting with the PDF magic bytes", async () => {
-    const buf = await buildForecastPdf(fullForecast, "Test Org");
+    const buf = await buildForecastPdf(fullForecast, "Test Org", "de");
     expect(buf.length).toBeGreaterThan(0);
     expect(isPdf(buf)).toBe(true);
   });
 
   it("handles an empty forecast (no open deals) without crashing", async () => {
-    const buf = await buildForecastPdf(emptyForecast, "Test Org");
+    const buf = await buildForecastPdf(emptyForecast, "Test Org", "de");
     expect(buf.length).toBeGreaterThan(0);
     expect(isPdf(buf)).toBe(true);
   });
@@ -169,7 +170,7 @@ describe("buildForecastPdf", () => {
         deal_name: `Deal ${i}`,
       })),
     };
-    const buf = await buildForecastPdf(many, "Test Org");
+    const buf = await buildForecastPdf(many, "Test Org", "de");
     expect(isPdf(buf)).toBe(true);
   });
 });

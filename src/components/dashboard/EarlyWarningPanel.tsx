@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import type {
@@ -40,8 +41,8 @@ function formatLossReason(reason: LossReasonType): string {
   return reason.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("de-DE", {
+function formatCurrency(value: number, locale: string): string {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 0,
@@ -69,6 +70,7 @@ export async function EarlyWarningPanel({
   warnings,
 }: EarlyWarningPanelProps) {
   const t = await getTranslations("sales.loss");
+  const locale = await getLocale();
   if (!hasEnoughData) {
     return (
       <Card>
@@ -150,7 +152,7 @@ export async function EarlyWarningPanel({
                 </div>
                 <div className="text-right">
                   <div className="text-body-strong text-neutral-900">
-                    {formatCurrency(warning.deal_amount)}
+                    {formatCurrency(warning.deal_amount, locale)}
                   </div>
                 </div>
               </li>

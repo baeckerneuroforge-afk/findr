@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
@@ -38,12 +39,13 @@ async function handleHighlights(
   planId: string,
   orgId: string,
 ): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   // Plan-ownership gate. Filters by org_id; null = not present OR not in
   // this org. Either way → 404, no cross-org existence leak.
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) {
     return NextResponse.json(
-      { error: "Research plan not found" },
+      { error: t("notFound.researchPlan") },
       { status: 404 },
     );
   }
@@ -60,7 +62,7 @@ async function handleHighlights(
       err.message.includes("not found")
     ) {
       return NextResponse.json(
-        { error: "Research plan not found" },
+        { error: t("notFound.researchPlan") },
         { status: 404 },
       );
     }
@@ -70,7 +72,7 @@ async function handleHighlights(
     );
     return NextResponse.json(
       {
-        error: "Highlight reel failed",
+        error: t("research.highlightFailed"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

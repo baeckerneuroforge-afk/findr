@@ -9,6 +9,8 @@ import type {
   Tension,
   TensionSide,
 } from "@/lib/schemas/synthesis";
+import { translate } from "@/i18n/messages";
+import { type Locale, toBcp47 } from "@/i18n/locale";
 
 /**
  * "Research Synthesis" PDF — a forwardable read-out of a Stage-2 study
@@ -62,16 +64,19 @@ export interface SynthesisPdfInput {
     model: string | null;
   };
   orgName: string;
+  /** Resolved UI locale (from the request cookie, via the route handler).
+   *  Drives every chrome string + date formatting. */
+  locale: Locale;
 }
 
 // ── formatting helpers ──────────────────────────────────────────────────────
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, locale: Locale): string {
   if (!iso) return "—";
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? "—"
-    : d.toLocaleDateString("de-DE", {
+    : d.toLocaleDateString(toBcp47(locale), {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -245,7 +250,7 @@ export async function buildSynthesisPdf(
 
   const left = doc.page.margins.left;
   const width = contentWidth(doc);
-  const { plan, synthesis, orgName } = input;
+  const { plan, synthesis, orgName, locale } = input;
 
   // ── Header ──
   const topY = doc.y;
@@ -258,17 +263,24 @@ export async function buildSynthesisPdf(
     .font(fonts.regular)
     .fontSize(9)
     .fillColor(COLORS.muted)
-    .text(`Generated ${formatDate(synthesis.synthesized_at)}`, left, topY + 2, {
-      width,
-      align: "right",
-      lineBreak: false,
-    });
+    .text(
+      translate(locale, "export.synthesis.generatedOn", {
+        date: formatDate(synthesis.synthesized_at, locale),
+      }),
+      left,
+      topY + 2,
+      {
+        width,
+        align: "right",
+        lineBreak: false,
+      },
+    );
   doc.y = topY + 26;
   doc
     .font(fonts.bold)
     .fontSize(23)
     .fillColor(COLORS.ink)
-    .text("Research Synthesis", left, doc.y);
+    .text(translate(locale, "export.synthesis.title"), left, doc.y);
   doc.moveDown(0.2);
   doc
     .font(fonts.regular)
@@ -281,13 +293,21 @@ export async function buildSynthesisPdf(
 
   // Subtitle band — "Based on N interviews · synthesized DATE · org"
   const interviewsLabel =
-    synthesis.based_on_count === 1 ? "1 Interview" : `${synthesis.based_on_count} Interviews`;
+    synthesis.based_on_count === 1
+      ? translate(locale, "export.synthesis.interviewsOne")
+      : translate(locale, "export.synthesis.interviewsMany", {
+          n: synthesis.based_on_count,
+        });
   doc
     .font(fonts.regular)
     .fontSize(10)
     .fillColor(COLORS.muted)
     .text(
-      `Basiert auf ${interviewsLabel}  ·  synthesized ${formatDate(synthesis.synthesized_at)}  ·  ${orgName}`,
+      translate(locale, "export.synthesis.subtitleLine", {
+        interviews: interviewsLabel,
+        date: formatDate(synthesis.synthesized_at, locale),
+        org: orgName,
+      }),
       left,
       doc.y,
       { width },
@@ -296,10 +316,13 @@ export async function buildSynthesisPdf(
 
   // ── Plan context panel (objective + optional persona) ──
   const planRows: Array<[string, string]> = [
-    ["Objective", truncate(plan.objective, 220)],
+    [translate(locale, "export.synthesis.objective"), truncate(plan.objective, 220)],
   ];
   if (plan.persona && plan.persona.trim() !== "") {
-    planRows.push(["Persona", truncate(plan.persona, 220)]);
+    planRows.push([
+      translate(locale, "export.synthesis.persona"),
+      truncate(plan.persona, 220),
+    ]);
   }
   const boxH = 34 + planRows.length * 22 + 6;
   const bandY = doc.y;
@@ -308,7 +331,7 @@ export async function buildSynthesisPdf(
     .font(fonts.bold)
     .fontSize(9)
     .fillColor(COLORS.violet)
-    .text("Study", left + 14, bandY + 14, {
+    .text(translate(locale, "export.synthesis.study"), left + 14, bandY + 14, {
       width: width - 28,
       lineBreak: false,
     });
@@ -329,7 +352,7 @@ export async function buildSynthesisPdf(
   doc.y = Math.max(bandY + boxH, cy);
 
   // ── Overview ──
-  sectionHeading(doc, "Overview", fonts.bold);
+  sectionHeading(doc, translate(locale, "export.synthesis.overview"), fonts.bold);
   if (synthesis.overview && synthesis.overview.trim() !== "") {
     doc
       .font(fonts.regular)
@@ -341,7 +364,7 @@ export async function buildSynthesisPdf(
       .font(fonts.italic)
       .fontSize(10.5)
       .fillColor(COLORS.muted)
-      .text("No overview was produced for this synthesis.", left, doc.y, {
+      .text(translate(locale, "export.synthesis.overviewEmpty"), left, doc.y, {
         width,
       });
   }
@@ -350,7 +373,9 @@ export async function buildSynthesisPdf(
   // ── Emergent themes ──
   sectionHeading(
     doc,
-    `Emergente Themen (${synthesis.emergent_themes.length})`,
+    translate(locale, "export.synthesis.themesHeading", {
+      count: synthesis.emergent_themes.length,
+    }),
     fonts.bold,
   );
   if (synthesis.emergent_themes.length === 0) {
@@ -359,7 +384,7 @@ export async function buildSynthesisPdf(
       .fontSize(10.5)
       .fillColor(COLORS.muted)
       .text(
-        "Stage 2 hat keine cross-call-Themen extrahiert — die Interviews scheinen sich inhaltlich wenig zu überlappen.",
+        translate(locale, "export.synthesis.themesEmpty"),
         left,
         doc.y,
         { width },
@@ -367,14 +392,16 @@ export async function buildSynthesisPdf(
     doc.moveDown(0.4);
   } else {
     for (const theme of synthesis.emergent_themes) {
-      renderTheme(doc, theme, fonts, synthesis.based_on_count);
+      renderTheme(doc, theme, fonts, synthesis.based_on_count, locale);
     }
   }
 
   // ── Tensions ──
   sectionHeading(
     doc,
-    `Spannungen (${synthesis.tensions.length})`,
+    translate(locale, "export.synthesis.tensionsHeading", {
+      count: synthesis.tensions.length,
+    }),
     fonts.bold,
   );
   if (synthesis.tensions.length === 0) {
@@ -383,7 +410,7 @@ export async function buildSynthesisPdf(
       .fontSize(10.5)
       .fillColor(COLORS.muted)
       .text(
-        "Keine widersprüchlichen Lager über die Interviews hinweg erkennbar.",
+        translate(locale, "export.synthesis.tensionsEmpty"),
         left,
         doc.y,
         { width },
@@ -391,7 +418,7 @@ export async function buildSynthesisPdf(
     doc.moveDown(0.4);
   } else {
     for (const tension of synthesis.tensions) {
-      renderTension(doc, tension, fonts);
+      renderTension(doc, tension, fonts, locale);
     }
   }
 
@@ -403,7 +430,14 @@ export async function buildSynthesisPdf(
       .font(fonts.regular)
       .fontSize(8)
       .fillColor(COLORS.faint)
-      .text(`Model: ${synthesis.model}`, left, doc.y, { width });
+      .text(
+        translate(locale, "export.synthesis.modelFootnote", {
+          model: synthesis.model,
+        }),
+        left,
+        doc.y,
+        { width },
+      );
   }
 
   // ── Footer on every page (buffered) ──
@@ -419,16 +453,24 @@ export async function buildSynthesisPdf(
       .font(fonts.regular)
       .fontSize(8)
       .fillColor(COLORS.faint)
-      .text("Findr · Research Synthesis · Confidential", left, fy, {
+      .text(translate(locale, "export.synthesis.confidentialFooter"), left, fy, {
         width,
         align: "left",
         lineBreak: false,
       });
-    doc.text(`Page ${i + 1} of ${range.count}`, left, fy, {
-      width,
-      align: "right",
-      lineBreak: false,
-    });
+    doc.text(
+      translate(locale, "export.synthesis.pageXOfY", {
+        page: i + 1,
+        total: range.count,
+      }),
+      left,
+      fy,
+      {
+        width,
+        align: "right",
+        lineBreak: false,
+      },
+    );
   }
 
   return pdfToBuffer(doc);
@@ -441,6 +483,7 @@ function renderTheme(
   theme: EmergentTheme,
   fonts: Fonts,
   totalParticipants: number,
+  locale: Locale,
 ): void {
   const left = doc.page.margins.left;
   const width = contentWidth(doc);
@@ -461,8 +504,11 @@ function renderTheme(
   // Frequency chip on the right of the title row.
   const chipText =
     theme.frequency === 1
-      ? "1 Interview"
-      : `${theme.frequency} of ${totalParticipants}`;
+      ? translate(locale, "export.synthesis.interviewsOne")
+      : translate(locale, "export.synthesis.freqOfTotal", {
+          freq: theme.frequency,
+          total: totalParticipants,
+        });
   const chipY = startY + 1;
   doc.font(fonts.bold).fontSize(8.5);
   const chipW =
@@ -491,7 +537,9 @@ function renderTheme(
       .fontSize(8.5)
       .fillColor(COLORS.faint)
       .text(
-        `+ ${theme.quotes.length - quotes.length} weitere Zitate im Dashboard`,
+        translate(locale, "export.synthesis.moreQuotesInDashboard", {
+          count: theme.quotes.length - quotes.length,
+        }),
         left + 14,
         doc.y,
         { width: width - 14 },
@@ -505,6 +553,7 @@ function renderTension(
   doc: PDFKit.PDFDocument,
   tension: Tension,
   fonts: Fonts,
+  locale: Locale,
 ): void {
   const left = doc.page.margins.left;
   const width = contentWidth(doc);
@@ -522,8 +571,20 @@ function renderTension(
     .text(cleanText(tension.description), left, doc.y, { width, lineGap: 1 });
   doc.moveDown(0.5);
 
-  renderTensionSide(doc, tension.side_a, "Side A", fonts);
-  renderTensionSide(doc, tension.side_b, "Side B", fonts);
+  renderTensionSide(
+    doc,
+    tension.side_a,
+    translate(locale, "export.synthesis.sideA"),
+    fonts,
+    locale,
+  );
+  renderTensionSide(
+    doc,
+    tension.side_b,
+    translate(locale, "export.synthesis.sideB"),
+    fonts,
+    locale,
+  );
   doc.moveDown(0.4);
 }
 
@@ -532,6 +593,7 @@ function renderTensionSide(
   side: TensionSide,
   sideName: string,
   fonts: Fonts,
+  locale: Locale,
 ): void {
   const left = doc.page.margins.left;
   const width = contentWidth(doc);
@@ -556,8 +618,10 @@ function renderTensionSide(
   // Source-count footnote in mono-style caption.
   const srcLabel =
     side.sourceInsightIds.length === 1
-      ? "1 source interview"
-      : `${side.sourceInsightIds.length} source interviews`;
+      ? translate(locale, "export.synthesis.sourceOne")
+      : translate(locale, "export.synthesis.sourceMany", {
+          n: side.sourceInsightIds.length,
+        });
   doc
     .font(fonts.regular)
     .fontSize(8.5)
@@ -576,7 +640,9 @@ function renderTensionSide(
       .fontSize(8.5)
       .fillColor(COLORS.faint)
       .text(
-        `+ ${side.quotes.length - quotes.length} weitere Zitate im Dashboard`,
+        translate(locale, "export.synthesis.moreQuotesInDashboard", {
+          count: side.quotes.length - quotes.length,
+        }),
         left + 14,
         doc.y,
         { width: width - 14 },

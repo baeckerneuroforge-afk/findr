@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { approveBridgeSuggestion } from "@/lib/bridge/cs-to-research";
@@ -26,6 +27,7 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -38,7 +40,7 @@ export async function POST(
       // 404 covers both "doesn't exist" and "already non-pending" — a
       // probe can't distinguish them.
       return NextResponse.json(
-        { error: "Suggestion not found or already decided" },
+        { error: t("bridge.suggestionAlreadyDecided") },
         { status: 404 },
       );
     }
@@ -50,7 +52,7 @@ export async function POST(
     );
     return NextResponse.json(
       {
-        error: "Could not approve suggestion",
+        error: t("bridge.couldNotApprove"),
         detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },

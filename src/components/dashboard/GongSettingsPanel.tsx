@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/Button";
+import { toBcp47 } from "@/i18n/locale";
 import type { GongIntegration } from "@/lib/gong/service";
 
 interface Props {
@@ -21,6 +23,7 @@ export function GongSettingsPanel({
   configured,
 }: Props) {
   const router = useRouter();
+  const locale = useLocale();
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(
@@ -179,7 +182,7 @@ export function GongSettingsPanel({
             Last sync:{" "}
             {initialIntegration.last_synced_at
               ? new Date(initialIntegration.last_synced_at).toLocaleString(
-                  "de-DE",
+                  toBcp47(locale),
                 )
               : "never"}
           </div>

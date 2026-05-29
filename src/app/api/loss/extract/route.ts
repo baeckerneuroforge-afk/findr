@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { analyzeAndPersistLossReason } from "@/lib/loss/service";
@@ -8,6 +9,7 @@ const ExtractLossSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -15,7 +17,7 @@ export async function POST(req: NextRequest) {
   const parsed = ExtractLossSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -26,7 +28,7 @@ export async function POST(req: NextRequest) {
   );
   if (!result) {
     return NextResponse.json(
-      { error: "Deal not found or skipped" },
+      { error: t("loss.dealNotFoundOrSkipped") },
       { status: 404 },
     );
   }

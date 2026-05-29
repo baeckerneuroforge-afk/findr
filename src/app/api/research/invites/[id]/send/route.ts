@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
@@ -37,6 +38,7 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -47,7 +49,7 @@ export async function POST(
   const invite = await getResearchInvite(orgId, inviteId);
   if (!invite) {
     return NextResponse.json(
-      { error: "Research invite not found" },
+      { error: t("notFound.researchInvite") },
       { status: 404 },
     );
   }
@@ -57,7 +59,7 @@ export async function POST(
   const plan = await getResearchPlan(orgId, invite.plan_id);
   if (!plan) {
     return NextResponse.json(
-      { error: "Research invite not found" },
+      { error: t("notFound.researchInvite") },
       { status: 404 },
     );
   }
@@ -71,7 +73,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "Schedule the invite first — set a date before sending the mail.",
+          t("research.scheduleBeforeSend"),
       },
       { status: 422 },
     );
@@ -85,7 +87,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "Add a contact email on the invite before sending the mail.",
+          t("research.addEmailBeforeSend"),
       },
       { status: 422 },
     );
@@ -98,7 +100,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "This invite was already sent. Resending isn't supported yet.",
+          t("research.inviteAlreadySent"),
         invitedAt: invite.invited_at,
       },
       { status: 409 },
@@ -118,12 +120,12 @@ export async function POST(
     case "not_found":
       // Raced with a deletion between the pre-check and the send.
       return NextResponse.json(
-        { error: "Research invite not found" },
+        { error: t("notFound.researchInvite") },
         { status: 404 },
       );
     case "missing_org":
       return NextResponse.json(
-        { error: result.message ?? "Invite is missing an org." },
+        { error: result.message ?? t("research.inviteMissingOrg") },
         { status: 409 },
       );
     case "missing_schedule":
@@ -132,7 +134,7 @@ export async function POST(
       // If we still see them, surface them as 422 with the service's
       // own message.
       return NextResponse.json(
-        { error: result.message ?? "Invite is not ready to send." },
+        { error: result.message ?? t("research.inviteNotReady") },
         { status: 422 },
       );
     case "missing_token":
@@ -144,14 +146,14 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Invite is missing its access token. Recreate the invite.",
+            t("research.inviteMissingToken"),
         },
         { status: 500 },
       );
     case "error":
     default:
       return NextResponse.json(
-        { error: result.message ?? "Could not send the invite." },
+        { error: result.message ?? t("research.couldNotSendInvite") },
         { status: 502 },
       );
   }

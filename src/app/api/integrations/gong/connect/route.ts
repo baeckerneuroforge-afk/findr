@@ -1,17 +1,19 @@
 import { randomBytes } from "node:crypto";
+import { getTranslations } from "next-intl/server";
 import { NextResponse } from "next/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { buildGongAuthorizeUrl, isGongConfigured } from "@/lib/gong/service";
 
 export async function GET() {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
   if (!isGongConfigured()) {
     return NextResponse.json(
       {
-        error: "Gong integration not configured",
+        error: t("integrations.gongNotConfigured"),
         detail:
           "GONG_CLIENT_ID, GONG_CLIENT_SECRET, and GONG_REDIRECT_URI must be set before connecting Gong.",
         code: "GONG_NOT_CONFIGURED",
@@ -37,7 +39,7 @@ export async function GET() {
 
   if (error) {
     return NextResponse.json(
-      { error: "Failed to create OAuth state", code: "STATE_CREATE_FAILED" },
+      { error: t("integrations.oauthStateFailed"), code: "STATE_CREATE_FAILED" },
       { status: 500 },
     );
   }

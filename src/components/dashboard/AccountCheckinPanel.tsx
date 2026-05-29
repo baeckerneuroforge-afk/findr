@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
@@ -38,10 +39,10 @@ const STATUS_META: Record<
 const INPUT_CLASS =
   "h-9 min-w-0 flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-body text-neutral-700 outline-none";
 
-function formatDay(date: string): string {
+function formatDay(date: string, locale: string): string {
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return date;
-  return d.toLocaleDateString("de-DE", {
+  return d.toLocaleDateString(toBcp47(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -52,12 +53,13 @@ function nextDue(
   lastCheckinAt: string | null,
   intervalDays: number,
   atRunLabel: string,
+  locale: string,
 ): string {
   if (!lastCheckinAt) return atRunLabel;
   const due = new Date(
     new Date(lastCheckinAt).getTime() + intervalDays * 24 * 60 * 60 * 1000,
   );
-  return formatDay(due.toISOString());
+  return formatDay(due.toISOString(), locale);
 }
 
 export function AccountCheckinPanel({
@@ -70,6 +72,7 @@ export function AccountCheckinPanel({
 }: AccountCheckinPanelProps) {
   const t = useTranslations("health.detail");
   const tc = useTranslations("health.common");
+  const locale = useLocale();
   const [checkin, setCheckin] = useState<CheckinView | null>(initialCheckin);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -340,6 +343,7 @@ export function AccountCheckinPanel({
                         lastCheckinAt,
                         saved.intervalDays,
                         t("nextDueAtRun"),
+                        locale,
                       ),
                     })
                   : t("autoOffSummary")}

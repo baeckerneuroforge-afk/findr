@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
@@ -38,6 +39,7 @@ const CreatePlanBodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
   const parsed = CreatePlanBodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
       err instanceof Error ? err.message : err,
     );
     return NextResponse.json(
-      { error: "Could not create research plan." },
+      { error: t("research.couldNotCreatePlan") },
       { status: 500 },
     );
   }

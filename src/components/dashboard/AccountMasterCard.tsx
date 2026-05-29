@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -25,20 +26,24 @@ interface AccountMasterCardProps {
 const INPUT_CLASS =
   "h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 disabled:opacity-60";
 
-function formatMrr(mrr: number | null, currency: "USD" | "EUR"): string {
+function formatMrr(
+  mrr: number | null,
+  currency: "USD" | "EUR",
+  locale: string,
+): string {
   if (mrr === null) return "—";
-  return new Intl.NumberFormat("de-DE", {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
   }).format(mrr);
 }
 
-function formatDate(date: string | null): string {
+function formatDate(date: string | null, locale: string): string {
   if (!date) return "—";
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return date;
-  return parsed.toLocaleDateString("de-DE", {
+  return parsed.toLocaleDateString(toBcp47(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -49,6 +54,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
   const router = useRouter();
   const t = useTranslations("health.detail");
   const tc = useTranslations("health.common");
+  const locale = useLocale();
   const [account, setAccount] = useState<AccountMaster>(initial);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -269,8 +275,8 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
             <Row label={t("rowSponsor")} value={account.sponsorName} />
             <Row label={t("rowEmail")} value={account.sponsorEmail} kind="email" />
             <Row label={t("rowPhone")} value={account.sponsorPhone} kind="phone" />
-            <Row label={t("rowMrr")} value={formatMrr(account.mrr, account.currency)} />
-            <Row label={t("rowRenewal")} value={formatDate(account.renewalDate)} />
+            <Row label={t("rowMrr")} value={formatMrr(account.mrr, account.currency, locale)} />
+            <Row label={t("rowRenewal")} value={formatDate(account.renewalDate, locale)} />
             <Row label={t("rowNotes")} value={account.notes} />
           </dl>
         )}

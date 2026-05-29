@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
+import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getAccount } from "@/lib/accounts/service";
 import {
@@ -24,20 +25,21 @@ function formatMrr(
   mrr: number | null,
   currency: "USD" | "EUR",
   notSet: string,
+  locale: string,
 ): string {
   if (mrr === null) return notSet;
-  return new Intl.NumberFormat("de-DE", {
+  return new Intl.NumberFormat(toBcp47(locale), {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
   }).format(mrr);
 }
 
-function formatDate(date: string | null): string | null {
+function formatDate(date: string | null, locale: string): string | null {
   if (!date) return null;
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return date;
-  return parsed.toLocaleDateString("de-DE", {
+  return parsed.toLocaleDateString(toBcp47(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -64,6 +66,7 @@ export default async function AccountDetailPage({
   const t = await getTranslations("health.detail");
   // Product-Discovery-Sektion (Etappe 5) ist eigene Domäne — eigener Namespace.
   const td = await getTranslations("research.discovery");
+  const locale = await getLocale();
 
   const { id } = await params;
   const account = await getAccount(orgId, id);
@@ -74,7 +77,7 @@ export default async function AccountDetailPage({
     ? await getDealById(orgId, account.sourceDealId)
     : null;
 
-  const renewal = formatDate(account.renewalDate);
+  const renewal = formatDate(account.renewalDate, locale);
 
   // Health data (Etappe 2): latest score + history for the chart + transcript
   // count for the honesty line. Keyed by the account id (text column, consistent
@@ -137,7 +140,7 @@ export default async function AccountDetailPage({
             />
           </div>
           <div className="flex flex-wrap items-center gap-3 text-body text-neutral-500">
-            <span>{formatMrr(account.mrr, account.currency, t("mrrNotSet"))}</span>
+            <span>{formatMrr(account.mrr, account.currency, t("mrrNotSet"), locale)}</span>
             {renewal && (
               <>
                 <span aria-hidden="true">·</span>
@@ -219,7 +222,7 @@ export default async function AccountDetailPage({
           <div className="space-y-6">
             {accountCalls.map((call) => {
               const recordedAt = call.recorded_at
-                ? new Date(call.recorded_at).toLocaleDateString("de-DE", {
+                ? new Date(call.recorded_at).toLocaleDateString(toBcp47(locale), {
                     year: "numeric",
                     month: "short",
                     day: "numeric",

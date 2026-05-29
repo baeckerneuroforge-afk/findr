@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import type { HubspotIntegration } from "@/lib/hubspot/service";
 import { Button } from "@/components/ui/Button";
+import { toBcp47 } from "@/i18n/locale";
 
 interface Props {
   initialIntegration: HubspotIntegration | null;
@@ -17,6 +19,7 @@ export function HubspotSettingsPanel({
   errorFlag,
 }: Props) {
   const router = useRouter();
+  const locale = useLocale();
   const [syncing, setSyncing] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
@@ -115,7 +118,7 @@ export function HubspotSettingsPanel({
             Last sync:{" "}
             {initialIntegration.last_synced_at
               ? new Date(initialIntegration.last_synced_at).toLocaleString(
-                  "de-DE",
+                  toBcp47(locale),
                 )
               : "never"}
           </div>

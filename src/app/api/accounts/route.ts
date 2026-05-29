@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
   AccountCreateSchema,
@@ -17,6 +18,7 @@ export async function GET() {
 
 /** Create an account manually. */
 export async function POST(request: NextRequest) {
+  const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();
   if ("error" in orgOrError) return orgOrError.error;
 
@@ -24,7 +26,7 @@ export async function POST(request: NextRequest) {
   const parsed = AccountCreateSchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
+      { error: t("invalidRequestBody"), details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       {
-        error: err instanceof Error ? err.message : "Could not create account",
+        error: err instanceof Error ? err.message : t("unexpected"),
       },
       { status: 500 },
     );
