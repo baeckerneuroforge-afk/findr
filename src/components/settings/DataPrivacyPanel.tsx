@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface DataPrivacyPanelProps {
   isAdmin: boolean;
@@ -11,6 +12,7 @@ export function DataPrivacyPanel({
   isAdmin,
   organizationName,
 }: DataPrivacyPanelProps) {
+  const t = useTranslations("settings");
   const [confirmationName, setConfirmationName] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -27,12 +29,12 @@ export function DataPrivacyPanel({
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        throw new Error(data.error ?? "Delete failed");
+        throw new Error(data.error ?? t("data.deleteFailed"));
       }
-      setMessage("Organization data deleted. The Clerk organization remains active.");
+      setMessage(t("data.deleted"));
       setConfirmationName("");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Delete failed");
+      setMessage(err instanceof Error ? err.message : t("data.deleteFailed"));
     } finally {
       setDeleting(false);
     }
@@ -41,10 +43,9 @@ export function DataPrivacyPanel({
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-neutral-200 bg-white p-5">
-        <h2 className="text-h2 text-neutral-900">Data export</h2>
+        <h2 className="text-h2 text-neutral-900">{t("data.exportHeading")}</h2>
         <p className="mt-1 max-w-2xl text-body text-neutral-500">
-          Export all organization-scoped Findr data as JSON. Integration
-          secrets such as OAuth tokens and Slack webhook URLs are excluded.
+          {t("data.exportDesc")}
         </p>
         <a
           href="/api/settings/export"
@@ -55,31 +56,26 @@ export function DataPrivacyPanel({
           }`}
           aria-disabled={!isAdmin}
         >
-          Export all data
+          {t("data.exportButton")}
         </a>
         {!isAdmin && (
           <p className="mt-2 text-small text-neutral-500">
-            Only organization admins can export data.
+            {t("data.exportAdminOnly")}
           </p>
         )}
       </section>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-5">
-        <h2 className="text-h2 text-neutral-900">DSGVO / GDPR posture</h2>
+        <h2 className="text-h2 text-neutral-900">{t("data.gdprHeading")}</h2>
         <p className="mt-1 max-w-2xl text-body text-neutral-500">
-          Findr is designed for DACH sales teams: organization data can be
-          exported, deleted, and kept separate by tenant. Production deployments
-          should use EU-hosted Supabase infrastructure, for example Frankfurt,
-          where required by the customer contract.
+          {t("data.gdprBody")}
         </p>
       </section>
 
       <section className="rounded-lg border border-danger-500/20 bg-white p-5">
-        <h2 className="text-h2 text-danger-700">Delete organization data</h2>
+        <h2 className="text-h2 text-danger-700">{t("data.deleteHeading")}</h2>
         <p className="mt-1 max-w-2xl text-body text-neutral-500">
-          This deletes Findr data for this organization: deals, calls, risk
-          scores, loss analysis, alerts, and integration metadata. The Clerk
-          organization and user accounts are not deleted.
+          {t("data.deleteDesc")}
         </p>
 
         <div className="mt-5 max-w-md">
@@ -87,7 +83,7 @@ export function DataPrivacyPanel({
             htmlFor="delete-confirmation"
             className="mb-1.5 block text-body-strong text-neutral-900"
           >
-            Type "{organizationName}" to confirm
+            {t("data.confirmLabel", { org: organizationName })}
           </label>
           <input
             id="delete-confirmation"
@@ -104,13 +100,13 @@ export function DataPrivacyPanel({
           disabled={!isAdmin || deleting || confirmationName !== organizationName}
           className="mt-4 inline-flex h-8 items-center justify-center rounded-md bg-danger-500 px-3 text-body-strong font-medium text-white transition-colors hover:bg-danger-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {deleting ? "Deleting..." : "Delete organization data"}
+          {deleting ? t("data.deleting") : t("data.deleteButton")}
         </button>
 
         {message && <p className="mt-3 text-small text-neutral-500">{message}</p>}
         {!isAdmin && (
           <p className="mt-3 text-small text-neutral-500">
-            Only organization admins can delete organization data.
+            {t("data.deleteAdminOnly")}
           </p>
         )}
       </section>

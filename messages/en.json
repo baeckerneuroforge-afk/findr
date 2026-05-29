@@ -84,5 +84,119 @@
       "footer": "Confidential · AI-assisted check-in",
       "productFallback": "your product"
     }
+  },
+  "nav": {
+    "group": {
+      "salesIntelligence": "Sales Intelligence",
+      "customerHealth": "Customer Health",
+      "product": "Product",
+      "workspace": "Workspace"
+    },
+    "item": {
+      "pipeline": "Pipeline",
+      "forecast": "Forecast",
+      "lossAnalysis": "Loss Analysis",
+      "coaching": "Team Coaching",
+      "accounts": "Accounts",
+      "health": "Health Overview",
+      "productDiscovery": "Product Discovery",
+      "researchPlans": "Research Plans",
+      "participantPool": "Participant Pool",
+      "dataSources": "Data Sources",
+      "settings": "Settings"
+    }
+  },
+  "command": {
+    "triggerAria": "Open search (Cmd+K)",
+    "triggerPlaceholder": "Search…",
+    "dialogLabel": "Search the platform",
+    "inputPlaceholder": "Search deals, accounts, pages…",
+    "loading": "Loading index…",
+    "error": "Couldn’t load search index — {error}.",
+    "empty": "No matches.",
+    "group": {
+      "deals": "Deals",
+      "accounts": "Accounts",
+      "goTo": "Go to"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account, workspace, team, data, and plan.",
+    "navAria": "Settings navigation",
+    "nav": {
+      "profile": "Profile",
+      "organization": "Organization",
+      "team": "Team",
+      "data": "Data & Privacy",
+      "billing": "Billing"
+    },
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Update your name, email addresses, password, and security settings."
+    },
+    "organization": {
+      "title": "Organization",
+      "subtitle": "Workspace identity and support details."
+    },
+    "team": {
+      "title": "Team",
+      "subtitle": "Manage members, invitations, and organization roles through Clerk.",
+      "adminOnly": "Only organization admins can manage members, invitations, and roles."
+    },
+    "data": {
+      "title": "Data & Privacy",
+      "subtitle": "DSGVO-ready export and deletion controls for organization data.",
+      "exportHeading": "Data export",
+      "exportDesc": "Export all organization-scoped Findr data as JSON. Integration secrets such as OAuth tokens and Slack webhook URLs are excluded.",
+      "exportButton": "Export all data",
+      "exportAdminOnly": "Only organization admins can export data.",
+      "gdprHeading": "DSGVO / GDPR posture",
+      "gdprBody": "Findr is designed for DACH sales teams: organization data can be exported, deleted, and kept separate by tenant. Production deployments should use EU-hosted Supabase infrastructure, for example Frankfurt, where required by the customer contract.",
+      "deleteHeading": "Delete organization data",
+      "deleteDesc": "This deletes Findr data for this organization: deals, calls, risk scores, loss analysis, alerts, and integration metadata. The Clerk organization and user accounts are not deleted.",
+      "confirmLabel": "Type \"{org}\" to confirm",
+      "deleting": "Deleting…",
+      "deleteButton": "Delete organization data",
+      "deleted": "Organization data deleted. The Clerk organization remains active.",
+      "deleteFailed": "Delete failed",
+      "deleteAdminOnly": "Only organization admins can delete organization data."
+    },
+    "billing": {
+      "title": "Billing",
+      "subtitle": "Current plan and commercial next steps.",
+      "currentPlan": "Current plan",
+      "planName": "Design Partner",
+      "planDesc": "High-touch onboarding while Findr is being shaped with early DACH sales teams.",
+      "contact": "Contact us",
+      "feature1": "Hubspot and Gong integration setup",
+      "feature2": "Risk, forecast, and loss-pattern analytics",
+      "feature3": "Slack alerts and DSGVO data export",
+      "stripeNote": "Stripe billing integration deferred — see roadmap."
+    },
+    "orgForm": {
+      "loading": "Loading organization…",
+      "noActiveOrg": "No active organization selected.",
+      "profileHeading": "Organization profile",
+      "profileSubtitle": "Manage the workspace name your team sees across Findr.",
+      "nameLabel": "Organization name",
+      "adminOnlyName": "Only organization admins can change this.",
+      "clerkIdLabel": "Clerk organization ID",
+      "createdLabel": "Created",
+      "logoInfo": "Logo upload is managed by Clerk and can be enabled later when brand customization becomes part of the customer workflow.",
+      "saving": "Saving…",
+      "save": "Save changes",
+      "updated": "Organization updated.",
+      "updateError": "Could not update organization."
+    }
+  },
+  "common": {
+    "somethingWrong": "Something went wrong",
+    "loadError": "We couldn’t load this data. Please try again.",
+    "tryAgain": "Try again",
+    "noOrganization": "No organization",
+    "language": "Language",
+    "languageGerman": "German",
+    "languageEnglish": "English"
   }
 }

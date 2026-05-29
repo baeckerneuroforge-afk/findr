@@ -10,32 +10,38 @@
  * cost; the alternative was extracting the routes out of the sidebar into
  * shared config, which inflated the diff against existing sidebar wiring
  * with no end-user visible benefit.
+ *
+ * i18n (Etappe 2): labels/groups are nav.* catalog KEYS, not literal text —
+ * the palette resolves them at render via useTranslations(). The keys match
+ * the sidebar's, so both surfaces share one translated label source.
  */
 
 export interface PaletteRoute {
-  label: string;
+  /** nav.item.* catalog key for the route label. */
+  labelKey: string;
   href: string;
-  /** Sidebar group the route belongs to — surfaced as a small contextual
-   *  label in the palette row so users see "Forecast (Sales Intelligence)"
-   *  rather than just "Forecast" floating without context. */
-  group: string;
+  /** nav.group.* catalog key for the sidebar group the route belongs to —
+   *  surfaced as a small contextual label in the palette row so users see
+   *  "Forecast (Sales Intelligence)" rather than just "Forecast" floating
+   *  without context. */
+  groupKey: string;
 }
 
 export const PALETTE_ROUTES: PaletteRoute[] = [
   // Sales Intelligence
-  { label: "Pipeline", href: "/dashboard", group: "Sales Intelligence" },
-  { label: "Forecast", href: "/dashboard/forecast", group: "Sales Intelligence" },
-  { label: "Loss Analysis", href: "/dashboard/loss-analysis", group: "Sales Intelligence" },
-  { label: "Team Coaching", href: "/dashboard/coaching", group: "Sales Intelligence" },
+  { labelKey: "nav.item.pipeline", href: "/dashboard", groupKey: "nav.group.salesIntelligence" },
+  { labelKey: "nav.item.forecast", href: "/dashboard/forecast", groupKey: "nav.group.salesIntelligence" },
+  { labelKey: "nav.item.lossAnalysis", href: "/dashboard/loss-analysis", groupKey: "nav.group.salesIntelligence" },
+  { labelKey: "nav.item.coaching", href: "/dashboard/coaching", groupKey: "nav.group.salesIntelligence" },
 
   // Customer Health
-  { label: "Accounts", href: "/dashboard/accounts", group: "Customer Health" },
-  { label: "Health Overview", href: "/dashboard/health", group: "Customer Health" },
+  { labelKey: "nav.item.accounts", href: "/dashboard/accounts", groupKey: "nav.group.customerHealth" },
+  { labelKey: "nav.item.health", href: "/dashboard/health", groupKey: "nav.group.customerHealth" },
 
   // Product
-  { label: "Product Discovery", href: "/dashboard/product-discovery", group: "Product" },
+  { labelKey: "nav.item.productDiscovery", href: "/dashboard/product-discovery", groupKey: "nav.group.product" },
 
   // Workspace
-  { label: "Data Sources", href: "/dashboard/data-sources", group: "Workspace" },
-  { label: "Settings", href: "/dashboard/settings", group: "Workspace" },
+  { labelKey: "nav.item.dataSources", href: "/dashboard/data-sources", groupKey: "nav.group.workspace" },
+  { labelKey: "nav.item.settings", href: "/dashboard/settings", groupKey: "nav.group.workspace" },
 ];

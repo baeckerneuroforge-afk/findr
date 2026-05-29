@@ -2,6 +2,7 @@
 
 import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import type { SearchIndex } from "@/lib/search/types";
@@ -84,6 +85,9 @@ function RouteIcon() {
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
+  // Root translator: this component pulls from both command.* (palette chrome)
+  // and nav.* (the route labels/groups mirrored from the sidebar).
+  const t = useTranslations();
   const [index, setIndex] = useState<SearchIndex | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,36 +137,36 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     <Command.Dialog
       open={open}
       onOpenChange={onOpenChange}
-      label="Search the platform"
+      label={t("command.dialogLabel")}
       filter={paletteFilter}
       overlayClassName="fixed inset-0 z-40 bg-neutral-900/40 backdrop-blur-sm"
       contentClassName="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-2xl"
     >
       <Command.Input
-        placeholder="Search deals, accounts, pages…"
+        placeholder={t("command.inputPlaceholder")}
         className="h-12 w-full border-b border-neutral-200 bg-transparent px-4 text-body text-neutral-900 outline-none placeholder:text-neutral-400"
       />
       <Command.List className="max-h-[60vh] overflow-y-auto p-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-caption [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-neutral-400">
         {loading && !index && (
           <Command.Loading>
             <div className="px-3 py-4 text-small text-neutral-500">
-              Loading index…
+              {t("command.loading")}
             </div>
           </Command.Loading>
         )}
 
         {error && (
           <div className="px-3 py-4 text-small text-danger-700">
-            Couldn’t load search index — {error}.
+            {t("command.error", { error })}
           </div>
         )}
 
         <Command.Empty className="px-3 py-6 text-center text-small text-neutral-500">
-          No matches.
+          {t("command.empty")}
         </Command.Empty>
 
         {hasDeals && index && (
-          <Command.Group heading="Deals">
+          <Command.Group heading={t("command.group.deals")}>
             {index.deals.map((deal) => (
               <Command.Item
                 key={deal.id}
@@ -191,7 +195,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         )}
 
         {hasAccounts && index && (
-          <Command.Group heading="Accounts">
+          <Command.Group heading={t("command.group.accounts")}>
             {index.accounts.map((account) => (
               <Command.Item
                 key={account.id}
@@ -219,23 +223,27 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </Command.Group>
         )}
 
-        <Command.Group heading="Go to">
-          {PALETTE_ROUTES.map((route) => (
-            <Command.Item
-              key={route.href}
-              value={`${route.href} ${route.label} ${route.group}`}
-              onSelect={() => go(route.href)}
-              className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-body text-neutral-700 data-[selected=true]:bg-neutral-100 data-[selected=true]:text-neutral-900"
-            >
-              <RouteIcon />
-              <span className="min-w-0 flex-1 truncate font-medium text-neutral-900">
-                {route.label}
-              </span>
-              <span className="shrink-0 text-caption uppercase tracking-wider text-neutral-400">
-                {route.group}
-              </span>
-            </Command.Item>
-          ))}
+        <Command.Group heading={t("command.group.goTo")}>
+          {PALETTE_ROUTES.map((route) => {
+            const label = t(route.labelKey);
+            const group = t(route.groupKey);
+            return (
+              <Command.Item
+                key={route.href}
+                value={`${route.href} ${label} ${group}`}
+                onSelect={() => go(route.href)}
+                className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-body text-neutral-700 data-[selected=true]:bg-neutral-100 data-[selected=true]:text-neutral-900"
+              >
+                <RouteIcon />
+                <span className="min-w-0 flex-1 truncate font-medium text-neutral-900">
+                  {label}
+                </span>
+                <span className="shrink-0 text-caption uppercase tracking-wider text-neutral-400">
+                  {group}
+                </span>
+              </Command.Item>
+            );
+          })}
         </Command.Group>
       </Command.List>
     </Command.Dialog>

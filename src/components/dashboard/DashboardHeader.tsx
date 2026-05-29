@@ -3,6 +3,7 @@
 import { UserButton } from "@clerk/nextjs";
 import { OrgDisplay } from "@/components/dashboard/OrgDisplay";
 import { SearchHeaderWidget } from "@/components/search/SearchHeaderWidget";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 export default function DashboardHeader() {
   // 3-column grid (1fr / auto / 1fr) so the search widget sits at the true
@@ -16,6 +17,7 @@ export default function DashboardHeader() {
       </div>
       <SearchHeaderWidget />
       <div className="flex items-center justify-self-end gap-3">
+        <LanguageSwitcher variant="header" />
         <UserButton
           appearance={{
             elements: {
