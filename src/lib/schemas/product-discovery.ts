@@ -124,6 +124,53 @@ const ThemeSchema = z.object({
 });
 export type Theme = z.infer<typeof ThemeSchema>;
 
+/**
+ * Normalize persisted `themes` JSONB into honest `Theme[]` values.
+ *
+ * Every read path that surfaces product-discovery insights CASTS the JSONB
+ * rather than re-parsing it (the classifier validated it on WRITE via
+ * `ProductDiscoveryResultSchema.safeParse`). Legacy/partial rows written
+ * before `relatedFeatureRequestIndices` / `relatedPainPointIndices` existed
+ * therefore reach consumers with those inner array fields `undefined` — and
+ * any code doing `theme.relatedFeatureRequestIndices.length` crashes. The
+ * outer `?? []` that guards a missing `themes` column never reaches the
+ * inner fields.
+ *
+ * We default the inner fields with an explicit map rather than
+ * `ThemeSchema.parse`: parse would THROW on legacy rows that violate the
+ * label/summary length constraints, turning a localized render bug into a
+ * total read failure for the whole insight list. The map never throws and
+ * preserves all existing content; missing array fields fall back to `[]`,
+ * missing strings to `""`. The result genuinely satisfies `Theme`, so no
+ * `as unknown` cast that lies about the shape.
+ *
+ * Single source for the product-discovery service read (`toRecord`) and the
+ * research/synthesis read paths (chat-with-data, highlight-reels, synthesis
+ * engine) — all previously cast `r.themes` and so carried the same latent
+ * crash.
+ */
+export function normalizeThemes(value: unknown): Theme[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    const theme =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? (entry as Record<string, unknown>)
+        : {};
+    const featureIndices = theme.relatedFeatureRequestIndices;
+    const painIndices = theme.relatedPainPointIndices;
+    return {
+      label: typeof theme.label === "string" ? theme.label : "",
+      summary: typeof theme.summary === "string" ? theme.summary : "",
+      relatedFeatureRequestIndices: Array.isArray(featureIndices)
+        ? (featureIndices as number[])
+        : [],
+      relatedPainPointIndices: Array.isArray(painIndices)
+        ? (painIndices as number[])
+        : [],
+    };
+  });
+}
+
 // ── Top-level result ───────────────────────────────────────────────────────
 
 export const ProductDiscoveryResultSchema = z.object({

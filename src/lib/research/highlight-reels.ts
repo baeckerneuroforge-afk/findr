@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { normalizeThemes } from "@/lib/schemas/product-discovery";
 import type { Database, Json } from "@/types/database";
 
 /**
@@ -744,7 +745,7 @@ export async function generateHighlightReel(
       summary: r.summary,
       featureRequests: (r.feature_requests as unknown as unknown[]) ?? [],
       painPoints: (r.pain_points as unknown as unknown[]) ?? [],
-      themes: (r.themes as unknown as unknown[]) ?? [],
+      themes: normalizeThemes(r.themes),
       respondentRole: r.respondent_role,
       respondentSegment: r.respondent_segment,
       sentiment: r.sentiment,
