@@ -84,5 +84,119 @@
       "footer": "Vertraulich · KI-gestützter Check-in",
       "productFallback": "Ihrem Produkt"
     }
+  },
+  "nav": {
+    "group": {
+      "salesIntelligence": "Sales Intelligence",
+      "customerHealth": "Customer Health",
+      "product": "Produkt",
+      "workspace": "Arbeitsbereich"
+    },
+    "item": {
+      "pipeline": "Pipeline",
+      "forecast": "Forecast",
+      "lossAnalysis": "Verlustanalyse",
+      "coaching": "Team-Coaching",
+      "accounts": "Accounts",
+      "health": "Gesundheitsübersicht",
+      "productDiscovery": "Product Discovery",
+      "researchPlans": "Research-Pläne",
+      "participantPool": "Teilnehmer-Pool",
+      "dataSources": "Datenquellen",
+      "settings": "Einstellungen"
+    }
+  },
+  "command": {
+    "triggerAria": "Suche öffnen (Cmd+K)",
+    "triggerPlaceholder": "Suchen …",
+    "dialogLabel": "Plattform durchsuchen",
+    "inputPlaceholder": "Deals, Accounts, Seiten durchsuchen …",
+    "loading": "Index wird geladen …",
+    "error": "Suchindex konnte nicht geladen werden — {error}.",
+    "empty": "Keine Treffer.",
+    "group": {
+      "deals": "Deals",
+      "accounts": "Accounts",
+      "goTo": "Wechseln zu"
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Verwalten Sie Konto, Arbeitsbereich, Team, Daten und Tarif.",
+    "navAria": "Einstellungs-Navigation",
+    "nav": {
+      "profile": "Profil",
+      "organization": "Organisation",
+      "team": "Team",
+      "data": "Daten & Datenschutz",
+      "billing": "Abrechnung"
+    },
+    "profile": {
+      "title": "Profil",
+      "subtitle": "Aktualisieren Sie Name, E-Mail-Adressen, Passwort und Sicherheitseinstellungen."
+    },
+    "organization": {
+      "title": "Organisation",
+      "subtitle": "Identität des Arbeitsbereichs und Support-Details."
+    },
+    "team": {
+      "title": "Team",
+      "subtitle": "Verwalten Sie Mitglieder, Einladungen und Organisationsrollen über Clerk.",
+      "adminOnly": "Nur Organisations-Admins können Mitglieder, Einladungen und Rollen verwalten."
+    },
+    "data": {
+      "title": "Daten & Datenschutz",
+      "subtitle": "DSGVO-konforme Export- und Löschfunktionen für Organisationsdaten.",
+      "exportHeading": "Datenexport",
+      "exportDesc": "Exportieren Sie alle organisationsbezogenen Findr-Daten als JSON. Integrations-Geheimnisse wie OAuth-Tokens und Slack-Webhook-URLs sind ausgenommen.",
+      "exportButton": "Alle Daten exportieren",
+      "exportAdminOnly": "Nur Organisations-Admins können Daten exportieren.",
+      "gdprHeading": "DSGVO / GDPR-Status",
+      "gdprBody": "Findr ist für DACH-Vertriebsteams konzipiert: Organisationsdaten können exportiert, gelöscht und mandantengetrennt gehalten werden. Produktiv-Deployments sollten EU-gehostete Supabase-Infrastruktur nutzen, etwa Frankfurt, sofern der Kundenvertrag dies verlangt.",
+      "deleteHeading": "Organisationsdaten löschen",
+      "deleteDesc": "Dies löscht die Findr-Daten dieser Organisation: Deals, Calls, Risk-Scores, Verlustanalysen, Alerts und Integrations-Metadaten. Die Clerk-Organisation und Benutzerkonten werden nicht gelöscht.",
+      "confirmLabel": "Geben Sie zur Bestätigung \"{org}\" ein",
+      "deleting": "Wird gelöscht …",
+      "deleteButton": "Organisationsdaten löschen",
+      "deleted": "Organisationsdaten gelöscht. Die Clerk-Organisation bleibt aktiv.",
+      "deleteFailed": "Löschen fehlgeschlagen",
+      "deleteAdminOnly": "Nur Organisations-Admins können Organisationsdaten löschen."
+    },
+    "billing": {
+      "title": "Abrechnung",
+      "subtitle": "Aktueller Tarif und nächste kommerzielle Schritte.",
+      "currentPlan": "Aktueller Tarif",
+      "planName": "Design Partner",
+      "planDesc": "Intensive Betreuung beim Onboarding, während Findr mit frühen DACH-Vertriebsteams geformt wird.",
+      "contact": "Kontakt aufnehmen",
+      "feature1": "Einrichtung der Hubspot- und Gong-Integration",
+      "feature2": "Risiko-, Forecast- und Verlustmuster-Analysen",
+      "feature3": "Slack-Alerts und DSGVO-Datenexport",
+      "stripeNote": "Stripe-Abrechnungsintegration verschoben — siehe Roadmap."
+    },
+    "orgForm": {
+      "loading": "Organisation wird geladen …",
+      "noActiveOrg": "Keine aktive Organisation ausgewählt.",
+      "profileHeading": "Organisationsprofil",
+      "profileSubtitle": "Verwalten Sie den Namen des Arbeitsbereichs, den Ihr Team in Findr sieht.",
+      "nameLabel": "Organisationsname",
+      "adminOnlyName": "Nur Organisations-Admins können dies ändern.",
+      "clerkIdLabel": "Clerk-Organisations-ID",
+      "createdLabel": "Erstellt",
+      "logoInfo": "Der Logo-Upload wird von Clerk verwaltet und kann später aktiviert werden, sobald Markenanpassung Teil des Kunden-Workflows wird.",
+      "saving": "Wird gespeichert …",
+      "save": "Änderungen speichern",
+      "updated": "Organisation aktualisiert.",
+      "updateError": "Organisation konnte nicht aktualisiert werden."
+    }
+  },
+  "common": {
+    "somethingWrong": "Etwas ist schiefgelaufen",
+    "loadError": "Diese Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+    "tryAgain": "Erneut versuchen",
+    "noOrganization": "Keine Organisation",
+    "language": "Sprache",
+    "languageGerman": "Deutsch",
+    "languageEnglish": "Englisch"
   }
 }

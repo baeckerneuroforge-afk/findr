@@ -84,7 +84,13 @@ export default async function RootLayout({
         <body className="min-h-full flex flex-col bg-obsidian text-white">
           <NextIntlClientProvider
             locale={locale}
-            messages={{ interview: MESSAGES[locale].interview }}
+            messages={{
+              interview: MESSAGES[locale].interview,
+              nav: MESSAGES[locale].nav,
+              command: MESSAGES[locale].command,
+              settings: MESSAGES[locale].settings,
+              common: MESSAGES[locale].common,
+            }}
           >
             {children}
           </NextIntlClientProvider>

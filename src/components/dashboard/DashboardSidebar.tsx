@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 /**
  * Primary navigation, grouped by product module. The grouping is the
@@ -12,36 +13,40 @@ import { usePathname } from "next/navigation";
  * Routes themselves are UNCHANGED from the previous flat version — only the
  * sidebar's grouping/labeling changed. Each NavItem.href is identical to
  * what it linked to before this restructure.
+ *
+ * Labels live in the nav.* message catalog (i18n Etappe 2); each entry carries
+ * a labelKey resolved at render via useTranslations("nav"). The Cmd+K palette
+ * mirrors this route list in src/lib/search/nav-routes.ts with the same keys.
  */
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: string;
 }
 
 interface NavGroupDef {
-  /** Small-caps section header rendered above the items. Kept dezent
-   *  on purpose — it structures, it doesn't shout. */
-  label: string;
+  /** nav.* catalog key for the small-caps section header. Kept dezent on
+   *  purpose — it structures, it doesn't shout. */
+  labelKey: string;
   items: NavItem[];
 }
 
 /** Product modules — the two domains the platform is built around. */
 const MODULES: NavGroupDef[] = [
   {
-    label: "Sales Intelligence",
+    labelKey: "group.salesIntelligence",
     items: [
-      { href: "/dashboard", label: "Pipeline" },
-      { href: "/dashboard/forecast", label: "Forecast" },
-      { href: "/dashboard/loss-analysis", label: "Loss Analysis" },
-      { href: "/dashboard/coaching", label: "Team Coaching" },
+      { href: "/dashboard", labelKey: "item.pipeline" },
+      { href: "/dashboard/forecast", labelKey: "item.forecast" },
+      { href: "/dashboard/loss-analysis", labelKey: "item.lossAnalysis" },
+      { href: "/dashboard/coaching", labelKey: "item.coaching" },
     ],
   },
   {
-    label: "Customer Health",
+    labelKey: "group.customerHealth",
     items: [
-      { href: "/dashboard/accounts", label: "Accounts" },
-      { href: "/dashboard/health", label: "Health Overview" },
+      { href: "/dashboard/accounts", labelKey: "item.accounts" },
+      { href: "/dashboard/health", labelKey: "item.health" },
     ],
   },
   // Product module — what we learn ABOUT the product, from two angles:
@@ -52,11 +57,17 @@ const MODULES: NavGroupDef[] = [
   // Both surfaces feed the same product_discovery_insights table; the
   // grouping reflects that they're two ways into the same learning loop.
   {
-    label: "Product",
+    labelKey: "group.product",
     items: [
-      { href: "/dashboard/product-discovery", label: "Product Discovery" },
-      { href: "/dashboard/research-plans", label: "Research Plans" },
-      { href: "/dashboard/research-plans/pool", label: "Teilnehmer-Pool" },
+      {
+        href: "/dashboard/product-discovery",
+        labelKey: "item.productDiscovery",
+      },
+      { href: "/dashboard/research-plans", labelKey: "item.researchPlans" },
+      {
+        href: "/dashboard/research-plans/pool",
+        labelKey: "item.participantPool",
+      },
     ],
   },
 ];
@@ -65,10 +76,10 @@ const MODULES: NavGroupDef[] = [
  *  + account-level controls. Rendered in a footer block separated by a
  *  divider so it reads as "different kind of thing". */
 const WORKSPACE: NavGroupDef = {
-  label: "Workspace",
+  labelKey: "group.workspace",
   items: [
-    { href: "/dashboard/data-sources", label: "Data Sources" },
-    { href: "/dashboard/settings", label: "Settings" },
+    { href: "/dashboard/data-sources", labelKey: "item.dataSources" },
+    { href: "/dashboard/settings", labelKey: "item.settings" },
   ],
 };
 
@@ -105,10 +116,11 @@ function NavSection({
   group: NavGroupDef;
   pathname: string;
 }) {
+  const t = useTranslations("nav");
   return (
     <div>
       <div className="mb-1.5 px-3 text-caption font-medium uppercase tracking-wider text-neutral-400">
-        {group.label}
+        {t(group.labelKey)}
       </div>
       <ul className="space-y-0.5">
         {group.items.map((item) => {
@@ -123,7 +135,7 @@ function NavSection({
                     : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
                 }`}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             </li>
           );
@@ -158,7 +170,7 @@ export default function DashboardSidebar() {
       {/* Primary nav — grouped by product module */}
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
         {MODULES.map((group) => (
-          <NavSection key={group.label} group={group} pathname={pathname} />
+          <NavSection key={group.labelKey} group={group} pathname={pathname} />
         ))}
       </nav>
 

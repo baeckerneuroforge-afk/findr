@@ -2,21 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 const SETTINGS_NAV = [
-  { href: "/dashboard/settings/profile", label: "Profile" },
-  { href: "/dashboard/settings/organization", label: "Organization" },
-  { href: "/dashboard/settings/team", label: "Team" },
-  { href: "/dashboard/settings/data", label: "Data & Privacy" },
-  { href: "/dashboard/settings/billing", label: "Billing" },
+  { href: "/dashboard/settings/profile", labelKey: "nav.profile" },
+  { href: "/dashboard/settings/organization", labelKey: "nav.organization" },
+  { href: "/dashboard/settings/team", labelKey: "nav.team" },
+  { href: "/dashboard/settings/data", labelKey: "nav.data" },
+  { href: "/dashboard/settings/billing", labelKey: "nav.billing" },
 ];
 
 export function SettingsNav() {
   const pathname = usePathname();
+  const t = useTranslations("settings");
 
   return (
     <nav
-      aria-label="Settings navigation"
+      aria-label={t("navAria")}
       className="flex gap-1 overflow-x-auto border-b border-neutral-200"
     >
       {SETTINGS_NAV.map((item) => {
@@ -31,7 +33,7 @@ export function SettingsNav() {
                 : "border-transparent text-neutral-500 hover:text-neutral-900"
             }`}
           >
-            {item.label}
+            {t(item.labelKey)}
           </Link>
         );
       })}

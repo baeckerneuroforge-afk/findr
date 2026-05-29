@@ -1,9 +1,11 @@
 "use client";
 
 import { useOrganization } from "@clerk/nextjs";
+import { useTranslations } from "next-intl";
 
 export function OrgDisplay() {
   const { organization, isLoaded } = useOrganization();
+  const t = useTranslations("common");
 
   if (!isLoaded) {
     return (
@@ -15,7 +17,9 @@ export function OrgDisplay() {
   }
 
   if (!organization) {
-    return <span className="text-body text-neutral-500">No organization</span>;
+    return (
+      <span className="text-body text-neutral-500">{t("noOrganization")}</span>
+    );
   }
 
   return (

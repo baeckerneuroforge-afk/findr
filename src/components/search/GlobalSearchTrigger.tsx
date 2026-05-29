@@ -1,6 +1,7 @@
 "use client";
 
 import type { MouseEvent } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * Header button that opens the Cmd+K palette. Styled as a slim faux-input
@@ -35,15 +36,16 @@ function SearchIcon() {
 }
 
 export function GlobalSearchTrigger({ onClick }: GlobalSearchTriggerProps) {
+  const t = useTranslations("command");
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label="Open search (Cmd+K)"
+      aria-label={t("triggerAria")}
       className="flex h-9 w-[14rem] items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-small text-neutral-500 transition-colors hover:border-neutral-300 hover:bg-neutral-100 hover:text-neutral-700"
     >
       <SearchIcon />
-      <span className="flex-1 text-left">Search…</span>
+      <span className="flex-1 text-left">{t("triggerPlaceholder")}</span>
       <kbd className="hidden items-center gap-0.5 rounded border border-neutral-200 bg-white px-1.5 py-0.5 text-caption font-medium text-neutral-500 sm:inline-flex">
         ⌘K
       </kbd>
