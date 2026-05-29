@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/Button";
 
@@ -41,6 +42,8 @@ export function DeleteParticipantButton({
   disabled = false,
 }: DeleteParticipantButtonProps) {
   const router = useRouter();
+  const t = useTranslations("research.plans");
+  const tc = useTranslations("research.common");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,11 +53,7 @@ export function DeleteParticipantButton({
     // German copy explicitly mentions the preserved-session edge case
     // so the user isn't surprised later when they find an orphaned
     // session.
-    const ok = window.confirm(
-      `Teilnehmer „${contactLabel}" wirklich löschen?\n\n` +
-        "Bereits geführte Interviews (Transkripte, Auswertung) bleiben " +
-        "erhalten – nur die Verknüpfung zum Plan wird entfernt.",
-    );
+    const ok = window.confirm(t("confirmDelete", { name: contactLabel }));
     if (!ok) return;
 
     setError(null);
@@ -69,12 +68,12 @@ export function DeleteParticipantButton({
         success?: boolean;
       };
       if (!res.ok || !data.success) {
-        throw new Error(data.error ?? "Konnte den Teilnehmer nicht löschen.");
+        throw new Error(data.error ?? t("errDeleteParticipant"));
       }
       router.refresh();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Konnte den Teilnehmer nicht löschen.",
+        err instanceof Error ? err.message : t("errDeleteParticipant"),
       );
       setSubmitting(false);
     }
@@ -89,10 +88,10 @@ export function DeleteParticipantButton({
         size="sm"
         onClick={handleDelete}
         disabled={disabled || submitting}
-        aria-label={`Teilnehmer ${contactLabel} löschen`}
+        aria-label={t("deleteAria", { name: contactLabel })}
         className="text-danger-700 hover:bg-danger-50"
       >
-        {submitting ? "Lösche…" : "Löschen"}
+        {submitting ? tc("deleting") : tc("deleteLabel")}
       </Button>
       {error && (
         <div className="text-caption text-danger-700">{error}</div>

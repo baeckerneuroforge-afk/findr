@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * "Als PDF exportieren" — downloads the Stage-2 synthesis as a Findr-
@@ -31,6 +32,8 @@ export function ExportSynthesisPdfButton({
   planId,
   disabled = false,
 }: ExportSynthesisPdfButtonProps) {
+  const t = useTranslations("research.synthesis");
+  const tc = useTranslations("research.common");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,10 +56,10 @@ export function ExportSynthesisPdfButton({
         };
         const message =
           res.status === 404
-            ? (data.error ?? "Noch keine Synthese verfügbar.")
+            ? (data.error ?? t("errNoSynthesis"))
             : res.status === 401 || res.status === 403
-              ? "Kein Zugriff auf diesen Plan."
-              : (data.detail ?? data.error ?? "PDF-Export fehlgeschlagen.");
+              ? tc("errNoAccessPlan")
+              : (data.detail ?? data.error ?? t("errPdf"));
         setError(message);
         console.error(
           `Synthesis PDF download failed for plan ${planId}:`,
@@ -80,7 +83,7 @@ export function ExportSynthesisPdfButton({
       // Defer revoke a tick — some browsers race with the download start.
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      setError("PDF-Export fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errPdfNetwork"));
       console.error(`Synthesis PDF download failed for plan ${planId}:`, err);
     } finally {
       setLoading(false);
@@ -95,7 +98,7 @@ export function ExportSynthesisPdfButton({
         disabled={disabled || loading}
         className="rounded-md border border-neutral-200 bg-white px-4 py-2 text-small font-medium text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
       >
-        {loading ? "PDF wird erstellt…" : "Als PDF exportieren"}
+        {loading ? t("pdfExporting") : t("pdfExport")}
       </button>
       {error && (
         <span className="max-w-72 text-right text-caption text-danger-700">

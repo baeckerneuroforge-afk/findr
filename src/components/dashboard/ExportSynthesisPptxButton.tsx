@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * "Als PowerPoint exportieren" — downloads the Stage-2 synthesis as a Findr-
@@ -26,6 +27,8 @@ export function ExportSynthesisPptxButton({
   planId,
   disabled = false,
 }: ExportSynthesisPptxButtonProps) {
+  const t = useTranslations("research.synthesis");
+  const tc = useTranslations("research.common");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,10 +48,10 @@ export function ExportSynthesisPptxButton({
         };
         const message =
           res.status === 404
-            ? (data.error ?? "Noch keine Synthese verfügbar.")
+            ? (data.error ?? t("errNoSynthesis"))
             : res.status === 401 || res.status === 403
-              ? "Kein Zugriff auf diesen Plan."
-              : (data.detail ?? data.error ?? "PowerPoint-Export fehlgeschlagen.");
+              ? tc("errNoAccessPlan")
+              : (data.detail ?? data.error ?? t("errPptx"));
         setError(message);
         console.error(
           `Synthesis PPTX download failed for plan ${planId}:`,
@@ -68,7 +71,7 @@ export function ExportSynthesisPptxButton({
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      setError("PowerPoint-Export fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errPptxNetwork"));
       console.error(`Synthesis PPTX download failed for plan ${planId}:`, err);
     } finally {
       setLoading(false);
@@ -83,7 +86,7 @@ export function ExportSynthesisPptxButton({
         disabled={disabled || loading}
         className="rounded-md border border-neutral-200 bg-white px-4 py-2 text-small font-medium text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
       >
-        {loading ? "PowerPoint wird erstellt…" : "Als PowerPoint exportieren"}
+        {loading ? t("pptxExporting") : t("pptxExport")}
       </button>
       {error && (
         <span className="max-w-72 text-right text-caption text-danger-700">

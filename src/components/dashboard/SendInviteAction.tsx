@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 
 /**
@@ -50,6 +51,7 @@ export function SendInviteAction({
   disabled = false,
 }: SendInviteActionProps) {
   const router = useRouter();
+  const t = useTranslations("research.plans");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +59,7 @@ export function SendInviteAction({
   if (invitedAt) {
     return (
       <div className="text-small text-success-700 whitespace-nowrap">
-        Sent · {formatSentAt(invitedAt)}
+        {t("sentAt", { date: formatSentAt(invitedAt) })}
       </div>
     );
   }
@@ -67,9 +69,9 @@ export function SendInviteAction({
   // Both blockers shown inline so the user knows what to fix.
   let blockingHint: string | null = null;
   if (!scheduledAt) {
-    blockingHint = "Schedule first";
+    blockingHint = t("scheduleFirst");
   } else if (contactEmail.trim() === "") {
-    blockingHint = "Email needed";
+    blockingHint = t("emailNeeded");
   }
   const buttonDisabled = disabled || blockingHint !== null || submitting;
 
@@ -93,11 +95,11 @@ export function SendInviteAction({
           router.refresh();
           return;
         }
-        throw new Error(data.error ?? "Could not send the invite.");
+        throw new Error(data.error ?? t("errSendInvite"));
       }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send the invite.");
+      setError(err instanceof Error ? err.message : t("errSendInvite"));
     } finally {
       setSubmitting(false);
     }
@@ -110,7 +112,7 @@ export function SendInviteAction({
         onClick={send}
         disabled={buttonDisabled}
       >
-        {submitting ? "Sending…" : "Send invite"}
+        {submitting ? t("sending") : t("sendInvite")}
       </Button>
       {blockingHint && (
         <div className="text-caption text-neutral-500">{blockingHint}</div>

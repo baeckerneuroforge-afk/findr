@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/Button";
 import { Field, FIELD_INPUT_CLASS } from "@/components/ui/Field";
@@ -54,7 +55,9 @@ interface ParsedLine {
 interface ParseIssue {
   raw: string;
   lineNumber: number;
-  message: string;
+  /** Translation key under research.plans for the issue reason — resolved at
+   *  render time so the pure parsers stay i18n-free and testable. */
+  messageKey: "issueNoName" | "issueNameTooLong" | "issueInvalidEmail";
 }
 
 interface ParseResult {
@@ -111,7 +114,7 @@ export function parseBulkInput(input: string): ParseResult {
       issues.push({
         raw: rawLine,
         lineNumber,
-        message: "Kein Name erkannt.",
+        messageKey: "issueNoName",
       });
       return;
     }
@@ -119,7 +122,7 @@ export function parseBulkInput(input: string): ParseResult {
       issues.push({
         raw: rawLine,
         lineNumber,
-        message: "Name zu lang (max 200 Zeichen).",
+        messageKey: "issueNameTooLong",
       });
       return;
     }
@@ -127,7 +130,7 @@ export function parseBulkInput(input: string): ParseResult {
       issues.push({
         raw: rawLine,
         lineNumber,
-        message: "E-Mail hat kein gültiges Format.",
+        messageKey: "issueInvalidEmail",
       });
       return;
     }
@@ -357,7 +360,7 @@ export function parseCsvInput(input: string): ParseResult {
       issues.push({
         raw: rawLine,
         lineNumber,
-        message: "Kein Name erkannt.",
+        messageKey: "issueNoName",
       });
       continue;
     }
@@ -365,7 +368,7 @@ export function parseCsvInput(input: string): ParseResult {
       issues.push({
         raw: rawLine,
         lineNumber,
-        message: "Name zu lang (max 200 Zeichen).",
+        messageKey: "issueNameTooLong",
       });
       continue;
     }
@@ -373,7 +376,7 @@ export function parseCsvInput(input: string): ParseResult {
       issues.push({
         raw: rawLine,
         lineNumber,
-        message: "E-Mail hat kein gültiges Format.",
+        messageKey: "issueInvalidEmail",
       });
       continue;
     }
@@ -400,11 +403,11 @@ interface ServerResponse {
   error?: string;
 }
 
-const STATUS_LABEL: Record<ServerResultItem["status"], string> = {
-  created: "Angelegt",
-  skipped_duplicate: "Übersprungen (Duplikat)",
-  invalid: "Ungültig",
-  error: "Fehler",
+const STATUS_LABEL_KEY: Record<ServerResultItem["status"], string> = {
+  created: "bulkStatusCreated",
+  skipped_duplicate: "bulkStatusSkippedDup",
+  invalid: "bulkStatusInvalid",
+  error: "bulkStatusError",
 };
 
 const STATUS_TEXT_CLASS: Record<ServerResultItem["status"], string> = {
@@ -424,6 +427,7 @@ interface CsvPreviewState {
 
 export function BulkInviteForm({ planId }: { planId: string }) {
   const router = useRouter();
+  const t = useTranslations("research.plans");
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -462,15 +466,13 @@ export function BulkInviteForm({ planId }: { planId: string }) {
       });
       const data = (await res.json().catch(() => ({}))) as ServerResponse;
       if (!res.ok || !data.success) {
-        throw new Error(data.error ?? "Bulk-Anlage fehlgeschlagen.");
+        throw new Error(data.error ?? t("errBulk"));
       }
       setResponse(data);
       router.refresh();
       return true;
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Bulk-Anlage fehlgeschlagen.",
-      );
+      setError(err instanceof Error ? err.message : t("errBulk"));
       return false;
     } finally {
       setSubmitting(false);
@@ -485,18 +487,11 @@ export function BulkInviteForm({ planId }: { planId: string }) {
     const { parsed, issues } = parseBulkInput(text);
     if (issues.length > 0) setParseIssues(issues);
     if (parsed.length === 0) {
-      setError(
-        issues.length > 0
-          ? "Keine gültige Zeile gefunden – siehe Hinweise unten."
-          : "Bitte mindestens einen Teilnehmer pro Zeile eingeben.",
-      );
+      setError(issues.length > 0 ? t("errNoValidLine") : t("errMinOne"));
       return;
     }
     if (parsed.length > MAX_INVITES) {
-      setError(
-        `Maximal ${MAX_INVITES} Teilnehmer pro Vorgang. Bitte in kleinere ` +
-          "Stapel aufteilen.",
-      );
+      setError(t("errMaxInvites", { max: MAX_INVITES }));
       return;
     }
 
@@ -529,9 +524,10 @@ export function BulkInviteForm({ planId }: { planId: string }) {
 
     if (file.size > MAX_CSV_BYTES) {
       setError(
-        `CSV-Datei zu groß (${Math.round(file.size / 1024)} KB; max. ${Math.round(
-          MAX_CSV_BYTES / 1024,
-        )} KB). Bitte in kleinere Stapel teilen.`,
+        t("errCsvTooBig", {
+          size: Math.round(file.size / 1024),
+          max: Math.round(MAX_CSV_BYTES / 1024),
+        }),
       );
       return;
     }
@@ -542,8 +538,8 @@ export function BulkInviteForm({ planId }: { planId: string }) {
     } catch (err) {
       setError(
         err instanceof Error
-          ? `CSV konnte nicht gelesen werden: ${err.message}`
-          : "CSV konnte nicht gelesen werden.",
+          ? t("errCsvReadMsg", { msg: err.message })
+          : t("errCsvRead"),
       );
       return;
     }
@@ -551,24 +547,16 @@ export function BulkInviteForm({ planId }: { planId: string }) {
     const { parsed, issues } = parseCsvInput(raw);
 
     if (parsed.length === 0 && issues.length === 0) {
-      setError(
-        "Die CSV enthält keine erkennbaren Zeilen. Erwartet werden " +
-          "Spalten: name,email (Header-Zeile optional).",
-      );
+      setError(t("errCsvNoRows"));
       return;
     }
     if (parsed.length === 0) {
-      setError(
-        "Keine gültige Zeile in der CSV gefunden – siehe Hinweise unten.",
-      );
+      setError(t("errCsvNoValid"));
       setParseIssues(issues);
       return;
     }
     if (parsed.length > MAX_INVITES) {
-      setError(
-        `Mehr als ${MAX_INVITES} gültige Zeilen in der CSV (${parsed.length} ` +
-          "erkannt). Bitte in kleinere Stapel teilen.",
-      );
+      setError(t("errCsvTooMany", { max: MAX_INVITES, count: parsed.length }));
       return;
     }
 
@@ -596,13 +584,12 @@ export function BulkInviteForm({ planId }: { planId: string }) {
     <div className="space-y-5">
       <div>
         <h4 className="text-body-strong text-neutral-900">
-          Mehrere Teilnehmer auf einmal
+          {t("bulkTitleHeading")}
         </h4>
         <p className="mt-1 text-caption text-neutral-500">
-          Per CSV-Datei hochladen (Spalten: <span className="font-mono">name,email</span> –
-          Header-Zeile optional) oder weiter unten als freie Liste eintippen.
-          Beide Wege landen in derselben Anlage-Logik (Duplikate werden
-          automatisch übersprungen).
+          {t.rich("bulkDesc", {
+            code: (chunks) => <span className="font-mono">{chunks}</span>,
+          })}
         </p>
       </div>
 
@@ -610,10 +597,7 @@ export function BulkInviteForm({ planId }: { planId: string }) {
           structured input. The preview overlay below replaces this row
           while a file is staged for confirmation. */}
       {csvPreview === null ? (
-        <Field
-          label="CSV hochladen"
-          hint="Akzeptiert Komma- und Semikolon-Separatoren (DE-Excel ok), Anführungszeichen für Namen mit Komma, BOM-Zeichen wird ignoriert."
-        >
+        <Field label={t("csvUpload")} hint={t("csvUploadHint")}>
           <input
             ref={fileInputRef}
             type="file"
@@ -636,24 +620,16 @@ export function BulkInviteForm({ planId }: { planId: string }) {
           when CSV preview is active to signal "deal with the CSV first". */}
       <div className="flex items-center gap-3 text-caption text-neutral-400">
         <div className="h-px flex-1 bg-neutral-200" />
-        <span className="uppercase tracking-wider">oder</span>
+        <span className="uppercase tracking-wider">{t("or")}</span>
         <div className="h-px flex-1 bg-neutral-200" />
       </div>
 
       <form onSubmit={handleTextareaSubmit} className="space-y-4">
-        <Field
-          label="Als Liste eintippen"
-          hint='Eine Zeile pro Person, Format: "Name, E-Mail". E-Mail ist optional. Leere Zeilen und Zeilen, die mit # beginnen, werden übersprungen.'
-        >
+        <Field label={t("listLabel")} hint={t("listHint")}>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={
-              "Jane Doe, jane@acme.example\n" +
-              "Max Mustermann, max@example.com\n" +
-              "# Kommentar-Zeile wird übersprungen\n" +
-              "Anonymer Teilnehmer"
-            }
+            placeholder={t("phBulkList")}
             disabled={submitting || csvPreview !== null}
             rows={8}
             className={`${FIELD_INPUT_CLASS} font-mono text-small leading-relaxed`}
@@ -665,11 +641,10 @@ export function BulkInviteForm({ planId }: { planId: string }) {
             type="submit"
             disabled={submitting || csvPreview !== null}
           >
-            {submitting ? "Lege an…" : "Liste anlegen"}
+            {submitting ? t("listSubmitAdding") : t("listSubmit")}
           </Button>
           <span className="text-small text-neutral-500">
-            Max. {MAX_INVITES} pro Vorgang. Duplikate (gleiche E-Mail) werden
-            übersprungen.
+            {t("bulkSubmitHelp", { max: MAX_INVITES })}
           </span>
         </div>
       </form>
@@ -686,16 +661,15 @@ export function BulkInviteForm({ planId }: { planId: string }) {
       {parseIssues.length > 0 && (
         <div className="rounded-md border border-warning-500/20 bg-warning-50 px-3 py-2 text-small text-warning-700">
           <div className="font-medium">
-            {parseIssues.length}{" "}
-            {parseIssues.length === 1
-              ? "Zeile übersprungen"
-              : "Zeilen übersprungen"}
-            :
+            {t("issuesSkipped", { count: parseIssues.length })}:
           </div>
           <ul className="mt-1 space-y-0.5">
             {parseIssues.slice(0, 10).map((iss) => (
               <li key={iss.lineNumber}>
-                Zeile {iss.lineNumber}: {iss.message} —{" "}
+                {t("issueLine", {
+                  line: iss.lineNumber,
+                  message: t(iss.messageKey),
+                })}
                 <span className="font-mono">
                   {iss.raw.length > 60 ? iss.raw.slice(0, 60) + "…" : iss.raw}
                 </span>
@@ -703,7 +677,7 @@ export function BulkInviteForm({ planId }: { planId: string }) {
             ))}
             {parseIssues.length > 10 && (
               <li className="italic">
-                …{parseIssues.length - 10} weitere
+                {t("moreN", { count: parseIssues.length - 10 })}
               </li>
             )}
           </ul>
@@ -713,14 +687,16 @@ export function BulkInviteForm({ planId }: { planId: string }) {
       {response?.results && response.summary && (
         <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-3 text-small">
           <div className="mb-2 font-medium text-neutral-900">
-            {response.summary.created} angelegt ·{" "}
-            {response.summary.skipped} übersprungen ·{" "}
-            {response.summary.errors} Fehler
+            {t("summaryBulk", {
+              created: response.summary.created,
+              skipped: response.summary.skipped,
+              errors: response.summary.errors,
+            })}
           </div>
           <ul className="space-y-0.5">
             {response.results.map((r, i) => (
               <li key={i} className={STATUS_TEXT_CLASS[r.status]}>
-                <span className="font-medium">{STATUS_LABEL[r.status]}</span>
+                <span className="font-medium">{t(STATUS_LABEL_KEY[r.status])}</span>
                 {" — "}
                 {r.contactLabel}
                 {r.contactEmail ? ` · ${r.contactEmail}` : ""}
@@ -752,6 +728,8 @@ function CsvPreviewPanel({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations("research.plans");
+  const tc = useTranslations("research.common");
   const PREVIEW_LIMIT = 25;
   const shown = preview.parsed.slice(0, PREVIEW_LIMIT);
   const hidden = preview.parsed.length - shown.length;
@@ -761,23 +739,15 @@ function CsvPreviewPanel({
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-body-strong text-neutral-900">
-            CSV-Vorschau:{" "}
+            {t("csvPreviewTitle")}{" "}
             <span className="font-mono text-small">{preview.fileName}</span>
           </div>
           <div className="mt-1 text-small text-neutral-600">
-            {preview.parsed.length}{" "}
-            {preview.parsed.length === 1 ? "gültige Zeile" : "gültige Zeilen"}{" "}
-            erkannt
+            {t("csvValidRows", { count: preview.parsed.length })}
             {preview.issues.length > 0 && (
-              <>
-                {" · "}
-                <span className="text-warning-700">
-                  {preview.issues.length}{" "}
-                  {preview.issues.length === 1
-                    ? "übersprungen"
-                    : "übersprungen"}
-                </span>
-              </>
+              <span className="text-warning-700">
+                {t("csvSkippedSuffix", { count: preview.issues.length })}
+              </span>
             )}
           </div>
         </div>
@@ -788,7 +758,7 @@ function CsvPreviewPanel({
             onClick={onCancel}
             disabled={submitting}
           >
-            Abbrechen
+            {tc("cancel")}
           </Button>
           <Button
             type="button"
@@ -796,21 +766,22 @@ function CsvPreviewPanel({
             disabled={submitting || preview.parsed.length === 0}
           >
             {submitting
-              ? "Lege an…"
-              : `Bestätigen und ${preview.parsed.length} ${
-                  preview.parsed.length === 1 ? "Teilnehmer" : "Teilnehmer"
-                } anlegen`}
+              ? t("listSubmitAdding")
+              : t("csvConfirmCreate", { count: preview.parsed.length })}
           </Button>
         </div>
       </div>
 
       {preview.issues.length > 0 && (
         <div className="mb-3 rounded-md border border-warning-500/20 bg-warning-50 px-3 py-2 text-small text-warning-700">
-          <div className="font-medium">Übersprungene Zeilen:</div>
+          <div className="font-medium">{t("skippedRowsTitle")}</div>
           <ul className="mt-1 space-y-0.5">
             {preview.issues.slice(0, 10).map((iss) => (
-              <li key={`${iss.lineNumber}-${iss.message}`}>
-                Zeile {iss.lineNumber}: {iss.message} —{" "}
+              <li key={`${iss.lineNumber}-${iss.messageKey}`}>
+                {t("issueLine", {
+                  line: iss.lineNumber,
+                  message: t(iss.messageKey),
+                })}
                 <span className="font-mono">
                   {iss.raw.length > 60 ? iss.raw.slice(0, 60) + "…" : iss.raw}
                 </span>
@@ -818,7 +789,7 @@ function CsvPreviewPanel({
             ))}
             {preview.issues.length > 10 && (
               <li className="italic">
-                …{preview.issues.length - 10} weitere
+                {t("moreN", { count: preview.issues.length - 10 })}
               </li>
             )}
           </ul>
@@ -828,17 +799,21 @@ function CsvPreviewPanel({
       <ul className="space-y-1 text-small text-neutral-700">
         {shown.map((r, i) => (
           <li key={`${r.lineNumber}-${i}`} className="font-mono">
-            <span className="text-neutral-400">Zeile {r.lineNumber}:</span>{" "}
+            <span className="text-neutral-400">
+              {t("csvRowLine", { line: r.lineNumber })}
+            </span>{" "}
             <span className="text-neutral-900">{r.contactLabel}</span>
             {r.contactEmail ? (
               <> · {r.contactEmail}</>
             ) : (
-              <span className="text-neutral-400"> · (keine E-Mail)</span>
+              <span className="text-neutral-400">{t("csvNoEmail")}</span>
             )}
           </li>
         ))}
         {hidden > 0 && (
-          <li className="italic text-neutral-500">…{hidden} weitere</li>
+          <li className="italic text-neutral-500">
+            {t("moreN", { count: hidden })}
+          </li>
         )}
       </ul>
     </div>

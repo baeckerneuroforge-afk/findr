@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { EmergentTheme } from "@/lib/synthesis/service";
 
@@ -42,6 +43,7 @@ export function SynthesisThemeCard({
   totalParticipants,
 }: SynthesisThemeCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const t = useTranslations("research.synthesis");
 
   // Defensive client-side dedup: the engine already runs Array.from(new Set(...))
   // before persisting (engine.ts ~L318), so this is a no-op for fresh syntheses.
@@ -51,12 +53,11 @@ export function SynthesisThemeCard({
 
   const frequencyLabel =
     totalParticipants > 0
-      ? `${theme.frequency} von ${totalParticipants} ${
-          totalParticipants === 1 ? "Teilnehmer" : "Teilnehmern"
-        }`
-      : `${theme.frequency} ${
-          theme.frequency === 1 ? "Erwähnung" : "Erwähnungen"
-        }`;
+      ? t("freqOfTotal", {
+          frequency: theme.frequency,
+          total: totalParticipants,
+        })
+      : t("freqMentions", { frequency: theme.frequency });
 
   return (
     <div
@@ -87,7 +88,7 @@ export function SynthesisThemeCard({
           {theme.quotes.length > 0 && (
             <div>
               <div className="mb-2 text-caption font-medium uppercase tracking-wider text-neutral-500">
-                Zitate ({theme.quotes.length})
+                {t("quotes", { count: theme.quotes.length })}
               </div>
               <ul className="space-y-2">
                 {theme.quotes.map((q, i) => (
@@ -105,7 +106,7 @@ export function SynthesisThemeCard({
           {uniqueSourceIds.length > 0 && (
             <div>
               <div className="mb-2 text-caption font-medium uppercase tracking-wider text-neutral-500">
-                Quell-Interviews ({uniqueSourceIds.length})
+                {t("sourceInterviewsCard", { count: uniqueSourceIds.length })}
               </div>
               <ul className="space-y-1">
                 {uniqueSourceIds.map((id, idx) => (
@@ -122,7 +123,7 @@ export function SynthesisThemeCard({
 
           {theme.quotes.length === 0 && uniqueSourceIds.length === 0 && (
             <p className="text-small italic text-neutral-500">
-              Keine Zitate oder Quell-Interviews zu diesem Thema.
+              {t("noQuotesOrSources")}
             </p>
           )}
         </div>

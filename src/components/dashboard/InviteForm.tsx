@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Field, FIELD_INPUT_CLASS } from "@/components/ui/Field";
 
@@ -27,10 +28,10 @@ import { Field, FIELD_INPUT_CLASS } from "@/components/ui/Field";
 
 type Mode = "text" | "voice" | "video";
 
-const MODE_OPTIONS: Array<{ value: Mode; label: string }> = [
-  { value: "text", label: "Text-Chat" },
-  { value: "voice", label: "Voice (Wunsch – heute Text-Fallback)" },
-  { value: "video", label: "Video (Wunsch – heute Text-Fallback)" },
+const MODE_OPTIONS: Array<{ value: Mode; labelKey: string }> = [
+  { value: "text", labelKey: "modeText" },
+  { value: "voice", labelKey: "modeVoice" },
+  { value: "video", labelKey: "modeVideo" },
 ];
 
 interface FormState {
@@ -47,6 +48,8 @@ const INITIAL_FORM: FormState = {
 
 export function InviteForm({ planId }: { planId: string }) {
   const router = useRouter();
+  const t = useTranslations("research.plans");
+  const tc = useTranslations("research.common");
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +64,7 @@ export function InviteForm({ planId }: { planId: string }) {
 
     const contactLabel = form.contactLabel.trim();
     if (contactLabel.length === 0) {
-      setError("Name ist erforderlich.");
+      setError(tc("errName"));
       return;
     }
 
@@ -69,7 +72,7 @@ export function InviteForm({ planId }: { planId: string }) {
     // the user doesn't see the API's generic Zod error.
     const contactEmail = form.contactEmail.trim();
     if (contactEmail !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-      setError("Die E-Mail-Adresse sieht nicht gültig aus.");
+      setError(tc("errEmailInvalid"));
       return;
     }
 
@@ -89,7 +92,7 @@ export function InviteForm({ planId }: { planId: string }) {
         inviteId?: string;
       };
       if (!res.ok || !data.inviteId) {
-        throw new Error(data.error ?? "Teilnehmer konnte nicht hinzugefügt werden.");
+        throw new Error(data.error ?? t("errAddParticipant"));
       }
       setForm(INITIAL_FORM);
       // Server-rendered list refresh — picks up the new invite without a
@@ -97,9 +100,7 @@ export function InviteForm({ planId }: { planId: string }) {
       router.refresh();
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Teilnehmer konnte nicht hinzugefügt werden.",
+        err instanceof Error ? err.message : t("errAddParticipant"),
       );
     } finally {
       setSubmitting(false);
@@ -109,38 +110,28 @@ export function InviteForm({ planId }: { planId: string }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
-        <Field
-          label="Name"
-          required
-          hint='In der Teilnehmerliste angezeigt. "Vorname Nachname" oder "Name, Firma" sind beide ok.'
-        >
+        <Field label={t("fldName")} required hint={t("inviteNameHint")}>
           <input
             value={form.contactLabel}
             onChange={(e) => update("contactLabel", e.target.value)}
-            placeholder="Jane Doe, Acme"
+            placeholder={t("phContactName")}
             disabled={submitting}
             className={FIELD_INPUT_CLASS}
           />
         </Field>
 
-        <Field
-          label="E-Mail"
-          hint="Optional. Ohne E-Mail kein Mailversand – Link kopieren funktioniert trotzdem."
-        >
+        <Field label={t("fldEmail")} hint={t("inviteEmailHint")}>
           <input
             type="email"
             value={form.contactEmail}
             onChange={(e) => update("contactEmail", e.target.value)}
-            placeholder="jane@acme.example"
+            placeholder={t("phContactEmail")}
             disabled={submitting}
             className={FIELD_INPUT_CLASS}
           />
         </Field>
 
-        <Field
-          label="Modus-Wunsch"
-          hint="Wird als Wunsch des Teilnehmers gespeichert – heute ist nur Text vollständig verdrahtet."
-        >
+        <Field label={t("fldMode")} hint={t("modeHint")}>
           <select
             value={form.modePreference}
             onChange={(e) =>
@@ -151,7 +142,7 @@ export function InviteForm({ planId }: { planId: string }) {
           >
             {MODE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.labelKey)}
               </option>
             ))}
           </select>
@@ -166,11 +157,10 @@ export function InviteForm({ planId }: { planId: string }) {
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={submitting}>
-          {submitting ? "Lege an…" : "Teilnehmer hinzufügen"}
+          {submitting ? t("inviteSubmitAdding") : t("addParticipant")}
         </Button>
         <span className="text-small text-neutral-500">
-          Wird als „ausstehend" gespeichert – Termin + Versand erfolgen pro
-          Zeile.
+          {t("inviteSubmitHelp")}
         </span>
       </div>
     </form>

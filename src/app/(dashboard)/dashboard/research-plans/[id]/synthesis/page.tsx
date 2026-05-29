@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
@@ -94,6 +95,8 @@ export default async function ResearchPlanSynthesisPage({
     synthesis?.synthesized_at ?? null,
   );
 
+  const t = await getTranslations("research.synthesis");
+
   return (
     <div className="space-y-8">
       {/* Breadcrumb */}
@@ -102,55 +105,45 @@ export default async function ResearchPlanSynthesisPage({
           href={`/dashboard/research-plans/${planId}`}
           className="text-small text-neutral-500 transition-colors hover:text-neutral-900"
         >
-          ← Zurück zum Plan
+          {t("backToPlan")}
         </Link>
       </div>
 
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-display text-neutral-900">Synthese</h1>
+          <h1 className="text-display text-neutral-900">{t("title")}</h1>
           <p className="mt-1 text-body text-neutral-500">{plan.title}</p>
           {synthesis ? (
             <p className="mt-2 text-small text-neutral-500">
               {synthesis.synthesized_at ? (
                 <>
-                  Basiert auf{" "}
+                  {t("basedOnPrefix")}
                   <span className="font-medium text-neutral-700">
-                    {synthesis.based_on_count}{" "}
-                    {synthesis.based_on_count === 1
-                      ? "Interview"
-                      : "Interviews"}
+                    {t("basedOnInterviews", {
+                      count: synthesis.based_on_count,
+                    })}
                   </span>
                   {" · "}
-                  Stand{" "}
                   <span className="font-medium text-neutral-700">
-                    {formatDate(synthesis.synthesized_at)}
+                    {t("asOf", { date: formatDate(synthesis.synthesized_at) })}
                   </span>
                   {newInsightCount > 0 && (
                     <>
                       {" · "}
                       <span className="font-medium text-primary-700">
-                        {newInsightCount}{" "}
-                        {newInsightCount === 1
-                          ? "neues Interview"
-                          : "neue Interviews"}{" "}
-                        seit der letzten Synthese
+                        {t("newSinceLast", { count: newInsightCount })}
                       </span>
                     </>
                   )}
                 </>
               ) : (
-                <>Synthese-Slot existiert, aber noch nie berechnet.</>
+                <>{t("slotNeverComputed")}</>
               )}
             </p>
           ) : (
             <p className="mt-2 text-small text-neutral-500">
-              Noch keine Synthese — {newInsightCount}{" "}
-              {newInsightCount === 1
-                ? "Interview verfügbar"
-                : "Interviews verfügbar"}
-              .
+              {t("noSynthesisYet", { count: newInsightCount })}
             </p>
           )}
         </div>
@@ -175,13 +168,11 @@ export default async function ResearchPlanSynthesisPage({
       {synthesis === null || synthesis.synthesized_at === null ? (
         <EmptyState
           icon={<DiscoveryIcon />}
-          title="Noch keine Synthese erstellt"
+          title={t("emptyTitle")}
           description={
             newInsightCount > 0
-              ? `${newInsightCount} ${
-                  newInsightCount === 1 ? "Interview steht" : "Interviews stehen"
-                } für die erste Synthese bereit. Klick „Synthese erstellen" oben rechts, um Stage 2 zu starten.`
-              : "Sobald Interviews zu diesem Plan ausgewertet sind, kann hier die Cross-Call-Synthese erstellt werden."
+              ? t("emptyDescWithInsights", { count: newInsightCount })
+              : t("emptyDescNoInsights")
           }
         />
       ) : (
@@ -190,7 +181,9 @@ export default async function ResearchPlanSynthesisPage({
           {synthesis.overview && (
             <Card>
               <CardHeader>
-                <h2 className="text-h3 text-neutral-900">Überblick</h2>
+                <h2 className="text-h3 text-neutral-900">
+                  {t("overviewTitle")}
+                </h2>
               </CardHeader>
               <CardBody>
                 <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-700">
@@ -204,19 +197,19 @@ export default async function ResearchPlanSynthesisPage({
           <section className="space-y-4">
             <div>
               <h2 className="text-h2 text-neutral-900">
-                Emergente Themen ({synthesis.emergent_themes.length})
+                {t("emergentThemesTitle", {
+                  count: synthesis.emergent_themes.length,
+                })}
               </h2>
               <p className="text-body text-neutral-500">
-                Themen, die in mehreren Interviews aufgetaucht sind. Klick ein
-                Thema, um Zitate und Quell-Interviews zu sehen.
+                {t("emergentThemesDesc")}
               </p>
             </div>
             {synthesis.emergent_themes.length === 0 ? (
               <Card>
                 <CardBody>
                   <p className="py-4 text-center text-body text-neutral-500">
-                    Stage 2 hat keine cross-call-Themen extrahiert — die
-                    Interviews scheinen sich inhaltlich wenig zu überlappen.
+                    {t("noEmergentThemes")}
                   </p>
                 </CardBody>
               </Card>
@@ -237,19 +230,15 @@ export default async function ResearchPlanSynthesisPage({
           <section className="space-y-4">
             <div>
               <h2 className="text-h2 text-neutral-900">
-                Spannungen ({synthesis.tensions.length})
+                {t("tensionsTitle", { count: synthesis.tensions.length })}
               </h2>
-              <p className="text-body text-neutral-500">
-                Punkte, an denen Teilnehmer sich widersprechen — die
-                Reibungsstellen, die der Synthese-Engine aufgefallen sind.
-              </p>
+              <p className="text-body text-neutral-500">{t("tensionsDesc")}</p>
             </div>
             {synthesis.tensions.length === 0 ? (
               <Card>
                 <CardBody>
                   <p className="py-4 text-center text-body text-neutral-500">
-                    Keine widersprüchlichen Lager über die Interviews hinweg
-                    erkennbar.
+                    {t("noTensions")}
                   </p>
                 </CardBody>
               </Card>
@@ -262,8 +251,14 @@ export default async function ResearchPlanSynthesisPage({
                         {tension.description}
                       </p>
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <TensionSidePanel side={tension.side_a} sideName="Seite A" />
-                        <TensionSidePanel side={tension.side_b} sideName="Seite B" />
+                        <TensionSidePanel
+                          side={tension.side_a}
+                          sideName={t("sideA")}
+                        />
+                        <TensionSidePanel
+                          side={tension.side_b}
+                          sideName={t("sideB")}
+                        />
                       </div>
                     </CardBody>
                   </Card>
@@ -274,7 +269,7 @@ export default async function ResearchPlanSynthesisPage({
 
           {synthesis.model && (
             <p className="text-caption text-neutral-400">
-              Model: {synthesis.model}
+              {t("model", { model: synthesis.model })}
             </p>
           )}
 
@@ -302,13 +297,14 @@ export default async function ResearchPlanSynthesisPage({
  * `sideName` prop ("Side A" / "Side B") is purely the column label above
  * the heading, not a content fallback.
  */
-function TensionSidePanel({
+async function TensionSidePanel({
   side,
   sideName,
 }: {
   side: TensionSide;
   sideName: string;
 }) {
+  const t = await getTranslations("research.synthesis");
   return (
     <div className="rounded-md border border-neutral-200 bg-neutral-50/50 p-4">
       <div className="mb-1 text-caption font-medium uppercase tracking-wider text-neutral-500">
@@ -329,10 +325,7 @@ function TensionSidePanel({
       )}
       {side.sourceInsightIds.length > 0 && (
         <p className="mt-3 font-mono text-caption text-neutral-400">
-          {side.sourceInsightIds.length}{" "}
-          {side.sourceInsightIds.length === 1
-            ? "Quell-Interview"
-            : "Quell-Interviews"}
+          {t("sourceInterviews", { count: side.sourceInsightIds.length })}
         </p>
       )}
     </div>

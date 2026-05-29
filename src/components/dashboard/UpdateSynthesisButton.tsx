@@ -2,6 +2,7 @@
 
 import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 /**
  * Trigger button for re-running / creating the Stage-2 study synthesis.
@@ -24,6 +25,8 @@ export function UpdateSynthesisButton({
   hasExisting,
 }: UpdateSynthesisButtonProps) {
   const router = useRouter();
+  const t = useTranslations("research.synthesis");
+  const tc = useTranslations("research.common");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,10 +46,10 @@ export function UpdateSynthesisButton({
       if (!res.ok) {
         const message =
           res.status === 404
-            ? "Plan nicht gefunden."
+            ? tc("errPlanNotFound")
             : res.status === 401 || res.status === 403
-              ? "Kein Zugriff auf diesen Plan."
-              : (data.detail ?? data.error ?? "Synthese fehlgeschlagen.");
+              ? tc("errNoAccessPlan")
+              : (data.detail ?? data.error ?? t("errSynthesis"));
         setError(message);
         console.error(
           `Synthesis update failed for plan ${planId}:`,
@@ -56,7 +59,7 @@ export function UpdateSynthesisButton({
       }
       router.refresh();
     } catch (err) {
-      setError("Synthese fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errSynthesisNetwork"));
       console.error(`Synthesis update failed for plan ${planId}:`, err);
     } finally {
       setLoading(false);
@@ -64,10 +67,10 @@ export function UpdateSynthesisButton({
   }
 
   const label = loading
-    ? "Wird synthetisiert…"
+    ? t("synthesizing")
     : hasExisting
-      ? "Synthese aktualisieren"
-      : "Synthese erstellen";
+      ? t("updateSynthesis")
+      : t("createSynthesis");
 
   return (
     <div className="flex flex-col items-end gap-1">

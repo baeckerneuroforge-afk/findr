@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import {
   getAllInsightsForOrg,
@@ -18,6 +19,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 
 // ── Label maps (UI-friendly versions of the SCREAMING_SNAKE_CASE enums) ────
+// Category vocabulary is analysis taxonomy — kept in the source language in
+// both locales (like SIGNAL_LABELS in Etappe 3/4), interpolated into the
+// translated chrome. Only the chrome around these labels is translated.
 
 const FEATURE_REQUEST_LABELS: Record<FeatureRequestCategory, string> = {
   NEW_CAPABILITY: "New capability",
@@ -292,24 +296,22 @@ export default async function ProductDiscoveryOverviewPage() {
     throw err;
   }
 
+  const t = await getTranslations("research.discovery");
   const insights = await getAllInsightsForOrg(orgId);
 
   if (insights.length === 0) {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-display text-neutral-900">Product discovery</h1>
-          <p className="mt-1 text-body text-neutral-500">
-            A roll-up of feature requests, pain points and recurring themes
-            across all analyzed customer calls.
-          </p>
+          <h1 className="text-display text-neutral-900">{t("title")}</h1>
+          <p className="mt-1 text-body text-neutral-500">{t("subtitleEmpty")}</p>
         </div>
 
         <EmptyState
           icon={<DiscoveryIcon />}
-          title="No product-discovery insights yet"
-          description="Findr extracts feature requests, pain points and recurring themes from each analyzed transcript. As soon as the first call is processed, this rollup populates automatically."
-          cta={{ label: "Go to pipeline", href: "/dashboard" }}
+          title={t("emptyTitle")}
+          description={t("emptyDesc")}
+          cta={{ label: t("emptyCta"), href: "/dashboard" }}
         />
       </div>
     );
@@ -339,27 +341,25 @@ export default async function ProductDiscoveryOverviewPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-display text-neutral-900">Product discovery</h1>
+        <h1 className="text-display text-neutral-900">{t("title")}</h1>
         <p className="mt-1 text-body text-neutral-500">
-          A roll-up across{" "}
-          {insights.length === 1 ? "1 analyzed call" : `${insights.length} analyzed calls`}
-          .
+          {t("subtitleCount", { count: insights.length })}
         </p>
       </div>
 
       {/* KPI tiles */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <StatCard label="Calls analyzed" value={insights.length} />
-        <StatCard label="Feature requests" value={featureRequestTotal} />
+        <StatCard label={t("statCallsAnalyzed")} value={insights.length} />
+        <StatCard label={t("statFeatureRequests")} value={featureRequestTotal} />
         <StatCard
-          label="Pain points"
+          label={t("statPainPoints")}
           value={painPointTotal}
           status={painPointTotal > 0 ? "warning" : "default"}
         />
         <StatCard
-          label="Blockers"
+          label={t("statBlockers")}
           value={blockerTotal}
-          subtitle="Items flagged blocker"
+          subtitle={t("statBlockersSub")}
           status={blockerTotal > 0 ? "critical" : "default"}
         />
       </div>
@@ -367,11 +367,8 @@ export default async function ProductDiscoveryOverviewPage() {
       {/* Feature requests by category */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-h2 text-neutral-900">Feature requests by category</h2>
-          <p className="text-body text-neutral-500">
-            Frequency across all analyzed calls, with the highest-confidence
-            example from each category.
-          </p>
+          <h2 className="text-h2 text-neutral-900">{t("frByCategoryTitle")}</h2>
+          <p className="text-body text-neutral-500">{t("frByCategoryDesc")}</p>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {featureRequestRollup.map((row) => (
@@ -388,11 +385,8 @@ export default async function ProductDiscoveryOverviewPage() {
       {/* Pain points by category */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-h2 text-neutral-900">Pain points by category</h2>
-          <p className="text-body text-neutral-500">
-            What hurts most — frequency across calls with the highest-confidence
-            example from each category.
-          </p>
+          <h2 className="text-h2 text-neutral-900">{t("ppByCategoryTitle")}</h2>
+          <p className="text-body text-neutral-500">{t("ppByCategoryDesc")}</p>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {painPointRollup.map((row) => (
@@ -409,17 +403,14 @@ export default async function ProductDiscoveryOverviewPage() {
       {/* Top themes */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-h2 text-neutral-900">Top themes</h2>
-          <p className="text-body text-neutral-500">
-            Themes recur across calls. Grouped by exact label match — semantic
-            clustering follows in Phase 3.3.
-          </p>
+          <h2 className="text-h2 text-neutral-900">{t("topThemesTitle")}</h2>
+          <p className="text-body text-neutral-500">{t("topThemesDesc")}</p>
         </div>
         {themes.length === 0 ? (
           <Card>
             <CardBody>
               <p className="py-4 text-center text-body text-neutral-500">
-                No themes emerged across the analyzed calls yet.
+                {t("noThemes")}
               </p>
             </CardBody>
           </Card>
@@ -434,18 +425,20 @@ export default async function ProductDiscoveryOverviewPage() {
                         {theme.displayLabel}
                       </div>
                       <div className="text-small text-neutral-500">
-                        {theme.count} {theme.count === 1 ? "call" : "calls"}
+                        {t("themeCallCount", { count: theme.count })}
                         {theme.totalLinkedItems > 0
-                          ? ` · ${theme.totalLinkedItems} linked ${
-                              theme.totalLinkedItems === 1 ? "item" : "items"
-                            }`
+                          ? t("themeLinkedItems", {
+                              count: theme.totalLinkedItems,
+                            })
                           : ""}
                       </div>
                     </div>
                   </div>
                   <div className="space-y-1">
                     <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-                      Sample{theme.sampleSource ? ` — ${theme.sampleSource}` : ""}
+                      {theme.sampleSource
+                        ? t("sampleSource", { source: theme.sampleSource })
+                        : t("sample")}
                     </div>
                     <blockquote className="border-l-2 border-neutral-200 pl-3 text-small text-neutral-600">
                       {theme.sampleSummary}
@@ -461,17 +454,18 @@ export default async function ProductDiscoveryOverviewPage() {
       {/* Calls with most findings */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-h2 text-neutral-900">Calls with most findings</h2>
+          <h2 className="text-h2 text-neutral-900">
+            {t("callsWithFindingsTitle")}
+          </h2>
           <p className="text-body text-neutral-500">
-            Top 10 analyzed calls by combined feature-request and pain-point
-            count. Links open the parent deal or account.
+            {t("callsWithFindingsDesc")}
           </p>
         </div>
         {calls.length === 0 ? (
           <Card>
             <CardBody>
               <p className="py-4 text-center text-body text-neutral-500">
-                No findings extracted across the analyzed calls yet.
+                {t("noFindings")}
               </p>
             </CardBody>
           </Card>
@@ -480,17 +474,19 @@ export default async function ProductDiscoveryOverviewPage() {
             <Table>
               <THead>
                 <TR>
-                  <TH>Source</TH>
-                  <TH className="text-right">Findings</TH>
-                  <TH>Top blocker</TH>
-                  <TH>Analyzed</TH>
+                  <TH>{t("colSource")}</TH>
+                  <TH className="text-right">{t("colFindings")}</TH>
+                  <TH>{t("colTopBlocker")}</TH>
+                  <TH>{t("colAnalyzed")}</TH>
                 </TR>
               </THead>
               <TBody>
                 {calls.map((row) => {
                   const href = sourceHref(row.insight);
                   const kindLabel =
-                    row.insight.source_kind === "deal" ? "Deal" : "Account";
+                    row.insight.source_kind === "deal"
+                      ? t("kindDeal")
+                      : t("kindAccount");
                   return (
                     <TR key={row.insight.id}>
                       <TD>
@@ -513,7 +509,10 @@ export default async function ProductDiscoveryOverviewPage() {
                       <TD className="text-right whitespace-nowrap font-medium text-neutral-900">
                         {row.findingCount}
                         <span className="ml-2 text-small font-normal text-neutral-500">
-                          {row.featureRequestCount} FR · {row.painPointCount} PP
+                          {t("frPpAbbrev", {
+                            fr: row.featureRequestCount,
+                            pp: row.painPointCount,
+                          })}
                         </span>
                       </TD>
                       <TD className="text-neutral-700">
@@ -539,7 +538,7 @@ export default async function ProductDiscoveryOverviewPage() {
 // ── CategoryCard ────────────────────────────────────────────────────────────
 // Shared between feature-request and pain-point rollups in the next step.
 
-function CategoryCard<C extends string>({
+async function CategoryCard<C extends string>({
   label,
   row,
   totalCalls,
@@ -548,6 +547,7 @@ function CategoryCard<C extends string>({
   row: CategoryRollup<C>;
   totalCalls: number;
 }) {
+  const t = await getTranslations("research.discovery");
   const empty = row.count === 0;
   const sharePct = totalCalls > 0 ? (row.count / totalCalls) * 100 : 0;
   return (
@@ -560,23 +560,25 @@ function CategoryCard<C extends string>({
             </div>
             <div className="text-small text-neutral-500">
               {row.count === 0
-                ? "No mentions yet"
-                : `${row.count} ${row.count === 1 ? "mention" : "mentions"}`}
+                ? t("categoryNoMentions")
+                : t("categoryMentions", { count: row.count })}
               {row.count > 0 && totalCalls > 0
-                ? ` · ${sharePct.toFixed(0)}% of calls`
+                ? t("categorySharePct", { pct: sharePct.toFixed(0) })
                 : ""}
             </div>
           </div>
           {row.blockerCount > 0 && (
             <Badge variant="critical">
-              {row.blockerCount} {row.blockerCount === 1 ? "blocker" : "blockers"}
+              {t("categoryBlockers", { count: row.blockerCount })}
             </Badge>
           )}
         </div>
         {row.sampleTitle && (
           <div className="space-y-1">
             <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-              Sample{row.sampleSource ? ` — ${row.sampleSource}` : ""}
+              {row.sampleSource
+                ? t("sampleSource", { source: row.sampleSource })
+                : t("sample")}
             </div>
             <blockquote className="border-l-2 border-neutral-200 pl-3 text-small text-neutral-600">
               {row.sampleTitle}

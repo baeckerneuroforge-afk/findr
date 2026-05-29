@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { ResearchPlanForm } from "@/components/dashboard/ResearchPlanForm";
 
@@ -24,6 +25,8 @@ export default async function NewResearchPlanPage() {
     throw err;
   }
 
+  const t = await getTranslations("research.plans");
+
   return (
     <div className="space-y-8">
       <div>
@@ -32,14 +35,11 @@ export default async function NewResearchPlanPage() {
             href="/dashboard/research-plans"
             className="text-small text-neutral-500 transition-colors hover:text-neutral-900"
           >
-            ← All research plans
+            {t("backAll")}
           </Link>
         </div>
-        <h1 className="text-display text-neutral-900">New research plan</h1>
-        <p className="mt-1 text-body text-neutral-500">
-          Define the objective and the topics. The agent formulates questions
-          on-the-fly — you describe what to learn, not the exact wording.
-        </p>
+        <h1 className="text-display text-neutral-900">{t("newTitle")}</h1>
+        <p className="mt-1 text-body text-neutral-500">{t("newSubtitle")}</p>
       </div>
 
       <ResearchPlanForm />

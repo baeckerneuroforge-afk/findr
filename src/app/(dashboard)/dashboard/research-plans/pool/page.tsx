@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { listPoolMembers } from "@/lib/research/participant-pool";
@@ -28,6 +29,7 @@ export default async function ParticipantPoolPage() {
   }
 
   const members = await listPoolMembers(orgId);
+  const t = await getTranslations("research.pool");
 
   return (
     <div className="space-y-8">
@@ -37,15 +39,11 @@ export default async function ParticipantPoolPage() {
             href="/dashboard/research-plans"
             className="text-small text-neutral-500 transition-colors hover:text-neutral-900"
           >
-            ← Research plans
+            {t("back")}
           </Link>
         </div>
-        <h1 className="text-display text-neutral-900">Teilnehmer-Pool</h1>
-        <p className="mt-1 text-body text-neutral-500">
-          Ein org-weiter Stamm wiederverwendbarer Personen mit Screening-
-          Attributen (Rolle, Segment, Tags). Aus jeder Studie heraus einladbar –
-          deterministisch, ohne KI.
-        </p>
+        <h1 className="text-display text-neutral-900">{t("title")}</h1>
+        <p className="mt-1 text-body text-neutral-500">{t("subtitle")}</p>
       </div>
 
       <ParticipantPoolManager initialMembers={members} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/Button";
 
@@ -34,6 +35,7 @@ interface CopyInterviewLinkButtonProps {
 export function CopyInterviewLinkButton({
   link,
 }: CopyInterviewLinkButtonProps) {
+  const t = useTranslations("research.plans");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Hold the timer in a ref so the cleanup effect can clear it on unmount
@@ -49,7 +51,7 @@ export function CopyInterviewLinkButton({
 
   if (!link) {
     return (
-      <span className="text-caption text-neutral-400" aria-label="Kein Link">
+      <span className="text-caption text-neutral-400" aria-label={t("noLinkAria")}>
         —
       </span>
     );
@@ -68,7 +70,7 @@ export function CopyInterviewLinkButton({
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => setCopied(false), 1500);
     } catch {
-      setError("Konnte nicht kopieren");
+      setError(t("copyError"));
     }
   }
 
@@ -78,9 +80,9 @@ export function CopyInterviewLinkButton({
         variant="secondary"
         size="sm"
         onClick={copy}
-        aria-label="Interview-Link kopieren"
+        aria-label={t("copyAria")}
       >
-        {copied ? "Kopiert!" : "Link kopieren"}
+        {copied ? t("copied") : t("copyLink")}
       </Button>
       {error && (
         <div className="text-caption text-danger-700">{error}</div>

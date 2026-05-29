@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { FIELD_INPUT_CLASS } from "@/components/ui/Field";
 
@@ -62,6 +63,8 @@ export function ScheduleInviteAction({
   disabled = false,
 }: ScheduleInviteActionProps) {
   const router = useRouter();
+  const t = useTranslations("research.plans");
+  const tc = useTranslations("research.common");
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(isoToLocalInput(scheduledAt));
   const [submitting, setSubmitting] = useState(false);
@@ -70,16 +73,16 @@ export function ScheduleInviteAction({
   async function save() {
     setError(null);
     if (!value) {
-      setError("Pick a date and time.");
+      setError(t("errPickDate"));
       return;
     }
     const picked = new Date(value);
     if (Number.isNaN(picked.getTime())) {
-      setError("Invalid date.");
+      setError(t("errInvalidDate"));
       return;
     }
     if (picked.getTime() <= Date.now()) {
-      setError("Pick a future date.");
+      setError(t("errFutureDate"));
       return;
     }
 
@@ -97,12 +100,12 @@ export function ScheduleInviteAction({
         error?: string;
       };
       if (!res.ok) {
-        throw new Error(data.error ?? "Could not save the date.");
+        throw new Error(data.error ?? t("errSaveDate"));
       }
       setOpen(false);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the date.");
+      setError(err instanceof Error ? err.message : t("errSaveDate"));
     } finally {
       setSubmitting(false);
     }
@@ -125,7 +128,7 @@ export function ScheduleInviteAction({
           disabled={disabled}
           className="text-caption text-primary-700 transition-colors hover:text-primary-900 disabled:opacity-50"
         >
-          {scheduledAt ? "Change" : "Set date"}
+          {scheduledAt ? t("change") : t("setDate")}
         </button>
       </div>
     );
@@ -143,7 +146,7 @@ export function ScheduleInviteAction({
           className={`${FIELD_INPUT_CLASS} max-w-[14rem]`}
         />
         <Button size="sm" onClick={save} disabled={submitting}>
-          {submitting ? "Saving…" : "Save"}
+          {submitting ? tc("saving") : tc("save")}
         </Button>
         <Button
           size="sm"
@@ -155,7 +158,7 @@ export function ScheduleInviteAction({
           }}
           disabled={submitting}
         >
-          Cancel
+          {tc("cancel")}
         </Button>
       </div>
       {error && (

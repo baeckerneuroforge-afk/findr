@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import {
   Field,
@@ -91,6 +92,8 @@ const INITIAL_FORM: FormState = {
 
 export function ResearchPlanForm() {
   const router = useRouter();
+  const t = useTranslations("research.plans");
+  const tc = useTranslations("research.common");
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,15 +141,11 @@ export function ResearchPlanForm() {
     const title = form.title.trim();
     const objective = form.objective.trim();
     if (title.length < 3) {
-      setGenError(
-        "Titel muss mindestens 3 Zeichen lang sein, bevor der Generator läuft.",
-      );
+      setGenError(t("errTitleGen"));
       return;
     }
     if (objective.length < 3) {
-      setGenError(
-        "Objective muss mindestens 3 Zeichen lang sein — der Generator braucht es als Research-Ziel.",
-      );
+      setGenError(t("errObjectiveGen"));
       return;
     }
 
@@ -156,9 +155,7 @@ export function ResearchPlanForm() {
     if (genInputs.topicCount.trim() !== "") {
       const parsed = Number(genInputs.topicCount);
       if (!Number.isInteger(parsed) || parsed < 3 || parsed > 10) {
-        setGenError(
-          "Topic-Count muss eine ganze Zahl zwischen 3 und 10 sein (oder leer für 5).",
-        );
+        setGenError(t("errTopicCount"));
         return;
       }
       topicCount = parsed;
@@ -185,10 +182,7 @@ export function ResearchPlanForm() {
           planId?: string;
         };
         if (!createRes.ok || !createData.planId) {
-          throw new Error(
-            createData.error ??
-              "Konnte den Draft-Plan für die Generierung nicht anlegen.",
-          );
+          throw new Error(createData.error ?? t("errCreateDraft"));
         }
         currentPlanId = createData.planId;
         setPlanId(currentPlanId);
@@ -222,14 +216,12 @@ export function ResearchPlanForm() {
       if (!res.ok || !data.success || !data.guide) {
         const message =
           res.status === 404
-            ? "Plan nicht gefunden."
+            ? tc("errPlanNotFound")
             : res.status === 401 || res.status === 403
-              ? "Kein Zugriff auf diesen Plan."
+              ? tc("errNoAccessPlan")
               : res.status === 400
-                ? (data.error ?? "Ungültige Anfrage.")
-                : (data.detail ??
-                  data.error ??
-                  "Leitfaden-Generierung fehlgeschlagen.");
+                ? (data.error ?? tc("errInvalidRequest"))
+                : (data.detail ?? data.error ?? t("errGuideGen"));
         throw new Error(message);
       }
 
@@ -237,11 +229,7 @@ export function ResearchPlanForm() {
       update("topics", guideTopicsToDrafts(data.guide));
       setLastGuide(data.guide);
     } catch (err) {
-      setGenError(
-        err instanceof Error
-          ? err.message
-          : "Leitfaden-Generierung fehlgeschlagen.",
-      );
+      setGenError(err instanceof Error ? err.message : t("errGuideGen"));
     } finally {
       setGenerating(false);
     }
@@ -254,11 +242,11 @@ export function ResearchPlanForm() {
     const title = form.title.trim();
     const objective = form.objective.trim();
     if (title.length < 3) {
-      setError("Title must be at least 3 characters.");
+      setError(t("errTitleShort"));
       return;
     }
     if (objective.length < 3) {
-      setError("Objective must be at least 3 characters.");
+      setError(t("errObjectiveShort"));
       return;
     }
 
@@ -269,7 +257,7 @@ export function ResearchPlanForm() {
     if (form.sampleTarget.trim() !== "") {
       const parsed = Number(form.sampleTarget);
       if (!Number.isInteger(parsed) || parsed < 1 || parsed > 1000) {
-        setError("Sample target must be a whole number between 1 and 1000.");
+        setError(t("errSampleTarget"));
         return;
       }
       sampleTarget = parsed;
@@ -302,7 +290,7 @@ export function ResearchPlanForm() {
           error?: string;
         };
         if (!res.ok) {
-          throw new Error(data.error ?? "Could not save research plan.");
+          throw new Error(data.error ?? t("errSavePlan"));
         }
         router.push(`/dashboard/research-plans/${planId}`);
         return;
@@ -324,14 +312,12 @@ export function ResearchPlanForm() {
         planId?: string;
       };
       if (!res.ok || !data.planId) {
-        throw new Error(data.error ?? "Could not create research plan.");
+        throw new Error(data.error ?? t("errCreatePlan"));
       }
       // Hand off to the detail page; status starts as 'draft' there.
       router.push(`/dashboard/research-plans/${data.planId}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not create research plan.",
-      );
+      setError(err instanceof Error ? err.message : t("errCreatePlan"));
     } finally {
       setSubmitting(false);
     }
@@ -340,25 +326,21 @@ export function ResearchPlanForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <section className="space-y-4">
-        <Field label="Title" required>
+        <Field label={t("fldTitle")} required>
           <input
             value={form.title}
             onChange={(e) => update("title", e.target.value)}
-            placeholder="Q3 Onboarding research"
+            placeholder={t("phTitle")}
             disabled={submitting}
             className={FIELD_INPUT_CLASS}
           />
         </Field>
 
-        <Field
-          label="Objective"
-          required
-          hint="One sentence: what do we want to learn from this study?"
-        >
+        <Field label={t("fldObjective")} required hint={t("objectiveHint")}>
           <textarea
             value={form.objective}
             onChange={(e) => update("objective", e.target.value)}
-            placeholder="Understand the gap between expected and actual onboarding effort for new admin users."
+            placeholder={t("phObjective")}
             rows={3}
             disabled={submitting}
             className={FIELD_TEXTAREA_CLASS}
@@ -366,28 +348,22 @@ export function ResearchPlanForm() {
         </Field>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Field
-            label="Target persona"
-            hint="Role, industry, maturity — free text."
-          >
+          <Field label={t("fldTargetPersona")} hint={t("personaHint")}>
             <textarea
               value={form.persona}
               onChange={(e) => update("persona", e.target.value)}
-              placeholder="Admin user at SMB SaaS, 5-50 seats, onboarding within the last 90 days."
+              placeholder={t("phPersona")}
               rows={2}
               disabled={submitting}
               className={FIELD_TEXTAREA_CLASS}
             />
           </Field>
 
-          <Field
-            label="Sample target"
-            hint="How many completed interviews are we aiming for? Leave empty for open-ended."
-          >
+          <Field label={t("fldSampleTarget")} hint={t("sampleTargetHint")}>
             <input
               value={form.sampleTarget}
               onChange={(e) => update("sampleTarget", e.target.value)}
-              placeholder="10"
+              placeholder={t("phSampleTarget")}
               inputMode="numeric"
               disabled={submitting}
               className={FIELD_INPUT_CLASS}
@@ -401,41 +377,34 @@ export function ResearchPlanForm() {
           das Ergebnis direkt sichtbar in die Topic-Liste darunter fließt. */}
       <section className="space-y-3 rounded-lg border border-primary-200 bg-primary-50/40 p-4">
         <div>
-          <h2 className="text-h3 text-neutral-900">
-            Leitfaden mit KI generieren
-          </h2>
-          <p className="mt-0.5 text-small text-neutral-600">
-            Aus deinem Research-Ziel (Objective oben) erzeugt die KI einen
-            strukturierten Interview-Leitfaden — offene, nicht-leitende
-            Fragen, ≥3 Topics, mit Probes. Du kannst alles unten editieren,
-            bevor du speicherst.
-          </p>
+          <h2 className="text-h3 text-neutral-900">{t("genTitle")}</h2>
+          <p className="mt-0.5 text-small text-neutral-600">{t("genDesc")}</p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
-          <Field label="Segment (optional)" hint="z. B. SMB SaaS">
+          <Field label={t("genFldSegment")} hint={t("genSegmentHint")}>
             <input
               value={genInputs.segment}
               onChange={(e) => updateGen("segment", e.target.value)}
-              placeholder="SMB SaaS"
+              placeholder={t("phSegment")}
               disabled={generating || submitting}
               className={FIELD_INPUT_CLASS}
             />
           </Field>
-          <Field label="Rolle (optional)" hint="z. B. Admin-User">
+          <Field label={t("genFldRole")} hint={t("genRoleHint")}>
             <input
               value={genInputs.role}
               onChange={(e) => updateGen("role", e.target.value)}
-              placeholder="Admin-User"
+              placeholder={t("phRole")}
               disabled={generating || submitting}
               className={FIELD_INPUT_CLASS}
             />
           </Field>
-          <Field label="Topic-Count" hint="leer = 5, sonst 3–10">
+          <Field label={t("genFldTopicCount")} hint={t("genTopicCountHint")}>
             <input
               value={genInputs.topicCount}
               onChange={(e) => updateGen("topicCount", e.target.value)}
-              placeholder="5"
+              placeholder={t("phTopicCount")}
               inputMode="numeric"
               disabled={generating || submitting}
               className={FIELD_INPUT_CLASS}
@@ -450,13 +419,11 @@ export function ResearchPlanForm() {
             </span>
           ) : planId ? (
             <span className="text-caption text-neutral-500">
-              Draft als Plan angelegt — der Save-Button speichert deine
-              Editierungen darüber.
+              {t("genStatusDraft")}
             </span>
           ) : (
             <span className="text-caption text-neutral-500">
-              Generieren legt einen Draft-Plan an, damit der Leitfaden an
-              ihn gebunden wird.
+              {t("genStatusNew")}
             </span>
           )}
           <Button
@@ -466,10 +433,10 @@ export function ResearchPlanForm() {
             disabled={generating || submitting}
           >
             {generating
-              ? "KI generiert…"
+              ? t("genBtnGenerating")
               : planId
-                ? "Leitfaden neu generieren"
-                : "Leitfaden mit KI generieren"}
+                ? t("genBtnRegen")
+                : t("genBtn")}
           </Button>
         </div>
 
@@ -479,20 +446,22 @@ export function ResearchPlanForm() {
         {lastGuide && (
           <div className="space-y-3 border-t border-primary-200/60 pt-3">
             <p className="text-caption font-medium uppercase tracking-wider text-neutral-500">
-              Generierte Hauptfragen ({lastGuide.topics.length} Topics ·{" "}
-              {lastGuide.estimatedMinutes} Min)
+              {t("genPreviewTitle", {
+                count: lastGuide.topics.length,
+                minutes: lastGuide.estimatedMinutes,
+              })}
             </p>
             <ul className="space-y-2">
-              {lastGuide.topics.map((t) => (
+              {lastGuide.topics.map((topic) => (
                 <li
-                  key={t.id}
+                  key={topic.id}
                   className="rounded-md border border-neutral-200 bg-white p-3"
                 >
                   <p className="text-small font-medium text-neutral-900">
-                    {t.label}
+                    {topic.label}
                   </p>
                   <p className="mt-1 text-small italic text-neutral-700">
-                    „{t.mainQuestion}"
+                    „{topic.mainQuestion}"
                   </p>
                 </li>
               ))}
@@ -501,7 +470,7 @@ export function ResearchPlanForm() {
               lastGuide.screeningQuestions.length > 0 && (
                 <div>
                   <p className="text-caption font-medium uppercase tracking-wider text-neutral-500">
-                    Screening-Fragen (rein informativ)
+                    {t("genScreeningTitle")}
                   </p>
                   <ul className="mt-1 list-disc space-y-1 pl-5">
                     {lastGuide.screeningQuestions.map((q, i) => (
@@ -518,12 +487,9 @@ export function ResearchPlanForm() {
 
       <section className="space-y-3">
         <div>
-          <h2 className="text-h3 text-neutral-900">Topics</h2>
+          <h2 className="text-h3 text-neutral-900">{t("topicsFormTitle")}</h2>
           <p className="mt-0.5 text-small text-neutral-500">
-            The agent formulates questions on-the-fly from these topics — not
-            a fixed question list. Each topic gets 2–4 turns in the
-            conversation. Hypotheses are private steering, never read out
-            loud.
+            {t("topicsFormDesc")}
           </p>
         </div>
         <TopicEditor
@@ -543,16 +509,14 @@ export function ResearchPlanForm() {
         <Button type="submit" disabled={submitting || generating}>
           {submitting
             ? planId
-              ? "Speichere…"
-              : "Erstelle…"
+              ? t("submitSaving")
+              : t("submitCreating")
             : planId
-              ? "Save plan"
-              : "Create plan"}
+              ? t("submitSave")
+              : t("submitCreate")}
         </Button>
         <span className="text-small text-neutral-500">
-          {planId
-            ? "Speichern überschreibt den vom Generator erzeugten Draft mit deinen Editierungen."
-            : "New plans start as drafts — you can edit topics, activate, and add participants on the next screen."}
+          {planId ? t("submitHelpEdit") : t("submitHelpNew")}
         </span>
       </div>
     </form>

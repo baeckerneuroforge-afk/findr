@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -44,12 +45,12 @@ interface ServerResponse {
   error?: string;
 }
 
-const STATUS_LABEL: Record<ItemStatus, string> = {
-  invited: "Eingeladen",
-  already_invited: "Schon im Pool eingeladen",
-  skipped_duplicate: "Übersprungen (Duplikat)",
-  not_found: "Nicht gefunden",
-  error: "Fehler",
+const STATUS_LABEL_KEY: Record<ItemStatus, string> = {
+  invited: "poolStatusInvited",
+  already_invited: "poolStatusAlreadyInvited",
+  skipped_duplicate: "poolStatusSkippedDup",
+  not_found: "poolStatusNotFound",
+  error: "poolStatusError",
 };
 
 const STATUS_TEXT_CLASS: Record<ItemStatus, string> = {
@@ -70,6 +71,8 @@ export function InviteFromPoolForm({
   invitedMemberIds: string[];
 }) {
   const router = useRouter();
+  const t = useTranslations("research.plans");
+  const tc = useTranslations("research.common");
   const [invited, setInvited] = useState<Set<string>>(new Set(invitedMemberIds));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterRole, setFilterRole] = useState<string>(ALL);
@@ -139,7 +142,7 @@ export function InviteFromPoolForm({
       });
       const data = (await res.json().catch(() => ({}))) as ServerResponse;
       if (!res.ok || !data.success) {
-        throw new Error(data.error ?? "Einladen aus Pool fehlgeschlagen.");
+        throw new Error(data.error ?? t("errInvitePool"));
       }
       setResponse(data);
       // Erfolgreich (invited / schon-eingeladen / Duplikat) eingeladene IDs
@@ -151,7 +154,7 @@ export function InviteFromPoolForm({
       setSelected(new Set());
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Einladen aus Pool fehlgeschlagen.");
+      setError(err instanceof Error ? err.message : t("errInvitePool"));
     } finally {
       setSubmitting(false);
     }
@@ -160,12 +163,12 @@ export function InviteFromPoolForm({
   if (poolMembers.length === 0) {
     return (
       <p className="text-small text-neutral-500">
-        Der Teilnehmer-Pool ist leer.{" "}
+        {t("poolEmpty")}{" "}
         <Link
           href="/dashboard/research-plans/pool"
           className="text-body-strong text-primary-700 hover:underline"
         >
-          Pool pflegen →
+          {t("poolMaintain")}
         </Link>
       </p>
     );
@@ -177,34 +180,43 @@ export function InviteFromPoolForm({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <p className="text-caption text-neutral-500">
-          Personen aus dem{" "}
-          <Link href="/dashboard/research-plans/pool" className="underline hover:text-neutral-900">
-            org-weiten Pool
-          </Link>{" "}
-          auswählen. Bereits eingeladene sind deaktiviert.
+          {t.rich("poolSelectIntro", {
+            link: (chunks) => (
+              <Link
+                href="/dashboard/research-plans/pool"
+                className="underline hover:text-neutral-900"
+              >
+                {chunks}
+              </Link>
+            ),
+          })}
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-small">
-            <span className="mb-1 block text-caption text-neutral-500">Rolle</span>
+            <span className="mb-1 block text-caption text-neutral-500">
+              {t("filterRole")}
+            </span>
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
               className={FIELD_INPUT_CLASS}
             >
-              <option value={ALL}>Alle</option>
+              <option value={ALL}>{tc("all")}</option>
               {roles.map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
           </label>
           <label className="text-small">
-            <span className="mb-1 block text-caption text-neutral-500">Segment</span>
+            <span className="mb-1 block text-caption text-neutral-500">
+              {t("filterSegment")}
+            </span>
             <select
               value={filterSegment}
               onChange={(e) => setFilterSegment(e.target.value)}
               className={FIELD_INPUT_CLASS}
             >
-              <option value={ALL}>Alle</option>
+              <option value={ALL}>{tc("all")}</option>
               {segments.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -220,10 +232,13 @@ export function InviteFromPoolForm({
             checked={allSelectableChecked}
             onChange={toggleAll}
             disabled={submitting || selectableIds.length === 0}
-            aria-label="Alle gefilterten auswählen"
+            aria-label={t("selectAllAria")}
           />
           <span className="text-caption text-neutral-500">
-            {filtered.length} angezeigt · {selectableIds.length} auswählbar
+            {t("shownSelectable", {
+              shown: filtered.length,
+              selectable: selectableIds.length,
+            })}
           </span>
         </div>
         <ul>
@@ -239,17 +254,19 @@ export function InviteFromPoolForm({
                   checked={selected.has(m.id)}
                   onChange={() => toggle(m.id)}
                   disabled={isInvited || submitting}
-                  aria-label={`${m.contactLabel} auswählen`}
+                  aria-label={t("selectAria", { name: m.contactLabel })}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-body-strong text-neutral-900">{m.contactLabel}</span>
                     {isInvited && (
-                      <span className="text-caption text-success-700">✓ eingeladen</span>
+                      <span className="text-caption text-success-700">
+                        {t("invitedMark")}
+                      </span>
                     )}
                   </div>
                   <div className="text-caption text-neutral-500">
-                    {m.contactEmail ?? "keine E-Mail"}
+                    {m.contactEmail ?? t("noEmailShort")}
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-1">
@@ -271,26 +288,29 @@ export function InviteFromPoolForm({
       <div className="flex items-center gap-3">
         <Button type="button" onClick={handleInvite} disabled={submitting || selectedCount === 0}>
           {submitting
-            ? "Lade ein…"
+            ? t("poolSubmitInviting")
             : selectedCount === 0
-              ? "Personen auswählen"
-              : `${selectedCount} ${selectedCount === 1 ? "Person" : "Personen"} einladen`}
+              ? t("poolSubmitSelect")
+              : t("poolSubmitInviteN", { count: selectedCount })}
         </Button>
         <span className="text-small text-neutral-500">
-          Erzeugt normale Einladungen – Termin + Versand erfolgen pro Zeile wie sonst.
+          {t("poolSubmitHelp")}
         </span>
       </div>
 
       {response?.results && response.summary && (
         <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-3 text-small">
           <div className="mb-2 font-medium text-neutral-900">
-            {response.summary.invited} eingeladen · {response.summary.skipped} übersprungen ·{" "}
-            {response.summary.errors} Fehler
+            {t("summaryPool", {
+              invited: response.summary.invited,
+              skipped: response.summary.skipped,
+              errors: response.summary.errors,
+            })}
           </div>
           <ul className="space-y-0.5">
             {response.results.map((r) => (
               <li key={r.poolMemberId} className={STATUS_TEXT_CLASS[r.status]}>
-                <span className="font-medium">{STATUS_LABEL[r.status]}</span>
+                <span className="font-medium">{t(STATUS_LABEL_KEY[r.status])}</span>
                 {" — "}
                 {r.contactLabel}
                 {r.message ? ` (${r.message})` : ""}

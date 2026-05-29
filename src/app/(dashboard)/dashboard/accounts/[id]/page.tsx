@@ -62,6 +62,8 @@ export default async function AccountDetailPage({
   }
 
   const t = await getTranslations("health.detail");
+  // Product-Discovery-Sektion (Etappe 5) ist eigene Domäne — eigener Namespace.
+  const td = await getTranslations("research.discovery");
 
   const { id } = await params;
   const account = await getAccount(orgId, id);
@@ -210,14 +212,9 @@ export default async function AccountDetailPage({
           card; the rollup of all of these across the org lives at
           /dashboard/product-discovery. */}
       <div className="mb-8">
-        <h2 className="mb-4 text-h2 text-neutral-900">
-          Product discovery from calls
-        </h2>
+        <h2 className="mb-4 text-h2 text-neutral-900">{td("sectionTitle")}</h2>
         {accountCalls.length === 0 ? (
-          <p className="text-body text-neutral-500">
-            Sobald ein Call zu diesem Account vorliegt, kann er hier auf
-            Produktsignale analysiert werden.
-          </p>
+          <p className="text-body text-neutral-500">{td("sectionEmpty")}</p>
         ) : (
           <div className="space-y-6">
             {accountCalls.map((call) => {
@@ -236,7 +233,7 @@ export default async function AccountDetailPage({
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div>
                       <div className="text-body-strong text-neutral-900">
-                        {call.call_type ?? "Call"}
+                        {call.call_type ?? td("callFallback")}
                       </div>
                       <div className="text-small text-neutral-500">
                         {recordedAt}

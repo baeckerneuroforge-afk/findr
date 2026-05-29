@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useTranslations } from "next-intl";
 import type { ResearchTopic } from "@/lib/voice-agent/interviewer";
 import { Button } from "@/components/ui/Button";
 import { FIELD_INPUT_CLASS, FIELD_TEXTAREA_CLASS } from "@/components/ui/Field";
@@ -78,6 +79,8 @@ export function TopicEditor({
   onChange,
   disabled = false,
 }: TopicEditorProps) {
+  const t = useTranslations("research.plans");
+  const tc = useTranslations("research.common");
   const update = useCallback(
     (index: number, patch: Partial<TopicDraft>) => {
       onChange(
@@ -132,18 +135,18 @@ export function TopicEditor({
     <div className="space-y-4">
       {topics.length === 0 ? (
         <p className="rounded-md border border-dashed border-neutral-200 bg-neutral-50 px-3 py-4 text-center text-small text-neutral-500">
-          No topics yet — add the first one below.
+          {t("noTopicsEditor")}
         </p>
       ) : (
         <ul className="space-y-4">
-          {topics.map((t, i) => (
+          {topics.map((topic, i) => (
             <li
               key={i}
               className="rounded-lg border border-neutral-200 bg-white p-4"
             >
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-                  Topic {i + 1}
+                  {t("topicN", { n: i + 1 })}
                 </span>
                 <button
                   type="button"
@@ -151,19 +154,19 @@ export function TopicEditor({
                   disabled={disabled}
                   className="text-caption text-neutral-500 transition-colors hover:text-danger-700 disabled:opacity-50"
                 >
-                  Remove
+                  {tc("remove")}
                 </button>
               </div>
 
               <div className="space-y-3">
                 <label className="block">
                   <span className="mb-1.5 block text-small font-medium text-neutral-700">
-                    Topic label
+                    {t("topicLabel")}
                   </span>
                   <input
-                    value={t.topic}
+                    value={topic.topic}
                     onChange={(e) => update(i, { topic: e.target.value })}
-                    placeholder="Daily workflow"
+                    placeholder={t("phTopicLabel")}
                     disabled={disabled}
                     className={FIELD_INPUT_CLASS}
                   />
@@ -171,12 +174,12 @@ export function TopicEditor({
 
                 <label className="block">
                   <span className="mb-1.5 block text-small font-medium text-neutral-700">
-                    Intent — what we want to learn
+                    {t("intentLabel")}
                   </span>
                   <textarea
-                    value={t.intent}
+                    value={topic.intent}
                     onChange={(e) => update(i, { intent: e.target.value })}
-                    placeholder="How does the product fit into their day-to-day?"
+                    placeholder={t("phIntent")}
                     rows={2}
                     disabled={disabled}
                     className={FIELD_TEXTAREA_CLASS}
@@ -185,26 +188,25 @@ export function TopicEditor({
 
                 <div>
                   <span className="mb-1.5 block text-small font-medium text-neutral-700">
-                    Private hypotheses{" "}
+                    {t("privateHyps")}{" "}
                     <span className="font-normal text-neutral-500">
-                      (optional — steers the agent privately, never revealed
-                      to the participant)
+                      {t("privateHypsHint")}
                     </span>
                   </span>
-                  {t.hypotheses.length === 0 ? (
+                  {topic.hypotheses.length === 0 ? (
                     <p className="text-caption text-neutral-500">
-                      None yet.
+                      {t("hypsNone")}
                     </p>
                   ) : (
                     <ul className="space-y-2">
-                      {t.hypotheses.map((h, hi) => (
+                      {topic.hypotheses.map((h, hi) => (
                         <li key={hi} className="flex items-center gap-2">
                           <input
                             value={h}
                             onChange={(e) =>
                               updateHypothesis(i, hi, e.target.value)
                             }
-                            placeholder="Users batch tasks at end-of-day"
+                            placeholder={t("phHypothesis")}
                             disabled={disabled}
                             className={FIELD_INPUT_CLASS}
                           />
@@ -214,7 +216,7 @@ export function TopicEditor({
                             disabled={disabled}
                             className="text-caption text-neutral-500 transition-colors hover:text-danger-700 disabled:opacity-50"
                           >
-                            Remove
+                            {tc("remove")}
                           </button>
                         </li>
                       ))}
@@ -226,7 +228,7 @@ export function TopicEditor({
                     disabled={disabled}
                     className="mt-2 text-caption text-primary-700 transition-colors hover:text-primary-900 disabled:opacity-50"
                   >
-                    + Add hypothesis
+                    {t("addHypothesis")}
                   </button>
                 </div>
               </div>
@@ -241,7 +243,7 @@ export function TopicEditor({
         onClick={addTopic}
         disabled={disabled}
       >
-        + Add topic
+        {t("addTopic")}
       </Button>
     </div>
   );

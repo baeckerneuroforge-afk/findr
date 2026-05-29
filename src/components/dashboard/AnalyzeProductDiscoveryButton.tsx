@@ -2,6 +2,7 @@
 
 import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 /**
  * Trigger Product Discovery extraction on a single call. Mirrors
@@ -49,6 +50,7 @@ export function AnalyzeProductDiscoveryButton({
   hasInsights,
 }: AnalyzeProductDiscoveryButtonProps) {
   const router = useRouter();
+  const t = useTranslations("research.discovery");
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<InsightCounts | null>(null);
@@ -70,12 +72,12 @@ export function AnalyzeProductDiscoveryButton({
       if (!res.ok) {
         const message =
           res.status === 422
-            ? "Dieser Call hat kein Transkript."
+            ? t("errNoTranscript")
             : res.status === 404
-              ? "Call nicht gefunden."
+              ? t("errCallNotFound")
               : res.status === 401 || res.status === 403
-                ? "Kein Zugriff auf diesen Call."
-                : (data.error ?? "Analyse fehlgeschlagen.");
+                ? t("errNoAccessCall")
+                : (data.error ?? t("errAnalyze"));
         setError(message);
         console.error(
           `Product discovery failed for ${callId}:`,
@@ -92,7 +94,7 @@ export function AnalyzeProductDiscoveryButton({
       });
       router.refresh();
     } catch (err) {
-      setError("Analyse fehlgeschlagen.");
+      setError(t("errAnalyze"));
       console.error(`Product discovery failed for ${callId}:`, err);
     } finally {
       setAnalyzing(false);
@@ -100,17 +102,21 @@ export function AnalyzeProductDiscoveryButton({
   }
 
   const label = analyzing
-    ? "Analysiere…"
+    ? t("analyzing")
     : hasInsights
-      ? "Erneut auf Produktsignale analysieren"
-      : "Auf Produktsignale analysieren";
+      ? t("reanalyze")
+      : t("analyze");
 
   const resultLine = lastResult
     ? lastResult.featureRequests === 0 &&
       lastResult.painPoints === 0 &&
       lastResult.themes === 0
-      ? "Keine Produktsignale in diesem Call."
-      : `${lastResult.featureRequests} Wünsche · ${lastResult.painPoints} Pains · ${lastResult.themes} Themen.`
+      ? t("btnNoSignals")
+      : t("resultCounts", {
+          fr: lastResult.featureRequests,
+          pp: lastResult.painPoints,
+          themes: lastResult.themes,
+        })
     : null;
 
   return (

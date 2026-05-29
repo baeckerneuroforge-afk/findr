@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { listResearchPlans } from "@/lib/research/plans-service";
 import { listBridgeSuggestions } from "@/lib/bridge/cs-to-research";
@@ -19,13 +20,8 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 
 type Status = "draft" | "active" | "completed" | "archived";
 
-const STATUS_LABEL: Record<Status, string> = {
-  draft: "Draft",
-  active: "Active",
-  completed: "Completed",
-  archived: "Archived",
-};
-
+// Plan status labels are translated via t(`status.${status}`); only the badge
+// variant lives here.
 const STATUS_VARIANT: Record<Status, BadgeVariant> = {
   draft: "default",
   active: "success",
@@ -75,6 +71,8 @@ export default async function ResearchPlansIndexPage() {
     throw err;
   }
 
+  const t = await getTranslations("research.plans");
+
   // Plans + bridge suggestions load in parallel — independent reads, no
   // ordering constraint. listBridgeSuggestions returns only `pending`
   // suggestions; approved/dismissed don't show up here anymore.
@@ -96,17 +94,14 @@ export default async function ResearchPlansIndexPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-display text-neutral-900">Research plans</h1>
-          <p className="mt-1 text-body text-neutral-500">
-            Proactive research interviews — define a study, list its topics,
-            invite participants.
-          </p>
+          <h1 className="text-display text-neutral-900">{t("indexTitle")}</h1>
+          <p className="mt-1 text-body text-neutral-500">{t("indexSubtitle")}</p>
         </div>
         <Link
           href="/dashboard/research-plans/new"
           className="inline-flex h-8 items-center justify-center rounded-md bg-neutral-900 px-3 text-body-strong font-medium text-white transition-colors hover:bg-neutral-700"
         >
-          + New plan
+          {t("newPlan")}
         </Link>
       </div>
 
@@ -119,20 +114,20 @@ export default async function ResearchPlansIndexPage() {
       {plans.length === 0 ? (
         <EmptyState
           icon={<ResearchIcon />}
-          title="No research plans yet"
-          description="Create a plan to define what you want to learn — objective, topics, target persona — then invite participants for AI-led research interviews."
-          cta={{ label: "Create the first plan", href: "/dashboard/research-plans/new" }}
+          title={t("emptyTitle")}
+          description={t("emptyDesc")}
+          cta={{ label: t("emptyCta"), href: "/dashboard/research-plans/new" }}
         />
       ) : (
         <Card>
           <Table>
             <THead>
               <TR>
-                <TH>Title</TH>
-                <TH>Status</TH>
-                <TH className="text-right">Topics</TH>
-                <TH className="text-right">Sample target</TH>
-                <TH>Created</TH>
+                <TH>{t("colTitle")}</TH>
+                <TH>{t("colStatus")}</TH>
+                <TH className="text-right">{t("colTopics")}</TH>
+                <TH className="text-right">{t("colSampleTarget")}</TH>
+                <TH>{t("colCreated")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -153,7 +148,7 @@ export default async function ResearchPlansIndexPage() {
                   </TD>
                   <TD>
                     <Badge variant={STATUS_VARIANT[plan.status]}>
-                      {STATUS_LABEL[plan.status]}
+                      {t(`status.${plan.status}`)}
                     </Badge>
                   </TD>
                   <TD className="text-right text-neutral-700">

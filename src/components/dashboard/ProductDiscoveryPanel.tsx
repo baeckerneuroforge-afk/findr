@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import type {
   FeatureRequest,
   FeatureRequestCategory,
@@ -108,11 +109,12 @@ function ItemCard({
   );
 }
 
-export function ProductDiscoveryPanel({
+export async function ProductDiscoveryPanel({
   insight,
 }: {
   insight: ProductDiscoveryInsightRecord;
 }) {
+  const t = await getTranslations("research.discovery");
   const featureRequests = insight.feature_requests;
   const painPoints = insight.pain_points;
   const themes = insight.themes;
@@ -121,17 +123,17 @@ export function ProductDiscoveryPanel({
   return (
     <div className="space-y-4 rounded-lg border border-neutral-200 bg-neutral-50/50 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h4 className="text-h3 text-neutral-900">Product discovery</h4>
+        <h4 className="text-h3 text-neutral-900">{t("panelTitle")}</h4>
         <span className="text-caption text-neutral-500">
           {total === 0
-            ? "No findings"
-            : `${featureRequests.length} feature ${
-                featureRequests.length === 1 ? "request" : "requests"
-              } · ${painPoints.length} pain ${
-                painPoints.length === 1 ? "point" : "points"
-              } · ${themes.length} ${themes.length === 1 ? "theme" : "themes"}`}
+            ? t("panelNoFindings")
+            : t("panelCounts", {
+                fr: featureRequests.length,
+                pp: painPoints.length,
+                themes: themes.length,
+              })}
           {" · "}
-          analyzed {formatAnalyzedAt(insight.analyzed_at)}
+          {t("panelAnalyzed", { date: formatAnalyzedAt(insight.analyzed_at) })}
         </span>
       </div>
 
@@ -142,18 +144,13 @@ export function ProductDiscoveryPanel({
       )}
 
       {total === 0 ? (
-        <p className="text-small italic text-neutral-500">
-          Keine Produktsignale in diesem Call — der Klassifizierer hat keine
-          Feature-Wünsche oder Pain-Points zum Produkt erkannt. (Häufige
-          richtige Antwort bei Sales-Blocker- oder reinen Health-Calls; siehe
-          Summary oben.)
-        </p>
+        <p className="text-small italic text-neutral-500">{t("panelEmpty")}</p>
       ) : (
         <>
           {featureRequests.length > 0 && (
             <section>
               <h5 className="mb-2 text-caption font-medium uppercase tracking-wider text-neutral-500">
-                Feature requests ({featureRequests.length})
+                {t("panelFrSection", { count: featureRequests.length })}
               </h5>
               <ul className="space-y-2">
                 {featureRequests.map((fr: FeatureRequest, i) => (
@@ -176,7 +173,7 @@ export function ProductDiscoveryPanel({
           {painPoints.length > 0 && (
             <section>
               <h5 className="mb-2 text-caption font-medium uppercase tracking-wider text-neutral-500">
-                Pain points ({painPoints.length})
+                {t("panelPpSection", { count: painPoints.length })}
               </h5>
               <ul className="space-y-2">
                 {painPoints.map((pp: PainPoint, i) => (
@@ -199,7 +196,7 @@ export function ProductDiscoveryPanel({
           {themes.length > 0 && (
             <section>
               <h5 className="mb-2 text-caption font-medium uppercase tracking-wider text-neutral-500">
-                Themes ({themes.length})
+                {t("panelThemesSection", { count: themes.length })}
               </h5>
               <ul className="space-y-2">
                 {themes.map((t: Theme, i) => (

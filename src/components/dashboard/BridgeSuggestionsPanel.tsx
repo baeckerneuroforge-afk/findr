@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type MouseEvent } from "react";
+import { useTranslations } from "next-intl";
 
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 
@@ -51,7 +52,8 @@ interface BridgeSuggestionsPanelProps {
 
 /** German labels for the signal types — matches SIGNAL_TYPE_GERMAN_LABEL
  *  in src/lib/bridge/cs-to-research.ts so the card text reads consistently
- *  with what the LLM saw. */
+ *  with what the LLM saw. Analysis taxonomy — kept in the source language
+ *  (German) in both locales and interpolated into the translated chrome. */
 const SIGNAL_LABEL: Record<string, string> = {
   CHAMPION_LOSS: "Verlust des internen Champions",
   COMPETITOR_PRESSURE: "Druck durch Wettbewerber",
@@ -74,6 +76,7 @@ export function BridgeSuggestionsPanel({
   initialSuggestions,
 }: BridgeSuggestionsPanelProps) {
   const router = useRouter();
+  const t = useTranslations("research.bridge");
   const [suggestions, setSuggestions] = useState(initialSuggestions);
   const [scanning, setScanning] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -98,7 +101,7 @@ export function BridgeSuggestionsPanel({
         detail?: string;
       };
       if (!res.ok) {
-        setError(data.detail ?? data.error ?? "Scan fehlgeschlagen.");
+        setError(data.detail ?? data.error ?? t("errScan"));
         return;
       }
       if (Array.isArray(data.suggestions)) {
@@ -109,10 +112,15 @@ export function BridgeSuggestionsPanel({
       const skipped = data.skipped ?? 0;
       const failed = data.failed ?? 0;
       setScanNote(
-        `Scan abgeschlossen: ${scanned} Cluster gefunden, ${created} neu, ${skipped} schon vorhanden${failed > 0 ? `, ${failed} fehlgeschlagen` : ""}.`,
+        t("csScanDone", {
+          scanned,
+          created,
+          skipped,
+          failed: failed > 0 ? t("csScanFailedFrag", { failed }) : "",
+        }),
       );
     } catch (err) {
-      setError("Scan fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errScanNetwork"));
       console.error("bridge scan failed:", err);
     } finally {
       setScanning(false);
@@ -138,7 +146,7 @@ export function BridgeSuggestionsPanel({
         detail?: string;
       };
       if (!res.ok || !data.success || !data.planId) {
-        setError(data.detail ?? data.error ?? "Studie konnte nicht angelegt werden.");
+        setError(data.detail ?? data.error ?? t("errCreateStudy"));
         return;
       }
       // Optimistic: remove the card. Then redirect to the new plan. If
@@ -147,7 +155,7 @@ export function BridgeSuggestionsPanel({
       setSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
       router.push(`/dashboard/research-plans/${data.planId}`);
     } catch (err) {
-      setError("Studie konnte nicht angelegt werden — Netzwerkfehler.");
+      setError(t("errCreateStudyNetwork"));
       console.error(`bridge approve failed for ${suggestion.id}:`, err);
     } finally {
       setBusyId(null);
@@ -170,12 +178,12 @@ export function BridgeSuggestionsPanel({
         detail?: string;
       };
       if (!res.ok || !data.success) {
-        setError(data.detail ?? data.error ?? "Verwerfen fehlgeschlagen.");
+        setError(data.detail ?? data.error ?? t("errDismiss"));
         return;
       }
       setSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
     } catch (err) {
-      setError("Verwerfen fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errDismissNetwork"));
       console.error(`bridge dismiss failed for ${suggestion.id}:`, err);
     } finally {
       setBusyId(null);
@@ -187,12 +195,8 @@ export function BridgeSuggestionsPanel({
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-h3 text-neutral-900">Vorschläge aus CS-Health</h2>
-            <p className="mt-1 text-small text-neutral-500">
-              Wenn mehrere Accounts mit demselben Churn-Grund verloren gehen,
-              schlägt die Brücke hier eine Research-Studie vor. Du
-              entscheidest per Klick — kein Auto-Run.
-            </p>
+            <h2 className="text-h3 text-neutral-900">{t("csTitle")}</h2>
+            <p className="mt-1 text-small text-neutral-500">{t("csSubtitle")}</p>
           </div>
           <button
             type="button"
@@ -200,7 +204,7 @@ export function BridgeSuggestionsPanel({
             disabled={scanning || busyId !== null}
             className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
           >
-            {scanning ? "Suche läuft…" : "Jetzt scannen"}
+            {scanning ? t("scanning") : t("csScan")}
           </button>
         </div>
       </CardHeader>
@@ -219,8 +223,7 @@ export function BridgeSuggestionsPanel({
 
         {suggestions.length === 0 ? (
           <p className="py-3 text-center text-body text-neutral-500">
-            Aktuell keine offenen Vorschläge. „Jetzt scannen" prüft die
-            jüngsten Kündigungen auf wiederkehrende Muster.
+            {t("csEmpty")}
           </p>
         ) : (
           <ul className="space-y-3">
@@ -232,17 +235,19 @@ export function BridgeSuggestionsPanel({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-body-strong text-neutral-900">
-                      Aus CS-Churn: Studie zu „{labelFor(s)}" starten?
+                      {t("csCardTitle", { label: labelFor(s) })}
                     </p>
                     <p className="mt-1 text-small text-neutral-600">
                       {s.derivedGoal && s.derivedGoal.trim().length > 0
                         ? s.derivedGoal
-                        : "Die KI konnte aus diesem Cluster kein eindeutiges Ziel ableiten — du kannst die Studie trotzdem starten und das Ziel nach Erstellung anpassen."}
+                        : t("csGoalFallback")}
                     </p>
                     <p className="mt-2 font-mono text-caption text-neutral-400">
-                      {s.sourceRefs.accountIds?.length ?? 0} verlorene Accounts
+                      {t("csLostAccounts", {
+                        count: s.sourceRefs.accountIds?.length ?? 0,
+                      })}
                       {s.sourceRefs.windowDays
-                        ? ` · letzte ${s.sourceRefs.windowDays} Tage`
+                        ? t("csWindowDays", { days: s.sourceRefs.windowDays })
                         : ""}
                       {" · "}
                       {s.sourceModule}
@@ -255,7 +260,7 @@ export function BridgeSuggestionsPanel({
                       disabled={busyId !== null || scanning}
                       className="w-32 rounded-md border border-primary-600 bg-primary-600 px-3 py-1.5 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:opacity-50"
                     >
-                      {busyId === s.id ? "Wird erstellt…" : "Studie starten"}
+                      {busyId === s.id ? t("csCreating") : t("csStartStudy")}
                     </button>
                     <button
                       type="button"
@@ -263,7 +268,7 @@ export function BridgeSuggestionsPanel({
                       disabled={busyId !== null || scanning}
                       className="w-32 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
                     >
-                      Verwerfen
+                      {t("dismiss")}
                     </button>
                   </div>
                 </div>

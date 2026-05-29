@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
+import { useTranslations } from "next-intl";
 
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 
@@ -57,6 +58,8 @@ interface ResearchRiskPanelProps {
   initialSuggestions: ResearchRiskSuggestion[];
 }
 
+// Risk-type vocabulary is analysis taxonomy — kept in the source language
+// (German) in both locales, interpolated into the translated chrome.
 const RISK_TYPE_LABELS: Record<string, string> = {
   CHAMPION_LOSS: "Champion-Verlust",
   COMPETITOR_PRESSURE: "Wettbewerbsdruck",
@@ -85,6 +88,7 @@ function typeChipClass(mapped: string | null | undefined): string {
 export function ResearchRiskPanel({
   initialSuggestions,
 }: ResearchRiskPanelProps) {
+  const t = useTranslations("research.bridge");
   const [suggestions, setSuggestions] = useState(initialSuggestions);
   const [scanning, setScanning] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -115,22 +119,23 @@ export function ResearchRiskPanel({
         detail?: string;
       };
       if (!res.ok) {
-        setError(data.detail ?? data.error ?? "Scan fehlgeschlagen.");
+        setError(data.detail ?? data.error ?? t("errScan"));
         return;
       }
       if (Array.isArray(data.suggestions)) {
         setSuggestions(data.suggestions);
       }
       const parts = [
-        `${data.scanned ?? 0} Themen evaluiert`,
-        `${data.created ?? 0} neue Kandidaten`,
-        `${data.skipped ?? 0} schon vorhanden`,
-        `${data.refused ?? 0} ehrlich abgelehnt`,
+        t("rrScanScanned", { count: data.scanned ?? 0 }),
+        t("rrScanCreated", { count: data.created ?? 0 }),
+        t("rrScanSkipped", { count: data.skipped ?? 0 }),
+        t("rrScanRefused", { count: data.refused ?? 0 }),
       ];
-      if ((data.failed ?? 0) > 0) parts.push(`${data.failed} fehlgeschlagen`);
-      setScanNote(`Scan abgeschlossen: ${parts.join(", ")}.`);
+      if ((data.failed ?? 0) > 0)
+        parts.push(t("rrScanFailed", { count: data.failed ?? 0 }));
+      setScanNote(t("rrScanDone", { parts: parts.join(", ") }));
     } catch (err) {
-      setError("Scan fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errScanNetwork"));
       console.error("research-risk scan failed:", err);
     } finally {
       setScanning(false);
@@ -154,9 +159,7 @@ export function ResearchRiskPanel({
         detail?: string;
       };
       if (!res.ok || !data.success || !data.suggestion) {
-        setError(
-          data.detail ?? data.error ?? "Auf Watch-Liste setzen fehlgeschlagen.",
-        );
+        setError(data.detail ?? data.error ?? t("errApproveWatch"));
         return;
       }
       // Move the row from pending to approved in-place.
@@ -165,7 +168,7 @@ export function ResearchRiskPanel({
         prev.map((s) => (s.id === suggestion.id ? approvedRow : s)),
       );
     } catch (err) {
-      setError("Auf Watch-Liste setzen fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errApproveWatchNetwork"));
       console.error(
         `research-risk approve failed for ${suggestion.id}:`,
         err,
@@ -192,12 +195,12 @@ export function ResearchRiskPanel({
         detail?: string;
       };
       if (!res.ok || !data.success) {
-        setError(data.detail ?? data.error ?? "Aktion fehlgeschlagen.");
+        setError(data.detail ?? data.error ?? t("errAction"));
         return;
       }
       setSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
     } catch (err) {
-      setError("Aktion fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errActionNetwork"));
       console.error(
         `research-risk dismiss failed for ${suggestion.id}:`,
         err,
@@ -238,19 +241,15 @@ export function ResearchRiskPanel({
               </>
             ) : (
               <p className="text-body-strong text-neutral-700">
-                Synthese-Thema „{refs.themeTitle ?? "—"}" — die KI hat
-                hierfür ehrlich keinen Risk-Kandidaten abgeleitet. Du
-                kannst trotzdem entscheiden, ob es auf die Watch-Liste
-                soll.
+                {t("rrNoCandidate", { title: refs.themeTitle ?? "—" })}
               </p>
             )}
             <p className="mt-2 text-small text-neutral-600">
-              <span className="font-medium">Aus Synthese:</span>{" "}
-              {refs.planTitle ?? "Studie"} —{" "}
+              <span className="font-medium">{t("rrFromSynthesis")}</span>{" "}
+              {refs.planTitle ?? t("rrPlanFallback")} —{" "}
               <span className="italic">„{refs.themeTitle ?? "?"}"</span>{" "}
               <span className="text-neutral-400">
-                ({refs.frequency ?? 0} Respondent
-                {refs.frequency === 1 ? "" : "en"})
+                {t("rrRespondents", { count: refs.frequency ?? 0 })}
               </span>
             </p>
             {quotes.length > 0 && (
@@ -276,7 +275,7 @@ export function ResearchRiskPanel({
               disabled={busyId !== null || scanning}
               className="w-44 rounded-md border border-primary-600 bg-primary-600 px-3 py-1.5 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:opacity-50"
             >
-              {busyId === s.id ? "Wird gesetzt…" : "Auf Watch-Liste setzen"}
+              {busyId === s.id ? t("rrSetting") : t("rrSetWatch")}
             </button>
             <button
               type="button"
@@ -284,7 +283,7 @@ export function ResearchRiskPanel({
               disabled={busyId !== null || scanning}
               className="w-44 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
             >
-              Verwerfen
+              {t("dismiss")}
             </button>
           </div>
         </div>
@@ -304,7 +303,9 @@ export function ResearchRiskPanel({
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-body-strong text-neutral-900">
                 {refs.candidateName ??
-                  `Thema: ${refs.themeTitle ?? "(unbenannt)"}`}
+                  t("rrThemeFallback", {
+                    title: refs.themeTitle ?? t("rrThemeUnnamed"),
+                  })}
               </p>
               <span
                 className={`inline-flex items-center rounded border px-1.5 py-0.5 text-caption font-medium ${typeChipClass(refs.mappedRiskType)}`}
@@ -318,12 +319,11 @@ export function ResearchRiskPanel({
               </p>
             )}
             <p className="mt-2 text-small text-neutral-500">
-              <span className="font-medium">Quelle:</span>{" "}
-              {refs.planTitle ?? "Studie"} —{" "}
+              <span className="font-medium">{t("rrSource")}</span>{" "}
+              {refs.planTitle ?? t("rrPlanFallback")} —{" "}
               <span className="italic">„{refs.themeTitle ?? "?"}"</span>{" "}
               <span className="text-neutral-400">
-                ({refs.frequency ?? 0} Respondent
-                {refs.frequency === 1 ? "" : "en"})
+                {t("rrRespondents", { count: refs.frequency ?? 0 })}
               </span>
             </p>
           </div>
@@ -333,7 +333,7 @@ export function ResearchRiskPanel({
             disabled={busyId !== null || scanning}
             className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
           >
-            {busyId === s.id ? "Wird entfernt…" : "Aus Liste entfernen"}
+            {busyId === s.id ? t("rrRemoving") : t("rrRemoveFromList")}
           </button>
         </div>
       </li>
@@ -345,15 +345,8 @@ export function ResearchRiskPanel({
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-h3 text-neutral-900">
-              Risk-Watch-Liste aus Research
-            </h2>
-            <p className="mt-1 text-small text-neutral-500">
-              Themen aus Studien-Synthesen, die ein wiederkehrendes
-              risiko-relevantes Muster zeigen. Das Team entscheidet pro
-              Vorschlag, ob das Muster in die Watch-Liste aufgenommen wird
-              — KEIN Auto-Schreiben in den Risk-Classifier.
-            </p>
+            <h2 className="text-h3 text-neutral-900">{t("rrTitle")}</h2>
+            <p className="mt-1 text-small text-neutral-500">{t("rrSubtitle")}</p>
           </div>
           <button
             type="button"
@@ -361,7 +354,7 @@ export function ResearchRiskPanel({
             disabled={scanning || busyId !== null}
             className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
           >
-            {scanning ? "Suche läuft…" : "Aus Synthesen scannen"}
+            {scanning ? t("scanning") : t("rrScan")}
           </button>
         </div>
       </CardHeader>
@@ -380,15 +373,14 @@ export function ResearchRiskPanel({
 
         {pending.length === 0 && approved.length === 0 ? (
           <p className="py-3 text-center text-body text-neutral-500">
-            Noch keine Vorschläge. „Aus Synthesen scannen" prüft alle
-            vorhandenen Studien-Synthesen auf risiko-relevante Themen.
+            {t("rrEmpty")}
           </p>
         ) : (
           <div className="space-y-6">
             {pending.length > 0 && (
               <section>
                 <h3 className="mb-2 text-small font-semibold text-neutral-700">
-                  Vorschläge ({pending.length})
+                  {t("rrProposalsTitle", { count: pending.length })}
                 </h3>
                 <ul className="space-y-3">
                   {pending.map(renderPendingCard)}
@@ -399,7 +391,7 @@ export function ResearchRiskPanel({
             {approved.length > 0 && (
               <section>
                 <h3 className="mb-2 text-small font-semibold text-neutral-700">
-                  Watch-Liste ({approved.length})
+                  {t("rrWatchListTitle", { count: approved.length })}
                 </h3>
                 <ul className="space-y-2">
                   {approved.map(renderApprovedCard)}

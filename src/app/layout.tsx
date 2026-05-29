@@ -92,6 +92,7 @@ export default async function RootLayout({
               common: MESSAGES[locale].common,
               sales: MESSAGES[locale].sales,
               health: MESSAGES[locale].health,
+              research: MESSAGES[locale].research,
             }}
           >
             {children}

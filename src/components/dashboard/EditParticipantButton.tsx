@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/Button";
 import { Field, FIELD_INPUT_CLASS } from "@/components/ui/Field";
@@ -53,6 +54,8 @@ export function EditParticipantButton({
   disabled = false,
 }: EditParticipantButtonProps) {
   const router = useRouter();
+  const t = useTranslations("research.plans");
+  const tc = useTranslations("research.common");
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState(initialLabel);
   const [email, setEmail] = useState(initialEmail ?? "");
@@ -93,11 +96,11 @@ export function EditParticipantButton({
 
     const trimmedLabel = label.trim();
     if (trimmedLabel.length === 0) {
-      setError("Name ist erforderlich.");
+      setError(tc("errName"));
       return;
     }
     if (trimmedLabel.length > 200) {
-      setError("Name ist zu lang (max. 200 Zeichen).");
+      setError(t("errNameTooLong"));
       return;
     }
     const trimmedEmail = email.trim();
@@ -105,7 +108,7 @@ export function EditParticipantButton({
       trimmedEmail !== "" &&
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)
     ) {
-      setError("Die E-Mail-Adresse sieht nicht gültig aus.");
+      setError(tc("errEmailInvalid"));
       return;
     }
 
@@ -141,15 +144,13 @@ export function EditParticipantButton({
         success?: boolean;
       };
       if (!res.ok || !data.success) {
-        throw new Error(data.error ?? "Konnte den Teilnehmer nicht speichern.");
+        throw new Error(data.error ?? t("errSaveParticipant"));
       }
       setOpen(false);
       router.refresh();
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Konnte den Teilnehmer nicht speichern.",
+        err instanceof Error ? err.message : t("errSaveParticipant"),
       );
     } finally {
       setSubmitting(false);
@@ -163,9 +164,9 @@ export function EditParticipantButton({
         size="sm"
         onClick={handleOpen}
         disabled={disabled || submitting}
-        aria-label={`Teilnehmer ${initialLabel} bearbeiten`}
+        aria-label={t("editAria", { name: initialLabel })}
       >
-        Bearbeiten
+        {tc("edit")}
       </Button>
 
       {open && (
@@ -178,7 +179,7 @@ export function EditParticipantButton({
           className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 px-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Teilnehmer bearbeiten"
+          aria-label={t("editDialogTitle")}
           onMouseDown={() => {
             if (!submitting) setOpen(false);
           }}
@@ -188,15 +189,14 @@ export function EditParticipantButton({
             onMouseDown={(e) => e.stopPropagation()}
           >
             <h3 className="text-h4 mb-1 text-neutral-900">
-              Teilnehmer bearbeiten
+              {t("editDialogTitle")}
             </h3>
             <p className="mb-4 text-small text-neutral-500">
-              Änderungen werden sofort gespeichert. Bereits versendete
-              Einladungen bleiben unverändert.
+              {t("editDialogDesc")}
             </p>
 
             <form onSubmit={handleSave} className="space-y-4">
-              <Field label="Name" required>
+              <Field label={t("fldName")} required>
                 <input
                   ref={labelInputRef}
                   value={label}
@@ -208,10 +208,7 @@ export function EditParticipantButton({
                 />
               </Field>
 
-              <Field
-                label="E-Mail"
-                hint="Optional. Leer lassen, um die E-Mail zu entfernen."
-              >
+              <Field label={t("fldEmail")} hint={t("editEmailHint")}>
                 <input
                   type="email"
                   value={email}
@@ -237,10 +234,10 @@ export function EditParticipantButton({
                   onClick={() => setOpen(false)}
                   disabled={submitting}
                 >
-                  Abbrechen
+                  {tc("cancel")}
                 </Button>
                 <Button type="submit" size="sm" disabled={submitting}>
-                  {submitting ? "Speichere…" : "Speichern"}
+                  {submitting ? tc("saving") : tc("save")}
                 </Button>
               </div>
             </form>

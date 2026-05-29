@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/Button";
 import { FIELD_INPUT_CLASS } from "@/components/ui/Field";
@@ -38,6 +39,8 @@ export function PlanQuotaPanel({
   disabled?: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslations("research.plans");
+  const tc = useTranslations("research.common");
   const [role, setRole] = useState("");
   const [target, setTarget] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -51,11 +54,11 @@ export function PlanQuotaPanel({
     const trimmedRole = role.trim();
     const targetNum = Number(target);
     if (trimmedRole === "") {
-      setError("Rolle ist erforderlich.");
+      setError(t("errRole"));
       return;
     }
     if (!Number.isInteger(targetNum) || targetNum < 0) {
-      setError("Ziel muss eine ganze Zahl ≥ 0 sein.");
+      setError(t("errTargetInt"));
       return;
     }
 
@@ -68,13 +71,13 @@ export function PlanQuotaPanel({
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string; success?: boolean };
       if (!res.ok || !data.success) {
-        throw new Error(data.error ?? "Quote konnte nicht gespeichert werden.");
+        throw new Error(data.error ?? t("errSaveQuota"));
       }
       setRole("");
       setTarget("");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Quote konnte nicht gespeichert werden.");
+      setError(err instanceof Error ? err.message : t("errSaveQuota"));
     } finally {
       setSubmitting(false);
     }
@@ -89,11 +92,11 @@ export function PlanQuotaPanel({
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error ?? "Quote konnte nicht gelöscht werden.");
+        throw new Error(data.error ?? t("errDeleteQuota"));
       }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Quote konnte nicht gelöscht werden.");
+      setError(err instanceof Error ? err.message : t("errDeleteQuota"));
     } finally {
       setDeletingId(null);
     }
@@ -102,10 +105,7 @@ export function PlanQuotaPanel({
   return (
     <div className="space-y-4">
       {quotas.length === 0 ? (
-        <p className="text-small text-neutral-500">
-          Noch keine Quoten. Lege ein Ziel pro Rolle fest, z. B. „10 Personen mit
-          Rolle Head of Sales“ – der Fortschritt zählt Einladungen aus dem Pool.
-        </p>
+        <p className="text-small text-neutral-500">{t("emptyQuotas")}</p>
       ) : (
         <ul className="space-y-3">
           {quotas.map((q) => {
@@ -122,16 +122,19 @@ export function PlanQuotaPanel({
                         reached ? "text-success-700" : "text-neutral-600"
                       }`}
                     >
-                      {q.invited} von {q.target} eingeladen
+                      {t("quotaProgress", {
+                        invited: q.invited,
+                        target: q.target,
+                      })}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleDelete(q.id)}
                       disabled={deletingId === q.id || disabled}
                       className="text-caption text-neutral-400 transition-colors hover:text-danger-700 disabled:opacity-50"
-                      aria-label={`Quote für ${q.role} löschen`}
+                      aria-label={t("quotaDeleteAria", { role: q.role })}
                     >
-                      {deletingId === q.id ? "…" : "Entfernen"}
+                      {deletingId === q.id ? "…" : tc("remove")}
                     </button>
                   </div>
                 </div>
@@ -150,12 +153,14 @@ export function PlanQuotaPanel({
       {!disabled && (
         <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 border-t border-neutral-100 pt-4">
           <label className="text-small">
-            <span className="mb-1 block text-caption text-neutral-500">Rolle</span>
+            <span className="mb-1 block text-caption text-neutral-500">
+              {t("quotaFldRole")}
+            </span>
             <input
               list="quota-roles"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              placeholder="Head of Sales"
+              placeholder={t("phQuotaRole")}
               disabled={submitting}
               className={FIELD_INPUT_CLASS}
             />
@@ -166,19 +171,21 @@ export function PlanQuotaPanel({
             </datalist>
           </label>
           <label className="text-small">
-            <span className="mb-1 block text-caption text-neutral-500">Ziel</span>
+            <span className="mb-1 block text-caption text-neutral-500">
+              {t("quotaFldTarget")}
+            </span>
             <input
               type="number"
               min={0}
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              placeholder="10"
+              placeholder={t("phQuotaTarget")}
               disabled={submitting}
               className={`${FIELD_INPUT_CLASS} w-28`}
             />
           </label>
           <Button type="submit" disabled={submitting}>
-            {submitting ? "Speichere…" : "Quote setzen"}
+            {submitting ? tc("saving") : t("quotaSubmit")}
           </Button>
         </form>
       )}

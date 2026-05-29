@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
 
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 
@@ -49,6 +50,8 @@ interface ChatWithDataPanelProps {
 }
 
 export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
+  const t = useTranslations("research.synthesis");
+  const tc = useTranslations("research.common");
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -110,12 +113,12 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
       if (!res.ok || !data.success || !data.result) {
         const message =
           res.status === 404
-            ? "Plan nicht gefunden."
+            ? tc("errPlanNotFound")
             : res.status === 401 || res.status === 403
-              ? "Kein Zugriff auf diesen Plan."
+              ? tc("errNoAccessPlan")
               : res.status === 400
-                ? (data.error ?? "Ungültige Anfrage.")
-                : (data.detail ?? data.error ?? "Antwort fehlgeschlagen.");
+                ? (data.error ?? tc("errInvalidRequest"))
+                : (data.detail ?? data.error ?? t("errChat"));
         setError(message);
         console.error(
           `chat-with-data failed for plan ${planId}:`,
@@ -132,7 +135,7 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
       };
       setTurns((prev) => [...prev, assistantTurn]);
     } catch (err) {
-      setError("Antwort fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errChatNetwork"));
       console.error(`chat-with-data failed for plan ${planId}:`, err);
     } finally {
       setLoading(false);
@@ -150,11 +153,9 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-h3 text-neutral-900">Frag deine Daten</h2>
+            <h2 className="text-h3 text-neutral-900">{t("chatTitle")}</h2>
             <p className="mt-1 text-small text-neutral-500">
-              Stelle eine Frage zu dieser Studie. Antworten kommen
-              ausschließlich aus den verdichteten Interviews und der
-              Synthese — keine Spekulation, keine Erfindungen.
+              {t("chatSubtitle")}
             </p>
           </div>
           {turns.length > 0 && (
@@ -164,7 +165,7 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
               disabled={loading}
               className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-caption font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
             >
-              Verlauf löschen
+              {t("chatClear")}
             </button>
           )}
         </div>
@@ -173,7 +174,7 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
       <CardBody>
         {!ready ? (
           <p className="py-4 text-center text-body text-neutral-500">
-            Sobald die Synthese erstellt wurde, kannst du hier Fragen stellen.
+            {t("chatNotReady")}
           </p>
         ) : (
           <div className="space-y-4">
@@ -185,7 +186,7 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
                     {turn.role === "user" ? (
                       <div className="rounded-md bg-neutral-50 p-3">
                         <div className="mb-1 text-caption font-medium uppercase tracking-wider text-neutral-500">
-                          Frage
+                          {t("chatQuestion")}
                         </div>
                         <p className="whitespace-pre-wrap text-body text-neutral-900">
                           {turn.content}
@@ -200,7 +201,7 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
                         }`}
                       >
                         <div className="mb-1 text-caption font-medium uppercase tracking-wider text-neutral-500">
-                          Antwort
+                          {t("chatAnswer")}
                         </div>
                         <p
                           className={`whitespace-pre-wrap text-body ${
@@ -214,7 +215,7 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
                         {turn.citations && turn.citations.length > 0 && (
                           <div className="mt-3 space-y-2">
                             <div className="text-caption font-medium uppercase tracking-wider text-neutral-500">
-                              Belege
+                              {t("chatEvidence")}
                             </div>
                             <ul className="space-y-2">
                               {turn.citations.map((c, i) => (
@@ -244,7 +245,7 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
                         Antwort
                       </div>
                       <p className="text-body italic text-neutral-500">
-                        Wird durchsucht…
+                        {t("chatSearching")}
                       </p>
                     </div>
                   </li>
@@ -257,7 +258,7 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
               <textarea
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                placeholder={`z. B. „Welche Onboarding-Probleme haben mehrere Teilnehmer genannt?"`}
+                placeholder={t("chatPlaceholder")}
                 rows={3}
                 disabled={loading}
                 className="block w-full resize-y rounded-md border border-neutral-200 bg-white px-3 py-2 text-body text-neutral-900 placeholder:text-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
@@ -269,8 +270,7 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
                   </span>
                 ) : (
                   <span className="text-caption text-neutral-400">
-                    Antworten sind verankert in den verdichteten Interviews +
-                    der Synthese dieser Studie.
+                    {t("chatAnchored")}
                   </span>
                 )}
                 <button
@@ -278,7 +278,7 @@ export function ChatWithDataPanel({ planId, ready }: ChatWithDataPanelProps) {
                   disabled={loading || question.trim() === ""}
                   className="shrink-0 rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading ? "Wird gefragt…" : "Frage stellen"}
+                  {loading ? t("chatAsking") : t("chatAsk")}
                 </button>
               </div>
             </form>

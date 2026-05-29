@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { researchInterviewUrl } from "@/lib/email/research-invite";
 import { getResearchPlan } from "@/lib/research/plans-service";
@@ -34,13 +35,8 @@ import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
 
 type Status = "draft" | "active" | "completed" | "archived";
 
-const STATUS_LABEL: Record<Status, string> = {
-  draft: "Draft",
-  active: "Active",
-  completed: "Completed",
-  archived: "Archived",
-};
-
+// Plan + invite status labels are translated via t(`status.*`) /
+// t(`inviteStatus.*`); only the badge variants live here.
 const STATUS_VARIANT: Record<Status, BadgeVariant> = {
   draft: "default",
   active: "success",
@@ -58,15 +54,6 @@ type InviteStatus =
   | "completed"
   | "cancelled"
   | "no_show";
-
-const INVITE_STATUS_LABEL: Record<InviteStatus, string> = {
-  pending: "Ausstehend",
-  scheduled: "Terminiert",
-  in_progress: "Läuft",
-  completed: "Abgeschlossen",
-  cancelled: "Abgesagt",
-  no_show: "Nicht erschienen",
-};
 
 const INVITE_STATUS_VARIANT: Record<InviteStatus, BadgeVariant> = {
   pending: "default",
@@ -110,6 +97,8 @@ export default async function ResearchPlanDetailPage({
     throw err;
   }
 
+  const t = await getTranslations("research.plans");
+
   const { id: planId } = await params;
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) notFound();
@@ -140,7 +129,7 @@ export default async function ResearchPlanDetailPage({
             href="/dashboard/research-plans"
             className="text-small text-neutral-500 transition-colors hover:text-neutral-900"
           >
-            ← All research plans
+            {t("backAll")}
           </Link>
         </div>
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -148,11 +137,11 @@ export default async function ResearchPlanDetailPage({
             <div className="flex items-center gap-3">
               <h1 className="text-display text-neutral-900">{plan.title}</h1>
               <Badge variant={STATUS_VARIANT[plan.status]}>
-                {STATUS_LABEL[plan.status]}
+                {t(`status.${plan.status}`)}
               </Badge>
             </div>
             <p className="mt-1 text-small text-neutral-500">
-              Created {formatDate(plan.createdAt)}
+              {t("createdAt", { date: formatDate(plan.createdAt) })}
             </p>
           </div>
         </div>
@@ -161,7 +150,7 @@ export default async function ResearchPlanDetailPage({
       {/* Objective + persona + sample-target */}
       <Card>
         <CardHeader>
-          <h2 className="text-h3 text-neutral-900">Objective</h2>
+          <h2 className="text-h3 text-neutral-900">{t("objective")}</h2>
         </CardHeader>
         <CardBody>
           <p className="whitespace-pre-wrap text-body text-neutral-700">
@@ -172,23 +161,27 @@ export default async function ResearchPlanDetailPage({
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div>
                 <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-                  Target persona
+                  {t("targetPersona")}
                 </div>
                 <p className="mt-1 whitespace-pre-wrap text-body text-neutral-700">
                   {plan.persona ?? (
-                    <span className="text-neutral-400">— not specified —</span>
+                    <span className="text-neutral-400">
+                      {t("personaNotSpecified")}
+                    </span>
                   )}
                 </p>
               </div>
               <div>
                 <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-                  Sample target
+                  {t("sampleTargetField")}
                 </div>
                 <p className="mt-1 text-body text-neutral-700">
                   {plan.sampleTarget !== null ? (
-                    `${plan.sampleTarget} completed interviews`
+                    t("sampleTargetValue", { count: plan.sampleTarget })
                   ) : (
-                    <span className="text-neutral-400">— open-ended —</span>
+                    <span className="text-neutral-400">
+                      {t("sampleOpenEnded")}
+                    </span>
                   )}
                 </p>
               </div>
@@ -200,49 +193,48 @@ export default async function ResearchPlanDetailPage({
       {/* Topics (read-only — Edit modal lands in Etappe B) */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-h2 text-neutral-900">Topics</h2>
-          <p className="text-body text-neutral-500">
-            The agent covers each topic in 2–4 turns, formulating questions
-            from the intent.
-          </p>
+          <h2 className="text-h2 text-neutral-900">{t("topicsTitle")}</h2>
+          <p className="text-body text-neutral-500">{t("topicsDesc")}</p>
         </div>
         {plan.topics.length === 0 ? (
           <Card>
             <CardBody>
               <p className="py-4 text-center text-body text-neutral-500">
-                No topics yet — the agent will run purely off the objective.
+                {t("noTopics")}
               </p>
             </CardBody>
           </Card>
         ) : (
           <ul className="space-y-3">
-            {plan.topics.map((t, i) => (
+            {plan.topics.map((topic, i) => (
               <li key={i}>
                 <Card>
                   <CardBody className="space-y-3">
                     <div>
                       <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-                        Topic {i + 1}
+                        {t("topicN", { n: i + 1 })}
                       </div>
                       <div className="mt-0.5 text-h3 text-neutral-900">
-                        {t.topic}
+                        {topic.topic}
                       </div>
                     </div>
                     <div>
                       <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-                        Intent
+                        {t("intent")}
                       </div>
                       <p className="mt-1 whitespace-pre-wrap text-body text-neutral-700">
-                        {t.intent}
+                        {topic.intent}
                       </p>
                     </div>
-                    {t.hypotheses && t.hypotheses.length > 0 && (
+                    {topic.hypotheses && topic.hypotheses.length > 0 && (
                       <div>
                         <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-                          Private hypotheses · {t.hypotheses.length}
+                          {t("privateHypothesesCount", {
+                            count: topic.hypotheses.length,
+                          })}
                         </div>
                         <ul className="mt-1 space-y-1">
-                          {t.hypotheses.map((h, hi) => (
+                          {topic.hypotheses.map((h, hi) => (
                             <li
                               key={hi}
                               className="border-l-2 border-neutral-200 pl-3 text-small text-neutral-600"
@@ -268,11 +260,13 @@ export default async function ResearchPlanDetailPage({
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-h2 text-neutral-900">Teilnehmer</h2>
+            <h2 className="text-h2 text-neutral-900">
+              {t("participantsTitle")}
+            </h2>
             <p className="text-body text-neutral-500">
               {invites.length === 0
-                ? "Personen für Interviews hinzufügen. Termin + Mailversand sind eigene Aktionen pro Zeile."
-                : `${invites.length} ${invites.length === 1 ? "Teilnehmer" : "Teilnehmer"} · Termin + Mailversand pro Zeile.`}
+                ? t("participantsEmptyDesc")
+                : t("participantsCountDesc", { count: invites.length })}
             </p>
           </div>
         </div>
@@ -282,14 +276,14 @@ export default async function ResearchPlanDetailPage({
             <Table>
               <THead>
                 <TR>
-                  <TH>Name</TH>
-                  <TH>E-Mail</TH>
-                  <TH>Modus</TH>
-                  <TH>Termin</TH>
-                  <TH>Status</TH>
-                  <TH>Senden</TH>
-                  <TH>Link</TH>
-                  <TH>Aktionen</TH>
+                  <TH>{t("colName")}</TH>
+                  <TH>{t("colEmail")}</TH>
+                  <TH>{t("colMode")}</TH>
+                  <TH>{t("colSchedule")}</TH>
+                  <TH>{t("colStatus")}</TH>
+                  <TH>{t("colSend")}</TH>
+                  <TH>{t("colLink")}</TH>
+                  <TH>{t("colActions")}</TH>
                 </TR>
               </THead>
               <TBody>
@@ -338,8 +332,9 @@ export default async function ResearchPlanDetailPage({
                             ] ?? "default"
                           }
                         >
-                          {INVITE_STATUS_LABEL[invite.status as InviteStatus] ??
-                            invite.status}
+                          {INVITE_STATUS_VARIANT[invite.status as InviteStatus]
+                            ? t(`inviteStatus.${invite.status}`)
+                            : invite.status}
                         </Badge>
                       </TD>
                       <TD>
@@ -410,7 +405,7 @@ export default async function ResearchPlanDetailPage({
           <Card>
             <CardBody>
               <p className="py-3 text-center text-small text-neutral-500">
-                Dieser Plan ist archiviert – keine neuen Teilnehmer möglich.
+                {t("archivedNote")}
               </p>
             </CardBody>
           </Card>
@@ -419,7 +414,7 @@ export default async function ResearchPlanDetailPage({
             <Card>
               <CardHeader>
                 <h3 className="text-h3 text-neutral-900">
-                  Teilnehmer hinzufügen
+                  {t("addParticipant")}
                 </h3>
               </CardHeader>
               <CardBody>
@@ -428,9 +423,7 @@ export default async function ResearchPlanDetailPage({
             </Card>
             <Card>
               <CardHeader>
-                <h3 className="text-h3 text-neutral-900">
-                  Mehrere auf einmal
-                </h3>
+                <h3 className="text-h3 text-neutral-900">{t("bulkTitle")}</h3>
               </CardHeader>
               <CardBody>
                 <BulkInviteForm planId={plan.id} />
@@ -438,7 +431,9 @@ export default async function ResearchPlanDetailPage({
             </Card>
             <Card>
               <CardHeader>
-                <h3 className="text-h3 text-neutral-900">Aus Pool einladen</h3>
+                <h3 className="text-h3 text-neutral-900">
+                  {t("fromPoolTitle")}
+                </h3>
               </CardHeader>
               <CardBody>
                 <InviteFromPoolForm
@@ -457,12 +452,8 @@ export default async function ResearchPlanDetailPage({
           read-only (disabled). */}
       <section className="space-y-3">
         <div>
-          <h2 className="text-h3 text-neutral-900">Screening-Quoten</h2>
-          <p className="text-small text-neutral-500">
-            Manuelle Ziele pro Rolle. Der Fortschritt zählt aus dem Pool
-            eingeladene Personen – manuell angelegte Teilnehmer (ohne Rolle)
-            fließen nicht ein.
-          </p>
+          <h2 className="text-h3 text-neutral-900">{t("quotasTitle")}</h2>
+          <p className="text-small text-neutral-500">{t("quotasDesc")}</p>
         </div>
         <Card>
           <CardBody>
@@ -483,24 +474,24 @@ export default async function ResearchPlanDetailPage({
           sections. */}
       <section className="space-y-3">
         <div>
-          <h2 className="text-h3 text-neutral-900">Synthesis</h2>
+          <h2 className="text-h3 text-neutral-900">
+            {t("synthesisLinkTitle")}
+          </h2>
           <p className="text-small text-neutral-500">
-            Cross-call themes and tensions distilled by the Stage-2 engine
-            from this plan&apos;s interviews.
+            {t("synthesisLinkDesc")}
           </p>
         </div>
         <Card>
           <CardBody>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-body text-neutral-700">
-                Emergente Themen, Spannungen und ein freitext-Overview, mit
-                klickbaren Quell-Interviews und wörtlichen Zitaten.
+                {t("synthesisLinkBody")}
               </p>
               <Link
                 href={`/dashboard/research-plans/${plan.id}/synthesis`}
                 className="shrink-0 text-body-strong text-primary-700 hover:underline"
               >
-                View synthesis →
+                {t("viewSynthesis")}
               </Link>
             </div>
           </CardBody>
@@ -510,12 +501,8 @@ export default async function ResearchPlanDetailPage({
       {/* Status-Lifecycle */}
       <section className="space-y-3">
         <div>
-          <h2 className="text-h3 text-neutral-900">Lifecycle</h2>
-          <p className="text-small text-neutral-500">
-            Drafts are editable but participants can&apos;t be invited yet.
-            Activate to start, mark complete when sampling is done, archive
-            to retire.
-          </p>
+          <h2 className="text-h3 text-neutral-900">{t("lifecycleTitle")}</h2>
+          <p className="text-small text-neutral-500">{t("lifecycleDesc")}</p>
         </div>
         <PlanStatusControl planId={plan.id} status={plan.status} />
       </section>

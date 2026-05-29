@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -92,55 +93,56 @@ function PoolMemberFields({
   onChange: <K extends keyof FormValues>(key: K, value: FormValues[K]) => void;
   disabled: boolean;
 }) {
+  const t = useTranslations("research.pool");
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Field label="Name" required hint='Anzeige-Label. "Vorname Nachname" oder "Name, Firma".'>
+      <Field label={t("fldName")} required hint={t("nameHint")}>
         <input
           value={values.contactLabel}
           onChange={(e) => onChange("contactLabel", e.target.value)}
-          placeholder="Jane Doe, Acme"
+          placeholder={t("phName")}
           disabled={disabled}
           className={FIELD_INPUT_CLASS}
         />
       </Field>
-      <Field label="E-Mail" hint="Optional. Ohne E-Mail kein Mailversand – Link kopieren geht trotzdem.">
+      <Field label={t("fldEmail")} hint={t("emailHint")}>
         <input
           type="email"
           value={values.contactEmail}
           onChange={(e) => onChange("contactEmail", e.target.value)}
-          placeholder="jane@acme.example"
+          placeholder={t("phEmail")}
           disabled={disabled}
           className={FIELD_INPUT_CLASS}
         />
       </Field>
-      <Field label="Rolle" hint="Screening-Attribut, z. B. „Head of Sales“. Quoten greifen auf die Rolle zu.">
+      <Field label={t("fldRole")} hint={t("roleHint")}>
         <input
           value={values.role}
           onChange={(e) => onChange("role", e.target.value)}
-          placeholder="Head of Sales"
+          placeholder={t("phRole")}
           disabled={disabled}
           className={FIELD_INPUT_CLASS}
         />
       </Field>
-      <Field label="Segment" hint="Screening-Attribut, z. B. „Enterprise“ oder „B2B SaaS“.">
+      <Field label={t("fldSegment")} hint={t("segmentHint")}>
         <input
           value={values.segment}
           onChange={(e) => onChange("segment", e.target.value)}
-          placeholder="Enterprise"
+          placeholder={t("phSegment")}
           disabled={disabled}
           className={FIELD_INPUT_CLASS}
         />
       </Field>
-      <Field label="Tags" hint="Komma-getrennt. Mehrfach-Eigenschaften zum Filtern, z. B. „Bestandskunde, Power-User“.">
+      <Field label={t("fldTags")} hint={t("tagsHint")}>
         <input
           value={values.tagsInput}
           onChange={(e) => onChange("tagsInput", e.target.value)}
-          placeholder="Bestandskunde, Power-User"
+          placeholder={t("phTags")}
           disabled={disabled}
           className={FIELD_INPUT_CLASS}
         />
       </Field>
-      <Field label="Notiz" hint="Optional. Recruiting-Kontext, Quelle, etc.">
+      <Field label={t("fldNotes")} hint={t("notesHint")}>
         <textarea
           value={values.notes}
           onChange={(e) => onChange("notes", e.target.value)}
@@ -169,6 +171,7 @@ function PoolMemberForm({
   onSubmit: (body: Record<string, unknown>) => Promise<SubmitOutcome>;
   onCancel?: () => void;
 }) {
+  const tc = useTranslations("research.common");
   const [values, setValues] = useState<FormValues>(
     initial ? memberToForm(initial) : EMPTY_FORM,
   );
@@ -185,12 +188,12 @@ function PoolMemberForm({
 
     const contactLabel = values.contactLabel.trim();
     if (contactLabel === "") {
-      setError("Name ist erforderlich.");
+      setError(tc("errName"));
       return;
     }
     const contactEmail = values.contactEmail.trim();
     if (contactEmail !== "" && !EMAIL_RE.test(contactEmail)) {
-      setError("Die E-Mail-Adresse sieht nicht gültig aus.");
+      setError(tc("errEmailInvalid"));
       return;
     }
 
@@ -228,7 +231,7 @@ function PoolMemberForm({
         </Button>
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel} disabled={submitting}>
-            Abbrechen
+            {tc("cancel")}
           </Button>
         )}
       </div>
@@ -239,6 +242,8 @@ function PoolMemberForm({
 // ── Manager ───────────────────────────────────────────────────────────────────
 
 export function ParticipantPoolManager({ initialMembers }: { initialMembers: PoolMember[] }) {
+  const t = useTranslations("research.pool");
+  const tc = useTranslations("research.common");
   const [members, setMembers] = useState<PoolMember[]>(initialMembers);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -278,7 +283,7 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
     });
     const data = (await res.json().catch(() => ({}))) as { member?: PoolMember; error?: string };
     if (!res.ok || !data.member) {
-      return { ok: false, error: data.error ?? "Anlegen fehlgeschlagen." };
+      return { ok: false, error: data.error ?? t("errCreate") };
     }
     setMembers((cur) => [data.member as PoolMember, ...cur]);
     return { ok: true, member: data.member };
@@ -292,7 +297,7 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
     });
     const data = (await res.json().catch(() => ({}))) as { member?: PoolMember; error?: string };
     if (!res.ok || !data.member) {
-      return { ok: false, error: data.error ?? "Speichern fehlgeschlagen." };
+      return { ok: false, error: data.error ?? t("errSave") };
     }
     setMembers((cur) => cur.map((m) => (m.id === id ? (data.member as PoolMember) : m)));
     setEditingId(null);
@@ -322,12 +327,12 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
       {/* Anlegen */}
       <Card>
         <CardHeader>
-          <h3 className="text-h3 text-neutral-900">Person zum Pool hinzufügen</h3>
+          <h3 className="text-h3 text-neutral-900">{t("addTitle")}</h3>
         </CardHeader>
         <CardBody>
           <PoolMemberForm
-            submitLabel="Zum Pool hinzufügen"
-            pendingLabel="Lege an…"
+            submitLabel={t("addSubmit")}
+            pendingLabel={t("addPending")}
             onSubmit={createMember}
           />
         </CardBody>
@@ -340,15 +345,15 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
         <Card>
           <CardHeader>
             <h3 className="text-h3 text-neutral-900">
-              Eintrag bearbeiten · {editingMember.contactLabel}
+              {t("editTitle", { name: editingMember.contactLabel })}
             </h3>
           </CardHeader>
           <CardBody>
             <PoolMemberForm
               key={editingMember.id}
               initial={editingMember}
-              submitLabel="Speichern"
-              pendingLabel="Speichere…"
+              submitLabel={tc("save")}
+              pendingLabel={tc("saving")}
               onSubmit={(body) => updateMember(editingMember.id, body)}
               onCancel={() => setEditingId(null)}
             />
@@ -361,51 +366,57 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h3 className="text-h3 text-neutral-900">
-              Pool · {members.length} {members.length === 1 ? "Person" : "Personen"}
+              {t("poolCount", { count: members.length })}
             </h3>
             <p className="text-small text-neutral-500">
               {filtersActive
-                ? `${filtered.length} gefiltert angezeigt.`
-                : "Wiederverwendbar über alle Studien – aus jeder Studie heraus einladbar."}
+                ? t("filteredShown", { count: filtered.length })
+                : t("subtitleNoFilter")}
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <label className="text-small">
-              <span className="mb-1 block text-caption text-neutral-500">Rolle</span>
+              <span className="mb-1 block text-caption text-neutral-500">
+                {t("filterRole")}
+              </span>
               <select
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
                 className={FIELD_INPUT_CLASS}
               >
-                <option value={ALL}>Alle</option>
+                <option value={ALL}>{tc("all")}</option>
                 {roles.map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>
             </label>
             <label className="text-small">
-              <span className="mb-1 block text-caption text-neutral-500">Segment</span>
+              <span className="mb-1 block text-caption text-neutral-500">
+                {t("filterSegment")}
+              </span>
               <select
                 value={filterSegment}
                 onChange={(e) => setFilterSegment(e.target.value)}
                 className={FIELD_INPUT_CLASS}
               >
-                <option value={ALL}>Alle</option>
+                <option value={ALL}>{tc("all")}</option>
                 {segments.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </label>
             <label className="text-small">
-              <span className="mb-1 block text-caption text-neutral-500">Tag</span>
+              <span className="mb-1 block text-caption text-neutral-500">
+                {t("filterTag")}
+              </span>
               <select
                 value={filterTag}
                 onChange={(e) => setFilterTag(e.target.value)}
                 className={FIELD_INPUT_CLASS}
               >
-                <option value={ALL}>Alle</option>
-                {tags.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                <option value={ALL}>{tc("all")}</option>
+                {tags.map((tag) => (
+                  <option key={tag} value={tag}>{tag}</option>
                 ))}
               </select>
             </label>
@@ -420,7 +431,7 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
                   setFilterTag(ALL);
                 }}
               >
-                Filter zurücksetzen
+                {t("resetFilters")}
               </Button>
             )}
           </div>
@@ -430,8 +441,7 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
           <Card>
             <CardBody>
               <p className="py-6 text-center text-body text-neutral-500">
-                Noch keine Personen im Pool. Oben hinzufügen, dann aus jeder Studie
-                heraus einladen.
+                {t("emptyPool")}
               </p>
             </CardBody>
           </Card>
@@ -439,7 +449,7 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
           <Card>
             <CardBody>
               <p className="py-6 text-center text-body text-neutral-500">
-                Keine Person passt zu den Filtern.
+                {t("noMatch")}
               </p>
             </CardBody>
           </Card>
@@ -448,12 +458,12 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
             <Table>
               <THead>
                 <TR>
-                  <TH>Name</TH>
-                  <TH>E-Mail</TH>
-                  <TH>Rolle</TH>
-                  <TH>Segment</TH>
-                  <TH>Tags</TH>
-                  <TH>Aktionen</TH>
+                  <TH>{t("colName")}</TH>
+                  <TH>{t("colEmail")}</TH>
+                  <TH>{t("colRole")}</TH>
+                  <TH>{t("colSegment")}</TH>
+                  <TH>{t("colTags")}</TH>
+                  <TH>{t("colActions")}</TH>
                 </TR>
               </THead>
               <TBody>
@@ -481,8 +491,8 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
                         <span className="text-neutral-400">—</span>
                       ) : (
                         <div className="flex flex-wrap gap-1">
-                          {m.tags.map((t) => (
-                            <Badge key={t} variant="default">{t}</Badge>
+                          {m.tags.map((tag) => (
+                            <Badge key={tag} variant="default">{tag}</Badge>
                           ))}
                         </div>
                       )}
@@ -495,7 +505,7 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
                           size="sm"
                           onClick={() => setEditingId(m.id)}
                         >
-                          Bearbeiten
+                          {tc("edit")}
                         </Button>
                         <Button
                           type="button"
@@ -504,7 +514,7 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
                           onClick={() => deleteMember(m.id)}
                           disabled={deletingId === m.id}
                         >
-                          {deletingId === m.id ? "Lösche…" : "Löschen"}
+                          {deletingId === m.id ? tc("deleting") : tc("deleteLabel")}
                         </Button>
                       </div>
                     </TD>

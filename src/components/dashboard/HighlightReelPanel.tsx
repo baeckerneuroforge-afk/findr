@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 
@@ -45,6 +46,7 @@ interface HighlightReelPanelProps {
 }
 
 export function HighlightReelPanel({ planId, ready }: HighlightReelPanelProps) {
+  const t = useTranslations("research.synthesis");
   const [reel, setReel] = useState<HighlightReel | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export function HighlightReelPanel({ planId, ready }: HighlightReelPanelProps) {
           .json()
           .catch(() => ({}));
         setError(
-          body.detail ?? body.error ?? `Fehler ${resp.status}`,
+          body.detail ?? body.error ?? t("errStatus", { status: resp.status }),
         );
         setReel(null);
         return;
@@ -71,9 +73,7 @@ export function HighlightReelPanel({ planId, ready }: HighlightReelPanelProps) {
       const body: { success: boolean; reel: HighlightReel } = await resp.json();
       setReel(body.reel);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Reel-Erzeugung fehlgeschlagen.",
-      );
+      setError(err instanceof Error ? err.message : t("errReel"));
       setReel(null);
     } finally {
       setLoading(false);
@@ -85,11 +85,9 @@ export function HighlightReelPanel({ planId, ready }: HighlightReelPanelProps) {
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-h3 text-neutral-900">Highlight-Reel</h2>
+            <h2 className="text-h3 text-neutral-900">{t("reelTitle")}</h2>
             <p className="mt-1 text-small text-neutral-500">
-              Die prägnantesten O-Töne dieser Studie — automatisch ausgewählt
-              und einem Thema zugeordnet. Nur wörtliche Zitate, keine
-              Paraphrasen.
+              {t("reelSubtitle")}
             </p>
           </div>
           {ready && (
@@ -100,10 +98,10 @@ export function HighlightReelPanel({ planId, ready }: HighlightReelPanelProps) {
               className="rounded-md border border-primary-300 bg-primary-50 px-4 py-2 text-small font-medium text-primary-800 transition-colors hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading
-                ? "Reel wird erstellt …"
+                ? t("reelGenerating")
                 : reel
-                  ? "Reel neu erzeugen"
-                  : "Reel erzeugen"}
+                  ? t("reelRegenerate")
+                  : t("reelGenerate")}
             </button>
           )}
         </div>
@@ -111,8 +109,7 @@ export function HighlightReelPanel({ planId, ready }: HighlightReelPanelProps) {
       <CardBody className="space-y-4">
         {!ready && (
           <p className="text-small italic text-neutral-500">
-            Sobald eine Synthese vorliegt, kann hier das Highlight-Reel
-            erzeugt werden.
+            {t("reelNotReady")}
           </p>
         )}
 
@@ -121,10 +118,7 @@ export function HighlightReelPanel({ planId, ready }: HighlightReelPanelProps) {
         )}
 
         {ready && !reel && !loading && !error && (
-          <p className="text-small text-neutral-500">
-            Klick „Reel erzeugen", um 5-8 verbatim Highlights aus den
-            verdichteten Interviews und der Synthese zu ziehen.
-          </p>
+          <p className="text-small text-neutral-500">{t("reelPrompt")}</p>
         )}
 
         {reel && (
@@ -136,12 +130,11 @@ export function HighlightReelPanel({ planId, ready }: HighlightReelPanelProps) {
 }
 
 function ReelBody({ reel }: { reel: HighlightReel }) {
+  const t = useTranslations("research.synthesis");
   if (reel.highlights.length === 0) {
     return (
       <div className="space-y-2">
-        <p className="text-small italic text-neutral-500">
-          Für dieses Reel liegen keine zitierbaren Highlights vor.
-        </p>
+        <p className="text-small italic text-neutral-500">{t("reelEmpty")}</p>
         {reel.summary && (
           <p className="text-small text-neutral-500">{reel.summary}</p>
         )}

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 
 /**
@@ -25,15 +26,9 @@ interface PlanStatusControlProps {
   status: Status;
 }
 
-const LABEL: Record<Status, string> = {
-  draft: "Activate",
-  active: "Mark complete",
-  completed: "Reopen",
-  archived: "Restore",
-};
-
 export function PlanStatusControl({ planId, status }: PlanStatusControlProps) {
   const router = useRouter();
+  const t = useTranslations("research.plans");
   const [pending, setPending] = useState<Status | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,11 +45,11 @@ export function PlanStatusControl({ planId, status }: PlanStatusControlProps) {
         const data = (await res.json().catch(() => ({}))) as {
           error?: string;
         };
-        throw new Error(data.error ?? "Could not change status.");
+        throw new Error(data.error ?? t("errChangeStatus"));
       }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not change status.");
+      setError(err instanceof Error ? err.message : t("errChangeStatus"));
     } finally {
       setPending(null);
     }
@@ -70,45 +65,42 @@ export function PlanStatusControl({ planId, status }: PlanStatusControlProps) {
   if (status === "draft") {
     transitions.push({
       next: "active",
-      label: LABEL.draft,
+      label: t("actActivate"),
       variant: "primary",
     });
   }
   if (status === "active") {
     transitions.push({
       next: "completed",
-      label: LABEL.active,
+      label: t("actMarkComplete"),
       variant: "primary",
     });
   }
   if (status !== "archived") {
     transitions.push({
       next: "archived",
-      label: "Archive",
+      label: t("actArchive"),
       variant: status === "draft" ? "ghost" : "secondary",
     });
   }
 
   if (transitions.length === 0) {
     return (
-      <p className="text-small text-neutral-500">
-        Archived plans don&apos;t have further actions. Edit the row in the DB
-        if you need to restore.
-      </p>
+      <p className="text-small text-neutral-500">{t("noActions")}</p>
     );
   }
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        {transitions.map((t) => (
+        {transitions.map((tr) => (
           <Button
-            key={t.next}
-            variant={t.variant}
+            key={tr.next}
+            variant={tr.variant}
             disabled={pending !== null}
-            onClick={() => setStatus(t.next)}
+            onClick={() => setStatus(tr.next)}
           >
-            {pending === t.next ? "Saving..." : t.label}
+            {pending === tr.next ? t("statusSaving") : tr.label}
           </Button>
         ))}
       </div>

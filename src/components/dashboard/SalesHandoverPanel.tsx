@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type MouseEvent } from "react";
+import { useTranslations } from "next-intl";
 
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 
@@ -65,7 +66,8 @@ interface SalesHandoverPanelProps {
 
 /** Deutsche Labels für die RISK_SIGNAL_TYPES — spiegelt SIGNAL_TYPE_GERMAN_LABEL
  *  in src/lib/bridge/cs-to-research.ts, dort aber für die Detail-Beschreibung;
- *  hier nutzen wir kürzere Tag-Labels passend zum Severity-Chip. */
+ *  hier nutzen wir kürzere Tag-Labels passend zum Severity-Chip. Analyse-
+ *  Taxonomie (wie SEVERITY_CHIP) — Quellsprache (DE) in beiden Locales. */
 const SIGNAL_LABEL: Record<string, string> = {
   CHAMPION_LOSS: "Champion-Verlust",
   COMPETITOR_PRESSURE: "Wettbewerbsdruck",
@@ -119,6 +121,7 @@ export function SalesHandoverPanel({
   initialSuggestions,
 }: SalesHandoverPanelProps) {
   const router = useRouter();
+  const t = useTranslations("research.bridge");
   const [suggestions, setSuggestions] = useState(initialSuggestions);
   const [scanning, setScanning] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -146,7 +149,7 @@ export function SalesHandoverPanel({
         detail?: string;
       };
       if (!res.ok) {
-        setError(data.detail ?? data.error ?? "Scan fehlgeschlagen.");
+        setError(data.detail ?? data.error ?? t("errScan"));
         return;
       }
       if (Array.isArray(data.suggestions)) {
@@ -158,15 +161,15 @@ export function SalesHandoverPanel({
       const clean = data.clean ?? 0;
       const failed = data.failed ?? 0;
       const parts = [
-        `${scanned} Won-Deal${scanned === 1 ? "" : "s"} gescannt`,
-        `${created} neu`,
-        `${skipped} schon vorhanden`,
-        `${clean} sauberer Start`,
+        t("shScanScanned", { count: scanned }),
+        t("shScanCreated", { count: created }),
+        t("shScanSkipped", { count: skipped }),
+        t("shScanClean", { count: clean }),
       ];
-      if (failed > 0) parts.push(`${failed} fehlgeschlagen`);
-      setScanNote(`Scan abgeschlossen: ${parts.join(", ")}.`);
+      if (failed > 0) parts.push(t("shScanFailed", { count: failed }));
+      setScanNote(t("shScanDone", { parts: parts.join(", ") }));
     } catch (err) {
-      setError("Scan fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errScanNetwork"));
       console.error("sales-handover scan failed:", err);
     } finally {
       setScanning(false);
@@ -193,9 +196,7 @@ export function SalesHandoverPanel({
         detail?: string;
       };
       if (!res.ok || !data.success || !data.accountId) {
-        setError(
-          data.detail ?? data.error ?? "Übernahme fehlgeschlagen.",
-        );
+        setError(data.detail ?? data.error ?? t("errApproveHandover"));
         return;
       }
       // Optimistic: remove the card. Then redirect to the account detail
@@ -203,7 +204,7 @@ export function SalesHandoverPanel({
       setSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
       router.push(`/dashboard/accounts/${data.accountId}`);
     } catch (err) {
-      setError("Übernahme fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errApproveHandoverNetwork"));
       console.error(
         `sales-handover approve failed for ${suggestion.id}:`,
         err,
@@ -230,12 +231,12 @@ export function SalesHandoverPanel({
         detail?: string;
       };
       if (!res.ok || !data.success) {
-        setError(data.detail ?? data.error ?? "Verwerfen fehlgeschlagen.");
+        setError(data.detail ?? data.error ?? t("errDismiss"));
         return;
       }
       setSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
     } catch (err) {
-      setError("Verwerfen fehlgeschlagen — Netzwerkfehler.");
+      setError(t("errDismissNetwork"));
       console.error(
         `sales-handover dismiss failed for ${suggestion.id}:`,
         err,
@@ -250,15 +251,8 @@ export function SalesHandoverPanel({
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-h3 text-neutral-900">
-              Startkontext aus Sales
-            </h2>
-            <p className="mt-1 text-small text-neutral-500">
-              Wenn ein Deal gewonnen wird, hebt diese Brücke die bekannten
-              Risiken (Wettbewerber, Single-Threading, Sales-Phase-Signale)
-              als Startkontext in den frischen Account. Deterministisches
-              Mapping — kein LLM-Call. Du entscheidest per Klick.
-            </p>
+            <h2 className="text-h3 text-neutral-900">{t("shTitle")}</h2>
+            <p className="mt-1 text-small text-neutral-500">{t("shSubtitle")}</p>
           </div>
           <button
             type="button"
@@ -266,7 +260,7 @@ export function SalesHandoverPanel({
             disabled={scanning || busyId !== null}
             className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
           >
-            {scanning ? "Suche läuft…" : "Jetzt scannen"}
+            {scanning ? t("scanning") : t("shScan")}
           </button>
         </div>
       </CardHeader>
@@ -285,8 +279,7 @@ export function SalesHandoverPanel({
 
         {suggestions.length === 0 ? (
           <p className="py-3 text-center text-body text-neutral-500">
-            Keine offenen Handover-Vorschläge. „Jetzt scannen" prüft die
-            jüngsten gewonnenen Deals auf übertragbare Starter-Signale.
+            {t("shEmpty")}
           </p>
         ) : (
           <ul className="space-y-3">
@@ -302,12 +295,12 @@ export function SalesHandoverPanel({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-body-strong text-neutral-900">
-                        Startkontext für „{refs.companyName ?? "Account"}"
-                        übernehmen?
+                        {t("shCardTitle", {
+                          company: refs.companyName ?? t("shCompanyFallback"),
+                        })}
                       </p>
                       <p className="mt-1 text-small text-neutral-700">
-                        {refs.summary ??
-                          "Starter-Signale aus dem Sales-Deal sind verfügbar."}
+                        {refs.summary ?? t("shSummaryFallback")}
                       </p>
                       {signals.length > 0 && (
                         <ul className="mt-2 space-y-1.5">
@@ -340,9 +333,12 @@ export function SalesHandoverPanel({
                         </ul>
                       )}
                       <p className="mt-2 font-mono text-caption text-neutral-400">
-                        Deal: {refs.dealName ?? "—"}
-                        {closedAt ? ` · gewonnen am ${closedAt}` : ""}
-                        {" · "}sales_handover (deterministisch)
+                        {t("shDealLine", {
+                          name: refs.dealName ?? "—",
+                          closedAt: closedAt
+                            ? t("shWonAt", { date: closedAt })
+                            : "",
+                        })}
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-2">
@@ -352,9 +348,7 @@ export function SalesHandoverPanel({
                         disabled={busyId !== null || scanning}
                         className="w-44 rounded-md border border-primary-600 bg-primary-600 px-3 py-1.5 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:opacity-50"
                       >
-                        {busyId === s.id
-                          ? "Wird übernommen…"
-                          : "In Health-Score übernehmen"}
+                        {busyId === s.id ? t("shApproving") : t("shAdopt")}
                       </button>
                       <button
                         type="button"
@@ -362,7 +356,7 @@ export function SalesHandoverPanel({
                         disabled={busyId !== null || scanning}
                         className="w-44 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
                       >
-                        Verwerfen
+                        {t("dismiss")}
                       </button>
                     </div>
                   </div>
