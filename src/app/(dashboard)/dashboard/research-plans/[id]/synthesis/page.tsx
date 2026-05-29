@@ -12,6 +12,8 @@ import {
   type Tension,
   type TensionSide,
 } from "@/lib/synthesis/service";
+import { appBaseUrl } from "@/lib/email/research-invite";
+import { listSynthesisShares } from "@/lib/synthesis/share-service";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ChatWithDataPanel } from "@/components/dashboard/ChatWithDataPanel";
@@ -20,6 +22,7 @@ import { ExportSynthesisPptxButton } from "@/components/dashboard/ExportSynthesi
 import { HighlightReelPanel } from "@/components/dashboard/HighlightReelPanel";
 import { SynthesisThemeCard } from "@/components/dashboard/SynthesisThemeCard";
 import { UpdateSynthesisButton } from "@/components/dashboard/UpdateSynthesisButton";
+import { SynthesisShareManager } from "@/components/dashboard/SynthesisShareManager";
 
 /**
  * /dashboard/research-plans/[id]/synthesis — Stage-2 cross-call synthesis.
@@ -95,6 +98,16 @@ export default async function ResearchPlanSynthesisPage({
     planId,
     synthesis?.synthesized_at ?? null,
   );
+
+  // Existing public share links for this synthesis (org-internal, newest
+  // first). Loaded via the canonical service — same path the public route uses
+  // — only when a populated synthesis exists, i.e. the same gate the share
+  // manager and export buttons render under.
+  const synthesisReady =
+    synthesis !== null && synthesis.synthesized_at !== null;
+  const shares = synthesisReady
+    ? await listSynthesisShares(orgId, planId)
+    : [];
 
   const t = await getTranslations("research.synthesis");
   const locale = await getLocale();
@@ -289,6 +302,16 @@ export default async function ResearchPlanSynthesisPage({
               and the panel only triggers on an explicit click — the engine
               short-circuits empty inputs to zero-token responses. */}
           <HighlightReelPanel planId={planId} ready={true} />
+
+          {/* Share — create / list / revoke public read-only links to this
+              synthesis. Same readiness gate as the export buttons; the
+              show_quotes opt-in (default off) lives in the manager. baseUrl is
+              the canonical appBaseUrl() — same source as the invite emails. */}
+          <SynthesisShareManager
+            planId={planId}
+            initialShares={shares}
+            baseUrl={appBaseUrl()}
+          />
         </>
       )}
     </div>

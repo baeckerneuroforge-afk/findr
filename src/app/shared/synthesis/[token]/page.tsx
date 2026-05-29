@@ -46,18 +46,22 @@ export async function generateMetadata({
 }
 
 /** Clean, neutral fallback for unknown / revoked / expired / not-yet-synthesised
- *  tokens. One generic message (no enumeration signal) — and since we have no
- *  share row, no language either, so it renders in the default locale. */
+ *  tokens. One generic message (no enumeration signal). With no share row there
+ *  is no known locale, so the notice is shown in BOTH supported languages —
+ *  each pulled from its own properly-localised catalog — so any visitor
+ *  understands a dead or expired link. The default locale leads; the other
+ *  follows, muted. */
 function SharedUnavailable() {
+  const primary = MESSAGES[DEFAULT_LOCALE].sharedSynthesis.unavailable;
+  const secondaryLocale = DEFAULT_LOCALE === "de" ? "en" : "de";
+  const secondary = MESSAGES[secondaryLocale].sharedSynthesis.unavailable;
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-h2 text-neutral-900">
-          This shared report is no longer available
-        </h1>
-        <p className="mt-2 text-body text-neutral-500">
-          Dieser geteilte Bericht ist nicht (mehr) verfügbar. The link may have
-          expired or been revoked.
+        <h1 className="text-h2 text-neutral-900">{primary.title}</h1>
+        <p className="mt-2 text-body text-neutral-500">{primary.body}</p>
+        <p className="mt-1 text-small text-neutral-400">
+          {secondary.title} {secondary.body}
         </p>
       </div>
     </div>
@@ -75,18 +79,21 @@ export default async function SharedSynthesisPage({
 
   // The share's locale lives behind the unguessable token, not in a cookie, so
   // we set this subtree's NextIntlClientProvider locale EXPLICITLY from the DB
-  // row — exactly like interview/[token]/page.tsx. The view itself renders
-  // server-side with literal labels today (the synthesis-display strings aren't
-  // in the catalogs yet); this provider establishes the right locale seam for
-  // when those keys land and the view swaps to useTranslations.
+  // row — exactly like interview/[token]/page.tsx. SharedSynthesisView is a
+  // client component and reads its chrome strings (sharedSynthesis.*) from this
+  // provider, so an account-less stakeholder sees the language the researcher
+  // chose for the link.
   const locale = shared.language;
 
   return (
     <NextIntlClientProvider
       locale={locale}
-      messages={{ common: MESSAGES[locale].common }}
+      messages={{
+        common: MESSAGES[locale].common,
+        sharedSynthesis: MESSAGES[locale].sharedSynthesis,
+      }}
     >
-      <SharedSynthesisView data={shared} locale={locale} />
+      <SharedSynthesisView data={shared} />
     </NextIntlClientProvider>
   );
 }

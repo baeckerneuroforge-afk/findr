@@ -1422,5 +1422,47 @@
     "saved": "Saved.",
     "saveError": "Could not save. Please try again.",
     "adminOnly": "Only organization admins can change branding."
+  },
+  "sharedSynthesis": {
+    "eyebrow": "Shared synthesis",
+    "basedOn": "Based on {count, plural, one {# interview} other {# interviews}}",
+    "overview": "Overview",
+    "themesHeading": "Emergent themes ({count})",
+    "themesSub": "Themes that surfaced across multiple interviews.",
+    "tensionsHeading": "Tensions ({count})",
+    "tensionsSub": "Points where participants disagree.",
+    "frequencyOfTotal": "{freq} of {total, plural, one {# participant} other {# participants}}",
+    "frequencyMentions": "{freq, plural, one {# mention} other {# mentions}}",
+    "noThemes": "No cross-interview themes surfaced.",
+    "noTensions": "No conflicting camps surfaced across the interviews.",
+    "sideA": "Side A",
+    "sideB": "Side B",
+    "disclaimer": "Read-only, anonymized summary. Shared via Findr.",
+    "unavailable": {
+      "title": "This shared report is no longer available",
+      "body": "The link may have expired or been revoked."
+    },
+    "manage": {
+      "heading": "Share synthesis",
+      "description": "Create a read-only link for stakeholders without a Findr account.",
+      "showQuotesLabel": "Show verbatim quotes",
+      "showQuotesHelp": "Off by default. When on, participant quotes become visible in the shared link.",
+      "languageLabel": "Link language",
+      "langDe": "Deutsch",
+      "langEn": "English",
+      "create": "Create link",
+      "creating": "Creating …",
+      "createError": "Could not create the link.",
+      "existingHeading": "Existing links",
+      "empty": "No links created yet.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "revoke": "Revoke",
+      "revoking": "Revoking …",
+      "revokeError": "Could not revoke the link.",
+      "revokedBadge": "Revoked",
+      "withQuotesBadge": "With quotes",
+      "withoutQuotesBadge": "Without quotes"
+    }
   }
 }

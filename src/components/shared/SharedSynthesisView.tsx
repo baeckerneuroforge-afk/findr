@@ -1,5 +1,8 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import type { Locale } from "@/i18n/locale";
 import type {
   SharedSynthesis,
   SharedSynthesisTensionSide,
@@ -7,9 +10,11 @@ import type {
 
 /**
  * Public, READ-ONLY render of a shared study synthesis (/shared/synthesis/
- * [token]). Server component — no interactivity, no client JS, nothing
- * expandable: this is the stakeholder-facing artefact, not the internal
- * working surface.
+ * [token]). Client component — not for interactivity (there is none), but so the
+ * chrome labels resolve through the page's NextIntlClientProvider, whose locale
+ * is set EXPLICITLY from the share row (share.language), not a cookie. A server
+ * component can't read that provider; a client one does, so an account-less
+ * stakeholder sees exactly the language the researcher chose.
  *
  * Shows: overview, emergent themes (title / summary / frequency), tensions
  * (description + both sides' labels). Quotes appear ONLY when the share opted
@@ -18,73 +23,13 @@ import type {
  * there is nothing private to leak here.
  *
  * Deliberately does NOT reuse the dashboard's SynthesisThemeCard: that
- * component renders sourceInsightIds + an expand/collapse affordance and is
- * being reworked by the i18n etappe. This view is its own, simpler thing.
+ * component renders sourceInsightIds + an expand/collapse affordance. This view
+ * is its own, simpler thing.
  *
- * i18n: the labels below live in a local bilingual map because the synthesis-
- * display strings do not yet exist in messages/{de,en}.json. They are kept
- * minimal and flagged for migration to a `sharedSynthesis.*` namespace once the
- * i18n etappe that owns those catalogs has merged. The page picks the locale
- * from the share row (not a cookie), so an account-less stakeholder sees the
- * language the researcher chose.
+ * i18n: chrome strings live in the `sharedSynthesis.*` catalog namespace. The
+ * AI/DB content (overview, summaries, quotes, labels) stays in its source
+ * language and is rendered verbatim — never translated.
  */
-
-interface Labels {
-  eyebrow: string;
-  basedOn: (n: number) => string;
-  overview: string;
-  themesHeading: (n: number) => string;
-  themesSub: string;
-  tensionsHeading: (n: number) => string;
-  tensionsSub: string;
-  frequency: (freq: number, total: number) => string;
-  noThemes: string;
-  noTensions: string;
-  sideA: string;
-  sideB: string;
-  disclaimer: string;
-}
-
-const LABELS: Record<Locale, Labels> = {
-  de: {
-    eyebrow: "Geteilte Synthese",
-    basedOn: (n) => `Basiert auf ${n} ${n === 1 ? "Interview" : "Interviews"}`,
-    overview: "Überblick",
-    themesHeading: (n) => `Emergente Themen (${n})`,
-    themesSub: "Themen, die in mehreren Interviews aufgetaucht sind.",
-    tensionsHeading: (n) => `Spannungen (${n})`,
-    tensionsSub: "Punkte, an denen sich Teilnehmer widersprechen.",
-    frequency: (freq, total) =>
-      total > 0
-        ? `${freq} von ${total} ${total === 1 ? "Teilnehmer" : "Teilnehmern"}`
-        : `${freq} ${freq === 1 ? "Erwähnung" : "Erwähnungen"}`,
-    noThemes: "Keine übergreifenden Themen über die Interviews hinweg.",
-    noTensions: "Keine widersprüchlichen Lager über die Interviews hinweg.",
-    sideA: "Seite A",
-    sideB: "Seite B",
-    disclaimer:
-      "Schreibgeschützte, anonymisierte Zusammenfassung. Geteilt über Findr.",
-  },
-  en: {
-    eyebrow: "Shared synthesis",
-    basedOn: (n) =>
-      `Based on ${n} ${n === 1 ? "interview" : "interviews"}`,
-    overview: "Overview",
-    themesHeading: (n) => `Emergent themes (${n})`,
-    themesSub: "Themes that surfaced across multiple interviews.",
-    tensionsHeading: (n) => `Tensions (${n})`,
-    tensionsSub: "Points where participants disagree.",
-    frequency: (freq, total) =>
-      total > 0
-        ? `${freq} of ${total} ${total === 1 ? "participant" : "participants"}`
-        : `${freq} ${freq === 1 ? "mention" : "mentions"}`,
-    noThemes: "No cross-interview themes surfaced.",
-    noTensions: "No conflicting camps surfaced across the interviews.",
-    sideA: "Side A",
-    sideB: "Side B",
-    disclaimer: "Read-only, anonymized summary. Shared via Findr.",
-  },
-};
 
 function QuoteList({ quotes }: { quotes: string[] }) {
   if (quotes.length === 0) return null;
@@ -120,14 +65,8 @@ function TensionSidePanel({
   );
 }
 
-export function SharedSynthesisView({
-  data,
-  locale,
-}: {
-  data: SharedSynthesis;
-  locale: Locale;
-}) {
-  const t = LABELS[locale];
+export function SharedSynthesisView({ data }: { data: SharedSynthesis }) {
+  const t = useTranslations("sharedSynthesis");
 
   return (
     <div className="min-h-screen bg-neutral-50 px-4 py-10 sm:px-6 lg:py-16">
@@ -135,13 +74,13 @@ export function SharedSynthesisView({
         {/* Header */}
         <header>
           <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
-            {t.eyebrow}
+            {t("eyebrow")}
           </div>
           <h1 className="mt-1 text-display text-neutral-900">
             {data.planTitle}
           </h1>
           <p className="mt-2 text-small text-neutral-500">
-            {t.basedOn(data.basedOnCount)}
+            {t("basedOn", { count: data.basedOnCount })}
           </p>
         </header>
 
@@ -149,7 +88,7 @@ export function SharedSynthesisView({
         {data.overview && (
           <Card>
             <CardHeader>
-              <h2 className="text-h3 text-neutral-900">{t.overview}</h2>
+              <h2 className="text-h3 text-neutral-900">{t("overview")}</h2>
             </CardHeader>
             <CardBody>
               <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-700">
@@ -163,15 +102,15 @@ export function SharedSynthesisView({
         <section className="space-y-4">
           <div>
             <h2 className="text-h2 text-neutral-900">
-              {t.themesHeading(data.emergentThemes.length)}
+              {t("themesHeading", { count: data.emergentThemes.length })}
             </h2>
-            <p className="text-body text-neutral-500">{t.themesSub}</p>
+            <p className="text-body text-neutral-500">{t("themesSub")}</p>
           </div>
           {data.emergentThemes.length === 0 ? (
             <Card>
               <CardBody>
                 <p className="py-4 text-center text-body text-neutral-500">
-                  {t.noThemes}
+                  {t("noThemes")}
                 </p>
               </CardBody>
             </Card>
@@ -187,7 +126,12 @@ export function SharedSynthesisView({
                       {theme.summary}
                     </p>
                     <div className="mt-2 text-caption font-medium uppercase tracking-wider text-neutral-400">
-                      {t.frequency(theme.frequency, data.basedOnCount)}
+                      {data.basedOnCount > 0
+                        ? t("frequencyOfTotal", {
+                            freq: theme.frequency,
+                            total: data.basedOnCount,
+                          })
+                        : t("frequencyMentions", { freq: theme.frequency })}
                     </div>
                     <QuoteList quotes={theme.quotes} />
                   </CardBody>
@@ -201,15 +145,15 @@ export function SharedSynthesisView({
         <section className="space-y-4">
           <div>
             <h2 className="text-h2 text-neutral-900">
-              {t.tensionsHeading(data.tensions.length)}
+              {t("tensionsHeading", { count: data.tensions.length })}
             </h2>
-            <p className="text-body text-neutral-500">{t.tensionsSub}</p>
+            <p className="text-body text-neutral-500">{t("tensionsSub")}</p>
           </div>
           {data.tensions.length === 0 ? (
             <Card>
               <CardBody>
                 <p className="py-4 text-center text-body text-neutral-500">
-                  {t.noTensions}
+                  {t("noTensions")}
                 </p>
               </CardBody>
             </Card>
@@ -224,11 +168,11 @@ export function SharedSynthesisView({
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <TensionSidePanel
                         side={tension.sideA}
-                        sideName={t.sideA}
+                        sideName={t("sideA")}
                       />
                       <TensionSidePanel
                         side={tension.sideB}
-                        sideName={t.sideB}
+                        sideName={t("sideB")}
                       />
                     </div>
                   </CardBody>
@@ -240,7 +184,7 @@ export function SharedSynthesisView({
 
         {/* Footer disclaimer */}
         <footer className="border-t border-neutral-200 pt-6">
-          <p className="text-caption text-neutral-400">{t.disclaimer}</p>
+          <p className="text-caption text-neutral-400">{t("disclaimer")}</p>
         </footer>
       </div>
     </div>
