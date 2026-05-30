@@ -8,7 +8,9 @@
  *
  * Each case is a realistic CS conversation (renewal pre-call, QBR, check-in,
  * support handoff) with:
- *   - account context (companyName, sponsor, sponsorEmail, renewal, MRR, currency)
+ *   - account context (companyName, sponsor, sponsorEmail, renewal, value +
+ *     valueType, currency) — valueType drives the prompt's value label
+ *     (monthly→MRR, yearly→annual contract value, one_time→project value)
  *   - transcript (DE / EN / mixed)
  *   - HAND-SET health analysis (the kind the v2 health classifier would emit
  *     after src/lib/accounts/health-service.ts persists it)
@@ -51,6 +53,7 @@ export const SAVE_PLAY_EVAL_CASES: SavePlayEvalCase[] = [
       sponsorEmail: "m.renz@logistik-hamburg.de",
       renewalDate: "2026-08-15",
       mrr: 4500,
+      valueType: "monthly",
       currency: "EUR",
       transcriptsCount: 3,
     },
@@ -92,6 +95,7 @@ export const SAVE_PLAY_EVAL_CASES: SavePlayEvalCase[] = [
       sponsorEmail: "k.faber@stuttgart-industriebau.de",
       renewalDate: "2026-07-10",
       mrr: 6800,
+      valueType: "monthly",
       currency: "EUR",
       transcriptsCount: 4,
     },
@@ -136,6 +140,7 @@ export const SAVE_PLAY_EVAL_CASES: SavePlayEvalCase[] = [
       sponsorEmail: "d.frey@helvetia-foods.ch",
       renewalDate: "2026-08-30",
       mrr: 8200,
+      valueType: "monthly",
       currency: "EUR",
       transcriptsCount: 5,
     },
@@ -182,6 +187,7 @@ export const SAVE_PLAY_EVAL_CASES: SavePlayEvalCase[] = [
       sponsorEmail: "dana@riverside-group.com",
       renewalDate: "2026-09-22",
       mrr: 5200,
+      valueType: "monthly",
       currency: "USD",
       transcriptsCount: 4,
     },
@@ -227,6 +233,7 @@ export const SAVE_PLAY_EVAL_CASES: SavePlayEvalCase[] = [
       sponsorEmail: "l.hartmann@bayern-werke.de",
       renewalDate: "2026-06-20",
       mrr: 5800,
+      valueType: "monthly",
       currency: "EUR",
       transcriptsCount: 4,
     },
@@ -266,13 +273,14 @@ export const SAVE_PLAY_EVAL_CASES: SavePlayEvalCase[] = [
   {
     id: "sp_06",
     description:
-      "Lukewarm — single mild STALLING_PATTERN, sponsor genuinely overloaded",
+      "Lukewarm — single mild STALLING_PATTERN, sponsor genuinely overloaded (yearly retainer — exercises the annual-value label, not MRR)",
     account: {
       companyName: "Bavaria Mittelstand GmbH",
       sponsorName: "Henrik Schäfer",
       sponsorEmail: "h.schaefer@bavaria-mittelstand.de",
       renewalDate: "2026-10-15",
       mrr: 3200,
+      valueType: "yearly",
       currency: "EUR",
       transcriptsCount: 3,
     },
@@ -318,6 +326,7 @@ export const SAVE_PLAY_EVAL_CASES: SavePlayEvalCase[] = [
       sponsorEmail: "alex@pinnacle-capital.com",
       renewalDate: "2026-11-30",
       mrr: 7500,
+      valueType: "monthly",
       currency: "USD",
       transcriptsCount: 4,
     },
@@ -348,5 +357,8 @@ export const SAVE_PLAY_EVAL_CASES: SavePlayEvalCase[] = [
  *                    ENGAGEMENT_DROP, COMPETITOR_PRESSURE, STALLING_PATTERN
  *                    (the mild lukewarm one), plus one healthy (no signals).
  *   Language:        de ×4, en ×2, mixed ×1.
+ *   Value type:      monthly ×6, yearly ×1 (sp_06) — the one_time label is
+ *                    covered by run.ts's deterministic label gate, since a
+ *                    one-time project value has no renewal narrative to fit.
  *   Company profile: none (round 1).
  */

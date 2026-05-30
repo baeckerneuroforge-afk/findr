@@ -253,10 +253,13 @@ function caseHaystack(c: SavePlayEvalCase): string {
   return fold(`${c.transcript} ${quotes}`);
 }
 
-function mrrStr(c: SavePlayEvalCase): string {
-  const { mrr, currency } = c.account;
-  if (mrr == null) return "MRR n/a";
-  return `${currency} ${mrr.toLocaleString()}/mo`;
+function valueStr(c: SavePlayEvalCase): string {
+  const { mrr, currency, valueType } = c.account;
+  if (mrr == null) return "value n/a";
+  const amount = `${currency} ${mrr.toLocaleString()}`;
+  if (valueType === "yearly") return `${amount}/yr`;
+  if (valueType === "one_time") return `${amount} one-time`;
+  return `${amount}/mo`;
 }
 
 interface Tally {
@@ -276,7 +279,7 @@ function printCase(c: SavePlayEvalCase, result: SavePlayResult, tally: Tally): v
   console.log(
     `account: ${c.account.companyName} · sponsor: ${
       c.account.sponsorName ?? "—"
-    } · ${mrrStr(c)} · renewal: ${c.account.renewalDate ?? "—"}`,
+    } · ${valueStr(c)} · renewal: ${c.account.renewalDate ?? "—"}`,
   );
   console.log(
     `health: ${c.health.healthScore}/100 (${c.health.healthLevel}) · signals: ${signalList}`,
@@ -346,11 +349,42 @@ async function main(): Promise<void> {
     );
   }
 
-  const { generateSavePlayLLM } = await loadExtractor();
+  const { generateSavePlayLLM, buildAccountValueLine } = await loadExtractor();
   // Reuses the Solution model knob — both layers share one model setting on purpose
   // (save-play-service.ts imports DEFAULT_SOLUTION_MODEL for the same reason).
   const { DEFAULT_SOLUTION_MODEL } = await import("@/lib/solution/extractor");
   const model = process.env.SOLUTION_MODEL ?? DEFAULT_SOLUTION_MODEL;
+
+  // ---- deterministic label gate (no API) ----------------------------------
+  // The motivating fix: the value line must be labeled by value_type, and a
+  // one-time project value must NEVER be presented to the model as recurring
+  // "MRR". Pure string check — needs no model call, so it runs every time.
+  const labelGate: Array<{
+    valueType: "monthly" | "yearly" | "one_time";
+    prefix: string;
+    forbidMrr: boolean;
+  }> = [
+    { valueType: "monthly", prefix: "MRR:", forbidMrr: false },
+    { valueType: "yearly", prefix: "Annual contract value:", forbidMrr: true },
+    { valueType: "one_time", prefix: "Project value (one-time):", forbidMrr: true },
+  ];
+  let labelFails = 0;
+  console.log("\nLabel gate (deterministic, no API) — value_type → prompt label:");
+  for (const { valueType, prefix, forbidMrr } of labelGate) {
+    const line = buildAccountValueLine(valueType, 50000, "EUR");
+    const okPrefix = line.startsWith(prefix);
+    const okNoMrr = !forbidMrr || !/MRR/i.test(line);
+    const ok = okPrefix && okNoMrr;
+    if (!ok) labelFails += 1;
+    console.log(
+      `  ${ok ? "PASS" : "FAIL"} ${valueType.padEnd(9)} -> "${line}"` +
+        (forbidMrr && !okNoMrr ? "   <-- still says MRR!" : ""),
+    );
+  }
+  if (labelFails > 0) {
+    console.log(`  ${labelFails} label FAIL(s) — the value-type fix is broken.`);
+    process.exitCode = 1;
+  }
 
   console.log(`\nSave-Play Eval — model: ${model}`);
   console.log(`${SAVE_PLAY_EVAL_CASES.length} cases · read the output, judge manually\n`);

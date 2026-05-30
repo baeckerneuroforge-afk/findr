@@ -142,6 +142,7 @@ export async function generateSavePlay(
       sponsorEmail: account.sponsorEmail,
       renewalDate: account.renewalDate,
       mrr: account.mrr,
+      valueType: account.valueType,
       currency: account.currency,
       transcriptsCount,
     },
