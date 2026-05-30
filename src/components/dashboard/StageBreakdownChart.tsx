@@ -130,7 +130,7 @@ export async function StageBreakdownChart({
                     width={weightedWidth}
                     height="10"
                     rx="5"
-                    fill="#6366f1"
+                    fill="#6d3fe0"
                   />
                   <text
                     x={labelWidth + chartWidth}
