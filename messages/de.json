@@ -102,6 +102,7 @@
       "productDiscovery": "Product Discovery",
       "researchPlans": "Research-Pläne",
       "participantPool": "Teilnehmer-Pool",
+      "crossStudy": "Cross-Study",
       "dataSources": "Datenquellen",
       "settings": "Einstellungen"
     }
@@ -1515,5 +1516,28 @@
       "theme_ranking": "Theme-Ranking",
       "custom": "Deliverable"
     }
+  },
+  "missionControl": {
+    "pageTitle": "Cross-Study",
+    "pageIntro": "Stell eine Frage über ALLE Studien deiner Organisation hinweg — Antworten ausschließlich aus den Studien-Synthesen, mit Quellenangabe je Studie.",
+    "title": "Studienübergreifend fragen",
+    "subtitle": "Frag über alle Studien-Synthesen deiner Organisation hinweg. Jede Aussage ist mit einem wörtlichen Beleg aus der jeweiligen Studie verankert — ohne Beleg gibt es eine ehrliche Absage statt einer erfundenen Antwort.",
+    "clear": "Verlauf löschen",
+    "notReady": "Sobald mindestens eine Studie synthetisiert wurde, kannst du hier studienübergreifend fragen.",
+    "questionLabel": "Frage",
+    "answerLabel": "Antwort",
+    "refusalLabel": "Keine Evidenz in den Studien",
+    "sourcesLabel": "Quellen",
+    "untitledStudy": "Unbenannte Studie",
+    "openStudyHint": "Studie öffnen",
+    "thinking": "Wird beantwortet …",
+    "placeholder": "z. B. „Welche Themen tauchen studienübergreifend auf?\" oder „Vergleiche die Befunde aus Studie A und B.\"",
+    "anchoredHint": "Jede Antwort ist ausschließlich in den Studien-Synthesen verankert — ungestützte Aussagen werden verworfen.",
+    "submit": "Fragen",
+    "submitting": "Wird beantwortet …",
+    "errNoAccess": "Kein Zugriff — bitte melde dich an und wähle eine Organisation.",
+    "errInvalidRequest": "Die Anfrage war ungültig.",
+    "errEngine": "Cross-Study ist momentan nicht verfügbar.",
+    "errNetwork": "Verbindung fehlgeschlagen. Bitte versuche es erneut."
   }
 }

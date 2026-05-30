@@ -40,6 +40,7 @@ export const PALETTE_ROUTES: PaletteRoute[] = [
 
   // Product
   { labelKey: "nav.item.productDiscovery", href: "/dashboard/product-discovery", groupKey: "nav.group.product" },
+  { labelKey: "nav.item.crossStudy", href: "/dashboard/insights", groupKey: "nav.group.product" },
 
   // Workspace
   { labelKey: "nav.item.dataSources", href: "/dashboard/data-sources", groupKey: "nav.group.workspace" },

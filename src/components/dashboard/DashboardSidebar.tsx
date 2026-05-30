@@ -68,6 +68,10 @@ const MODULES: NavGroupDef[] = [
         href: "/dashboard/research-plans/pool",
         labelKey: "item.participantPool",
       },
+      // Cross-Study (Mission-Control) — org-level chat ACROSS all study
+      // syntheses. Lives next to Research Plans because it reads from the same
+      // studies, but it is NOT inside any single study (its own top-level page).
+      { href: "/dashboard/insights", labelKey: "item.crossStudy" },
     ],
   },
 ];

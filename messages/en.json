@@ -102,6 +102,7 @@
       "productDiscovery": "Product Discovery",
       "researchPlans": "Research Plans",
       "participantPool": "Participant Pool",
+      "crossStudy": "Cross-Study",
       "dataSources": "Data Sources",
       "settings": "Settings"
     }
@@ -1515,5 +1516,28 @@
       "theme_ranking": "Theme ranking",
       "custom": "Deliverable"
     }
+  },
+  "missionControl": {
+    "pageTitle": "Cross-Study",
+    "pageIntro": "Ask a question ACROSS ALL studies in your organization — answers come exclusively from the study syntheses, with a source citation per study.",
+    "title": "Ask across studies",
+    "subtitle": "Ask across all of your organization's study syntheses. Every statement is anchored to a verbatim quote from the study it cites — when there's no evidence you get an honest refusal instead of a fabricated answer.",
+    "clear": "Clear history",
+    "notReady": "Once at least one study has been synthesized, you can ask across studies here.",
+    "questionLabel": "Question",
+    "answerLabel": "Answer",
+    "refusalLabel": "No evidence in the studies",
+    "sourcesLabel": "Sources",
+    "untitledStudy": "Untitled study",
+    "openStudyHint": "Open study",
+    "thinking": "Answering …",
+    "placeholder": "e.g. \"Which themes appear across studies?\" or \"Compare the findings from study A and B.\"",
+    "anchoredHint": "Every answer is anchored exclusively in the study syntheses — unsupported claims are dropped.",
+    "submit": "Ask",
+    "submitting": "Answering …",
+    "errNoAccess": "No access — please sign in and select an organization.",
+    "errInvalidRequest": "The request was invalid.",
+    "errEngine": "Cross-Study is currently unavailable.",
+    "errNetwork": "Connection failed. Please try again."
   }
 }
