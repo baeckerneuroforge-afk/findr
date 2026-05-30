@@ -3,9 +3,9 @@ import { loadMarketingPage } from "@/lib/marketing/page-source";
 import { MarketingScripts } from "@/components/marketing/MarketingScripts";
 
 export const metadata: Metadata = {
-  title: "findr. — Conversation Intelligence for B2B Sales",
+  title: "findr. — Conversation-Intelligence-Plattform für B2B-SaaS",
   description:
-    "Your CRM shows what happened. findr. shows why — reading every sales conversation, scoring deal risk in real time, and surfacing the signals your CRM misses. EU-hosted, GDPR + EU AI Act compliant.",
+    "Ein KI-Gehirn, vier Produkte: Sales Intelligence, Customer Success Health, Product Discovery und Market Research. findr. liest jedes Kundengespräch und macht es über alle Produkte hinweg nutzbar — DSGVO-nativ, in Frankfurt gehostet, EU-AI-Act-konform.",
 };
 
 export default function HomePage() {
