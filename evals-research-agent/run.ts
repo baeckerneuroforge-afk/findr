@@ -33,10 +33,12 @@ import {
   type ResearchAgentDiagnostics,
   type SynthesisAnchorSet,
 } from "@/lib/research-agent/engine";
+import type { DeliverableItem } from "@/lib/schemas/research-agent";
 import {
   buildResearchInput,
   RESEARCH_AGENT_FIXTURE,
   RESEARCH_AGENT_EVAL_CASES,
+  type ResearchAgentCaseGroup,
   type ResearchAgentEvalCase,
 } from "./dataset";
 
@@ -77,10 +79,58 @@ function hasImpossibleCount(text: string, basedOnCount: number): boolean {
     .some((n) => n > basedOnCount && n <= 40);
 }
 
+// ── prose-scan helpers (anchor-channel-independent discriminators) ───────────
+// The hardened discriminators scan an item's FOLDED heading+text (its prose) or
+// its surfaced quotes — NOT its themeRefs[]. The system prompt explicitly lets a
+// model anchor via a quote alone and put the theme NAME in `heading`, so a
+// themeRefs-keyed check would false-fail a correct, prompt-endorsed answer.
+
+/** An item's prose for marker scanning: folded heading + text. */
+function foldedProseOf(item: DeliverableItem): string {
+  return fold(`${item.heading}\n${item.text}`);
+}
+
+/** Folded prose of every surfaced item, joined — the union haystack. */
+function surfacedProse(items: DeliverableItem[]): string {
+  return items.map(foldedProseOf).join(" \n ");
+}
+
+/** Every surfaced quote, folded — for required/forbidden-quote attribution. */
+function surfacedQuotesFolded(items: DeliverableItem[]): string[] {
+  return items.flatMap((it) => it.quotes.map(fold));
+}
+
+/** Standalone integers appearing in surfaced prose (heading+text) — for the
+ *  exact-count fidelity checks. Anchored quotes are excluded (a count inside a
+ *  verbatim quote would be the synthesis's own words, not the model's claim). */
+function surfacedNumbers(items: DeliverableItem[]): number[] {
+  const out: number[] = [];
+  for (const it of items) {
+    const m = `${it.heading} ${it.text}`.match(/\d+/g);
+    if (m) for (const n of m) out.push(Number(n));
+  }
+  return out;
+}
+
+/** Discriminator axes — the soft instruction/attribution-fidelity signals that
+ *  drive the Sonnet-vs-Opus comparison (NOT the anti-hallucination gate). */
+type DiscAxis = "instruction" | "attribution" | "count";
+interface Disc {
+  axis: DiscAxis;
+  label: string;
+  passed: boolean;
+}
+
+/** A case's coarse bucket: explicit `group`, else inferred from fulfilled. */
+function caseGroup(c: ResearchAgentEvalCase): ResearchAgentCaseGroup {
+  return c.group ?? (c.expected.fulfilled ? "answerable" : "negative-control");
+}
+
 // ── per-case checks ─────────────────────────────────────────────────────────
 
 interface Row {
   id: string;
+  group: ResearchAgentCaseGroup;
   expectedFulfilled: boolean;
   gotFulfilled: boolean;
   anchorPass: boolean;
@@ -90,6 +140,9 @@ interface Row {
   instructionMatch: boolean | null;
   rawLeakage: number;
   downgraded: boolean;
+  /** Hardened soft discriminators scored on this case (empty for cases that set
+   *  none, or that wrongly produced no deliverable). */
+  discriminators: Disc[];
 }
 
 interface CheckResult {
@@ -109,6 +162,27 @@ function runChecks(
   let passed = 0;
   let warned = 0;
   let failed = 0;
+  const discs: Disc[] = [];
+  // A soft discriminator: prints ok/warn, feeds the fidelity axes, and — like
+  // the existing instruction-following signal — nudges passed/warned, but NEVER
+  // `failed` (the anti-hallucination gate stays the original anchor-pass /
+  // impossible-number / refusal-correct trio).
+  const disc = (
+    axis: DiscAxis,
+    label: string,
+    pass: boolean,
+    okMsg: string,
+    warnMsg: string,
+  ): void => {
+    discs.push({ axis, label, passed: pass });
+    if (pass) {
+      ok(okMsg);
+      passed++;
+    } else {
+      warn(warnMsg);
+      warned++;
+    }
+  };
 
   // (a) anchor-pass [HARD] — every SURFACED item has ≥1 anchor and every
   //     surfaced anchor is a real fold-substring of the synthesis. (Refusals
@@ -186,6 +260,107 @@ function runChecks(
         warned++;
       }
     }
+
+    // (g) hardened discriminators [SOFT] — instruction + attribution + count
+    //     fidelity. Only scored when the model actually produced a deliverable
+    //     (a wrong refusal is already surfaced by non-empty above; scanning
+    //     prose markers on empty output would be noise, not signal).
+    const e = testCase.expected;
+    if (f.fulfilled && f.items.length > 0) {
+      const prose = surfacedProse(f.items);
+      const quotes = surfacedQuotesFolded(f.items);
+      const numbers = surfacedNumbers(f.items);
+
+      if (e.maxItems !== undefined) {
+        disc(
+          "instruction",
+          "max-items",
+          f.items.length <= e.maxItems,
+          `max-items — ${f.items.length} ≤ ${e.maxItems}`,
+          `max-items — ${f.items.length} > ${e.maxItems} (named extra themes)`,
+        );
+      }
+      if (e.proseSequence) {
+        const ordered = e.proseSequence.every(
+          (m, i) =>
+            i < f.items.length && foldedProseOf(f.items[i]).includes(fold(m)),
+        );
+        disc(
+          "instruction",
+          "ranking-order",
+          ordered,
+          "ranking-order — items in the expected sequence",
+          `ranking-order — sequence ≠ ${e.proseSequence.join(" → ")}`,
+        );
+      }
+      if (e.requireInProse) {
+        const missing = e.requireInProse.filter((m) => !prose.includes(fold(m)));
+        disc(
+          "instruction",
+          "require-in-prose",
+          missing.length === 0,
+          "require-in-prose — all required markers present",
+          `require-in-prose — missing: ${missing.join(", ")}`,
+        );
+      }
+      if (e.forbidInProse) {
+        const leaked = e.forbidInProse.filter((m) => prose.includes(fold(m)));
+        disc(
+          "instruction",
+          "forbid-in-prose",
+          leaked.length === 0,
+          "forbid-in-prose — no excluded marker leaked",
+          `forbid-in-prose — leaked: ${leaked.join(", ")}`,
+        );
+      }
+      if (e.requiredQuotes) {
+        const missing = e.requiredQuotes.filter(
+          (q) => !quotes.some((fq) => fq.includes(fold(q))),
+        );
+        disc(
+          "attribution",
+          "required-quote",
+          missing.length === 0,
+          "required-quote — the correct quote was cited",
+          `required-quote — missing: ${missing.map((q) => `"${q}"`).join(", ")}`,
+        );
+      }
+      if (e.forbiddenQuotes) {
+        const cited = e.forbiddenQuotes.filter((q) =>
+          quotes.some((fq) => fq.includes(fold(q))),
+        );
+        disc(
+          "attribution",
+          "forbidden-quote",
+          cited.length === 0,
+          "forbidden-quote — no mis-attributed quote cited",
+          `forbidden-quote — MIS-ATTRIBUTED: ${cited
+            .map((q) => `"${q}"`)
+            .join(", ")}`,
+        );
+      }
+      if (e.expectedCount !== undefined) {
+        disc(
+          "count",
+          "expected-count",
+          numbers.includes(e.expectedCount),
+          `expected-count — ${e.expectedCount} present`,
+          `expected-count — ${e.expectedCount} absent (prose numbers: ${
+            numbers.join(", ") || "none"
+          })`,
+        );
+      }
+      if (e.forbiddenCounts) {
+        const wrong = e.forbiddenCounts.filter((n) => numbers.includes(n));
+        disc(
+          "count",
+          "forbidden-count",
+          wrong.length === 0,
+          "forbidden-count — no wrong respondent count surfaced",
+          `forbidden-count — WRONG count present: ${wrong.join(", ")}`,
+        );
+      }
+    }
   }
 
   const rawLeakage =
@@ -203,6 +378,7 @@ function runChecks(
     failed,
     row: {
       id: testCase.id,
+      group: caseGroup(testCase),
       expectedFulfilled: testCase.expected.fulfilled,
       gotFulfilled: f.fulfilled,
       anchorPass,
@@ -212,6 +388,7 @@ function runChecks(
       instructionMatch,
       rawLeakage,
       downgraded: diag.downgraded,
+      discriminators: discs,
     },
   };
 }
@@ -260,6 +437,7 @@ async function main(): Promise<void> {
       totalFailed++;
       rows.push({
         id: c.id,
+        group: caseGroup(c),
         expectedFulfilled: c.expected.fulfilled,
         gotFulfilled: false,
         anchorPass: false,
@@ -269,6 +447,7 @@ async function main(): Promise<void> {
         instructionMatch: null,
         rawLeakage: 0,
         downgraded: false,
+        discriminators: [],
       });
       continue;
     }
@@ -297,6 +476,27 @@ async function main(): Promise<void> {
   const totalLeakage = rows.reduce((acc, r) => acc + r.rawLeakage, 0);
   const downgrades = rows.filter((r) => r.downgraded).length;
 
+  // ── hardened breakdown (Etappe-1.5) — splits the refusal gate into the easy
+  //    keyword-absent controls vs the adversarial-anchor cases (real anchor
+  //    present, only judgement guards), and aggregates the soft fidelity axes
+  //    that drive the Sonnet-vs-Opus decision. ──
+  const controls = negatives.filter((r) => r.group === "negative-control");
+  const adversarial = negatives.filter((r) => r.group === "adversarial-anchor");
+  const controlRefusals = controls.filter((r) => r.refusalCorrect === true).length;
+  const adversarialRefusals = adversarial.filter(
+    (r) => r.refusalCorrect === true,
+  ).length;
+  const allDiscs = rows.flatMap((r) => r.discriminators);
+  const axisScore = (axis: DiscAxis): { passed: number; total: number } => {
+    const d = allDiscs.filter((x) => x.axis === axis);
+    return { passed: d.filter((x) => x.passed).length, total: d.length };
+  };
+  const instrFidelity = axisScore("instruction");
+  const attrFidelity = axisScore("attribution");
+  const countFidelity = axisScore("count");
+  const pct = (n: number, d: number): string =>
+    d === 0 ? "—" : `${Math.round((100 * n) / d)}%`;
+
   console.log(`\n${C.bold}═══ METRICS ═══${C.reset}  (model=${MODEL})`);
   console.log(
     `  Anchor-Pass:               ${anchorPassRate}/${rows.length}  (every surfaced item anchored to real synthesis text)  [GATE]`,
@@ -318,6 +518,32 @@ async function main(): Promise<void> {
   );
   console.log(
     `  Downgrades:                ${downgrades}  (fulfilled true→false because all items were unanchored)`,
+  );
+
+  console.log(`\n${C.bold}─── HARDENED AXES ───${C.reset}  (model=${MODEL})`);
+  console.log(
+    `  Absage · Kontrollen:       ${controlRefusals}/${controls.length}  (easy negatives — keyword simply absent)  [GATE]`,
+  );
+  console.log(
+    `  Absage · adversarial:      ${adversarialRefusals}/${adversarial.length}  (real anchor present — only model judgement refuses; a fabrication anchored to a true quote slips the anchor filter)  [GATE]`,
+  );
+  console.log(
+    `  Instruction-Fidelity:      ${instrFidelity.passed}/${instrFidelity.total}  (${pct(
+      instrFidelity.passed,
+      instrFidelity.total,
+    )})  (max-items / ranking-order / require / forbid in prose)  [soft]`,
+  );
+  console.log(
+    `  Attribution-Fidelity:      ${attrFidelity.passed}/${attrFidelity.total}  (${pct(
+      attrFidelity.passed,
+      attrFidelity.total,
+    )})  (right quote / no mis-attributed quote — the anchor-filter blind spot)  [soft]`,
+  );
+  console.log(
+    `  Exact-Count-Fidelity:      ${countFidelity.passed}/${countFidelity.total}  (${pct(
+      countFidelity.passed,
+      countFidelity.total,
+    )})  (correct frequency, no wrong ≤based_on count the gate misses)  [soft]`,
   );
 
   console.log(
