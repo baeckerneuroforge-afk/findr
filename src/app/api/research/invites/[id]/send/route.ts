@@ -125,7 +125,7 @@ export async function POST(
       );
     case "missing_org":
       return NextResponse.json(
-        { error: result.message ?? t("research.inviteMissingOrg") },
+        { error: t("research.inviteMissingOrg") },
         { status: 409 },
       );
     case "missing_schedule":
@@ -134,7 +134,7 @@ export async function POST(
       // If we still see them, surface them as 422 with the service's
       // own message.
       return NextResponse.json(
-        { error: result.message ?? t("research.inviteNotReady") },
+        { error: t("research.inviteNotReady") },
         { status: 422 },
       );
     case "missing_token":
@@ -153,7 +153,7 @@ export async function POST(
     case "error":
     default:
       return NextResponse.json(
-        { error: result.message ?? t("research.couldNotSendInvite") },
+        { error: t("research.couldNotSendInvite") },
         { status: 502 },
       );
   }

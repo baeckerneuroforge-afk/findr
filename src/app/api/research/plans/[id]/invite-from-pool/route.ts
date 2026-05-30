@@ -54,5 +54,24 @@ export async function POST(
   }
 
   const result = await inviteFromPool(orgId, planId, parsed.data.poolMemberIds);
-  return NextResponse.json({ success: true, ...result });
+
+  // Localize the per-item service messages at the request boundary — mirrors
+  // the status→t() mapping the sibling invite routes do. inviteFromPool authors
+  // stable status discriminants; the German fallback text it carries stays
+  // internal and is replaced here by the locale-correct string. (No AI /
+  // verbatim content is involved — these are system messages.)
+  const results = result.results.map((r) => {
+    switch (r.status) {
+      case "already_invited":
+        return { ...r, message: t("pool.alreadyInvitedFromPool") };
+      case "skipped_duplicate":
+        return { ...r, message: t("pool.duplicateInStudy") };
+      case "error":
+        return { ...r, message: t("pool.couldNotCreate") };
+      default:
+        return r;
+    }
+  });
+
+  return NextResponse.json({ success: true, results, summary: result.summary });
 }

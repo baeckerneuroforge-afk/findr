@@ -1220,7 +1220,9 @@
       "emailExists": "Diese E-Mail existiert bereits im Pool.",
       "emailAssignedElsewhere": "Diese E-Mail ist bereits einem anderen Pool-Eintrag zugeordnet.",
       "couldNotCreate": "Pool-Eintrag konnte nicht angelegt werden.",
-      "couldNotUpdate": "Pool-Eintrag konnte nicht aktualisiert werden."
+      "couldNotUpdate": "Pool-Eintrag konnte nicht aktualisiert werden.",
+      "alreadyInvitedFromPool": "Bereits aus dem Pool in diese Studie eingeladen.",
+      "duplicateInStudy": "Diese E-Mail existiert bereits als Teilnehmer in dieser Studie."
     },
     "bridge": {
       "couldNotApprove": "Vorschlag konnte nicht angenommen werden",

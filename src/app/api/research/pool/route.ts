@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       );
     default:
       return NextResponse.json(
-        { error: result.message ?? t("pool.couldNotCreate") },
+        { error: t("pool.couldNotCreate") },
         { status: 500 },
       );
   }

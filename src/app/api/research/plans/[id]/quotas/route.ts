@@ -51,7 +51,7 @@ export async function POST(
   const result = await upsertQuota(orgId, planId, parsed.data.role, parsed.data.target);
   if (result.status !== "ok") {
     return NextResponse.json(
-      { error: result.message ?? t("research.quotaSaveFailed") },
+      { error: t("research.quotaSaveFailed") },
       { status: 500 },
     );
   }
