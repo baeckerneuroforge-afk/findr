@@ -70,6 +70,13 @@ export interface Account {
   /** ISO date (YYYY-MM-DD) or null. */
   renewalDate: string | null;
   status: AccountStatus;
+  /**
+   * When the account transitioned into `churned` (set by the accounts_churned_at
+   * DB trigger — migration 20260624000000); null = never churned / legacy row.
+   * Read-only here: the trigger owns it. Used as the canonical churn moment by
+   * the retention math (src/lib/accounts/retention.ts) and the cs→research bridge.
+   */
+  churnedAt: string | null;
   /** The won deal this account was created from, if any. */
   sourceDealId: string | null;
   notes: string | null;

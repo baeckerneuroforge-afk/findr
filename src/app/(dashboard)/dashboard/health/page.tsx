@@ -4,7 +4,9 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getAccounts } from "@/lib/accounts/service";
+import { getRetentionSummary } from "@/lib/accounts/retention-service";
 import { accountValueKey, formatAccountAmount } from "@/lib/accounts/value";
+import { RetentionSection } from "@/components/dashboard/RetentionSection";
 import {
   getLatestHealthScoresForAccounts,
   type HealthScoreRecord,
@@ -123,6 +125,9 @@ export default async function CustomerHealthOverviewPage() {
 
   // One batch fetch per dimension — no AI, no Opus, all reads.
   const accounts = await getAccounts(orgId);
+  // Deterministic retention/NRR roll-up over the full account base (independent
+  // of whether an account has a health analysis yet).
+  const retention = await getRetentionSummary(orgId, accounts);
   const healthMap = await getLatestHealthScoresForAccounts(
     orgId,
     accounts.map((a) => a.id),
@@ -144,6 +149,10 @@ export default async function CustomerHealthOverviewPage() {
           <h1 className="text-display text-neutral-900">{t("title")}</h1>
           <p className="mt-1 text-body text-neutral-500">{t("subtitle")}</p>
         </div>
+
+        {accounts.length > 0 && (
+          <RetentionSection retention={retention} locale={locale} />
+        )}
 
         <EmptyState
           icon={<HealthIcon />}
@@ -230,6 +239,9 @@ export default async function CustomerHealthOverviewPage() {
           {t("subtitleCount", { count: analyzed.length })}
         </p>
       </div>
+
+      {/* Retention & recurring revenue (deterministic, no AI) */}
+      <RetentionSection retention={retention} locale={locale} />
 
       {/* KPI tiles */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">

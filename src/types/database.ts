@@ -126,6 +126,7 @@ export type Database = {
           checkin_enabled: boolean
           checkin_interval_days: number | null
           last_checkin_at: string | null
+          churned_at: string | null
           company_name: string
           created_at: string
           currency: string
@@ -146,6 +147,7 @@ export type Database = {
           checkin_enabled?: boolean
           checkin_interval_days?: number | null
           last_checkin_at?: string | null
+          churned_at?: string | null
           company_name: string
           created_at?: string
           currency?: string
@@ -166,6 +168,7 @@ export type Database = {
           checkin_enabled?: boolean
           checkin_interval_days?: number | null
           last_checkin_at?: string | null
+          churned_at?: string | null
           company_name?: string
           created_at?: string
           currency?: string
@@ -195,6 +198,51 @@ export type Database = {
             columns: ["source_deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_value_snapshots: {
+        Row: {
+          account_id: string
+          captured_at: string
+          currency: string
+          id: string
+          org_id: string
+          value: number | null
+          value_type: string
+        }
+        Insert: {
+          account_id: string
+          captured_at?: string
+          currency?: string
+          id?: string
+          org_id: string
+          value?: number | null
+          value_type?: string
+        }
+        Update: {
+          account_id?: string
+          captured_at?: string
+          currency?: string
+          id?: string
+          org_id?: string
+          value?: number | null
+          value_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_value_snapshots_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_value_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
