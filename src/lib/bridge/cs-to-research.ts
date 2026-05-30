@@ -62,8 +62,9 @@ export const BRIDGE_CHURN_MIN_ACCOUNTS = 3;
 
 /** Trailing window in Tagen für "verlorene Accounts in den letzten X Tagen".
  *  90 deckt typische QBR-Zyklen ab; alte Churns interessieren operativ
- *  weniger. Filter wirkt gegen accounts.updated_at (siehe Trade-off-Note
- *  unten — kein dedicated churned_at-Timestamp im Schema). */
+ *  weniger. Filter wirkt gegen accounts.churned_at — den echten Churn-
+ *  Zeitstempel (gesetzt per DB-Trigger beim Status-Übergang nach 'churned';
+ *  siehe Migration 20260624000000_account_churned_at.sql). */
 export const BRIDGE_CHURN_WINDOW_DAYS = 90;
 
 export const DEFAULT_BRIDGE_MODEL = CLAUDE_MODELS.opus;
@@ -328,7 +329,8 @@ type BridgeSuggestionUpdate = {
 // CS-Health reader shapes — narrow read-only views of the existing tables.
 // Mirrors the slim-augmentation pattern (only the columns this module
 // touches), exact match to the live schema in
-// 20260603000000_accounts.sql + 20260604000000_account_health.sql.
+// 20260603000000_accounts.sql + 20260604000000_account_health.sql +
+// 20260624000000_account_churned_at.sql (churned_at).
 
 type AccountRow = {
   id: string;
@@ -336,6 +338,9 @@ type AccountRow = {
   company_name: string;
   status: "active" | "at_risk" | "churned";
   updated_at: string;
+  /** Real moment of churn — DB-trigger-stamped on the transition into
+   *  'churned' (null = never churned, or a legacy row not yet backfilled). */
+  churned_at: string | null;
 };
 
 type AccountInsert = {
@@ -344,6 +349,7 @@ type AccountInsert = {
   company_name?: string;
   status?: "active" | "at_risk" | "churned";
   updated_at?: string;
+  churned_at?: string | null;
 };
 
 type AccountHealthRow = {
@@ -465,7 +471,7 @@ export interface ChurnCluster {
  *
  * STRATEGY:
  *   1. Find accounts in this org with status='churned' AND
- *      updated_at >= now() - BRIDGE_CHURN_WINDOW_DAYS.
+ *      churned_at >= now() - BRIDGE_CHURN_WINDOW_DAYS.
  *   2. For each: fetch its LATEST account_health_scores row (most recent
  *      analyzed_at) and extract the highest-severity signal type from
  *      signals[]. Accounts with no scores OR scores with no signals are
@@ -473,13 +479,17 @@ export interface ChurnCluster {
  *   3. Group by signalType. Clusters with accountIds.length >=
  *      BRIDGE_CHURN_MIN_ACCOUNTS qualify.
  *
- * TRADE-OFF: accounts.updated_at is the only "when did this churn happen"
- * proxy in the current schema (no dedicated churned_at column). A status
- * flip to 'churned' updates it; so does any other field edit on an
- * already-churned account. For v1 this is acceptable — admin edits to old
- * churned rows are rare. A future schema iteration could add churned_at
- * + a trigger; this detector would switch comparators with no other code
- * change.
+ * CHURN TIMESTAMP: filters on accounts.churned_at — the real moment of
+ * churn, DB-trigger-stamped on the status transition into 'churned' (see
+ * migration 20260624000000_account_churned_at.sql). This replaced the old
+ * updated_at proxy, which drifted on every field edit of an already-churned
+ * row and made stale losses look fresh.
+ *
+ * FAIL-SAFE on null: a churned account whose churned_at is null (a legacy
+ * row not covered by the one-time backfill) is EXCLUDED by the >= comparator
+ * — SQL null is not >= the cutoff. So the bridge stays quiet for it rather
+ * than guessing a churn date and triggering a false suggestion. Fail-safe,
+ * not fail-loud.
  */
 export async function detectChurnClusters(
   orgId: string,
@@ -489,13 +499,15 @@ export async function detectChurnClusters(
     Date.now() - BRIDGE_CHURN_WINDOW_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
 
-  // Step 1: churned accounts in the window.
+  // Step 1: churned accounts in the window. Filter on churned_at (the real
+  // churn moment); null churned_at rows fall out of the >= comparator —
+  // intended fail-safe (see doc comment above).
   const { data: churned, error: chErr } = await supabase
     .from("accounts")
     .select("*")
     .eq("org_id", orgId)
     .eq("status", "churned")
-    .gte("updated_at", sinceIso);
+    .gte("churned_at", sinceIso);
   if (chErr) {
     throw new BridgeUnavailableError(
       `Could not read churned accounts: ${chErr.message}`,
