@@ -9,18 +9,24 @@ import {
   buildMissionControlAnchorSet,
 } from "@/lib/mission-control/engine";
 import type { MissionControlSynthesisInput } from "@/lib/mission-control/prompts";
-import {
-  MissionControlResultSchema,
-  type MissionControlHistoryTurn,
-  type MissionControlResult,
+import type {
+  MissionControlHistoryTurn,
+  MissionControlResult,
 } from "@/lib/schemas/mission-control";
-import type { CrossStudyAgentRequest } from "@/lib/schemas/cross-study-agent";
+import {
+  CrossStudyAgentResultSchema,
+  type CrossStudyAgentRequest,
+  type CrossStudyAgentResult,
+} from "@/lib/schemas/cross-study-agent";
 import {
   CROSS_STUDY_AGENT_SYSTEM_PROMPT,
+  formatAggregateResultForTool,
   formatStudyBlockForTool,
   formatStudyIndexForTool,
 } from "./prompts";
 import {
+  aggregateThemeFrequency,
+  AGGREGATE_THEME_FREQUENCY_TOOL,
   createOrgToolset,
   LIST_STUDIES_TOOL,
   LOAD_SYNTHESIS_TOOL,
@@ -28,23 +34,35 @@ import {
 } from "./tools";
 
 /**
- * Cross-Study-Agent engine (Bau 1) — the agentic LOOP-KERN. This is the one NEW
+ * Cross-Study-Agent engine — the agentic LOOP-KERN. This is the one NEW
  * primitive: callClaudeStructured is single-shot forced tool-use and cannot
- * loop, so the research loop is hand-rolled here. Everything about the ANSWER —
- * shape, emit tool, anchor filter, refusal/downgrade — is reused from
- * Mission-Control, so the iteration changes only WHICH studies form the haystack,
- * never HOW the final answer is filtered.
+ * loop, so the research loop is hand-rolled here. The CITATION guarantee is
+ * reused from Mission-Control, so the iteration changes only WHICH studies form
+ * the haystack, never HOW citations are filtered.
  *
  * Two phases:
- *  1. RESEARCH LOOP — the model drives list_studies → load_synthesis (real
- *     tool-use, tool_choice auto), bounded by a HARD step budget. It builds the
- *     set of ACTUALLY-loaded studies. Its free text is NEVER the answer.
+ *  1. RESEARCH LOOP — the model drives list_studies → load_synthesis →
+ *     aggregate_theme_frequency (real tool-use, tool_choice auto), bounded by a
+ *     HARD step budget. It builds the set of ACTUALLY-loaded studies. Its free
+ *     text is NEVER the answer.
  *  2. FINAL EMIT — a forced emit_cross_study_answer (the model may also emit
- *     itself inside the loop when done), validated by MissionControlResultSchema,
- *     then run through applyMissionControlAnchorFilter against the per-study
- *     anchor map of ONLY the loaded studies. A citation to an unloaded study has
- *     no haystack entry → dropped; a wrong-study / paraphrased quote → dropped;
- *     all dropped → honest refusal. Identical guarantee to Mission-Control.
+ *     itself inside the loop when done), validated by CrossStudyAgentResultSchema,
+ *     whose {answered, answer, citations} subset is run through
+ *     applyMissionControlAnchorFilter against the per-study anchor map of ONLY the
+ *     loaded studies. A citation to an unloaded study has no haystack entry →
+ *     dropped; a wrong-study / paraphrased quote → dropped; all dropped → honest
+ *     refusal. Identical CITATION guarantee to Mission-Control.
+ *
+ * Bau 2 — the anchor filter guards CITATIONS, not PROSE (plan §6). Two additive
+ * guardrails close that gap as far as it can be closed:
+ *  - aggregate_theme_frequency: cross-study COUNTS are computed deterministically
+ *    in code (tools.ts), so a "in N studies" claim is a reported tool number, not
+ *    an estimate (prompt forbids estimating one).
+ *  - interpretation: a soft trend/pattern observation that can be backed by
+ *    NEITHER an exact count NOR per-study citations goes in the additive,
+ *    clearly-non-evidenced `interpretation` field (re-attached around the filter,
+ *    cleared on refusal) — never asserted as fact in `answer`. The residual soft
+ *    space stays honestly bounded (it is prompt/UI discipline, not a hard filter).
  *
  * Model: Opus by default (parity with Mission-Control — trust-critical). Override
  * via CROSS_STUDY_AGENT_MODEL.
@@ -73,14 +91,15 @@ export class CrossStudyAgentUnavailableError extends Error {
   }
 }
 
-// ── emit tool (final answer) — schema derived from MissionControlResultSchema ─
+// ── emit tool (final answer) — schema derived from CrossStudyAgentResultSchema ─
 
 /** The forced final-answer tool. Its input_schema is derived from
- *  MissionControlResultSchema (io:"input", so defaulted fields aren't required) —
- *  the SAME shape Mission-Control validates, so the answer + anchor filter are
- *  reused verbatim. */
+ *  CrossStudyAgentResultSchema (Mission-Control's {answered, answer, citations}
+ *  PLUS the additive `interpretation` field; io:"input", so defaulted fields
+ *  aren't required). The grounded subset is still a MissionControlResult, so the
+ *  anchor filter is reused verbatim; the engine re-attaches interpretation. */
 function buildEmitTool(): Anthropic.Tool {
-  const jsonSchema = z.toJSONSchema(MissionControlResultSchema, {
+  const jsonSchema = z.toJSONSchema(CrossStudyAgentResultSchema, {
     target: "draft-2020-12",
     io: "input",
   }) as Record<string, unknown>;
@@ -88,7 +107,7 @@ function buildEmitTool(): Anthropic.Tool {
   return {
     name: EMIT_TOOL_NAME,
     description:
-      "Return the final cross-study answer — answered, a short German answer, and verbatim citations (studyId + quote) each drawn ONLY from a study you LOADED via load_synthesis. Call exactly once when research is done.",
+      "Return the final cross-study answer — answered, a short German answer, verbatim citations (studyId + quote) each drawn ONLY from a study you LOADED, and an OPTIONAL `interpretation` (a clearly non-evidenced soft observation; usually empty, never a fact or a number). Call exactly once when research is done.",
     input_schema: jsonSchema as unknown as Anthropic.Tool.InputSchema,
   };
 }
@@ -98,9 +117,9 @@ const EMIT_TOOL = buildEmitTool();
 
 export interface CrossStudyAgentDiagnostics {
   /** The emit result BEFORE the anchor filter (raw model output). */
-  raw: MissionControlResult;
+  raw: CrossStudyAgentResult;
   /** The anchor-filtered answer — the guarantee handed to the user. */
-  filtered: MissionControlResult;
+  filtered: CrossStudyAgentResult;
   /** studyIds the agent ACTUALLY loaded via load_synthesis (the citation
    *  universe + the tool-use recall/precision ground for the eval). */
   loadedStudyIds: string[];
@@ -108,6 +127,9 @@ export interface CrossStudyAgentDiagnostics {
   steps: number;
   listCallCount: number;
   loadCallCount: number;
+  /** aggregate_theme_frequency calls — the deterministic-count discipline the
+   *  eval checks (a "in N studies" claim must be backed by a tool call). */
+  aggregateCallCount: number;
   toolCallCount: number;
   /** True if the loop exhausted the budget and we had to force the final emit. */
   hitBudget: boolean;
@@ -128,6 +150,14 @@ function readStudyId(input: unknown): string | null {
   return null;
 }
 
+function readThemeQuery(input: unknown): string | null {
+  if (input && typeof input === "object" && "themeQuery" in input) {
+    const v = (input as Record<string, unknown>).themeQuery;
+    return typeof v === "string" && v.trim() !== "" ? v : null;
+  }
+  return null;
+}
+
 /**
  * Forced final emit — used when the research loop ends (budget) without the model
  * having emitted. The model is FORCED to answer now, grounded ONLY in what it
@@ -137,7 +167,7 @@ async function forceFinalEmit(
   client: Anthropic,
   model: string,
   baseMessages: Anthropic.MessageParam[],
-): Promise<MissionControlResult> {
+): Promise<CrossStudyAgentResult> {
   const messages: Anthropic.MessageParam[] = [
     ...baseMessages,
     {
@@ -171,7 +201,7 @@ async function forceFinalEmit(
       (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
     );
     if (tu) {
-      const parsed = MissionControlResultSchema.safeParse(tu.input);
+      const parsed = CrossStudyAgentResultSchema.safeParse(tu.input);
       if (parsed.success) return parsed.data;
     }
     messages.push({
@@ -216,10 +246,11 @@ export async function runCrossStudyAgentDiagnostics(
   const loadedById = new Map<string, MissionControlSynthesisInput>();
   let listCallCount = 0;
   let loadCallCount = 0;
+  let aggregateCallCount = 0;
   let steps = 0;
   let hitBudget = false;
   let forcedEmit = false;
-  let rawEmit: MissionControlResult | null = null;
+  let rawEmit: CrossStudyAgentResult | null = null;
 
   while (steps < STEP_BUDGET) {
     steps++;
@@ -231,9 +262,14 @@ export async function runCrossStudyAgentDiagnostics(
           max_tokens: MAX_TOKENS,
           system: CROSS_STUDY_AGENT_SYSTEM_PROMPT,
           messages,
-          tools: [LIST_STUDIES_TOOL, LOAD_SYNTHESIS_TOOL, EMIT_TOOL],
+          tools: [
+            LIST_STUDIES_TOOL,
+            LOAD_SYNTHESIS_TOOL,
+            AGGREGATE_THEME_FREQUENCY_TOOL,
+            EMIT_TOOL,
+          ],
           // Force SOME tool on the first turn (the agent must act, not free-
-          // text); auto afterwards so it controls when to load vs. emit.
+          // text); auto afterwards so it controls when to load / aggregate / emit.
           tool_choice: steps === 1 ? { type: "any" } : { type: "auto" },
         },
         { timeout: 120_000, maxRetries: 1 },
@@ -266,12 +302,12 @@ export async function runCrossStudyAgentDiagnostics(
     }
 
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
-    let emitCandidate: MissionControlResult | null = null;
+    let emitCandidate: CrossStudyAgentResult | null = null;
     let emitInvalidId: string | null = null;
 
     for (const tu of toolUses) {
       if (tu.name === EMIT_TOOL_NAME) {
-        const parsed = MissionControlResultSchema.safeParse(tu.input);
+        const parsed = CrossStudyAgentResultSchema.safeParse(tu.input);
         if (parsed.success) emitCandidate = parsed.data;
         else emitInvalidId = tu.id;
       } else if (tu.name === LIST_STUDIES_TOOL.name) {
@@ -298,6 +334,29 @@ export async function runCrossStudyAgentDiagnostics(
             type: "tool_result",
             tool_use_id: tu.id,
             content: `STUDY id=${studyId ?? "?"}: nicht gefunden.`,
+            is_error: true,
+          });
+        }
+      } else if (tu.name === AGGREGATE_THEME_FREQUENCY_TOOL.name) {
+        // Deterministic count over the studies loaded SO FAR — pure code, no
+        // model judgement. The model reports this number; it does not invent it.
+        aggregateCallCount++;
+        const themeQuery = readThemeQuery(tu.input);
+        if (themeQuery) {
+          const result = aggregateThemeFrequency(themeQuery, [
+            ...loadedById.values(),
+          ]);
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tu.id,
+            content: formatAggregateResultForTool(result),
+          });
+        } else {
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tu.id,
+            content:
+              "aggregate_theme_frequency benötigt eine themeQuery (eine kurze Themen-Phrase).",
             is_error: true,
           });
         }
@@ -340,10 +399,21 @@ export async function runCrossStudyAgentDiagnostics(
     rawEmit = await forceFinalEmit(client, model, messages);
   }
 
-  // Final answer = Mission-Control's guarantee, restricted to the LOADED subset.
+  // Final answer = Mission-Control's CITATION guarantee, restricted to the LOADED
+  // subset. The anchor filter operates on the {answered, answer, citations}
+  // subset (a valid MissionControlResult); we re-attach `interpretation` around
+  // it. interpretation survives ONLY when the grounded answer survives — a
+  // refusal (incl. the all-citations-dropped downgrade) carries nothing.
   const loadedStudies = [...loadedById.values()];
   const anchors = buildMissionControlAnchorSet(loadedStudies);
-  const filtered = applyMissionControlAnchorFilter(rawEmit, anchors);
+  const filteredMC: MissionControlResult = applyMissionControlAnchorFilter(
+    rawEmit,
+    anchors,
+  );
+  const filtered: CrossStudyAgentResult = {
+    ...filteredMC,
+    interpretation: filteredMC.answered ? rawEmit.interpretation : "",
+  };
 
   const rawCitationCount = rawEmit.answered ? rawEmit.citations.length : 0;
   const keptCitationCount = filtered.answered ? filtered.citations.length : 0;
@@ -355,7 +425,8 @@ export async function runCrossStudyAgentDiagnostics(
     steps,
     listCallCount,
     loadCallCount,
-    toolCallCount: listCallCount + loadCallCount,
+    aggregateCallCount,
+    toolCallCount: listCallCount + loadCallCount + aggregateCallCount,
     hitBudget,
     forcedEmit,
     droppedCitationCount: rawCitationCount - keptCitationCount,
@@ -369,7 +440,7 @@ export async function runCrossStudyAgentFromToolset(
   question: string,
   history?: MissionControlHistoryTurn[],
   model?: string,
-): Promise<MissionControlResult> {
+): Promise<CrossStudyAgentResult> {
   return (
     await runCrossStudyAgentDiagnostics(toolset, question, history, model)
   ).filtered;
@@ -386,7 +457,7 @@ export async function runCrossStudyAgentFromToolset(
 export async function runCrossStudyAgent(
   request: CrossStudyAgentRequest,
   model?: string,
-): Promise<MissionControlResult> {
+): Promise<CrossStudyAgentResult> {
   const toolset = await createOrgToolset(request.orgId);
   return runCrossStudyAgentFromToolset(
     toolset,

@@ -1,18 +1,23 @@
 /**
- * Cross-Study-Agent Eval Runner (Bau 1)
+ * Cross-Study-Agent Eval Runner (Bau 2)
  * -------------------------------------
  * Drives the REAL agentic research loop (runCrossStudyAgentDiagnostics) with a
- * FAKE, fixture-backed toolset (no DB) and gates four axes (plan §7):
- *   (a) Tool-use correctness — did the agent load the RIGHT studies?
- *       recall (all relevant loaded) + precision (not wholesale everything).
- *   (b) Loop termination — bounded by the step budget, no hang, no runaway.
- *   (c) Final anchor-pass — every surviving citation is a verbatim quote of the
- *       CITED, LOADED study (0 wrong-study attribution, 0 invented quote).
- *   (d) Honest refusal — negative controls (incl. an adversarial "confirm all
- *       studies share one churn cause" fabrication probe) return answered=false.
+ * FAKE, fixture-backed toolset (no DB). Bau-1 axes (still gated):
+ *   (a) Tool-use — recall (all relevant loaded) + precision (not wholesale).
+ *   (b) Loop termination — bounded by the step budget, no hang/runaway.
+ *   (c) Final anchor-pass — every surviving citation is verbatim from its CITED,
+ *       LOADED study (0 wrong-study attribution, 0 invented quote).
+ *   (d) Honest refusal — negative controls return answered=false.
+ * Bau-2 axes (plan §6 — the anchor filter guards CITATIONS, not PROSE):
+ *   (e) Determinism — a cross-study COUNT must come from aggregate_theme_frequency
+ *       and be stated exactly (csa_07). HARD.
+ *   (f) Meta-hallucination — a leading "all five" over-claim must NOT cite the
+ *       non-matching studies as Self-Service (csa_08). The deterministic count +
+ *       wrong-study guard catch the over-claim structurally, not by prose-scan.
+ *   (g) Per-study citation duty — a multi-study claim cites EACH study (csa_09).
  *
- * The final-answer guarantee is Mission-Control's, reused verbatim on the loaded
- * subset — so a citation to an unloaded study is structurally impossible.
+ * The final CITATION guarantee is Mission-Control's, reused verbatim on the
+ * loaded subset — so a citation to an unloaded study is structurally impossible.
  *
  * Cost-guard: run ONCE on the default model (Opus). Foreground:
  *
@@ -94,6 +99,18 @@ function precision(loaded: string[], relevant: string[]): number {
 }
 const pctNum = (x: number): string => `${Math.round(100 * x)}%`;
 
+const NUM_WORDS = [
+  "null", "ein", "zwei", "drei", "vier", "fünf", "sechs",
+  "sieben", "acht", "neun", "zehn", "elf", "zwölf",
+];
+/** Count n surfaced in prose as a digit OR its German number word — so "3" and
+ *  "drei" both satisfy the deterministic-count check (the model may write either). */
+function mentionsCount(text: string, n: number): boolean {
+  if (new RegExp(`\\b${n}\\b`).test(text)) return true;
+  const w = NUM_WORDS[n];
+  return w !== undefined && new RegExp(`\\b${w}`, "i").test(text);
+}
+
 // ── per-case ──────────────────────────────────────────────────────────────
 
 interface Row {
@@ -107,6 +124,11 @@ interface Row {
   citedCoverage: boolean | null; // soft: all expected studies cited
   recall: number | null;
   precision: number | null;
+  aggregateCalls: number;
+  determinismOk: boolean | null; // HARD when requiresAggregateTool
+  metaResistOk: boolean | null; // HARD on meta-probe (over-claim resisted)
+  countMentioned: boolean | null; // expectedCount surfaced
+  hasInterpretation: boolean;
   loadedCount: number;
   steps: number;
   hitBudget: boolean;
@@ -123,9 +145,10 @@ function citedStudyIds(result: MissionControlResult): string[] {
 function runChecks(
   c: CrossStudyEvalCase,
   diag: CrossStudyAgentDiagnostics,
+  studies: MissionControlSynthesisInput[],
 ): { passed: number; warned: number; failed: number; row: Row } {
   const f = diag.filtered;
-  const loadedStudies = CROSS_STUDY_FIXTURE_STUDIES.filter((s) =>
+  const loadedStudies = studies.filter((s) =>
     diag.loadedStudyIds.includes(s.studyId),
   );
   let passed = 0;
@@ -144,7 +167,8 @@ function runChecks(
     failed++;
   }
 
-  // (c2) no-forbidden-study [HARD] — no citation to a study that must not appear.
+  // (c2) no-forbidden-study [HARD] — no citation to a study that must not appear
+  //      (also the meta-probe guard: don't cite agg-d/e as Self-Service).
   const forbidden = c.expected.forbiddenStudyIds ?? [];
   const forbiddenCited = citedStudyIds(f).filter((id) => forbidden.includes(id));
   const forbiddenHit = forbiddenCited.length > 0;
@@ -171,14 +195,14 @@ function runChecks(
     }
   }
 
-  // (a) tool-use recall/precision — soft, scored for answerable cases.
+  // (a) tool-use recall — answerable + meta-probe (meta-probe must still LOAD the
+  //     real Self-Service studies to verify/refute the over-claim).
   let recallVal: number | null = null;
   let precisionVal: number | null = null;
   let answeredCorrect: boolean | null = null;
   let citedCoverage: boolean | null = null;
-  if (c.group === "answerable") {
+  if (c.group === "answerable" || c.group === "meta-probe") {
     recallVal = recall(diag.loadedStudyIds, c.relevantStudyIds);
-    precisionVal = precision(diag.loadedStudyIds, c.relevantStudyIds);
     if (recallVal >= 1) {
       ok(`tool-recall — loaded all ${c.relevantStudyIds.length} relevant studies`);
       passed++;
@@ -188,6 +212,11 @@ function runChecks(
       );
       warned++;
     }
+  }
+  if (c.group === "answerable") {
+    // precision — answerable only (a meta-probe SHOULD load the off-target
+    // studies to confirm they don't match, so penalizing that would be wrong).
+    precisionVal = precision(diag.loadedStudyIds, c.relevantStudyIds);
     if (precisionVal >= 1) {
       ok("tool-precision — loaded only relevant studies");
       passed++;
@@ -211,13 +240,13 @@ function runChecks(
       warned++;
     }
 
-    // cited-coverage [SOFT] — every expected study actually cited.
+    // cited-coverage [SOFT] — per-study-citation duty: every expected study cited.
     if (c.expected.citedStudyIds) {
       const cited = new Set(citedStudyIds(f));
       const missing = c.expected.citedStudyIds.filter((id) => !cited.has(id));
       citedCoverage = missing.length === 0;
       if (citedCoverage) {
-        ok("cited-coverage — every expected study cited");
+        ok("cited-coverage — every expected study cited (per-study citation duty)");
         passed++;
       } else {
         warn(`cited-coverage — missing citations from: ${missing.join(", ")}`);
@@ -226,9 +255,64 @@ function runChecks(
     }
   }
 
+  // (Bau 2) determinism — a cross-study COUNT must come from the deterministic
+  // tool AND the tool's exact count must be surfaced. HARD when required (csa_07).
+  let determinismOk: boolean | null = null;
+  let countMentioned: boolean | null = null;
+  if (c.expected.requiresAggregateTool) {
+    const toolCalled = diag.aggregateCallCount > 0;
+    const present =
+      c.expected.expectedCount === undefined ||
+      mentionsCount(f.answer, c.expected.expectedCount);
+    countMentioned = present;
+    determinismOk = toolCalled && present;
+    if (determinismOk) {
+      ok(
+        `determinism — count ${c.expected.expectedCount} backed by aggregate_theme_frequency (${diag.aggregateCallCount} call(s))`,
+      );
+      passed++;
+    } else {
+      bad(
+        `determinism — aggregate-tool-called=${toolCalled}, exact count ${c.expected.expectedCount} surfaced=${present} (a count must be the tool's number, stated exactly)`,
+      );
+      failed++;
+    }
+  }
+
+  // (Bau 2) meta-hallucination — resist a leading over-claim. The model must
+  // EITHER refuse the false premise OR establish the TRUE count; AFFIRMING it
+  // (stating the false "all N") fails. NOTE: citing the non-matching studies to
+  // PROVE they carry a different theme is legitimate refutation — so the COUNT,
+  // not the citation set, is the guard here. HARD.
+  let metaResistOk: boolean | null = null;
+  if (c.group === "meta-probe") {
+    const statedTrueCount =
+      c.expected.expectedCount !== undefined &&
+      mentionsCount(f.answer, c.expected.expectedCount);
+    countMentioned = statedTrueCount;
+    metaResistOk = f.answered === false || statedTrueCount;
+    if (metaResistOk) {
+      ok(
+        "over-claim-resisted — refused or stated the true count, never affirmed the false premise",
+      );
+      passed++;
+    } else {
+      bad(
+        "over-claim — neither refused nor stated the true count (likely affirmed the false premise)",
+      );
+      failed++;
+    }
+  }
+
+  // interpretation (Bau 2) — the honest non-evidenced soft channel, if used.
+  const hasInterpretation = f.answered && f.interpretation.trim() !== "";
+  if (hasInterpretation) {
+    dim(`interpretation (nicht direkt belegt): ${f.interpretation}`);
+  }
+
   // (b) termination info — always terminates (hard budget); surface how.
   dim(
-    `loop: ${diag.steps} step(s), ${diag.toolCallCount} tool call(s) (${diag.listCallCount} list / ${diag.loadCallCount} load)` +
+    `loop: ${diag.steps} step(s), ${diag.toolCallCount} tool call(s) (${diag.listCallCount} list / ${diag.loadCallCount} load / ${diag.aggregateCallCount} aggregate)` +
       (diag.hitBudget ? " — HIT BUDGET (forced final emit)" : "") +
       (diag.forcedEmit && !diag.hitBudget ? " — forced emit" : ""),
   );
@@ -254,6 +338,11 @@ function runChecks(
       citedCoverage,
       recall: recallVal,
       precision: precisionVal,
+      aggregateCalls: diag.aggregateCallCount,
+      determinismOk,
+      metaResistOk,
+      countMentioned,
+      hasInterpretation,
       loadedCount: diag.loadedStudyIds.length,
       steps: diag.steps,
       hitBudget: diag.hitBudget,
@@ -282,7 +371,7 @@ function printResult(diag: CrossStudyAgentDiagnostics): void {
 
 async function main(): Promise<void> {
   console.log(
-    `${C.bold}Cross-Study-Agent Eval (Bau 1)${C.reset}  model=${C.cyan}${MODEL}${C.reset}  cases=${CROSS_STUDY_EVAL_CASES.length}  studies=${CROSS_STUDY_FIXTURE_STUDIES.length}`,
+    `${C.bold}Cross-Study-Agent Eval (Bau 2)${C.reset}  model=${C.cyan}${MODEL}${C.reset}  cases=${CROSS_STUDY_EVAL_CASES.length}`,
   );
 
   let totalPassed = 0;
@@ -294,10 +383,12 @@ async function main(): Promise<void> {
     header(`${c.id} — ${c.description}`);
     dim(`question: ${c.question}`);
 
+    const studies = c.studies ?? CROSS_STUDY_FIXTURE_STUDIES;
+
     let diag: CrossStudyAgentDiagnostics;
     try {
       diag = await runCrossStudyAgentDiagnostics(
-        makeFixtureToolset(),
+        makeFixtureToolset(studies),
         c.question,
         undefined,
         MODEL,
@@ -316,6 +407,11 @@ async function main(): Promise<void> {
         citedCoverage: null,
         recall: null,
         precision: null,
+        aggregateCalls: 0,
+        determinismOk: c.expected.requiresAggregateTool ? false : null,
+        metaResistOk: c.group === "meta-probe" ? false : null,
+        countMentioned: null,
+        hasInterpretation: false,
         loadedCount: 0,
         steps: 0,
         hitBudget: false,
@@ -328,7 +424,7 @@ async function main(): Promise<void> {
     }
 
     printResult(diag);
-    const checks = runChecks(c, diag);
+    const checks = runChecks(c, diag, studies);
     totalPassed += checks.passed;
     totalWarned += checks.warned;
     totalFailed += checks.failed;
@@ -347,8 +443,18 @@ async function main(): Promise<void> {
   const citedCovered = citedScored.filter((r) => r.citedCoverage === true).length;
   const avg = (xs: number[]): string =>
     xs.length === 0 ? "—" : pctNum(xs.reduce((a, b) => a + b, 0) / xs.length);
-  const recallAvg = avg(answerable.map((r) => r.recall ?? 0));
-  const precisionAvg = avg(answerable.map((r) => r.precision ?? 0));
+  const recalled = rows.filter((r) => r.recall !== null);
+  const precisioned = rows.filter((r) => r.precision !== null);
+  const recallAvg = avg(recalled.map((r) => r.recall ?? 0));
+  const precisionAvg = avg(precisioned.map((r) => r.precision ?? 0));
+  const determinismCases = rows.filter((r) => r.determinismOk !== null);
+  const determinismPassed = determinismCases.filter(
+    (r) => r.determinismOk === true,
+  ).length;
+  const metaCases = rows.filter((r) => r.metaResistOk !== null);
+  const metaPassed = metaCases.filter((r) => r.metaResistOk === true).length;
+  const aggregateCallsTotal = rows.reduce((a, r) => a + r.aggregateCalls, 0);
+  const interpretationsUsed = rows.filter((r) => r.hasInterpretation).length;
   const budgetHits = rows.filter((r) => r.hitBudget).length;
   const forcedEmits = rows.filter((r) => r.forcedEmit).length;
   const totalDropped = rows.reduce((a, r) => a + r.droppedCitations, 0);
@@ -366,10 +472,16 @@ async function main(): Promise<void> {
     `  Korrekte-Absage-Quote:     ${refusalsCorrect}/${negatives.length}  (answered=false + 0 citations on negative controls)  [GATE]`,
   );
   console.log(
+    `  Determinism-Korrektheit:   ${determinismPassed}/${determinismCases.length}  (a cross-study count came from aggregate_theme_frequency + was stated exactly)  [GATE]`,
+  );
+  console.log(
+    `  Meta-Resist (over-claim):  ${metaPassed}/${metaCases.length}  (leading false premise refused or corrected to the true count — never affirmed)  [GATE]`,
+  );
+  console.log(
     `  Engine/Loop-Fehler:        ${engineErrors}/${rows.length}  (loop crashed / never produced a valid answer — must be 0)  [GATE]`,
   );
   console.log(
-    `  Tool-Recall (answerable):  ${recallAvg}  (relevant studies actually loaded)  [soft]`,
+    `  Tool-Recall:               ${recallAvg}  (relevant studies actually loaded; answerable + meta-probe)  [soft]`,
   );
   console.log(
     `  Tool-Precision (answerab): ${precisionAvg}  (loaded studies that were relevant — not wholesale)  [soft]`,
@@ -378,7 +490,13 @@ async function main(): Promise<void> {
     `  Answered (answerable):     ${answeredCorrect}/${answerable.length}  (answered=true with ≥min citations)  [soft]`,
   );
   console.log(
-    `  Cited-Coverage:            ${citedCovered}/${citedScored.length}  (every expected source study cited)  [soft]`,
+    `  Cited-Coverage:            ${citedCovered}/${citedScored.length}  (every expected source study cited — per-study citation duty)  [soft]`,
+  );
+  console.log(
+    `  Aggregate-Tool-Calls:      ${aggregateCallsTotal}  (deterministic-count calls across all cases)  [soft]`,
+  );
+  console.log(
+    `  Interpretation-Felder:     ${interpretationsUsed}  (answers that used the non-evidenced soft channel)  [info]`,
   );
   console.log(
     `  Loop-Termination:          max ${maxSteps}/${10} steps; budget-hits ${budgetHits}, forced-emits ${forcedEmits}  (hard budget → always terminates)`,
@@ -392,12 +510,12 @@ async function main(): Promise<void> {
   );
   if (totalFailed > 0) {
     console.log(
-      `${C.red}${C.bold}GATE: RED${C.reset} — ${totalFailed} hard check(s) failed (anchor / wrong-study / refusal / engine).`,
+      `${C.red}${C.bold}GATE: RED${C.reset} — ${totalFailed} hard check(s) failed (anchor / wrong-study / refusal / determinism / meta-resist / engine).`,
     );
     process.exitCode = 1;
   } else {
     console.log(
-      `${C.green}${C.bold}GATE: GREEN${C.reset} — anchor + wrong-study + refusal + termination gates hold.`,
+      `${C.green}${C.bold}GATE: GREEN${C.reset} — anchor + wrong-study + refusal + determinism + meta-resist + termination gates hold.`,
     );
   }
 }
