@@ -33,18 +33,19 @@ import {
  * agent that fabricates findings is worthless/dangerous — better
  * "steht nicht in den Daten" than invented.
  *
- * Model: default decided by the eval (RESEARCH_AGENT_MODEL env override).
+ * Model: Opus by default (RESEARCH_AGENT_MODEL env override).
  * evals-research-agent measured Sonnet and Opus EXACTLY ONCE each: both pass the
  * anti-hallucination gate identically (anchor-pass 9/9, impossible-numbers 0/9,
  * refusals 4/4) with ZERO raw leakage. Because the anchor FILTER enforces the
  * safety guarantee independent of the model — a weaker model can only cause
- * more honest refusals, never a hallucination — the default is the cheaper,
- * lower-latency Sonnet (same eval-driven posture as DEFAULT_LOSS_MODEL). Set
- * RESEARCH_AGENT_MODEL=claude-opus-4-7 to run the deepest model for
- * higher-stakes deliverables.
+ * more honest refusals, never a hallucination — that safety floor is
+ * model-independent, so the default is a deliberate ROBUSTNESS choice: the
+ * deepest model (Opus) for this multi-step, judgement-heavy deliverable builder.
+ * Set RESEARCH_AGENT_MODEL=claude-sonnet-4-6 for the cheaper, lower-latency run
+ * when that tradeoff is preferred.
  */
 
-export const DEFAULT_RESEARCH_AGENT_MODEL = CLAUDE_MODELS.sonnet;
+export const DEFAULT_RESEARCH_AGENT_MODEL = CLAUDE_MODELS.opus;
 
 /** Honest fallback when the anchor filter drops every item of a claimed
  *  deliverable — never let an unanchored deliverable escape. */
