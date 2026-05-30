@@ -22,7 +22,8 @@
     "eval:guide-generator": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/guide-generator/run.ts",
     "eval:bridge-cs-research": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/bridge-cs-research/run.ts",
     "eval:bridge-research-sales": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/bridge-research-sales/run.ts",
-    "eval:highlight-reels": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/highlight-reels/run.ts"
+    "eval:highlight-reels": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/highlight-reels/run.ts",
+    "eval:research-agent": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-research-agent/run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
