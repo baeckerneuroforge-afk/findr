@@ -126,6 +126,70 @@ const TensionSchema = z.object({
 });
 export type Tension = z.infer<typeof TensionSchema>;
 
+/**
+ * Normalize one persisted tension `side` into an honest `TensionSide`.
+ *
+ * Same defensive contract as `normalizeEmergentThemes`: a missing / garbage
+ * side object becomes a fully-formed `TensionSide` with empty inner fields,
+ * never `undefined`. Export consumers deref `side.label`,
+ * `side.sourceInsightIds.length` and `side.quotes.slice(...)` (PDF + PPTX)
+ * with no outer guard, so each inner field must be guaranteed present.
+ */
+function normalizeTensionSide(value: unknown): TensionSide {
+  const side =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  const sourceInsightIds = side.sourceInsightIds;
+  const quotes = side.quotes;
+  return {
+    label: typeof side.label === "string" ? side.label : "",
+    sourceInsightIds: Array.isArray(sourceInsightIds)
+      ? (sourceInsightIds as string[])
+      : [],
+    quotes: Array.isArray(quotes) ? (quotes as string[]) : [],
+  };
+}
+
+/**
+ * Normalize persisted `tensions` JSONB into honest `Tension[]`.
+ *
+ * The sibling of `normalizeEmergentThemes` for the second un-normalized
+ * `study_synthesis` JSONB column. `getStudySynthesis` previously cast
+ * `tensions` as `(... as unknown as Tension[]) ?? []` — the outer `?? []`
+ * guards a missing column but never the inner fields, so a legacy / partial /
+ * hand-written row reaches the PDF + PPTX exports with `side_a` / `side_b` (or
+ * their `label` / `sourceInsightIds` / `quotes`) `undefined`. Code that reads
+ * `tension.side_a.quotes.slice(...)` or `side.sourceInsightIds.length` then
+ * crashes with "Cannot read properties of undefined".
+ *
+ * A defensive map, NOT `TensionSchema.parse`: parse would THROW on legacy rows
+ * that violate the description / label length or the `.min(1)` source-id
+ * constraint, turning a render glitch into a total read failure. The map never
+ * throws, preserves all existing content, and guarantees BOTH sides are always
+ * fully-formed `TensionSide` objects (missing description → `""`, missing /
+ * garbage side → empty side) so the result genuinely satisfies `Tension` with
+ * no `as unknown` cast that lies about the shape.
+ *
+ * Single source for any synthesis read path that reaches a tension's INNER
+ * fields (currently the PDF + PPTX synthesis exports, via getStudySynthesis).
+ */
+export function normalizeTensions(value: unknown): Tension[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    const tension =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? (entry as Record<string, unknown>)
+        : {};
+    return {
+      description:
+        typeof tension.description === "string" ? tension.description : "",
+      side_a: normalizeTensionSide(tension.side_a),
+      side_b: normalizeTensionSide(tension.side_b),
+    };
+  });
+}
+
 // ── Top-level synthesis result ──────────────────────────────────────────────
 
 export const StudySynthesisResultSchema = z.object({

@@ -1,6 +1,10 @@
 import "server-only";
 
 import { createResearchSupabase } from "@/lib/research/db";
+import {
+  normalizeEmergentThemes,
+  normalizeTensions,
+} from "@/lib/schemas/synthesis";
 import type {
   EmergentTheme,
   Tension,
@@ -66,9 +70,8 @@ export async function getStudySynthesis(
     org_id: data.org_id,
     plan_id: data.plan_id,
     overview: data.overview,
-    emergent_themes:
-      (data.emergent_themes as unknown as EmergentTheme[]) ?? [],
-    tensions: (data.tensions as unknown as Tension[]) ?? [],
+    emergent_themes: normalizeEmergentThemes(data.emergent_themes),
+    tensions: normalizeTensions(data.tensions),
     based_on_count: data.based_on_count,
     synthesized_at: data.synthesized_at,
     model: data.model,
