@@ -135,7 +135,7 @@ function NavSection({
                 href={item.href}
                 className={`block rounded-md px-3 py-1.5 text-body transition-colors ${
                   active
-                    ? "bg-neutral-100 text-neutral-900 font-medium"
+                    ? "bg-primary-50 text-primary-700 font-medium"
                     : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
                 }`}
               >

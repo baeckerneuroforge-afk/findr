@@ -72,6 +72,18 @@
   --font-display: var(--font-bricolage);
   --font-grotesk: var(--font-space-grotesk);
 
+  /* Platform shell faces (dashboard/onboarding), wired via next/font in
+     app/layout.tsx (self-hosted — no @import). Fraunces = display/headlines
+     (applied by the .text-display / .text-h* utilities below), Hanken Grotesk =
+     body/UI (applied via `font-body` on the dashboard route-group root),
+     JetBrains Mono = numbers/code. Setting --font-mono here overrides
+     Tailwind's default mono token, so the `font-mono` utility resolves to
+     JetBrains Mono — only dashboard surfaces use font-mono, landing is
+     unaffected. */
+  --font-heading: var(--font-fraunces);
+  --font-body: var(--font-hanken);
+  --font-mono: var(--font-jetbrains-mono);
+
   /* ────────────────────────────────────────────────────────────────
      Platform Design System v2 — light-mode tokens for /dashboard
      and /onboarding. Landing-page tokens above are untouched. */
@@ -95,13 +107,21 @@
      washes (bg-primary-50). Swapped from indigo so the platform accent
      matches the approved findr-shell-v2 design. 600 is the exact brand
      violet; 500 = lighter (rings/borders), 700 = darker (hover/active).
-     NOTE: only these five steps are defined here, matching the steps the
-     dashboard actually consumed under the old indigo scale. */
+     NOTE: the full 50–900 ramp is now defined. 200/300/400/800/900 were
+     referenced by components but previously UNDEFINED (dead classes); filling
+     them in (interpolated/extrapolated smoothly in the #5B2FD4 hue) makes those
+     subtle violet card/quote borders (border-primary-200/300/400) and the
+     darker-violet hover text (text-primary-800/900) render for the first time. */
   --color-primary-50: #f5f2fe;
   --color-primary-100: #e9e2fd;
+  --color-primary-200: #cab9f6;
+  --color-primary-300: #ab91ef;
+  --color-primary-400: #8c68e7;
   --color-primary-500: #6d3fe0;
   --color-primary-600: #5b2fd4;
   --color-primary-700: #4a25ab;
+  --color-primary-800: #391b82;
+  --color-primary-900: #281159;
 
   /* Status colors */
   --color-success-50: #f0fdf4;
@@ -230,10 +250,12 @@ body {
     font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   }
 
-  .text-display { font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.02em; }
-  .text-h1      { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; }
-  .text-h2      { font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; }
-  .text-h3      { font-size: 14px; line-height: 20px; font-weight: 600; }
+  /* Display + headlines render in Fraunces (--font-heading); the rest of the
+     shell (body/UI) stays in Hanken via the route-group `font-body`. */
+  .text-display { font-family: var(--font-heading), ui-serif, Georgia, serif; font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.02em; }
+  .text-h1      { font-family: var(--font-heading), ui-serif, Georgia, serif; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; }
+  .text-h2      { font-family: var(--font-heading), ui-serif, Georgia, serif; font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .text-h3      { font-family: var(--font-heading), ui-serif, Georgia, serif; font-size: 14px; line-height: 20px; font-weight: 600; }
   .text-body          { font-size: 14px; line-height: 22px; font-weight: 400; }
   .text-body-strong   { font-size: 14px; line-height: 22px; font-weight: 500; }
   .text-small         { font-size: 13px; line-height: 18px; font-weight: 400; }
