@@ -4,6 +4,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getAccounts } from "@/lib/accounts/service";
+import { accountValueKey, formatAccountAmount } from "@/lib/accounts/value";
 import {
   getLatestHealthScoresForAccounts,
   type HealthScoreRecord,
@@ -62,19 +63,6 @@ interface AnalyzedRow {
   health: HealthScoreRecord;
 }
 
-function formatMrr(
-  mrr: number | null,
-  currency: "USD" | "EUR",
-  locale: string,
-): string {
-  if (mrr === null) return "—";
-  return new Intl.NumberFormat(toBcp47(locale), {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(mrr);
-}
-
 function formatRenewal(renewalDate: string | null, locale: string): string {
   if (!renewalDate) return "—";
   const parsed = new Date(renewalDate);
@@ -129,6 +117,8 @@ export default async function CustomerHealthOverviewPage() {
   }
 
   const t = await getTranslations("health.overview");
+  // Account value labels (amount + period suffix) live in health.common.
+  const tv = await getTranslations("health.common");
   const locale = await getLocale();
 
   // One batch fetch per dimension — no AI, no Opus, all reads.
@@ -342,7 +332,7 @@ export default async function CustomerHealthOverviewPage() {
                   <TH>{t("colAccount")}</TH>
                   <TH>{t("colHealth")}</TH>
                   <TH>{t("colTopSignal")}</TH>
-                  <TH className="text-right">{t("colMrr")}</TH>
+                  <TH className="text-right">{t("colValue")}</TH>
                   <TH>{t("colRenewal")}</TH>
                 </TR>
               </THead>
@@ -368,7 +358,15 @@ export default async function CustomerHealthOverviewPage() {
                       {topSignalType(health) ?? "—"}
                     </TD>
                     <TD className="text-right whitespace-nowrap font-medium text-neutral-900">
-                      {formatMrr(account.mrr, account.currency, locale)}
+                      {account.mrr === null
+                        ? "—"
+                        : tv(accountValueKey(account.valueType), {
+                            amount: formatAccountAmount(
+                              account.mrr,
+                              account.currency,
+                              locale,
+                            ),
+                          })}
                     </TD>
                     <TD className="text-neutral-700 whitespace-nowrap">
                       {formatRenewal(account.renewalDate, locale)}

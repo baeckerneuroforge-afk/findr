@@ -6,6 +6,15 @@ import { useLocale, useTranslations } from "next-intl";
 import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import {
+  ACCOUNT_VALUE_TYPES,
+  type AccountValueType,
+} from "@/lib/accounts/types";
+import {
+  accountValueKey,
+  accountValueTypeLabelKey,
+  formatAccountAmount,
+} from "@/lib/accounts/value";
 
 interface AccountMaster {
   companyName: string;
@@ -13,6 +22,7 @@ interface AccountMaster {
   sponsorEmail: string | null;
   sponsorPhone: string | null;
   mrr: number | null;
+  valueType: AccountValueType;
   currency: "USD" | "EUR";
   renewalDate: string | null;
   notes: string | null;
@@ -25,19 +35,6 @@ interface AccountMasterCardProps {
 
 const INPUT_CLASS =
   "h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 disabled:opacity-60";
-
-function formatMrr(
-  mrr: number | null,
-  currency: "USD" | "EUR",
-  locale: string,
-): string {
-  if (mrr === null) return "—";
-  return new Intl.NumberFormat(toBcp47(locale), {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(mrr);
-}
 
 function formatDate(date: string | null, locale: string): string {
   if (!date) return "—";
@@ -66,6 +63,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
     sponsorEmail: initial.sponsorEmail ?? "",
     sponsorPhone: initial.sponsorPhone ?? "",
     mrr: initial.mrr === null ? "" : String(initial.mrr),
+    valueType: initial.valueType,
     currency: initial.currency,
     renewalDate: initial.renewalDate ?? "",
     notes: initial.notes ?? "",
@@ -78,6 +76,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
       sponsorEmail: account.sponsorEmail ?? "",
       sponsorPhone: account.sponsorPhone ?? "",
       mrr: account.mrr === null ? "" : String(account.mrr),
+      valueType: account.valueType,
       currency: account.currency,
       renewalDate: account.renewalDate ?? "",
       notes: account.notes ?? "",
@@ -103,6 +102,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
           sponsorEmail: form.sponsorEmail,
           sponsorPhone: form.sponsorPhone,
           mrr: form.mrr,
+          valueType: form.valueType,
           currency: form.currency,
           renewalDate: form.renewalDate,
           notes: form.notes,
@@ -121,6 +121,7 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
         sponsorEmail: data.account.sponsorEmail,
         sponsorPhone: data.account.sponsorPhone,
         mrr: data.account.mrr,
+        valueType: data.account.valueType,
         currency: data.account.currency,
         renewalDate: data.account.renewalDate,
         notes: data.account.notes,
@@ -195,8 +196,8 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
                 disabled={disabled}
               />
             </Field>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={tc("fldMrr")}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Field label={tc("fldValue")}>
                 <input
                   className={INPUT_CLASS}
                   type="number"
@@ -209,6 +210,25 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
                   placeholder="2500"
                   disabled={disabled}
                 />
+              </Field>
+              <Field label={tc("fldValueType")}>
+                <select
+                  className={INPUT_CLASS}
+                  value={form.valueType}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      valueType: e.target.value as AccountValueType,
+                    }))
+                  }
+                  disabled={disabled}
+                >
+                  {ACCOUNT_VALUE_TYPES.map((vt) => (
+                    <option key={vt} value={vt}>
+                      {tc(accountValueTypeLabelKey(vt))}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label={tc("fldCurrency")}>
                 <select
@@ -275,7 +295,20 @@ export function AccountMasterCard({ accountId, initial }: AccountMasterCardProps
             <Row label={t("rowSponsor")} value={account.sponsorName} />
             <Row label={t("rowEmail")} value={account.sponsorEmail} kind="email" />
             <Row label={t("rowPhone")} value={account.sponsorPhone} kind="phone" />
-            <Row label={t("rowMrr")} value={formatMrr(account.mrr, account.currency, locale)} />
+            <Row
+              label={t("rowValue")}
+              value={
+                account.mrr === null
+                  ? null
+                  : tc(accountValueKey(account.valueType), {
+                      amount: formatAccountAmount(
+                        account.mrr,
+                        account.currency,
+                        locale,
+                      ),
+                    })
+              }
+            />
             <Row label={t("rowRenewal")} value={formatDate(account.renewalDate, locale)} />
             <Row label={t("rowNotes")} value={account.notes} />
           </dl>

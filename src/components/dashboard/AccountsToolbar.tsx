@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { ACCOUNT_STATUSES, type AccountStatus } from "@/lib/accounts/types";
+import {
+  ACCOUNT_STATUSES,
+  ACCOUNT_VALUE_TYPES,
+  type AccountStatus,
+  type AccountValueType,
+} from "@/lib/accounts/types";
+import { accountValueTypeLabelKey } from "@/lib/accounts/value";
 
 export interface ConvertibleDeal {
   id: string;
@@ -26,6 +32,7 @@ const EMPTY_FORM = {
   sponsorEmail: "",
   sponsorPhone: "",
   mrr: "",
+  valueType: "monthly" as AccountValueType,
   currency: "EUR" as "USD" | "EUR",
   renewalDate: "",
   status: "active" as AccountStatus,
@@ -197,8 +204,8 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                   />
                 </Field>
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                <Field label={tc("fldMrr")}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Field label={tc("fldValue")}>
                   <input
                     className={INPUT_CLASS}
                     type="number"
@@ -211,6 +218,25 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                     placeholder="2500"
                     disabled={saving}
                   />
+                </Field>
+                <Field label={tc("fldValueType")}>
+                  <select
+                    className={INPUT_CLASS}
+                    value={form.valueType}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        valueType: e.target.value as AccountValueType,
+                      }))
+                    }
+                    disabled={saving}
+                  >
+                    {ACCOUNT_VALUE_TYPES.map((vt) => (
+                      <option key={vt} value={vt}>
+                        {tc(accountValueTypeLabelKey(vt))}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
                 <Field label={tc("fldCurrency")}>
                   <select
@@ -228,6 +254,8 @@ export function AccountsToolbar({ convertibleDeals }: AccountsToolbarProps) {
                     <option value="USD">USD</option>
                   </select>
                 </Field>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label={tc("fldRenewalDate")}>
                   <input
                     className={INPUT_CLASS}

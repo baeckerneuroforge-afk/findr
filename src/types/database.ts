@@ -140,6 +140,7 @@ export type Database = {
           sponsor_phone: string | null
           status: string
           updated_at: string
+          value_type: string
         }
         Insert: {
           checkin_enabled?: boolean
@@ -159,6 +160,7 @@ export type Database = {
           sponsor_phone?: string | null
           status?: string
           updated_at?: string
+          value_type?: string
         }
         Update: {
           checkin_enabled?: boolean
@@ -178,6 +180,7 @@ export type Database = {
           sponsor_phone?: string | null
           status?: string
           updated_at?: string
+          value_type?: string
         }
         Relationships: [
           {

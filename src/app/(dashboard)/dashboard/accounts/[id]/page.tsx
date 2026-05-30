@@ -4,6 +4,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getAccount } from "@/lib/accounts/service";
+import { accountValueKey, formatAccountAmount } from "@/lib/accounts/value";
 import {
   getAccountTranscriptCount,
   getHealthScoreHistory,
@@ -20,20 +21,6 @@ import { AccountCheckinPanel } from "@/components/dashboard/AccountCheckinPanel"
 import { AccountMasterCard } from "@/components/dashboard/AccountMasterCard";
 import { AccountStatusControl } from "@/components/dashboard/AccountStatusControl";
 import { CallProductDiscoverySection } from "@/components/dashboard/CallProductDiscoverySection";
-
-function formatMrr(
-  mrr: number | null,
-  currency: "USD" | "EUR",
-  notSet: string,
-  locale: string,
-): string {
-  if (mrr === null) return notSet;
-  return new Intl.NumberFormat(toBcp47(locale), {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(mrr);
-}
 
 function formatDate(date: string | null, locale: string): string | null {
   if (!date) return null;
@@ -64,6 +51,9 @@ export default async function AccountDetailPage({
   }
 
   const t = await getTranslations("health.detail");
+  // Value formatting (amount + period suffix) lives in the shared health.common
+  // namespace so the detail header and the master-data card read the same keys.
+  const tv = await getTranslations("health.common");
   // Product-Discovery-Sektion (Etappe 5) ist eigene Domäne — eigener Namespace.
   const td = await getTranslations("research.discovery");
   const locale = await getLocale();
@@ -140,7 +130,17 @@ export default async function AccountDetailPage({
             />
           </div>
           <div className="flex flex-wrap items-center gap-3 text-body text-neutral-500">
-            <span>{formatMrr(account.mrr, account.currency, t("mrrNotSet"), locale)}</span>
+            <span>
+              {account.mrr === null
+                ? tv("valueNotSet")
+                : tv(accountValueKey(account.valueType), {
+                    amount: formatAccountAmount(
+                      account.mrr,
+                      account.currency,
+                      locale,
+                    ),
+                  })}
+            </span>
             {renewal && (
               <>
                 <span aria-hidden="true">·</span>
@@ -269,6 +269,7 @@ export default async function AccountDetailPage({
             sponsorEmail: account.sponsorEmail,
             sponsorPhone: account.sponsorPhone,
             mrr: account.mrr,
+            valueType: account.valueType,
             currency: account.currency,
             renewalDate: account.renewalDate,
             notes: account.notes,

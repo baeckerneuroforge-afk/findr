@@ -5,7 +5,13 @@ import { z } from "zod";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { getDealById } from "@/lib/deals/service";
-import { ACCOUNT_STATUSES, type Account, type AccountStatus } from "./types";
+import {
+  ACCOUNT_STATUSES,
+  ACCOUNT_VALUE_TYPES,
+  type Account,
+  type AccountStatus,
+  type AccountValueType,
+} from "./types";
 
 type AccountRow = Database["public"]["Tables"]["accounts"]["Row"];
 type AccountUpdate = Database["public"]["Tables"]["accounts"]["Update"];
@@ -24,6 +30,14 @@ function toStatus(status: string | null): AccountStatus {
   return status === "at_risk" || status === "churned" ? status : "active";
 }
 
+/** Defensive narrowing of the free-text DB column to the value-type union. Any
+ *  legacy/unknown value falls back to "monthly" (the column's own default). */
+function toValueType(valueType: string | null): AccountValueType {
+  return valueType === "yearly" || valueType === "one_time"
+    ? valueType
+    : "monthly";
+}
+
 function mapRow(row: AccountRow): Account {
   return {
     id: row.id,
@@ -32,6 +46,7 @@ function mapRow(row: AccountRow): Account {
     sponsorEmail: row.sponsor_email,
     sponsorPhone: row.sponsor_phone,
     mrr: row.mrr,
+    valueType: toValueType(row.value_type),
     currency: toCurrency(row.currency),
     renewalDate: row.renewal_date,
     status: toStatus(row.status),
@@ -106,6 +121,7 @@ export const AccountCreateSchema = z.object({
   sponsorEmail: optionalEmail(200),
   sponsorPhone: optionalText(80),
   mrr: optionalMrr,
+  valueType: z.enum(ACCOUNT_VALUE_TYPES).default("monthly"),
   currency: z.enum(["USD", "EUR"]).default("EUR"),
   renewalDate: optionalRenewalDate,
   status: z.enum(ACCOUNT_STATUSES).default("active"),
@@ -125,6 +141,7 @@ export const AccountUpdateSchema = z.object({
   sponsorEmail: optionalEmail(200),
   sponsorPhone: optionalText(80),
   mrr: optionalMrr,
+  valueType: z.enum(ACCOUNT_VALUE_TYPES).optional(),
   currency: z.enum(["USD", "EUR"]).optional(),
   renewalDate: optionalRenewalDate,
   status: z.enum(ACCOUNT_STATUSES).optional(),
@@ -219,6 +236,7 @@ export async function createAccount(
       sponsor_email: input.sponsorEmail ?? null,
       sponsor_phone: input.sponsorPhone ?? null,
       mrr: input.mrr ?? null,
+      value_type: input.valueType,
       currency: input.currency,
       renewal_date: input.renewalDate ?? null,
       status: input.status,
@@ -250,6 +268,7 @@ export async function updateAccount(
   if (input.sponsorEmail !== undefined) patch.sponsor_email = input.sponsorEmail;
   if (input.sponsorPhone !== undefined) patch.sponsor_phone = input.sponsorPhone;
   if (input.mrr !== undefined) patch.mrr = input.mrr;
+  if (input.valueType !== undefined) patch.value_type = input.valueType;
   if (input.currency !== undefined) patch.currency = input.currency;
   if (input.renewalDate !== undefined) patch.renewal_date = input.renewalDate;
   if (input.status !== undefined) patch.status = input.status;
@@ -295,6 +314,12 @@ export async function markAccountCheckedIn(
  * back via source_deal_id. Returns null if the deal isn't a real (UUID) deal in
  * this org or isn't marked won. Idempotent: if an account already exists for this
  * deal, the existing one is returned instead of a duplicate.
+ *
+ * The deal's `amount` is a single won-contract value, NOT a monthly recurring
+ * fee — so the new account is stamped value_type = 'one_time'. (Carrying the
+ * amount over as MRR would have silently overstated recurring revenue for every
+ * project-based customer.) The CSM can change the value type afterwards in the
+ * master-data editor if the deal actually represents a subscription.
  */
 export async function createAccountFromWonDeal(
   orgId: string,
@@ -318,6 +343,8 @@ export async function createAccountFromWonDeal(
       sponsor_email: deal.contactEmail ?? null,
       sponsor_phone: deal.contactPhone ?? null,
       mrr: deal.amount ?? null,
+      // A won deal is a single contract value, not a monthly recurring fee.
+      value_type: "one_time",
       currency: deal.currency,
       status: "active",
       source_deal_id: dealId,
