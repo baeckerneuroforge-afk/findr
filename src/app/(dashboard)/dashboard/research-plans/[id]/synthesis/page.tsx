@@ -17,6 +17,7 @@ import { listSynthesisShares } from "@/lib/synthesis/share-service";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ChatWithDataPanel } from "@/components/dashboard/ChatWithDataPanel";
+import { ResearchAgentPanel } from "@/components/dashboard/ResearchAgentPanel";
 import { ExportSynthesisPdfButton } from "@/components/dashboard/ExportSynthesisPdfButton";
 import { ExportSynthesisPptxButton } from "@/components/dashboard/ExportSynthesisPptxButton";
 import { HighlightReelPanel } from "@/components/dashboard/HighlightReelPanel";
@@ -296,6 +297,13 @@ export default async function ResearchPlanSynthesisPage({
               before we offer "ask your data". `ready` is the same gate as
               "PDF export button is shown". */}
           <ChatWithDataPanel planId={planId} ready={true} />
+
+          {/* Research-Agent — build deliverables (summary / breakdown /
+              theme-ranking) on instruction from THIS synthesis. Same readiness
+              gate; multi-turn lives in the panel's local state. The engine
+              re-anchors every turn against the synthesis, so follow-ups stay
+              grounded. */}
+          <ResearchAgentPanel planId={planId} ready={true} />
 
           {/* Highlight-Reel — same readiness gate. The reel is derived
               on-demand from the verdichtungen + synthesis (no persistence),

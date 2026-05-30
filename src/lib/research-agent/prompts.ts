@@ -1,4 +1,5 @@
 import type { EmergentTheme, Tension } from "@/lib/schemas/synthesis";
+import type { ResearchAgentHistoryTurn } from "@/lib/schemas/research-agent";
 
 /**
  * Research-Agent prompt + data-section assembly. Pure string-building, no
@@ -34,6 +35,10 @@ export interface ResearchAgentFromInputs {
   plan: ResearchAgentPlanContext | null;
   synthesis: ResearchAgentSynthesisInput;
   instruction: string;
+  /** Prior conversation turns (multi-turn — Etappe 2). Threaded into the
+   *  Anthropic `messages` list as context; NEVER folded into the synthesis or
+   *  the anchor haystack. Absent → single-shot (the Etappe-1 eval path). */
+  history?: ResearchAgentHistoryTurn[];
 }
 
 // ── System prompt (posture + anchoring contract) ────────────────────────────

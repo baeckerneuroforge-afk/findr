@@ -1464,5 +1464,32 @@
       "withQuotesBadge": "With quotes",
       "withoutQuotesBadge": "Without quotes"
     }
+  },
+  "researchAgent": {
+    "title": "Research agent",
+    "subtitle": "Give the agent an instruction — it builds deliverables (summary, breakdown, theme ranking) exclusively from this synthesis. No speculation, no fabrication.",
+    "clear": "Clear history",
+    "notReady": "Once the synthesis is created, the agent can build deliverables from it.",
+    "instructionLabel": "Instruction",
+    "deliverableLabel": "Deliverable",
+    "refusalLabel": "Not in the data",
+    "evidenceLabel": "Evidence",
+    "groundingLabel": "Grounded in",
+    "thinking": "Building …",
+    "placeholder": "e.g. \"Summarize the main findings as 5 bullet points\" or \"Which 3 themes matter most?\"",
+    "anchoredHint": "Every deliverable is anchored exclusively in this synthesis — unsupported claims are dropped.",
+    "submit": "Build",
+    "submitting": "Building …",
+    "errPlanNotFound": "This study was not found.",
+    "errNoAccess": "No access to this study.",
+    "errInvalidRequest": "The request was invalid.",
+    "errEngine": "The research agent is currently unavailable.",
+    "errNetwork": "Connection failed. Please try again.",
+    "types": {
+      "summary": "Summary",
+      "breakdown": "Breakdown",
+      "theme_ranking": "Theme ranking",
+      "custom": "Deliverable"
+    }
   }
 }

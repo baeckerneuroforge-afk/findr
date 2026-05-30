@@ -78,13 +78,35 @@ export const ResearchAgentResponseSchema = z.object({
 });
 export type ResearchAgentResponse = z.infer<typeof ResearchAgentResponseSchema>;
 
+// ── Conversation history (multi-turn — Etappe 2) ────────────────────────────
+
+/** One prior turn of the researcher↔agent conversation. Mirrors
+ *  chat-with-data's ChatHistoryTurn: the engine threads these into the
+ *  Anthropic `messages` list verbatim so a follow-up ("mach das kürzer",
+ *  "jetzt nach Segment") has conversational continuity. CRITICAL: the history
+ *  is conversation context ONLY — it is NEVER an anchor source. The anchor
+ *  haystack is rebuilt from the fresh synthesis on every turn, so a follow-up
+ *  can't launder a finding that isn't in the synthesis through a prior turn.
+ *  The 4000-char cap matches the chat route (a hostile client can't burn
+ *  tokens with an oversized turn). */
+export const ResearchAgentHistoryTurnSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1).max(4000),
+});
+export type ResearchAgentHistoryTurn = z.infer<
+  typeof ResearchAgentHistoryTurnSchema
+>;
+
 // ── Request ─────────────────────────────────────────────────────────────────
 
-/** DB-driven entry input — instruction + the plan context (org-scoped). Etappe
- *  2 will validate this at the route boundary before calling the engine. */
+/** DB-driven entry input — instruction + the plan context (org-scoped) + the
+ *  prior conversation. Etappe 2 validates this at the route boundary before
+ *  calling the engine. `history` is optional (single-shot when absent) so the
+ *  Etappe-1 eval path is unchanged. */
 export const ResearchAgentRequestSchema = z.object({
   orgId: z.string().min(1).max(200),
   planId: z.string().min(1).max(200),
   instruction: z.string().min(1).max(2000),
+  history: z.array(ResearchAgentHistoryTurnSchema).max(20).optional(),
 });
 export type ResearchAgentRequest = z.infer<typeof ResearchAgentRequestSchema>;

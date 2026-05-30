@@ -1464,5 +1464,32 @@
       "withQuotesBadge": "Mit Zitaten",
       "withoutQuotesBadge": "Ohne Zitate"
     }
+  },
+  "researchAgent": {
+    "title": "Research-Agent",
+    "subtitle": "Gib dem Agenten einen Auftrag — er baut Deliverables (Zusammenfassung, Breakdown, Theme-Ranking) ausschließlich aus dieser Synthese. Keine Spekulation, keine Erfindungen.",
+    "clear": "Verlauf löschen",
+    "notReady": "Sobald die Synthese erstellt wurde, kann der Agent daraus Deliverables bauen.",
+    "instructionLabel": "Auftrag",
+    "deliverableLabel": "Deliverable",
+    "refusalLabel": "Nicht in den Daten",
+    "evidenceLabel": "Belege",
+    "groundingLabel": "Verankert in",
+    "thinking": "Wird erstellt …",
+    "placeholder": "z. B. „Fasse die Hauptbefunde als 5 Bullet-Points zusammen\" oder „Welche 3 Themen sind am wichtigsten?\"",
+    "anchoredHint": "Jedes Deliverable ist ausschließlich in dieser Synthese verankert — ungestützte Aussagen werden verworfen.",
+    "submit": "Erstellen",
+    "submitting": "Wird erstellt …",
+    "errPlanNotFound": "Diese Studie wurde nicht gefunden.",
+    "errNoAccess": "Kein Zugriff auf diese Studie.",
+    "errInvalidRequest": "Die Anfrage war ungültig.",
+    "errEngine": "Der Research-Agent ist momentan nicht verfügbar.",
+    "errNetwork": "Verbindung fehlgeschlagen. Bitte versuche es erneut.",
+    "types": {
+      "summary": "Zusammenfassung",
+      "breakdown": "Breakdown",
+      "theme_ranking": "Theme-Ranking",
+      "custom": "Deliverable"
+    }
   }
 }

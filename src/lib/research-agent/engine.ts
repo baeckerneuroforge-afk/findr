@@ -1,11 +1,14 @@
 import "server-only";
 
+import type Anthropic from "@anthropic-ai/sdk";
+
 import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { getStudySynthesis } from "@/lib/synthesis/service";
 import {
   ResearchAgentResponseSchema,
   type DeliverableItem,
+  type ResearchAgentHistoryTurn,
   type ResearchAgentRequest,
   type ResearchAgentResponse,
 } from "@/lib/schemas/research-agent";
@@ -252,11 +255,85 @@ function applyAnchorFilter(
   };
 }
 
-// ── Anthropic call (mirror callChatClaude; single-shot, no history) ─────────
+// ── Anthropic call (mirror callChatClaude; multi-turn since Etappe 2) ───────
+
+/**
+ * Structured-output tool. Forcing this tool (tool_choice) makes the model
+ * return its deliverable as a tool_use block whose `input` the SDK hands back
+ * already parsed — so a malformed-JSON failure (e.g. an unescaped quote inside
+ * a prose value, which reliably broke free-text JSON parsing on the number-trap
+ * case) is structurally impossible. The schema mirrors ResearchAgentResponse;
+ * only `fulfilled` (top) and item `text` are required — Zod fills every other
+ * default, so a refusal (just fulfilled+note) still parses.
+ */
+const RESEARCH_AGENT_TOOL: Anthropic.Tool = {
+  name: "emit_deliverable",
+  description:
+    "Return the structured research deliverable — or an honest refusal — for the researcher's instruction, grounded STRICTLY in the supplied synthesis. Call this exactly once with the complete result.",
+  input_schema: {
+    type: "object",
+    properties: {
+      fulfilled: {
+        type: "boolean",
+        description:
+          "false if the instruction cannot be fulfilled from THIS synthesis (it asks for data the synthesis does not contain). On a refusal: empty items + a 1-sentence note.",
+      },
+      deliverableType: {
+        type: "string",
+        enum: ["summary", "breakdown", "theme_ranking", "custom"],
+        description:
+          "The kind of deliverable the instruction asked for. Use 'custom' if genuinely unsure.",
+      },
+      title: {
+        type: "string",
+        description:
+          "Short German headline for the whole deliverable. Empty on refusal.",
+      },
+      items: {
+        type: "array",
+        description:
+          "The deliverable body — one entry per bullet / ranked theme / breakdown part. Empty on refusal.",
+        items: {
+          type: "object",
+          properties: {
+            heading: {
+              type: "string",
+              description: "Short German label for this unit, or empty.",
+            },
+            text: {
+              type: "string",
+              description: "The German deliverable prose for this unit.",
+            },
+            themeRefs: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "Verbatim emergent-theme titles or tension descriptions copied from the synthesis that ground this item.",
+            },
+            quotes: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "Verbatim source-language quotes copied from the synthesis. NEVER translated.",
+            },
+          },
+          required: ["text"],
+        },
+      },
+      note: {
+        type: "string",
+        description:
+          "Empty when fulfilled=true; a 1-sentence honest German refusal when fulfilled=false.",
+      },
+    },
+    required: ["fulfilled"],
+  },
+};
 
 async function callResearchAgentClaude(
   instruction: string,
   systemPrompt: string,
+  history: ResearchAgentHistoryTurn[] | undefined,
   attempt: number,
   model: string,
 ): Promise<ResearchAgentResponse> {
@@ -267,50 +344,59 @@ async function callResearchAgentClaude(
         "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble."
       : systemPrompt;
 
+  // Multi-turn: prior turns are threaded in BEFORE the current instruction so a
+  // follow-up ("mach das kürzer", "jetzt nach Segment") has conversational
+  // continuity — exactly like callChatClaude. The synthesis data section lives
+  // in `system` (cacheable, not repeated per turn). The history is conversation
+  // context ONLY: it is NEVER added to the anchor haystack (that is rebuilt from
+  // the synthesis alone in runResearchAgentDiagnostics), so a follow-up cannot
+  // launder an un-grounded finding through a prior assistant turn — the anchor
+  // filter re-checks every item against the fresh synthesis regardless.
+  const messages: { role: "user" | "assistant"; content: string }[] = [
+    ...(history ?? []).map((h) => ({ role: h.role, content: h.content })),
+    { role: "user" as const, content: instruction },
+  ];
+
   // No `temperature` — Opus 4.7 rejects the parameter (400). max_tokens is
   // higher than chat-with-data's 1024 because a deliverable can run to ~20
   // anchored items.
+  //
+  // FORCED TOOL-USE: we force a single structured tool call instead of asking
+  // for JSON in free text. The SDK returns `tool_use.input` as an already-
+  // parsed object, so a malformed-JSON failure (the unescaped-quote break that
+  // reliably hit the number-trap case) is structurally impossible. Posture +
+  // anchoring still come entirely from `system`; only the OUTPUT CHANNEL
+  // changed, so the deliverable content the model produces is unchanged.
   const response = await client.messages.create(
     {
       model,
       max_tokens: 2048,
       system,
-      messages: [{ role: "user" as const, content: instruction }],
+      messages,
+      tools: [RESEARCH_AGENT_TOOL],
+      tool_choice: { type: "tool", name: RESEARCH_AGENT_TOOL.name },
     },
     { timeout: 120_000, maxRetries: 1 },
   );
 
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
+  const toolUse = response.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+  );
+  if (!toolUse) {
     throw new ResearchAgentSchemaError(
-      "No text response from Claude",
+      "No tool_use block in response",
       JSON.stringify(response.content),
     );
   }
 
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new ResearchAgentSchemaError(
-      "No JSON found in response",
-      textBlock.text,
-    );
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new ResearchAgentSchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
-    );
-  }
-
-  const result = ResearchAgentResponseSchema.safeParse(parsed);
+  // `toolUse.input` is already a parsed object — Zod fills defaults for any
+  // omitted optional field (a refusal of just { fulfilled, note } still
+  // parses). No JSON.parse, no regex — the brittle path is gone.
+  const result = ResearchAgentResponseSchema.safeParse(toolUse.input);
   if (!result.success) {
     throw new ResearchAgentSchemaError(
       `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
+      JSON.stringify(toolUse.input),
     );
   }
   return result.data;
@@ -340,11 +426,22 @@ export async function runResearchAgentDiagnostics(
   const systemPrompt = `${RESEARCH_AGENT_SYSTEM_PROMPT}\n\n${buildResearchAgentDataSection(
     input,
   )}`;
+  // The anchor haystack is rebuilt from the SYNTHESIS ALONE on every turn —
+  // input.history is deliberately NOT passed here. This is the multi-turn
+  // anti-hallucination guarantee: a follow-up's items are re-checked against
+  // the fresh synthesis, never against the conversation, so prior turns can
+  // never widen what counts as "grounded".
   const anchors = buildSynthesisAnchorSet(input.synthesis);
 
   let raw: ResearchAgentResponse;
   try {
-    raw = await callResearchAgentClaude(input.instruction, systemPrompt, 0, model);
+    raw = await callResearchAgentClaude(
+      input.instruction,
+      systemPrompt,
+      input.history,
+      0,
+      model,
+    );
   } catch (err) {
     if (!(err instanceof ResearchAgentSchemaError)) {
       throw new ResearchAgentUnavailableError(
@@ -360,6 +457,7 @@ export async function runResearchAgentDiagnostics(
       raw = await callResearchAgentClaude(
         input.instruction,
         systemPrompt,
+        input.history,
         1,
         model,
       );
@@ -455,6 +553,9 @@ export async function runResearchAgent(
         basedOnCount: synthesis.based_on_count,
       },
       instruction: request.instruction,
+      // Multi-turn (Etappe 2). Conversation context only — the anchor haystack
+      // above is built from `synthesis` alone, never from these turns.
+      history: request.history,
     },
     model,
   );
