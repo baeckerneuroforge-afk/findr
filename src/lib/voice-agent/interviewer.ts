@@ -2,7 +2,11 @@ import "server-only";
 
 import { z } from "zod";
 
-import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import {
+  callClaudeStructured,
+  StructuredOutputError,
+} from "@/lib/anthropic/structured";
 import type { LossReasonType } from "@/lib/loss/extractor";
 import type { RiskAnalysisResult } from "@/lib/schemas/risk";
 
@@ -93,16 +97,6 @@ export type InterviewResult = z.infer<typeof InterviewResultSchema>;
 // ----------------------------------------------------------------------------
 // Errors (mirror solution/extractor.ts)
 // ----------------------------------------------------------------------------
-
-class VoiceSchemaError extends Error {
-  constructor(
-    message: string,
-    public rawResponse: string,
-  ) {
-    super(message);
-    this.name = "VoiceSchemaError";
-  }
-}
 
 export class VoiceUnavailableError extends Error {
   constructor(
@@ -230,70 +224,17 @@ Return your analysis as JSON only.`;
 }
 
 // ----------------------------------------------------------------------------
-// LLM call (JSON, validated, one retry — mirrors solution/extractor.ts)
+// LLM call — forced tool-use via callClaudeStructured (robust, one retry)
 // ----------------------------------------------------------------------------
 
-async function requestJson<T>(
-  system: string,
-  userPrompt: string,
-  model: string,
-  schema: z.ZodType<T>,
-  retry: boolean,
-): Promise<T> {
-  const client = getAnthropicClient();
-
-  const sys = retry
-    ? `${system}\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble.`
-    : system;
-
-  const response = await client.messages.create(
-    {
-      model,
-      max_tokens: 1024,
-      // Opus 4.7 rejects the temperature parameter; rely on the structured
-      // prompt + schema validation.
-      system: sys,
-      messages: [{ role: "user", content: userPrompt }],
-    },
-    // Opus can take ~40-60s; give each call a generous per-request budget (same
-    // approach as the solution layer) without touching the shared client.
-    { timeout: 120_000, maxRetries: 2 },
-  );
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new VoiceSchemaError(
-      "No text response from Claude",
-      JSON.stringify(response.content),
-    );
-  }
-
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new VoiceSchemaError("No JSON found in response", textBlock.text);
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new VoiceSchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
-    );
-  }
-
-  const result = schema.safeParse(parsed);
-  if (!result.success) {
-    throw new VoiceSchemaError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
-    );
-  }
-
-  return result.data;
-}
-
+/**
+ * Single structured call for every voice surface (interview / extraction /
+ * check-in / research). The conversation history is already embedded in
+ * `userPrompt` by the prompt builders, so a single user message is correct.
+ * Forced tool-use makes malformed JSON impossible; fail-closed is preserved —
+ * any failure surfaces as VoiceUnavailableError (the session-service maps that
+ * to an honest "agent unavailable", never garbage).
+ */
 async function callJson<T>(
   system: string,
   userPrompt: string,
@@ -301,20 +242,23 @@ async function callJson<T>(
   schema: z.ZodType<T>,
 ): Promise<T> {
   try {
-    return await requestJson(system, userPrompt, model, schema, false);
+    return await callClaudeStructured({
+      schema,
+      system,
+      messages: [{ role: "user", content: userPrompt }],
+      model,
+      // Opus can take ~40-60s; generous per-request budget + the shared
+      // client's transient-retry behavior (2).
+      maxTokens: 1024,
+      maxRetries: 2,
+      toolName: "emit_voice_result",
+      toolDescription:
+        "Return the structured result for this interview turn or extraction as the fields of this tool.",
+    });
   } catch (err) {
-    if (!(err instanceof VoiceSchemaError)) {
-      throw new VoiceUnavailableError("Claude voice call failed", err);
-    }
-    console.warn("[voice] schema validation failed, retrying:", err.message);
-  }
-
-  try {
-    return await requestJson(system, userPrompt, model, schema, true);
-  } catch (err) {
-    if (err instanceof VoiceSchemaError) {
+    if (err instanceof StructuredOutputError) {
       throw new VoiceUnavailableError(
-        "Claude voice call returned invalid JSON twice",
+        "Claude voice call returned invalid output twice",
         err,
       );
     }

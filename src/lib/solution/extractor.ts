@@ -2,7 +2,11 @@ import "server-only";
 
 import { z } from "zod";
 
-import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import {
+  callClaudeStructured,
+  StructuredOutputError,
+} from "@/lib/anthropic/structured";
 import { RISK_SIGNAL_TYPES, type RiskAnalysisResult } from "@/lib/schemas/risk";
 
 /**
@@ -181,16 +185,6 @@ Produce one recommendation per detected signal, grounded in the quotes above and
 // LLM call + error handling (mirrors src/lib/risk/llm-classifier.ts)
 // ----------------------------------------------------------------------------
 
-class SolutionSchemaError extends Error {
-  constructor(
-    message: string,
-    public rawResponse: string,
-  ) {
-    super(message);
-    this.name = "SolutionSchemaError";
-  }
-}
-
 export class SolutionUnavailableError extends Error {
   constructor(
     message: string,
@@ -201,76 +195,15 @@ export class SolutionUnavailableError extends Error {
   }
 }
 
-async function callClaude(
-  userPrompt: string,
-  attempt: number,
-  model: string,
-): Promise<SolutionResult> {
-  const client = getAnthropicClient();
-
-  const system =
-    attempt > 0
-      ? SOLUTION_SYSTEM_PROMPT +
-        "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble, no explanation."
-      : SOLUTION_SYSTEM_PROMPT;
-
-  const response = await client.messages.create(
-    {
-      model,
-      max_tokens: 2048,
-      // Note: Opus 4.7 rejects the temperature parameter (400 error). Rely on the
-      // structured prompt + schema validation instead of a temperature setting.
-      system,
-      messages: [{ role: "user", content: userPrompt }],
-    },
-    {
-      // Per-request overrides — the shared client (src/lib/anthropic/client.ts)
-      // keeps its 30s timeout / 4 retries for Risk and Loss. Opus solution
-      // generation (several grounded recommendations from a full transcript)
-      // routinely runs past 30s, so give THIS call 120s and fail fast with a
-      // single retry instead of retrying a slow call four times.
-      timeout: 120_000,
-      maxRetries: 1,
-    },
-  );
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new SolutionSchemaError(
-      "No text response from Claude",
-      JSON.stringify(response.content),
-    );
-  }
-
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new SolutionSchemaError("No JSON found in response", textBlock.text);
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new SolutionSchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
-    );
-  }
-
-  const result = SolutionResultSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new SolutionSchemaError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
-    );
-  }
-
-  return result.data;
-}
-
 /**
  * Generate deal-rescue recommendations from a risk analysis + deal context.
  * Opus by default; pass `model` or set SOLUTION_MODEL to override.
+ *
+ * Robust transport: forced tool-use via callClaudeStructured — the result comes
+ * back as a parsed tool input (no text-JSON regex/parse). Same prompt, same
+ * SolutionResultSchema, same Opus default. Fail-closed preserved: throws
+ * SolutionUnavailableError (no heuristic fallback — a solution is only surfaced
+ * when the model produced a valid grounded one).
  */
 export async function generateSolution(
   input: SolutionInput,
@@ -279,32 +212,35 @@ export async function generateSolution(
   const userPrompt = buildSolutionPrompt(input);
 
   try {
-    return await callClaude(userPrompt, 0, model);
+    return await callClaudeStructured({
+      schema: SolutionResultSchema,
+      system: SOLUTION_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+      model,
+      maxTokens: 2048,
+      // Opus solution generation (several grounded recommendations from a full
+      // transcript) routinely runs past the shared client's 30s default.
+      timeoutMs: 120_000,
+      toolName: "emit_solution",
+      toolDescription:
+        "Return the deal-rescue recommendations (one per detected risk signal) plus the overall salvageability verdict, grounded strictly in this deal's evidence.",
+    });
   } catch (err) {
-    if (!(err instanceof SolutionSchemaError)) {
-      throw new SolutionUnavailableError("Claude solution generation failed", err);
-    }
-    console.warn(
-      "Solution schema validation failed on first attempt, retrying:",
-      err.message,
-    );
-  }
-
-  try {
-    return await callClaude(userPrompt, 1, model);
-  } catch (err) {
-    if (err instanceof SolutionSchemaError) {
+    if (err instanceof StructuredOutputError) {
       console.error(
-        "Solution schema validation failed twice:",
+        "Solution structured output failed twice:",
         err.message,
         "Raw:",
         err.rawResponse.slice(0, 500),
       );
       throw new SolutionUnavailableError(
-        "Claude solution generation returned invalid JSON twice",
+        "Claude solution generation returned invalid output twice",
         err,
       );
     }
-    throw new SolutionUnavailableError("Claude solution generation failed", err);
+    throw new SolutionUnavailableError(
+      "Claude solution generation failed",
+      err,
+    );
   }
 }

@@ -3,7 +3,11 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import {
+  callClaudeStructured,
+  StructuredOutputError,
+} from "@/lib/anthropic/structured";
 import type { Database, Json } from "@/types/database";
 import {
   createResearchPlan,
@@ -109,16 +113,6 @@ export interface ChurnClusterRefs {
 export type BridgeSourceRefs = ChurnClusterRefs | Record<string, unknown>;
 
 // ── Error types ────────────────────────────────────────────────────────────
-
-class BridgeDerivationSchemaError extends Error {
-  constructor(
-    message: string,
-    public rawResponse: string,
-  ) {
-    super(message);
-    this.name = "BridgeDerivationSchemaError";
-  }
-}
 
 export class BridgeUnavailableError extends Error {
   constructor(
@@ -232,82 +226,15 @@ function buildDeriveUserPrompt(input: DeriveInput): string {
   return lines.join("\n");
 }
 
-// ── Anthropic call ─────────────────────────────────────────────────────────
-
-async function callBridgeClaude(
-  userPrompt: string,
-  attempt: number,
-  model: string,
-): Promise<DerivedGoal> {
-  const client = getAnthropicClient();
-  const system =
-    attempt > 0
-      ? BRIDGE_DERIVATION_SYSTEM_PROMPT +
-        "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble."
-      : BRIDGE_DERIVATION_SYSTEM_PROMPT;
-
-  const response = await client.messages.create(
-    {
-      model,
-      max_tokens: 512,
-      system,
-      messages: [{ role: "user", content: userPrompt }],
-    },
-    { timeout: 60_000, maxRetries: 1 },
-  );
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new BridgeDerivationSchemaError(
-      "No text response from Claude",
-      JSON.stringify(response.content),
-    );
-  }
-
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new BridgeDerivationSchemaError(
-      "No JSON found in response",
-      textBlock.text,
-    );
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new BridgeDerivationSchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
-    );
-  }
-
-  const result = DerivedGoalSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new BridgeDerivationSchemaError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
-    );
-  }
-  // Defense-in-depth: schema allows "derivable=true && goal=null" — that's
-  // a contradiction. Flip to derivable=false to keep persistence honest.
-  const data = result.data;
-  if (data.derivable && (data.goal === null || data.goal.trim() === "")) {
-    return { derivable: false, goal: null };
-  }
-  if (!data.derivable && data.goal !== null) {
-    return { derivable: false, goal: null };
-  }
-  return data;
-}
-
 // ── Pure derivation entry (eval + production both call this) ──────────────
 
 /**
- * Pure-input entry — no DB. Used by:
+ * Pure-input entry — no DB. Robust transport: forced tool-use via
+ * callClaudeStructured (no text-JSON regex/parse). Used by:
  *   - the eval harness (deterministic property checks on fixed clusters)
  *   - detectAndPersistChurnSuggestions below (DB-driven; takes the detected
  *     cluster's signalType + accountCount and persists the result)
+ * Fail-closed preserved (BridgeUnavailableError).
  */
 export async function deriveResearchGoalFromCluster(
   input: DeriveInput,
@@ -315,28 +242,39 @@ export async function deriveResearchGoalFromCluster(
 ): Promise<DerivedGoal> {
   const userPrompt = buildDeriveUserPrompt(input);
 
+  let data: DerivedGoal;
   try {
-    return await callBridgeClaude(userPrompt, 0, model);
+    data = await callClaudeStructured({
+      schema: DerivedGoalSchema,
+      system: BRIDGE_DERIVATION_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+      model,
+      maxTokens: 512,
+      timeoutMs: 60_000,
+      toolName: "emit_derived_goal",
+      toolDescription:
+        "Return the derived research goal — derivable plus a German goal sentence, or derivable=false with goal=null when the cluster is too ambiguous or thin.",
+    });
   } catch (err) {
-    if (!(err instanceof BridgeDerivationSchemaError)) {
-      throw new BridgeUnavailableError("Claude derivation call failed", err);
+    if (err instanceof StructuredOutputError) {
+      throw new BridgeUnavailableError(
+        "Claude derivation returned invalid output twice",
+        err,
+      );
     }
-    console.warn(
-      "Bridge-derivation schema validation failed on first attempt, retrying:",
-      err.message,
-    );
-    try {
-      return await callBridgeClaude(userPrompt, 1, model);
-    } catch (err2) {
-      if (err2 instanceof BridgeDerivationSchemaError) {
-        throw new BridgeUnavailableError(
-          "Claude derivation returned invalid JSON twice",
-          err2,
-        );
-      }
-      throw new BridgeUnavailableError("Claude derivation call failed", err2);
-    }
+    throw new BridgeUnavailableError("Claude derivation call failed", err);
   }
+
+  // Defense-in-depth (UNCHANGED): the schema allows "derivable=true &&
+  // goal=null" — a contradiction. Normalize either contradiction to an honest
+  // refusal to keep persistence consistent.
+  if (data.derivable && (data.goal === null || data.goal.trim() === "")) {
+    return { derivable: false, goal: null };
+  }
+  if (!data.derivable && data.goal !== null) {
+    return { derivable: false, goal: null };
+  }
+  return data;
 }
 
 // ── Database augmentation (bridge_suggestions + CS-Health reads) ───────────

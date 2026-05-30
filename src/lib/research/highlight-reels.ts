@@ -3,7 +3,11 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import {
+  callClaudeStructured,
+  StructuredOutputError,
+} from "@/lib/anthropic/structured";
 import { normalizeThemes } from "@/lib/schemas/product-discovery";
 import {
   normalizeEmergentThemes,
@@ -82,16 +86,6 @@ export type Highlight = z.infer<typeof HighlightSchema>;
 export type HighlightReel = z.infer<typeof HighlightReelSchema>;
 
 // ── Error types ────────────────────────────────────────────────────────────
-
-class HighlightReelSchemaError extends Error {
-  constructor(
-    message: string,
-    public rawResponse: string,
-  ) {
-    super(message);
-    this.name = "HighlightReelSchemaError";
-  }
-}
 
 export class HighlightReelUnavailableError extends Error {
   constructor(
@@ -396,66 +390,6 @@ const TRIVIAL_SUMMARIES: Record<NonNullable<TrivialCheck["reason"]>, string> = {
     "Die vorhandenen Verdichtungen enthalten kein zitierbares Material — Reel bleibt leer, kein Aufblähen.",
 };
 
-// ── Anthropic call (mirrors synthesis/engine.ts) ───────────────────────────
-
-async function callReelClaude(
-  userPrompt: string,
-  attempt: number,
-  model: string,
-): Promise<HighlightReel> {
-  const client = getAnthropicClient();
-  const system =
-    attempt > 0
-      ? HIGHLIGHT_REEL_SYSTEM_PROMPT +
-        "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble."
-      : HIGHLIGHT_REEL_SYSTEM_PROMPT;
-
-  const response = await client.messages.create(
-    {
-      model,
-      max_tokens: 2048,
-      system,
-      messages: [{ role: "user", content: userPrompt }],
-    },
-    { timeout: 180_000, maxRetries: 1 },
-  );
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new HighlightReelSchemaError(
-      "No text response from Claude",
-      JSON.stringify(response.content),
-    );
-  }
-
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new HighlightReelSchemaError(
-      "No JSON found in response",
-      textBlock.text,
-    );
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new HighlightReelSchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
-    );
-  }
-
-  const result = HighlightReelSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new HighlightReelSchemaError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
-    );
-  }
-  return result.data;
-}
-
 // ── Pure-input entry (for evals) ───────────────────────────────────────────
 
 /**
@@ -481,36 +415,33 @@ export async function generateReelFromInputs(
   const userPrompt = buildReelUserPrompt(input);
   const anchors = buildReelAnchorSet(input);
 
+  // Robust transport: forced tool-use via callClaudeStructured (no text-JSON
+  // regex/parse). Same prompt, same HighlightReelSchema, same Opus default.
   let raw: HighlightReel;
   try {
-    raw = await callReelClaude(userPrompt, 0, model);
+    raw = await callClaudeStructured({
+      schema: HighlightReelSchema,
+      system: HIGHLIGHT_REEL_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+      model,
+      maxTokens: 2048,
+      timeoutMs: 180_000,
+      toolName: "emit_highlight_reel",
+      toolDescription:
+        "Return the highlight reel — the strongest verbatim customer quotes, each tagged with its interviewId, themeRef and a one-sentence German caption.",
+    });
   } catch (err) {
-    if (!(err instanceof HighlightReelSchemaError)) {
+    if (err instanceof StructuredOutputError) {
       throw new HighlightReelUnavailableError(
-        "Claude reel call failed",
+        "Claude reel returned invalid output twice",
         err,
       );
     }
-    console.warn(
-      "Reel schema validation failed on first attempt, retrying:",
-      err.message,
-    );
-    try {
-      raw = await callReelClaude(userPrompt, 1, model);
-    } catch (err2) {
-      if (err2 instanceof HighlightReelSchemaError) {
-        throw new HighlightReelUnavailableError(
-          "Claude reel returned invalid JSON twice",
-          err2,
-        );
-      }
-      throw new HighlightReelUnavailableError(
-        "Claude reel call failed",
-        err2,
-      );
-    }
+    throw new HighlightReelUnavailableError("Claude reel call failed", err);
   }
 
+  // Anchored-filter (UNCHANGED): drop highlights whose quote/interviewId/
+  // themeRef isn't grounded in the inputs — anti-hallucination calibration.
   return applyReelAnchoredFilter(raw, anchors);
 }
 

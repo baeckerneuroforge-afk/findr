@@ -3,7 +3,11 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import {
+  callClaudeStructured,
+  StructuredOutputError,
+} from "@/lib/anthropic/structured";
 import { normalizeThemes } from "@/lib/schemas/product-discovery";
 import type { Database, Json } from "@/types/database";
 
@@ -75,16 +79,6 @@ export interface ChatWithDataInput {
 }
 
 // ── Error types ────────────────────────────────────────────────────────────
-
-class ChatWithDataSchemaError extends Error {
-  constructor(
-    message: string,
-    public rawResponse: string,
-  ) {
-    super(message);
-    this.name = "ChatWithDataSchemaError";
-  }
-}
 
 export class ChatWithDataUnavailableError extends Error {
   constructor(
@@ -365,81 +359,18 @@ function applyChatAnchoredFilter(
 
 // ── Anthropic call ─────────────────────────────────────────────────────────
 
-async function callChatClaude(
-  userPrompt: string,
-  systemPrompt: string,
-  history: ChatHistoryTurn[] | undefined,
-  attempt: number,
-  model: string,
-): Promise<ChatWithDataResult> {
-  const client = getAnthropicClient();
-  const system =
-    attempt > 0
-      ? systemPrompt +
-        "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble."
-      : systemPrompt;
-
-  // History is threaded in BEFORE the current question. Each prior turn is
-  // a plain text content block — the data context lives in `system`, not in
-  // each user message, so the chat history doesn't carry the (potentially
-  // 20k-token) data dump on every turn.
-  const messages: { role: "user" | "assistant"; content: string }[] = [
-    ...(history ?? []).map((h) => ({ role: h.role, content: h.content })),
-    { role: "user" as const, content: userPrompt },
-  ];
-
-  const response = await client.messages.create(
-    {
-      model,
-      max_tokens: 1024,
-      system,
-      messages,
-    },
-    { timeout: 120_000, maxRetries: 1 },
-  );
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new ChatWithDataSchemaError(
-      "No text response from Claude",
-      JSON.stringify(response.content),
-    );
-  }
-
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new ChatWithDataSchemaError(
-      "No JSON found in response",
-      textBlock.text,
-    );
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new ChatWithDataSchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
-    );
-  }
-
-  const result = ChatResultSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new ChatWithDataSchemaError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
-    );
-  }
-  return result.data;
-}
-
 // ── Pure-input entry (for evals) ───────────────────────────────────────────
 
 /**
  * Pure entry point — pass plan + insights + synthesis explicitly, get the
  * filtered chat result. NO Supabase. The eval harness drives this directly
  * so we can run hand-crafted cases without seeding the DB.
+ *
+ * Robust transport: forced tool-use via callClaudeStructured (no text-JSON
+ * regex/parse). Multi-turn preserved: prior `history` turns are threaded BEFORE
+ * the current question in `messages`; the data dump stays in `system` (not
+ * repeated per turn). Fail-closed preserved (ChatWithDataUnavailableError);
+ * the anchored-filter still strips unanchored citations afterward.
  */
 export async function chatWithDataFromInputs(
   input: ChatFromInputs,
@@ -449,40 +380,33 @@ export async function chatWithDataFromInputs(
   const systemPrompt = `${CHAT_WITH_DATA_SYSTEM_PROMPT}\n\n${buildChatDataSection(input)}`;
   const anchors = buildChatAnchorSet(input.insights, input.synthesis);
 
+  // History threaded BEFORE the current question — the data context lives in
+  // `system`, so each turn carries only its conversational text.
+  const messages = [
+    ...(input.history ?? []).map((h) => ({ role: h.role, content: h.content })),
+    { role: "user" as const, content: input.question },
+  ];
+
   let raw: ChatWithDataResult;
   try {
-    raw = await callChatClaude(
-      input.question,
-      systemPrompt,
-      input.history,
-      0,
+    raw = await callClaudeStructured({
+      schema: ChatResultSchema,
+      system: systemPrompt,
+      messages,
       model,
-    );
+      maxTokens: 1024,
+      toolName: "emit_chat_answer",
+      toolDescription:
+        "Return the answer to the researcher's question — answered, a short German answer, and verbatim citations (interviewId + quote) drawn only from the supplied data.",
+    });
   } catch (err) {
-    if (!(err instanceof ChatWithDataSchemaError)) {
-      throw new ChatWithDataUnavailableError("Claude chat call failed", err);
-    }
-    console.warn(
-      "Chat schema validation failed on first attempt, retrying:",
-      err.message,
-    );
-    try {
-      raw = await callChatClaude(
-        input.question,
-        systemPrompt,
-        input.history,
-        1,
-        model,
+    if (err instanceof StructuredOutputError) {
+      throw new ChatWithDataUnavailableError(
+        "Claude chat returned invalid output twice",
+        err,
       );
-    } catch (err2) {
-      if (err2 instanceof ChatWithDataSchemaError) {
-        throw new ChatWithDataUnavailableError(
-          "Claude chat returned invalid JSON twice",
-          err2,
-        );
-      }
-      throw new ChatWithDataUnavailableError("Claude chat call failed", err2);
     }
+    throw new ChatWithDataUnavailableError("Claude chat call failed", err);
   }
 
   return applyChatAnchoredFilter(raw, anchors);

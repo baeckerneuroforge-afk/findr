@@ -2,7 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 
-import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import { callClaudeStructured } from "@/lib/anthropic/structured";
 import type { CallWithSegments, DetectorInput } from "@/lib/risk/types";
 import {
   extractLossReason,
@@ -70,16 +71,6 @@ const LlmLossOutputSchema = z.object({
   confidence: z.number().min(0).max(1),
 });
 
-type LlmLossOutput = z.infer<typeof LlmLossOutputSchema>;
-
-/** Internal marker error for "the LLM path failed, fall back to regex". */
-class LossLLMError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "LossLLMError";
-  }
-}
-
 export const LOSS_EXTRACTOR_SYSTEM_PROMPT = `You are an expert at diagnosing WHY a B2B SaaS deal was lost. You work with DACH (Germany / Austria / Switzerland) sales conversations, in German and English.
 
 You receive the transcript(s) of a LOST deal. Classify the SINGLE primary reason the deal was lost into EXACTLY ONE of these 10 categories:
@@ -146,61 +137,31 @@ ${transcript || "(no transcript available)"}
 Return your answer as JSON only.`;
 }
 
-async function callClaudeForLoss(
-  userPrompt: string,
-  model: string,
-): Promise<LlmLossOutput> {
-  const client = getAnthropicClient();
-
-  const response = await client.messages.create({
-    model,
-    max_tokens: 512,
-    // Note: Opus 4.7 rejects the temperature parameter (400 error). Determinism
-    // is not configurable here; rely on the structured prompt + schema check.
-    system: LOSS_EXTRACTOR_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userPrompt }],
-  });
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new LossLLMError("No text response from Claude");
-  }
-
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new LossLLMError("No JSON object found in response");
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new LossLLMError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-    );
-  }
-
-  const result = LlmLossOutputSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new LossLLMError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-    );
-  }
-
-  return result.data;
-}
-
 /**
  * LLM equivalent of `extractLossReason`. Same signature (the optional `model`
  * arg only adds an override; calling `extractLossReasonLLM(input)` is a true
  * drop-in for `extractLossReason(input)`).
+ *
+ * Robust transport: forced tool-use via callClaudeStructured — the output comes
+ * back as a parsed tool input (no text-JSON regex/parse). Fail-closed UNCHANGED:
+ * ANY failure (transport, schema, StructuredOutputError) is caught below and
+ * degrades to the regex heuristic with extraction_method "heuristic".
  */
 export async function extractLossReasonLLM(
   input: DetectorInput,
   model: string = process.env.LOSS_MODEL ?? DEFAULT_LOSS_MODEL,
 ): Promise<LossAnalysis> {
   try {
-    const output = await callClaudeForLoss(buildLossPrompt(input), model);
+    const output = await callClaudeStructured({
+      schema: LlmLossOutputSchema,
+      system: LOSS_EXTRACTOR_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: buildLossPrompt(input) }],
+      model,
+      maxTokens: 512,
+      toolName: "emit_loss_reason",
+      toolDescription:
+        "Return the single primary loss reason — the category, a verbatim evidence quote from the transcript, and a 0-1 confidence.",
+    });
 
     const callId = input.calls[0]?.id ?? "";
     const evidence = output.evidence.trim();

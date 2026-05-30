@@ -3,7 +3,11 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import {
+  callClaudeStructured,
+  StructuredOutputError,
+} from "@/lib/anthropic/structured";
 import type { Database, Json } from "@/types/database";
 import { RISK_SIGNAL_TYPES } from "@/lib/schemas/risk";
 
@@ -138,16 +142,6 @@ export interface ResearchRiskRefs {
   derivable: boolean;
 }
 
-class ResearchRiskSchemaError extends Error {
-  constructor(
-    message: string,
-    public rawResponse: string,
-  ) {
-    super(message);
-    this.name = "ResearchRiskSchemaError";
-  }
-}
-
 export class ResearchRiskUnavailableError extends Error {
   constructor(
     message: string,
@@ -248,67 +242,63 @@ function buildDeriveUserPrompt(input: DeriveRiskCandidateInput): string {
   return lines.join("\n");
 }
 
-// ── Anthropic call ─────────────────────────────────────────────────────────
+// ── Pure derivation entry (eval + production both call this) ──────────────
 
-async function callDeriveClaude(
-  userPrompt: string,
-  attempt: number,
-  model: string,
+/**
+ * Pure-input entry — no DB. Robust transport: forced tool-use via
+ * callClaudeStructured (no text-JSON regex/parse). Used by:
+ *   - the eval harness (deterministic property checks on fixed themes)
+ *   - detectAndPersistResearchRiskSuggestions below (DB-driven; iterates
+ *     over emergent_themes of a plan's study_synthesis)
+ * Fail-closed preserved (ResearchRiskUnavailableError).
+ */
+export async function deriveRiskCandidateFromTheme(
+  input: DeriveRiskCandidateInput,
+  model: string = process.env.BRIDGE_MODEL ?? DEFAULT_BRIDGE_MODEL,
 ): Promise<RiskCandidate> {
-  const client = getAnthropicClient();
-  const system =
-    attempt > 0
-      ? BRIDGE_RESEARCH_RISK_SYSTEM_PROMPT +
-        "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble."
-      : BRIDGE_RESEARCH_RISK_SYSTEM_PROMPT;
-
-  const response = await client.messages.create(
-    {
-      model,
-      max_tokens: 768,
-      system,
-      messages: [{ role: "user", content: userPrompt }],
-    },
-    { timeout: 60_000, maxRetries: 1 },
-  );
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new ResearchRiskSchemaError(
-      "No text response from Claude",
-      JSON.stringify(response.content),
-    );
-  }
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new ResearchRiskSchemaError(
-      "No JSON found in response",
-      textBlock.text,
-    );
+  // Pre-filter (unchanged): themes below the frequency threshold get an
+  // immediate honest refusal without spending tokens. The system prompt
+  // encodes the same rule; we just save the round trip.
+  if (input.frequency < BRIDGE_RESEARCH_RISK_MIN_FREQUENCY) {
+    return {
+      derivable: false,
+      candidateName: null,
+      mappedRiskType: null,
+      reasoning: null,
+    };
   }
 
-  let parsed: unknown;
+  const userPrompt = buildDeriveUserPrompt(input);
+
+  let data: RiskCandidate;
   try {
-    parsed = JSON.parse(jsonMatch[0]);
+    data = await callClaudeStructured({
+      schema: RiskCandidateSchema,
+      system: BRIDGE_RESEARCH_RISK_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+      model,
+      maxTokens: 768,
+      timeoutMs: 60_000,
+      toolName: "emit_risk_candidate",
+      toolDescription:
+        "Return the sales-risk candidate derived from the research theme — derivable plus candidateName, mappedRiskType and reasoning, or derivable=false with all three null when the theme is not risk-relevant.",
+    });
   } catch (err) {
-    throw new ResearchRiskSchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
+    if (err instanceof StructuredOutputError) {
+      throw new ResearchRiskUnavailableError(
+        "Claude research-risk derivation returned invalid output twice",
+        err,
+      );
+    }
+    throw new ResearchRiskUnavailableError(
+      "Claude research-risk derivation failed",
+      err,
     );
   }
 
-  const result = RiskCandidateSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new ResearchRiskSchemaError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
-    );
-  }
-
-  // Defense-in-depth: schema allows "derivable=true && (other fields null)"
-  // — that's a contradiction. Flip to derivable=false to keep persistence
-  // honest. Mirrors Brücke #1's same-guard.
-  const data = result.data;
+  // Defense-in-depth (UNCHANGED): the schema allows "derivable=true && (other
+  // fields null)" and vice-versa — both incoherent. Normalize to an honest
+  // refusal rather than persisting a contradiction.
   const allOtherNull =
     data.candidateName === null &&
     data.mappedRiskType === null &&
@@ -321,8 +311,6 @@ async function callDeriveClaude(
       reasoning: null,
     };
   }
-  // Conversely, derivable=false with any non-null field is also incoherent —
-  // we drop the non-null fields rather than silently keeping them.
   if (!data.derivable && !allOtherNull) {
     return {
       derivable: false,
@@ -332,62 +320,6 @@ async function callDeriveClaude(
     };
   }
   return data;
-}
-
-// ── Pure derivation entry (eval + production both call this) ──────────────
-
-/**
- * Pure-input entry — no DB. Used by:
- *   - the eval harness (deterministic property checks on fixed themes)
- *   - detectAndPersistResearchRiskSuggestions below (DB-driven; iterates
- *     over emergent_themes of a plan's study_synthesis)
- */
-export async function deriveRiskCandidateFromTheme(
-  input: DeriveRiskCandidateInput,
-  model: string = process.env.BRIDGE_MODEL ?? DEFAULT_BRIDGE_MODEL,
-): Promise<RiskCandidate> {
-  // Pre-filter: themes below the frequency threshold get an immediate
-  // honest refusal without spending tokens. The system prompt encodes the
-  // same rule; we just save the round trip.
-  if (input.frequency < BRIDGE_RESEARCH_RISK_MIN_FREQUENCY) {
-    return {
-      derivable: false,
-      candidateName: null,
-      mappedRiskType: null,
-      reasoning: null,
-    };
-  }
-
-  const userPrompt = buildDeriveUserPrompt(input);
-
-  try {
-    return await callDeriveClaude(userPrompt, 0, model);
-  } catch (err) {
-    if (!(err instanceof ResearchRiskSchemaError)) {
-      throw new ResearchRiskUnavailableError(
-        "Claude research-risk derivation failed",
-        err,
-      );
-    }
-    console.warn(
-      "ResearchRisk-derivation schema validation failed on first attempt, retrying:",
-      err.message,
-    );
-    try {
-      return await callDeriveClaude(userPrompt, 1, model);
-    } catch (err2) {
-      if (err2 instanceof ResearchRiskSchemaError) {
-        throw new ResearchRiskUnavailableError(
-          "Claude research-risk derivation returned invalid JSON twice",
-          err2,
-        );
-      }
-      throw new ResearchRiskUnavailableError(
-        "Claude research-risk derivation failed",
-        err2,
-      );
-    }
-  }
 }
 
 // ── DB augmentation (mirror Brücke #1/#2 inline-pattern) ───────────────────

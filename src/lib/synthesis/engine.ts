@@ -2,7 +2,11 @@ import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import {
+  callClaudeStructured,
+  StructuredOutputError,
+} from "@/lib/anthropic/structured";
 import type { Database, Json } from "@/types/database";
 import { normalizeThemes } from "@/lib/schemas/product-discovery";
 import {
@@ -46,16 +50,6 @@ import {
  */
 
 export const DEFAULT_SYNTHESIS_MODEL = CLAUDE_MODELS.opus;
-
-class StudySynthesisSchemaError extends Error {
-  constructor(
-    message: string,
-    public rawResponse: string,
-  ) {
-    super(message);
-    this.name = "StudySynthesisSchemaError";
-  }
-}
 
 export class StudySynthesisUnavailableError extends Error {
   constructor(
@@ -356,68 +350,12 @@ function applyAnchoredFilter(
 
 // ── Opus call (mirrors product-discovery/classifier.ts) ─────────────────────
 
-async function callClaude(
-  userPrompt: string,
-  attempt: number,
-  model: string,
-): Promise<StudySynthesisResult> {
-  const client = getAnthropicClient();
-  const system =
-    attempt > 0
-      ? STUDY_SYNTHESIS_SYSTEM_PROMPT +
-        "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble."
-      : STUDY_SYNTHESIS_SYSTEM_PROMPT;
-
-  const response = await client.messages.create(
-    {
-      model,
-      max_tokens: 4096,
-      system,
-      messages: [{ role: "user", content: userPrompt }],
-    },
-    { timeout: 180_000, maxRetries: 1 },
-  );
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new StudySynthesisSchemaError(
-      "No text response from Claude",
-      JSON.stringify(response.content),
-    );
-  }
-
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new StudySynthesisSchemaError(
-      "No JSON found in response",
-      textBlock.text,
-    );
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new StudySynthesisSchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
-    );
-  }
-
-  const result = StudySynthesisResultSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new StudySynthesisSchemaError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
-    );
-  }
-  return result.data;
-}
-
 /** Pure LLM entry — exposed for the eval runner so it can drive the
  *  synthesizer with hand-crafted inputs without going through Supabase.
- *  Schema-validates, applies the anchored-filter, returns the cleaned
- *  result. NO persistence. */
+ *  Robust transport (forced tool-use via callClaudeStructured — no text-JSON
+ *  regex/parse), schema-validates, applies the anchored-filter, returns the
+ *  cleaned result. NO persistence. Fail-closed preserved
+ *  (StudySynthesisUnavailableError). */
 export async function synthesizeFromInputs(
   input: SynthesisInput,
   model: string = process.env.SYNTHESIS_MODEL ?? DEFAULT_SYNTHESIS_MODEL,
@@ -427,34 +365,33 @@ export async function synthesizeFromInputs(
 
   let raw: StudySynthesisResult;
   try {
-    raw = await callClaude(userPrompt, 0, model);
+    raw = await callClaudeStructured({
+      schema: StudySynthesisResultSchema,
+      system: STUDY_SYNTHESIS_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+      model,
+      maxTokens: 4096,
+      timeoutMs: 180_000,
+      toolName: "emit_study_synthesis",
+      toolDescription:
+        "Return the cross-call study synthesis — overview, emergent themes and tensions, each grounded in verbatim quotes from the supplied insights.",
+    });
   } catch (err) {
-    if (!(err instanceof StudySynthesisSchemaError)) {
+    if (err instanceof StructuredOutputError) {
       throw new StudySynthesisUnavailableError(
-        "Claude synthesis call failed",
+        "Claude synthesis returned invalid output twice",
         err,
       );
     }
-    console.warn(
-      "Synthesis schema validation failed on first attempt, retrying:",
-      err.message,
+    throw new StudySynthesisUnavailableError(
+      "Claude synthesis call failed",
+      err,
     );
-    try {
-      raw = await callClaude(userPrompt, 1, model);
-    } catch (err2) {
-      if (err2 instanceof StudySynthesisSchemaError) {
-        throw new StudySynthesisUnavailableError(
-          "Claude synthesis returned invalid JSON twice",
-          err2,
-        );
-      }
-      throw new StudySynthesisUnavailableError(
-        "Claude synthesis call failed",
-        err2,
-      );
-    }
   }
 
+  // Anchored-filter (UNCHANGED): drop quotes/themes the model didn't ground in
+  // the supplied insights — the synthesis anti-hallucination calibration, not
+  // part of the transport change.
   return applyAnchoredFilter(raw, anchors);
 }
 

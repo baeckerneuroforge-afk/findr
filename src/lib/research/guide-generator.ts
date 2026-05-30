@@ -2,7 +2,11 @@ import "server-only";
 
 import { z } from "zod";
 
-import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import {
+  callClaudeStructured,
+  StructuredOutputError,
+} from "@/lib/anthropic/structured";
 import type { ResearchTopic } from "@/lib/voice-agent/interviewer";
 import {
   getResearchPlan,
@@ -83,16 +87,6 @@ export type GuideTopic = z.infer<typeof GuideTopicSchema>;
 export type InterviewGuide = z.infer<typeof InterviewGuideSchema>;
 
 // ── Error types ────────────────────────────────────────────────────────────
-
-class GuideGeneratorSchemaError extends Error {
-  constructor(
-    message: string,
-    public rawResponse: string,
-  ) {
-    super(message);
-    this.name = "GuideGeneratorSchemaError";
-  }
-}
 
 export class GuideGeneratorUnavailableError extends Error {
   constructor(
@@ -228,66 +222,6 @@ function buildGuideUserPrompt(input: GuideGenInput): string {
   return lines.join("\n");
 }
 
-// ── Anthropic call ─────────────────────────────────────────────────────────
-
-async function callGuideClaude(
-  userPrompt: string,
-  attempt: number,
-  model: string,
-): Promise<InterviewGuide> {
-  const client = getAnthropicClient();
-  const system =
-    attempt > 0
-      ? GUIDE_GENERATOR_SYSTEM_PROMPT +
-        "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble."
-      : GUIDE_GENERATOR_SYSTEM_PROMPT;
-
-  const response = await client.messages.create(
-    {
-      model,
-      max_tokens: 3072,
-      system,
-      messages: [{ role: "user", content: userPrompt }],
-    },
-    { timeout: 180_000, maxRetries: 1 },
-  );
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new GuideGeneratorSchemaError(
-      "No text response from Claude",
-      JSON.stringify(response.content),
-    );
-  }
-
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new GuideGeneratorSchemaError(
-      "No JSON found in response",
-      textBlock.text,
-    );
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new GuideGeneratorSchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
-    );
-  }
-
-  const result = InterviewGuideSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new GuideGeneratorSchemaError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
-    );
-  }
-  return result.data;
-}
-
 // ── Pure-input entry (eval + new-plan UI flow) ─────────────────────────────
 
 /**
@@ -297,12 +231,13 @@ async function callGuideClaude(
  *   - generateInterviewGuide below (DB-driven entry adds ownership + write
  *     on top of this call)
  *
- * Schema validation + retry are inside callGuideClaude. The structural
+ * Robust transport: forced tool-use via callClaudeStructured — no text-JSON
+ * regex/parse. Schema validation + retry live in the helper. The structural
  * anchoring (every topic has non-empty goalLink, ≥3 topics, ≥2 probes,
- * non-empty mainQuestion) is enforced by InterviewGuideSchema — there's
- * no engine-side filter that drops topics post-parse (unlike synthesis,
- * where unanchored quotes get filtered; here, schema-fail forces a retry
- * or a full unavailable-error, not a half-quality output).
+ * non-empty mainQuestion) is enforced by InterviewGuideSchema — there's no
+ * engine-side filter that drops topics post-parse; a schema-fail forces a
+ * retry or a full unavailable-error, not a half-quality output. Fail-closed
+ * preserved (GuideGeneratorUnavailableError).
  */
 export async function generateGuideFromInputs(
   input: GuideGenInput,
@@ -316,32 +251,28 @@ export async function generateGuideFromInputs(
   const userPrompt = buildGuideUserPrompt(input);
 
   try {
-    return await callGuideClaude(userPrompt, 0, model);
+    return await callClaudeStructured({
+      schema: InterviewGuideSchema,
+      system: GUIDE_GENERATOR_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+      model,
+      maxTokens: 3072,
+      timeoutMs: 180_000,
+      toolName: "emit_interview_guide",
+      toolDescription:
+        "Return the structured interview guide — title, objective, estimated minutes, and the open non-leading topics (each with goalLink, mainQuestion and probes).",
+    });
   } catch (err) {
-    if (!(err instanceof GuideGeneratorSchemaError)) {
+    if (err instanceof StructuredOutputError) {
       throw new GuideGeneratorUnavailableError(
-        "Claude guide-generator call failed",
+        "Claude guide-generator returned invalid output twice",
         err,
       );
     }
-    console.warn(
-      "Guide-gen schema validation failed on first attempt, retrying:",
-      err.message,
+    throw new GuideGeneratorUnavailableError(
+      "Claude guide-generator call failed",
+      err,
     );
-    try {
-      return await callGuideClaude(userPrompt, 1, model);
-    } catch (err2) {
-      if (err2 instanceof GuideGeneratorSchemaError) {
-        throw new GuideGeneratorUnavailableError(
-          "Claude guide-generator returned invalid JSON twice",
-          err2,
-        );
-      }
-      throw new GuideGeneratorUnavailableError(
-        "Claude guide-generator call failed",
-        err2,
-      );
-    }
   }
 }
 
