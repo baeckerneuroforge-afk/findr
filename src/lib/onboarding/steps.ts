@@ -1,35 +1,20 @@
+/**
+ * Onboarding steps — STRUCTURAL only (id + target route). The id is the stable
+ * key; the user-facing title / description / CTA label live in the i18n catalog
+ * under `common.onboarding.steps.<id>` and are resolved in OnboardingChecklist
+ * via useTranslations (so this module stays i18n-free and server-safe — it's
+ * imported by status.ts under "server-only"). Order is meaningful: it drives
+ * next_step selection in status.ts.
+ */
 export interface OnboardingStep {
   id: "connect_data" | "first_analysis" | "setup_slack";
-  title: string;
-  description: string;
   href: string;
-  cta_label: string;
 }
 
 const STEPS: OnboardingStep[] = [
-  {
-    id: "connect_data",
-    title: "Connect your CRM or call source",
-    description:
-      "Sync from Hubspot or Gong, or add a manual deal with pasted transcripts.",
-    href: "/dashboard/data-sources",
-    cta_label: "Open Data Sources",
-  },
-  {
-    id: "first_analysis",
-    title: "Run your first risk analysis",
-    description:
-      "Analyze a deal to see risk signals, evidence, and recommendations.",
-    href: "/dashboard",
-    cta_label: "Go to pipeline",
-  },
-  {
-    id: "setup_slack",
-    title: "Get alerts in Slack",
-    description: "Receive real-time alerts when deals show risk signals.",
-    href: "/dashboard/integrations/slack",
-    cta_label: "Set up Slack",
-  },
+  { id: "connect_data", href: "/dashboard/data-sources" },
+  { id: "first_analysis", href: "/dashboard" },
+  { id: "setup_slack", href: "/dashboard/integrations/slack" },
 ];
 
 export { STEPS as ONBOARDING_STEPS };

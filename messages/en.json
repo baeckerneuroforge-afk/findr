@@ -189,6 +189,64 @@
       "save": "Save changes",
       "updated": "Organization updated.",
       "updateError": "Could not update organization."
+    },
+    "slack": {
+      "setupTitle": "How to set up",
+      "setupStep1": "Go to api.slack.com/apps → Create New App → From Scratch",
+      "setupStep2": "Add the “Incoming Webhooks” feature, enable it",
+      "setupStep3": "Click “Add New Webhook to Workspace” → choose channel → Allow",
+      "setupStep4": "Copy the webhook URL and paste it below",
+      "webhookConfigTitle": "Webhook configuration",
+      "webhookConfigDesc": "Incoming webhook used for all Findr alerts.",
+      "workspaceNameLabel": "Workspace name",
+      "workspaceNameHint": "Optional, just for your reference",
+      "workspaceNamePlaceholder": "My Company Slack",
+      "channelNameLabel": "Channel name",
+      "channelNameHint": "The Slack channel where alerts go",
+      "channelNamePlaceholder": "#sales-alerts",
+      "channelIdLabel": "Channel ID",
+      "channelIdHint": "The unique ID, e.g. C01234ABCDE (find it in Slack channel settings)",
+      "channelIdPlaceholder": "C01234ABCDE",
+      "webhookUrlLabel": "Webhook URL",
+      "webhookUrlHint": "From Slack app settings → Incoming Webhooks",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "enabledLabel": "Enabled",
+      "enabledHint": "Toggle off to pause all alerts without losing settings.",
+      "alertTypesTitle": "Alert types",
+      "alertTypesDesc": "Choose which automated alerts should be sent to Slack.",
+      "riskSpikeLabel": "Risk Spike",
+      "riskSpikeHint": "Send when risk score jumps within a short period.",
+      "pointsUnit": "points",
+      "championLostLabel": "Champion Lost",
+      "championLostHint": "Send when the Champion-Loss detector finds strong evidence.",
+      "dealLostLabel": "Deal Lost",
+      "dealLostHint": "Send when a synced CRM deal changes to Closed-Lost.",
+      "forecastChangeLabel": "Forecast Change",
+      "forecastChangeHint": "Send when risk-adjusted pipeline value moves materially.",
+      "quietHoursTitle": "Quiet hours",
+      "quietHoursDesc": "Optional pause window for non-urgent Slack noise.",
+      "startLabel": "Start",
+      "endLabel": "End",
+      "timezoneLabel": "Timezone",
+      "saving": "Saving…",
+      "save": "Save settings",
+      "sending": "Sending…",
+      "sendTest": "Send test alert",
+      "saved": "Settings saved.",
+      "saveFailed": "Failed to save.",
+      "prefsSaveFailed": "Failed to save alert preferences.",
+      "testSent": "Test alert sent. Check your Slack channel.",
+      "testFailed": "Test failed.",
+      "fieldError": {
+        "generic": "Invalid form data.",
+        "webhookUrlInvalid": "Please enter a valid URL.",
+        "webhookUrlNotSlack": "The webhook URL must be a Slack incoming webhook (https://hooks.slack.com/services/...).",
+        "channelNameRequired": "Please enter a channel name.",
+        "channelNameTooLong": "The channel name is too long (max. 200 characters).",
+        "channelIdRequired": "Please enter a channel ID.",
+        "channelIdTooLong": "The channel ID is too long (max. 100 characters).",
+        "workspaceNameTooLong": "The workspace name is too long (max. 200 characters)."
+      }
     }
   },
   "common": {
@@ -198,7 +256,30 @@
     "noOrganization": "No organization",
     "language": "Language",
     "languageGerman": "German",
-    "languageEnglish": "English"
+    "languageEnglish": "English",
+    "onboarding": {
+      "eyebrow": "First run setup",
+      "title": "Make Findr useful in a few minutes",
+      "progress": "{completed} of {total} steps complete. Finish the next step to unlock the full workflow.",
+      "dismissAria": "Dismiss onboarding checklist",
+      "steps": {
+        "connect_data": {
+          "title": "Connect your CRM or call source",
+          "description": "Sync from Hubspot or Gong, or add a manual deal with pasted transcripts.",
+          "cta": "Open Data Sources"
+        },
+        "first_analysis": {
+          "title": "Run your first risk analysis",
+          "description": "Analyze a deal to see risk signals, evidence, and recommendations.",
+          "cta": "Go to pipeline"
+        },
+        "setup_slack": {
+          "title": "Get alerts in Slack",
+          "description": "Receive real-time alerts when deals show risk signals.",
+          "cta": "Set up Slack"
+        }
+      }
+    }
   },
   "sales": {
     "common": {

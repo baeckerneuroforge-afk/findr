@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { AlertPreferences } from "@/lib/alerts/types";
 import type { SlackIntegration } from "@/lib/slack/service";
 import { SlackIntegrationConfigSchema } from "@/lib/schemas/slack";
@@ -15,11 +16,27 @@ interface SlackSettingsFormProps {
 const INPUT_BASE =
   "w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-body text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors";
 
+/** The validation-message keys SlackIntegrationConfigSchema can emit (the
+ *  messageKey->t() pattern). A Zod fieldError whose first message is in this
+ *  set resolves to `settings.slack.fieldError.<key>`; anything else (e.g. a
+ *  non-UI field) falls back to the generic message — so t() is never called
+ *  with an unmapped key. */
+const SLACK_FIELD_ERROR_KEYS = new Set([
+  "webhookUrlInvalid",
+  "webhookUrlNotSlack",
+  "channelNameRequired",
+  "channelNameTooLong",
+  "channelIdRequired",
+  "channelIdTooLong",
+  "workspaceNameTooLong",
+]);
+
 export function SlackSettingsForm({
   initialIntegration,
   initialPreferences,
 }: SlackSettingsFormProps) {
   const router = useRouter();
+  const t = useTranslations("settings.slack");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -54,15 +71,18 @@ export function SlackSettingsForm({
 
     const parsed = SlackIntegrationConfigSchema.safeParse(form);
     if (!parsed.success) {
-      const errors = parsed.error.flatten().fieldErrors;
-      const firstError = Object.entries(errors).find(
-        ([, msgs]) => msgs && msgs.length > 0,
-      );
+      // messageKey->t(): the schema's field messages are translation keys
+      // (see schemas/slack.ts). Show the first field's message, mapped to
+      // settings.slack.fieldError.<key>, with a guarded generic fallback.
+      const firstKey = Object.values(parsed.error.flatten().fieldErrors).find(
+        (msgs) => msgs && msgs.length > 0,
+      )?.[0];
       setFeedback({
         type: "error",
-        msg: firstError
-          ? `${firstError[0]}: ${firstError[1]?.[0]}`
-          : "Invalid form data",
+        msg:
+          firstKey && SLACK_FIELD_ERROR_KEYS.has(firstKey)
+            ? t(`fieldError.${firstKey}`)
+            : t("fieldError.generic"),
       });
       setSaving(false);
       return;
@@ -78,7 +98,7 @@ export function SlackSettingsForm({
 
     if (!data.success) {
       setSaving(false);
-      setFeedback({ type: "error", msg: data.error ?? "Failed to save." });
+      setFeedback({ type: "error", msg: data.error ?? t("saveFailed") });
       return;
     }
 
@@ -101,12 +121,12 @@ export function SlackSettingsForm({
     if (!prefsData.success) {
       setFeedback({
         type: "error",
-        msg: prefsData.error ?? "Failed to save alert preferences.",
+        msg: prefsData.error ?? t("prefsSaveFailed"),
       });
       return;
     }
 
-    setFeedback({ type: "success", msg: "Settings saved." });
+    setFeedback({ type: "success", msg: t("saved") });
     router.refresh();
   }
 
@@ -119,88 +139,70 @@ export function SlackSettingsForm({
     setTesting(false);
 
     if (data.success) {
-      setFeedback({
-        type: "success",
-        msg: "Test alert sent. Check your Slack channel.",
-      });
+      setFeedback({ type: "success", msg: t("testSent") });
     } else {
-      setFeedback({ type: "error", msg: data.error ?? "Test failed." });
+      setFeedback({ type: "error", msg: data.error ?? t("testFailed") });
     }
   }
 
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-primary-100 bg-primary-50 p-5">
-        <h3 className="mb-2 text-h3 text-neutral-900">How to set up</h3>
+        <h3 className="mb-2 text-h3 text-neutral-900">{t("setupTitle")}</h3>
         <ol className="list-inside list-decimal space-y-1 text-body text-neutral-700">
-          <li>Go to api.slack.com/apps → Create New App → From Scratch</li>
-          <li>Add &ldquo;Incoming Webhooks&rdquo; feature, enable it</li>
-          <li>
-            Click &ldquo;Add New Webhook to Workspace&rdquo; → choose channel →
-            Allow
-          </li>
-          <li>Copy the webhook URL and paste it below</li>
+          <li>{t("setupStep1")}</li>
+          <li>{t("setupStep2")}</li>
+          <li>{t("setupStep3")}</li>
+          <li>{t("setupStep4")}</li>
         </ol>
       </div>
 
       <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
         <div>
-          <h3 className="text-h3 text-neutral-900">Webhook configuration</h3>
-          <p className="text-small text-neutral-500">
-            Incoming webhook used for all Findr alerts.
-          </p>
+          <h3 className="text-h3 text-neutral-900">
+            {t("webhookConfigTitle")}
+          </h3>
+          <p className="text-small text-neutral-500">{t("webhookConfigDesc")}</p>
         </div>
 
-        <Field
-          label="Workspace name"
-          hint="Optional, just for your reference"
-        >
+        <Field label={t("workspaceNameLabel")} hint={t("workspaceNameHint")}>
           <input
             type="text"
             value={form.workspace_name}
             onChange={(e) =>
               setForm({ ...form, workspace_name: e.target.value })
             }
-            placeholder="My Company Slack"
+            placeholder={t("workspaceNamePlaceholder")}
             className={INPUT_BASE}
           />
         </Field>
 
-        <Field
-          label="Channel name"
-          hint="The Slack channel where alerts go"
-        >
+        <Field label={t("channelNameLabel")} hint={t("channelNameHint")}>
           <input
             type="text"
             value={form.channel_name}
             onChange={(e) => setForm({ ...form, channel_name: e.target.value })}
-            placeholder="#sales-alerts"
+            placeholder={t("channelNamePlaceholder")}
             className={INPUT_BASE}
           />
         </Field>
 
-        <Field
-          label="Channel ID"
-          hint="The unique ID, e.g. C01234ABCDE (find it in Slack channel settings)"
-        >
+        <Field label={t("channelIdLabel")} hint={t("channelIdHint")}>
           <input
             type="text"
             value={form.channel_id}
             onChange={(e) => setForm({ ...form, channel_id: e.target.value })}
-            placeholder="C01234ABCDE"
+            placeholder={t("channelIdPlaceholder")}
             className={INPUT_BASE}
           />
         </Field>
 
-        <Field
-          label="Webhook URL"
-          hint="From Slack app settings → Incoming Webhooks"
-        >
+        <Field label={t("webhookUrlLabel")} hint={t("webhookUrlHint")}>
           <input
             type="password"
             value={form.webhook_url}
             onChange={(e) => setForm({ ...form, webhook_url: e.target.value })}
-            placeholder="https://hooks.slack.com/services/..."
+            placeholder={t("webhookUrlPlaceholder")}
             className={`${INPUT_BASE} font-mono text-small`}
           />
         </Field>
@@ -213,9 +215,11 @@ export function SlackSettingsForm({
             className="mt-1 accent-primary-500"
           />
           <div>
-            <div className="text-body-strong text-neutral-900">Enabled</div>
+            <div className="text-body-strong text-neutral-900">
+              {t("enabledLabel")}
+            </div>
             <div className="text-caption text-neutral-500">
-              Toggle off to pause all alerts without losing settings.
+              {t("enabledHint")}
             </div>
           </div>
         </label>
@@ -223,15 +227,13 @@ export function SlackSettingsForm({
 
       <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
         <div>
-          <h3 className="text-h3 text-neutral-900">Alert types</h3>
-          <p className="text-small text-neutral-500">
-            Choose which automated alerts should be sent to Slack.
-          </p>
+          <h3 className="text-h3 text-neutral-900">{t("alertTypesTitle")}</h3>
+          <p className="text-small text-neutral-500">{t("alertTypesDesc")}</p>
         </div>
 
         <ToggleRow
-          label="Risk Spike"
-          hint="Send when risk score jumps within a short period."
+          label={t("riskSpikeLabel")}
+          hint={t("riskSpikeHint")}
           checked={preferences.risk_spike_enabled}
           onChange={(checked) =>
             setPreferences({ ...preferences, risk_spike_enabled: checked })
@@ -251,13 +253,13 @@ export function SlackSettingsForm({
               }
               className="w-20 rounded-md border border-neutral-200 px-2 py-1 text-small text-neutral-900"
             />
-            <span className="text-small text-neutral-500">points</span>
+            <span className="text-small text-neutral-500">{t("pointsUnit")}</span>
           </div>
         </ToggleRow>
 
         <ToggleRow
-          label="Champion Lost"
-          hint="Send when the Champion-Loss detector finds strong evidence."
+          label={t("championLostLabel")}
+          hint={t("championLostHint")}
           checked={preferences.champion_lost_enabled}
           onChange={(checked) =>
             setPreferences({ ...preferences, champion_lost_enabled: checked })
@@ -265,8 +267,8 @@ export function SlackSettingsForm({
         />
 
         <ToggleRow
-          label="Deal Lost"
-          hint="Send when a synced CRM deal changes to Closed-Lost."
+          label={t("dealLostLabel")}
+          hint={t("dealLostHint")}
           checked={preferences.deal_lost_enabled}
           onChange={(checked) =>
             setPreferences({ ...preferences, deal_lost_enabled: checked })
@@ -274,8 +276,8 @@ export function SlackSettingsForm({
         />
 
         <ToggleRow
-          label="Forecast Change"
-          hint="Send when risk-adjusted pipeline value moves materially."
+          label={t("forecastChangeLabel")}
+          hint={t("forecastChangeHint")}
           checked={preferences.forecast_change_enabled}
           onChange={(checked) =>
             setPreferences({ ...preferences, forecast_change_enabled: checked })
@@ -302,14 +304,12 @@ export function SlackSettingsForm({
 
       <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
         <div>
-          <h3 className="text-h3 text-neutral-900">Quiet hours</h3>
-          <p className="text-small text-neutral-500">
-            Optional pause window for non-urgent Slack noise.
-          </p>
+          <h3 className="text-h3 text-neutral-900">{t("quietHoursTitle")}</h3>
+          <p className="text-small text-neutral-500">{t("quietHoursDesc")}</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <Field label="Start">
+          <Field label={t("startLabel")}>
             <input
               type="time"
               value={preferences.quiet_hours_start}
@@ -323,7 +323,7 @@ export function SlackSettingsForm({
             />
           </Field>
 
-          <Field label="End">
+          <Field label={t("endLabel")}>
             <input
               type="time"
               value={preferences.quiet_hours_end}
@@ -337,7 +337,7 @@ export function SlackSettingsForm({
             />
           </Field>
 
-          <Field label="Timezone">
+          <Field label={t("timezoneLabel")}>
             <input
               type="text"
               value={preferences.timezone}
@@ -356,7 +356,7 @@ export function SlackSettingsForm({
           onClick={handleSave}
           disabled={saving}
         >
-          {saving ? "Saving…" : "Save settings"}
+          {saving ? t("saving") : t("save")}
         </Button>
 
         <Button
@@ -364,7 +364,7 @@ export function SlackSettingsForm({
           onClick={handleTest}
           disabled={testing || !form.webhook_url}
         >
-          {testing ? "Sending…" : "Send test alert"}
+          {testing ? t("sending") : t("sendTest")}
         </Button>
 
         {feedback && (
