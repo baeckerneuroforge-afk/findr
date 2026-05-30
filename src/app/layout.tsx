@@ -95,6 +95,7 @@ export default async function RootLayout({
               research: MESSAGES[locale].research,
               branding: MESSAGES[locale].branding,
               sharedSynthesis: MESSAGES[locale].sharedSynthesis,
+              researchAgent: MESSAGES[locale].researchAgent,
             }}
           >
             {children}
