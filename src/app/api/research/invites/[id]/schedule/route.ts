@@ -98,7 +98,7 @@ export async function POST(
       });
     case "in_past":
       return NextResponse.json(
-        { error: result.message ?? t("research.scheduleInFuture") },
+        { error: t("research.scheduleInFuture") },
         { status: 422 },
       );
     case "not_found":
@@ -110,7 +110,7 @@ export async function POST(
       );
     case "missing_org":
       return NextResponse.json(
-        { error: result.message ?? t("research.inviteMissingOrg") },
+        { error: t("research.inviteMissingOrg") },
         { status: 409 },
       );
     default:

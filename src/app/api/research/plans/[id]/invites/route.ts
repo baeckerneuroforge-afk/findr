@@ -183,7 +183,7 @@ export async function POST(
           contactLabel: item.contactLabel,
           contactEmail: item.contactEmail ?? null,
           status: "error",
-          message: result.message ?? t("research.bulkCreateFailed"),
+          message: t("research.bulkCreateFailed"),
         });
         errors++;
       }
@@ -227,7 +227,7 @@ export async function POST(
       );
     default:
       return NextResponse.json(
-        { error: result.message ?? t("research.couldNotCreateInvite") },
+        { error: t("research.couldNotCreateInvite") },
         { status: 500 },
       );
   }

@@ -100,7 +100,7 @@ export async function PATCH(
       );
     default:
       return NextResponse.json(
-        { error: result.message ?? t("pool.couldNotUpdate") },
+        { error: t("pool.couldNotUpdate") },
         { status: 500 },
       );
   }
