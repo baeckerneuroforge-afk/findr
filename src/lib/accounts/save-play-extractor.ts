@@ -2,7 +2,10 @@ import "server-only";
 
 import { z } from "zod";
 
-import { getAnthropicClient } from "@/lib/anthropic/client";
+import {
+  callClaudeStructured,
+  StructuredOutputError,
+} from "@/lib/anthropic/structured";
 import { RISK_SIGNAL_TYPES, type RiskSignal } from "@/lib/schemas/risk";
 import { DEFAULT_SOLUTION_MODEL } from "@/lib/solution/extractor";
 import type { HealthLevel } from "./types";
@@ -188,16 +191,6 @@ Produce one save action per detected churn signal, grounded in the quotes above 
 // LLM call + error handling (mirrors src/lib/solution/extractor.ts)
 // ----------------------------------------------------------------------------
 
-class SavePlaySchemaError extends Error {
-  constructor(
-    message: string,
-    public rawResponse: string,
-  ) {
-    super(message);
-    this.name = "SavePlaySchemaError";
-  }
-}
-
 export class SavePlayUnavailableError extends Error {
   constructor(
     message: string,
@@ -208,74 +201,16 @@ export class SavePlayUnavailableError extends Error {
   }
 }
 
-async function callClaude(
-  userPrompt: string,
-  attempt: number,
-  model: string,
-): Promise<SavePlayResult> {
-  const client = getAnthropicClient();
-
-  const system =
-    attempt > 0
-      ? SAVE_PLAY_SYSTEM_PROMPT +
-        "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble, no explanation."
-      : SAVE_PLAY_SYSTEM_PROMPT;
-
-  const response = await client.messages.create(
-    {
-      model,
-      max_tokens: 2048,
-      // Opus 4.7 rejects the temperature parameter (400 error); rely on the
-      // structured prompt + schema validation instead.
-      system,
-      messages: [{ role: "user", content: userPrompt }],
-    },
-    {
-      // Opus save-play generation (several grounded actions from full
-      // transcripts) routinely runs past the shared client's 30s default, so
-      // give THIS call 120s and a single retry — same as the solution layer.
-      timeout: 120_000,
-      maxRetries: 1,
-    },
-  );
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new SavePlaySchemaError(
-      "No text response from Claude",
-      JSON.stringify(response.content),
-    );
-  }
-
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new SavePlaySchemaError("No JSON found in response", textBlock.text);
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new SavePlaySchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
-    );
-  }
-
-  const result = SavePlayResultSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new SavePlaySchemaError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
-    );
-  }
-
-  return result.data;
-}
-
 /**
  * Generate save-play recommendations from a health analysis + account context.
  * Opus by default; reuses the SOLUTION_MODEL override knob.
+ *
+ * Robust transport: forced tool-use via callClaudeStructured — the model
+ * returns the deliverable as a parsed tool input (no text-JSON regex/parse, so
+ * the "invalid JSON twice" crash class is gone). Same prompt, same
+ * SavePlayResultSchema, same Opus default. Fail-closed preserved: a structurally
+ * invalid result throws SavePlayUnavailableError (NO heuristic fallback — a
+ * save-play is only surfaced when the model produced a valid grounded one).
  */
 export async function generateSavePlayLLM(
   input: SavePlayInput,
@@ -284,32 +219,35 @@ export async function generateSavePlayLLM(
   const userPrompt = buildSavePlayPrompt(input);
 
   try {
-    return await callClaude(userPrompt, 0, model);
+    return await callClaudeStructured({
+      schema: SavePlayResultSchema,
+      system: SAVE_PLAY_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+      model,
+      maxTokens: 2048,
+      // Opus save-play generation (several grounded actions from full
+      // transcripts) routinely runs past the shared client's 30s default.
+      timeoutMs: 120_000,
+      toolName: "emit_save_play",
+      toolDescription:
+        "Return the customer save-play recommendations (one per detected churn signal) plus the overall retainability verdict, grounded strictly in this account's evidence.",
+    });
   } catch (err) {
-    if (!(err instanceof SavePlaySchemaError)) {
-      throw new SavePlayUnavailableError("Claude save-play generation failed", err);
-    }
-    console.warn(
-      "Save-play schema validation failed on first attempt, retrying:",
-      err.message,
-    );
-  }
-
-  try {
-    return await callClaude(userPrompt, 1, model);
-  } catch (err) {
-    if (err instanceof SavePlaySchemaError) {
+    if (err instanceof StructuredOutputError) {
       console.error(
-        "Save-play schema validation failed twice:",
+        "Save-play structured output failed twice:",
         err.message,
         "Raw:",
         err.rawResponse.slice(0, 500),
       );
       throw new SavePlayUnavailableError(
-        "Claude save-play generation returned invalid JSON twice",
+        "Claude save-play generation returned invalid output twice",
         err,
       );
     }
-    throw new SavePlayUnavailableError("Claude save-play generation failed", err);
+    throw new SavePlayUnavailableError(
+      "Claude save-play generation failed",
+      err,
+    );
   }
 }

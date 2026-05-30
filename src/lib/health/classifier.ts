@@ -1,6 +1,10 @@
 import "server-only";
 
-import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import {
+  callClaudeStructured,
+  StructuredOutputError,
+} from "@/lib/anthropic/structured";
 import {
   HealthAnalysisResultSchema,
   type HealthAnalysisResult,
@@ -24,16 +28,6 @@ import {
 
 export const DEFAULT_HEALTH_MODEL = CLAUDE_MODELS.opus;
 
-class HealthSchemaError extends Error {
-  constructor(
-    message: string,
-    public rawResponse: string,
-  ) {
-    super(message);
-    this.name = "HealthSchemaError";
-  }
-}
-
 export class HealthUnavailableError extends Error {
   constructor(
     message: string,
@@ -44,75 +38,15 @@ export class HealthUnavailableError extends Error {
   }
 }
 
-async function callClaude(
-  userPrompt: string,
-  attempt: number,
-  model: string,
-): Promise<HealthAnalysisResult> {
-  const client = getAnthropicClient();
-
-  const system =
-    attempt > 0
-      ? HEALTH_CLASSIFIER_SYSTEM_PROMPT +
-        "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble."
-      : HEALTH_CLASSIFIER_SYSTEM_PROMPT;
-
-  const response = await client.messages.create(
-    {
-      model,
-      max_tokens: 2048,
-      // Opus 4.7 rejects the temperature parameter; rely on the structured
-      // prompt + schema validation.
-      system,
-      messages: [{ role: "user", content: userPrompt }],
-    },
-    {
-      // Health analysis with four axes + signals from a full transcript runs
-      // longer than the shared client's 30s default; mirror the Risk/Solution
-      // per-request override.
-      timeout: 120_000,
-      maxRetries: 1,
-    },
-  );
-
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new HealthSchemaError(
-      "No text response from Claude",
-      JSON.stringify(response.content),
-    );
-  }
-
-  const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new HealthSchemaError("No JSON found in response", textBlock.text);
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch (err) {
-    throw new HealthSchemaError(
-      `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
-      jsonMatch[0],
-    );
-  }
-
-  const result = HealthAnalysisResultSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new HealthSchemaError(
-      `Schema validation failed: ${JSON.stringify(result.error.flatten())}`,
-      JSON.stringify(parsed),
-    );
-  }
-
-  return result.data;
-}
-
 /**
  * Run the health classifier over one transcript (+ optional account context).
- * Opus by default; pass `model` or set HEALTH_MODEL to override. Throws
- * HealthUnavailableError when the model call ultimately fails after one retry.
+ * Opus by default; pass `model` or set HEALTH_MODEL to override.
+ *
+ * Robust transport: forced tool-use via callClaudeStructured — the analysis
+ * comes back as a parsed tool input (no text-JSON regex/parse, so the "invalid
+ * JSON twice" crash class is gone). Same prompt, same HealthAnalysisResultSchema,
+ * same Opus default. Throws HealthUnavailableError when the call ultimately
+ * fails — NO heuristic fallback here (callers own that); fail-closed preserved.
  */
 export async function analyzeHealth(
   input: HealthClassifierInput,
@@ -121,29 +55,29 @@ export async function analyzeHealth(
   const userPrompt = buildHealthClassifierPrompt(input);
 
   try {
-    return await callClaude(userPrompt, 0, model);
+    return await callClaudeStructured({
+      schema: HealthAnalysisResultSchema,
+      system: HEALTH_CLASSIFIER_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+      model,
+      maxTokens: 2048,
+      // Four axes + signals from a full transcript runs past the shared
+      // client's 30s default; mirror the Risk/Solution per-request override.
+      timeoutMs: 120_000,
+      toolName: "emit_health_analysis",
+      toolDescription:
+        "Return the customer-health analysis — the four satisfaction axes, acute signals with verbatim quotes, the score, level and summary — grounded strictly in the transcript.",
+    });
   } catch (err) {
-    if (!(err instanceof HealthSchemaError)) {
-      throw new HealthUnavailableError("Claude health analysis failed", err);
-    }
-    console.warn(
-      "Health schema validation failed on first attempt, retrying:",
-      err.message,
-    );
-  }
-
-  try {
-    return await callClaude(userPrompt, 1, model);
-  } catch (err) {
-    if (err instanceof HealthSchemaError) {
+    if (err instanceof StructuredOutputError) {
       console.error(
-        "Health schema validation failed twice:",
+        "Health structured output failed twice:",
         err.message,
         "Raw:",
         err.rawResponse.slice(0, 500),
       );
       throw new HealthUnavailableError(
-        "Claude health analysis returned invalid JSON twice",
+        "Claude health analysis returned invalid output twice",
         err,
       );
     }

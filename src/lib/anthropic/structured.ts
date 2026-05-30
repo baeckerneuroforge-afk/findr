@@ -1,0 +1,180 @@
+import "server-only";
+
+import type Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
+
+import { DEFAULT_MODEL, getAnthropicClient } from "./client";
+
+/**
+ * Structured Claude output via FORCED TOOL-USE — the JSON-robustness primitive.
+ * --------------------------------------------------------------------------
+ * The fragile pattern (ask for JSON in free text, then `text.match(/\{…\}/)` +
+ * `JSON.parse`) breaks whenever the model emits an unescaped quote inside a
+ * string value — a confirmed prod crash class (save-play / health "returned
+ * invalid JSON twice", and others). This helper forces a single tool call and
+ * reads `tool_use.input`, which the SDK hands back as an ALREADY-PARSED object,
+ * so a malformed-JSON failure is structurally impossible. Zod still validates
+ * the shape; the ONLY retryable failure left is a wrong-typed field.
+ *
+ * Single source for every module that needs structured output: pass the
+ * module's EXISTING response Zod schema (no schema change — same fields), the
+ * system prompt, and the messages. The Anthropic tool `input_schema` is derived
+ * from the Zod schema via `z.toJSONSchema(io:"input")`, so defaulted/optional
+ * fields are not required (the model may omit them; Zod fills the default) —
+ * matching the hand-written research-agent reference tool.
+ *
+ * FAIL-CLOSED is preserved by the CALLER: this throws on failure (a
+ * StructuredOutputError for an unparseable/invalid result after one retry, or
+ * the original transport error otherwise). Each module maps that to its own
+ * fail-closed outcome (a typed *UnavailableError, a heuristic fallback, …) —
+ * exactly as before. It NEVER returns garbage.
+ */
+
+/** Thrown when the model's tool output can't be validated after one retry.
+ *  Callers map this to their own fail-closed fallback. (Transport/SDK errors
+ *  are NOT wrapped — they propagate so callers can tell "model produced bad
+ *  output" from "the call itself failed", mirroring the old SchemaError vs
+ *  non-SchemaError split.) */
+export class StructuredOutputError extends Error {
+  constructor(
+    message: string,
+    public rawResponse: string,
+  ) {
+    super(message);
+    this.name = "StructuredOutputError";
+  }
+}
+
+export interface StructuredMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface CallClaudeStructuredOptions<T> {
+  /** The module's response Zod schema. Its TOP LEVEL must be a z.object —
+   *  Anthropic's tool input_schema must be `type: "object"`. Wrap a bare
+   *  z.array/primitive in z.object({ … }) at the call site. */
+  schema: z.ZodType<T>;
+  /** System prompt (posture + data). Stable prefix — cacheable across turns. */
+  system: string;
+  /** Conversation. Single-shot = [{ role: "user", content: prompt }]. */
+  messages: StructuredMessage[];
+  model?: string;
+  maxTokens: number;
+  /** Tool the model is forced to call. Defaults to "emit_result". */
+  toolName?: string;
+  toolDescription?: string;
+  /** Per-request timeout (ms). Default 120s (the longer generations). */
+  timeoutMs?: number;
+  /** SDK transient-error retries (429/5xx). Default 1 — matches the per-module
+   *  calls this replaces. */
+  maxRetries?: number;
+}
+
+const TOOL_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+
+const DEFAULT_TOOL_DESCRIPTION =
+  "Return the result as the structured fields of this tool. Call it exactly once with the complete result.";
+
+/**
+ * Force the model to emit `schema`-shaped structured output via a single tool
+ * call and return the Zod-validated value. Throws on failure (see class doc) —
+ * the caller owns the fail-closed fallback.
+ */
+export async function callClaudeStructured<T>(
+  opts: CallClaudeStructuredOptions<T>,
+): Promise<T> {
+  const {
+    schema,
+    system,
+    messages,
+    model = DEFAULT_MODEL,
+    maxTokens,
+    toolName = "emit_result",
+    toolDescription = DEFAULT_TOOL_DESCRIPTION,
+    timeoutMs = 120_000,
+    maxRetries = 1,
+  } = opts;
+
+  if (!TOOL_NAME_RE.test(toolName)) {
+    throw new Error(`callClaudeStructured: invalid tool name "${toolName}".`);
+  }
+
+  // Derive the Anthropic tool input_schema from the Zod schema. io:"input" so
+  // defaulted/optional fields drop out of `required` (the model may omit them
+  // and Zod fills the default). Strip the $schema meta key — not part of a tool
+  // input_schema.
+  const jsonSchema = z.toJSONSchema(schema, {
+    target: "draft-2020-12",
+    io: "input",
+  }) as Record<string, unknown>;
+  delete jsonSchema.$schema;
+  if (jsonSchema.type !== "object") {
+    throw new Error(
+      `callClaudeStructured: schema must be a top-level object (got type ${String(
+        jsonSchema.type,
+      )}). Wrap an array/primitive schema in z.object({ … }).`,
+    );
+  }
+
+  const tool: Anthropic.Tool = {
+    name: toolName,
+    description: toolDescription,
+    input_schema: jsonSchema as unknown as Anthropic.Tool.InputSchema,
+  };
+
+  const client = getAnthropicClient();
+
+  // Two attempts. Forced tool-use already makes malformed JSON impossible, so
+  // the only retryable failure is a Zod mismatch (a wrong-typed field); the
+  // retry appends a structural nag. Transport errors propagate (not caught) so
+  // the caller distinguishes "bad model output" from "the call failed".
+  let lastRaw = "";
+  for (let attempt = 0; attempt <= 1; attempt++) {
+    const sys =
+      attempt > 0
+        ? system +
+          "\n\nIMPORTANT: Your previous tool call did not match the required schema. Provide EVERY field with its correct type — arrays as arrays of objects (never as a string), and include all required fields. Call the tool exactly once."
+        : system;
+
+    const response = await client.messages.create(
+      {
+        model,
+        max_tokens: maxTokens,
+        // No `temperature` — Opus 4.7 rejects the parameter (400).
+        system: sys,
+        messages,
+        tools: [tool],
+        tool_choice: { type: "tool", name: toolName },
+      },
+      { timeout: timeoutMs, maxRetries },
+    );
+
+    const toolUse = response.content.find(
+      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+    );
+    if (toolUse) {
+      const parsed = schema.safeParse(toolUse.input);
+      if (parsed.success) return parsed.data;
+      lastRaw = JSON.stringify(toolUse.input);
+      if (attempt === 0) {
+        console.warn(
+          "Structured output schema validation failed on first attempt, retrying:",
+          JSON.stringify(parsed.error.flatten()),
+        );
+      }
+    } else {
+      lastRaw = JSON.stringify(response.content);
+      if (attempt === 0) {
+        console.warn(
+          "Structured output: no tool_use block on first attempt, retrying.",
+        );
+      }
+    }
+  }
+
+  throw new StructuredOutputError(
+    "Structured output failed schema validation twice",
+    lastRaw,
+  );
+}
