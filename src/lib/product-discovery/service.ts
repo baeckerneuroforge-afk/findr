@@ -12,6 +12,8 @@ import {
   type FeatureRequest,
   type PainPoint,
   type Theme,
+  normalizeFeatureRequests,
+  normalizePainPoints,
   normalizeThemes,
 } from "@/lib/schemas/product-discovery";
 import { analyzeProductDiscovery } from "./classifier";
@@ -228,9 +230,8 @@ function toRecord(
     source_call_id: row.source_call_id,
     deal_id: row.deal_id,
     account_id: row.account_id,
-    feature_requests:
-      (row.feature_requests as unknown as FeatureRequest[]) ?? [],
-    pain_points: (row.pain_points as unknown as PainPoint[]) ?? [],
+    feature_requests: normalizeFeatureRequests(row.feature_requests),
+    pain_points: normalizePainPoints(row.pain_points),
     themes: normalizeThemes(row.themes),
     summary: row.summary,
     analysis_method:
