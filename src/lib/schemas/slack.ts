@@ -6,9 +6,19 @@ import { z } from "zod";
  *
  * Rejects: any other host, http:// (non-TLS), non-/services/ paths.
  */
+/**
+ * i18n NOTE: the validation messages below are stable TRANSLATION KEYS, not
+ * end-user prose — resolved client-side via the messageKey->t() pattern (see
+ * SlackSettingsForm, mirroring BulkInviteForm's ParseIssue.messageKey). They map
+ * to `settings.slack.fieldError.<key>` in the message catalog. The server route
+ * (api/integrations/slack) never surfaces these to the user — it returns its own
+ * localized `integrations.invalidConfiguration` and the client ignores `details`
+ * — and the server-side SSRF guards (slack/service.ts, slack/client.ts) only read
+ * `.success`. So the key-as-message is safe across every consumer.
+ */
 export const SlackWebhookUrlSchema = z
   .string()
-  .url("Must be a valid URL")
+  .url("webhookUrlInvalid")
   .refine(
     (url) => {
       try {
@@ -22,16 +32,20 @@ export const SlackWebhookUrlSchema = z
         return false;
       }
     },
-    {
-      message:
-        "Webhook URL must be a Slack incoming webhook (https://hooks.slack.com/services/...)",
-    },
+    { message: "webhookUrlNotSlack" },
   );
 
 export const SlackIntegrationConfigSchema = z.object({
-  workspace_name: z.string().max(200).optional().nullable(),
-  channel_name: z.string().min(1).max(200),
-  channel_id: z.string().min(1).max(100),
+  workspace_name: z
+    .string()
+    .max(200, "workspaceNameTooLong")
+    .optional()
+    .nullable(),
+  channel_name: z
+    .string()
+    .min(1, "channelNameRequired")
+    .max(200, "channelNameTooLong"),
+  channel_id: z.string().min(1, "channelIdRequired").max(100, "channelIdTooLong"),
   webhook_url: SlackWebhookUrlSchema,
   alert_threshold: z.number().int().min(0).max(100).default(70),
   alert_on_critical_only: z.boolean().default(false),

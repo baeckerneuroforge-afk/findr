@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ONBOARDING_STEPS, type OnboardingStep } from "@/lib/onboarding/steps";
 import type { OnboardingStatus } from "@/lib/onboarding/status";
 
@@ -16,6 +17,7 @@ function isStepComplete(step: OnboardingStep, status: OnboardingStatus) {
 }
 
 export function OnboardingChecklist({ status }: OnboardingChecklistProps) {
+  const t = useTranslations("common.onboarding");
   const [dismissed, setDismissed] = useState(false);
 
   if (dismissed || status.is_complete) return null;
@@ -30,21 +32,21 @@ export function OnboardingChecklist({ status }: OnboardingChecklistProps) {
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <div className="text-caption font-medium uppercase tracking-wider text-primary-700">
-            First run setup
+            {t("eyebrow")}
           </div>
-          <h2 className="mt-1 text-h2 text-neutral-900">
-            Make Findr useful in a few minutes
-          </h2>
+          <h2 className="mt-1 text-h2 text-neutral-900">{t("title")}</h2>
           <p className="mt-1 text-body text-neutral-500">
-            {status.completed_steps} of {status.total_steps} steps complete.
-            Finish the next step to unlock the full workflow.
+            {t("progress", {
+              completed: status.completed_steps,
+              total: status.total_steps,
+            })}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setDismissed(true)}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
-          aria-label="Dismiss onboarding checklist"
+          aria-label={t("dismissAria")}
         >
           <svg
             className="h-4 w-4"
@@ -108,10 +110,12 @@ export function OnboardingChecklist({ status }: OnboardingChecklistProps) {
                     complete ? "text-neutral-500 line-through" : "text-neutral-900"
                   }`}
                 >
-                  {step.title}
+                  {t(`steps.${step.id}.title`)}
                 </h3>
               </div>
-              <p className="text-small text-neutral-500">{step.description}</p>
+              <p className="text-small text-neutral-500">
+                {t(`steps.${step.id}.description`)}
+              </p>
               {!complete && (
                 <Link
                   href={step.href}
@@ -121,7 +125,7 @@ export function OnboardingChecklist({ status }: OnboardingChecklistProps) {
                       : "border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
                   }`}
                 >
-                  {step.cta_label}
+                  {t(`steps.${step.id}.cta`)}
                 </Link>
               )}
             </div>

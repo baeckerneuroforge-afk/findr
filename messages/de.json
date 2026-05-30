@@ -189,6 +189,64 @@
       "save": "Änderungen speichern",
       "updated": "Organisation aktualisiert.",
       "updateError": "Organisation konnte nicht aktualisiert werden."
+    },
+    "slack": {
+      "setupTitle": "So richtest du es ein",
+      "setupStep1": "Gehe zu api.slack.com/apps → Create New App → From Scratch",
+      "setupStep2": "Füge das Feature „Incoming Webhooks“ hinzu und aktiviere es",
+      "setupStep3": "Klicke auf „Add New Webhook to Workspace“ → Channel wählen → Allow",
+      "setupStep4": "Kopiere die Webhook-URL und füge sie unten ein",
+      "webhookConfigTitle": "Webhook-Konfiguration",
+      "webhookConfigDesc": "Eingehender Webhook für alle Findr-Benachrichtigungen.",
+      "workspaceNameLabel": "Workspace-Name",
+      "workspaceNameHint": "Optional, nur zu deiner Orientierung",
+      "workspaceNamePlaceholder": "Slack meiner Firma",
+      "channelNameLabel": "Channel-Name",
+      "channelNameHint": "Der Slack-Channel, in den Benachrichtigungen gehen",
+      "channelNamePlaceholder": "#sales-alerts",
+      "channelIdLabel": "Channel-ID",
+      "channelIdHint": "Die eindeutige ID, z. B. C01234ABCDE (in den Slack-Channel-Einstellungen)",
+      "channelIdPlaceholder": "C01234ABCDE",
+      "webhookUrlLabel": "Webhook-URL",
+      "webhookUrlHint": "Aus den Slack-App-Einstellungen → Incoming Webhooks",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "enabledLabel": "Aktiviert",
+      "enabledHint": "Ausschalten, um alle Benachrichtigungen zu pausieren, ohne die Einstellungen zu verlieren.",
+      "alertTypesTitle": "Benachrichtigungstypen",
+      "alertTypesDesc": "Wähle, welche automatischen Benachrichtigungen an Slack gesendet werden.",
+      "riskSpikeLabel": "Risiko-Anstieg",
+      "riskSpikeHint": "Senden, wenn der Risiko-Score innerhalb kurzer Zeit springt.",
+      "pointsUnit": "Punkte",
+      "championLostLabel": "Champion verloren",
+      "championLostHint": "Senden, wenn der Champion-Loss-Detektor starke Hinweise findet.",
+      "dealLostLabel": "Deal verloren",
+      "dealLostHint": "Senden, wenn ein synchronisierter CRM-Deal auf Closed-Lost wechselt.",
+      "forecastChangeLabel": "Forecast-Änderung",
+      "forecastChangeHint": "Senden, wenn sich der risikobereinigte Pipeline-Wert deutlich ändert.",
+      "quietHoursTitle": "Ruhezeiten",
+      "quietHoursDesc": "Optionales Pausenfenster für nicht dringende Slack-Hinweise.",
+      "startLabel": "Start",
+      "endLabel": "Ende",
+      "timezoneLabel": "Zeitzone",
+      "saving": "Speichern…",
+      "save": "Einstellungen speichern",
+      "sending": "Senden…",
+      "sendTest": "Test-Benachrichtigung senden",
+      "saved": "Einstellungen gespeichert.",
+      "saveFailed": "Speichern fehlgeschlagen.",
+      "prefsSaveFailed": "Benachrichtigungs-Einstellungen konnten nicht gespeichert werden.",
+      "testSent": "Test-Benachrichtigung gesendet. Prüfe deinen Slack-Channel.",
+      "testFailed": "Test fehlgeschlagen.",
+      "fieldError": {
+        "generic": "Ungültige Formulardaten.",
+        "webhookUrlInvalid": "Bitte eine gültige URL eingeben.",
+        "webhookUrlNotSlack": "Die Webhook-URL muss ein Slack-Incoming-Webhook sein (https://hooks.slack.com/services/...).",
+        "channelNameRequired": "Bitte einen Channel-Namen angeben.",
+        "channelNameTooLong": "Der Channel-Name ist zu lang (max. 200 Zeichen).",
+        "channelIdRequired": "Bitte eine Channel-ID angeben.",
+        "channelIdTooLong": "Die Channel-ID ist zu lang (max. 100 Zeichen).",
+        "workspaceNameTooLong": "Der Workspace-Name ist zu lang (max. 200 Zeichen)."
+      }
     }
   },
   "common": {
@@ -198,7 +256,30 @@
     "noOrganization": "Keine Organisation",
     "language": "Sprache",
     "languageGerman": "Deutsch",
-    "languageEnglish": "Englisch"
+    "languageEnglish": "Englisch",
+    "onboarding": {
+      "eyebrow": "Erste Einrichtung",
+      "title": "Mach Findr in wenigen Minuten nützlich",
+      "progress": "{completed} von {total} Schritten erledigt. Schließe den nächsten Schritt ab, um den vollen Workflow freizuschalten.",
+      "dismissAria": "Onboarding-Checkliste ausblenden",
+      "steps": {
+        "connect_data": {
+          "title": "CRM oder Gesprächsquelle verbinden",
+          "description": "Aus Hubspot oder Gong synchronisieren oder einen manuellen Deal mit eingefügten Transkripten anlegen.",
+          "cta": "Datenquellen öffnen"
+        },
+        "first_analysis": {
+          "title": "Erste Risikoanalyse starten",
+          "description": "Analysiere einen Deal, um Risikosignale, Belege und Empfehlungen zu sehen.",
+          "cta": "Zur Pipeline"
+        },
+        "setup_slack": {
+          "title": "Benachrichtigungen in Slack erhalten",
+          "description": "Erhalte Echtzeit-Benachrichtigungen, wenn Deals Risikosignale zeigen.",
+          "cta": "Slack einrichten"
+        }
+      }
+    }
   },
   "sales": {
     "common": {
