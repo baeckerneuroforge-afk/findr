@@ -106,6 +106,112 @@ const PainPointSchema = z.object({
 });
 export type PainPoint = z.infer<typeof PainPointSchema>;
 
+// ── Item normalizers ─────────────────────────────────────────────────────────
+
+/**
+ * Normalize a persisted `evidence` JSONB array into honest `string[]`.
+ *
+ * Shared by normalizeFeatureRequests / normalizePainPoints below. Every read
+ * path that surfaces product-discovery items CASTS the persisted JSONB rather
+ * than re-parsing it (the classifier validated it on WRITE via
+ * `ProductDiscoveryResultSchema`). The outer `?? []` that guards a missing
+ * `feature_requests` / `pain_points` COLUMN never reaches a per-ITEM `evidence`
+ * field, so a legacy/partial row whose item lacks `evidence` reaches consumers
+ * with `evidence` undefined — and `evidence[0]` (ProductDiscoveryPanel's
+ * ItemCard) or `evidence.forEach` (the e2e script) then throws. We keep only
+ * the string entries and drop anything malformed; a missing/non-array value
+ * falls back to []. Never throws — same posture as normalizeThemes.
+ */
+export function normalizeEvidence(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+/** Keep a persisted enum string when it is a known member — mirroring the
+ *  write-side `toUpperString` / `toLowerString` preprocess so a case-variant
+ *  value still survives; otherwise fall back. Real rows are write-validated, so
+ *  the fallback only ever guards genuinely corrupt legacy JSONB. */
+function asEnumMember<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  fallback: T,
+  casing: "upper" | "lower",
+): T {
+  if (typeof value === "string") {
+    const cased = (
+      casing === "upper" ? value.toUpperCase() : value.toLowerCase()
+    ) as T;
+    if (allowed.includes(cased)) return cased;
+  }
+  return fallback;
+}
+
+/**
+ * Normalize persisted `feature_requests` JSONB into honest `FeatureRequest[]`.
+ *
+ * Same spirit as normalizeThemes: a defensive `.map` that defaults every read
+ * inner field rather than `FeatureRequestSchema.parse`. parse would THROW on a
+ * legacy row that violates a min/max constraint (e.g. a too-short title),
+ * turning a localized render glitch into a total read failure for the whole
+ * insight. The map never throws and preserves all existing content. POSITIONS
+ * are preserved — `Theme.relatedFeatureRequestIndices` references items by
+ * index, so entries must never be dropped. The crash-relevant inner field is
+ * `evidence` (via normalizeEvidence); the scalar fields degrade gracefully but
+ * are defaulted too. The result genuinely satisfies `FeatureRequest`, so no
+ * `as unknown` cast that lies about the shape.
+ */
+export function normalizeFeatureRequests(value: unknown): FeatureRequest[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    const fr =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? (entry as Record<string, unknown>)
+        : {};
+    return {
+      category: asEnumMember(
+        fr.category,
+        FEATURE_REQUEST_CATEGORIES,
+        "NEW_CAPABILITY",
+        "upper",
+      ),
+      title: typeof fr.title === "string" ? fr.title : "",
+      description: typeof fr.description === "string" ? fr.description : "",
+      intensity: asEnumMember(fr.intensity, INTENSITY_LEVELS, "low", "lower"),
+      confidence:
+        typeof fr.confidence === "number" && Number.isFinite(fr.confidence)
+          ? fr.confidence
+          : 0,
+      evidence: normalizeEvidence(fr.evidence),
+    };
+  });
+}
+
+/**
+ * Normalize persisted `pain_points` JSONB into honest `PainPoint[]`. Mirror of
+ * normalizeFeatureRequests — PainPoint differs only in the category vocabulary
+ * and carries `severity` instead of `intensity`.
+ */
+export function normalizePainPoints(value: unknown): PainPoint[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    const pp =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? (entry as Record<string, unknown>)
+        : {};
+    return {
+      category: asEnumMember(pp.category, PAIN_POINT_CATEGORIES, "BUG", "upper"),
+      title: typeof pp.title === "string" ? pp.title : "",
+      description: typeof pp.description === "string" ? pp.description : "",
+      severity: asEnumMember(pp.severity, INTENSITY_LEVELS, "low", "lower"),
+      confidence:
+        typeof pp.confidence === "number" && Number.isFinite(pp.confidence)
+          ? pp.confidence
+          : 0,
+      evidence: normalizeEvidence(pp.evidence),
+    };
+  });
+}
+
 // ── Theme ──────────────────────────────────────────────────────────────────
 
 /** A theme is a CLUSTERING over already-extracted items — it references at
