@@ -11,6 +11,7 @@ import {
   buildRiskClassifierPrompt,
   type CallForPrompt,
 } from "./prompts";
+import { parseJsonWithQuoteRepair } from "./json-repair";
 
 // === ANALYSIS MODEL — switch between opus (best quality) and sonnet (cheaper) here ===
 export const ANALYSIS_MODEL = CLAUDE_MODELS.opus;
@@ -70,9 +71,17 @@ async function callClaude(
     throw new LLMSchemaError("No JSON found in response", textBlock.text);
   }
 
+  // Risk stays on TEXT-JSON on purpose (NOT callClaudeStructured/tool-use like
+  // the 12 other AI modules): forced tool-use shifts Opus' risk calibration
+  // systematically UPWARD (full eval 38/50 vs ~94% on this path; a schema
+  // reorder did not recover it — it is the tool-use generation MODE). We keep
+  // the proven scoring and close ONLY the real crash this path carries —
+  // unescaped quotes inside signals[].quotes — with a narrow quote-escape
+  // pre-pass that runs ONLY when the raw text fails to parse. Valid JSON (the
+  // normal case) is byte-identical, so scores are unchanged. See ./json-repair.
   let parsed: unknown;
   try {
-    parsed = JSON.parse(jsonMatch[0]);
+    parsed = parseJsonWithQuoteRepair(jsonMatch[0]);
   } catch (err) {
     throw new LLMSchemaError(
       `JSON parse failed: ${err instanceof Error ? err.message : "unknown"}`,
