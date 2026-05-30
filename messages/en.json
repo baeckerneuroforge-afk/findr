@@ -572,7 +572,22 @@
       "colRenewal": "Renewal",
       "distTitle": "Health distribution",
       "distSubtitle": "How your analyzed accounts split across the five health levels.",
-      "distEmpty": "No analyzed accounts yet."
+      "distEmpty": "No analyzed accounts yet.",
+      "retentionTitle": "Retention & recurring revenue",
+      "retentionSubtitle": "Deterministic financial metrics — not an AI score. One-time project values are excluded.",
+      "statRecurringRevenue": "Recurring revenue (MRR)",
+      "recurringRevenueSub": "≈ {arr} / year",
+      "recurringRevenueMulti": "+ {count} more currency(ies)",
+      "statNrr": "Net Revenue Retention",
+      "nrrPeriodSub": "Trailing {months} months",
+      "nrrPending": "Available from the first full period",
+      "nrrPendingFrom": "Available from {date}",
+      "statActiveCustomers": "Active customers (recurring)",
+      "statActiveCustomersSub": "+ {count} project customers (one-time)",
+      "statChurn90d": "Churn (90 days)",
+      "churnRateSub": "{rate}% churn rate",
+      "retentionNote": "NRR measures retained and expanded revenue from existing customers over a period, net of churn and downgrades. It needs revenue at two points in time — value history is captured from now on, and real NRR follows after one full period.",
+      "nrrTargetRef": "Target reference (context, not a pass/fail goal): 110% / 130% / 150% in year 1 / 2 / 3."
     },
     "detail": {
       "breadcrumbAccounts": "Accounts",

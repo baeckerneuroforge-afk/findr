@@ -50,6 +50,7 @@ function mapRow(row: AccountRow): Account {
     currency: toCurrency(row.currency),
     renewalDate: row.renewal_date,
     status: toStatus(row.status),
+    churnedAt: row.churned_at ?? null,
     sourceDealId: row.source_deal_id,
     notes: row.notes,
     checkinEnabled: row.checkin_enabled,

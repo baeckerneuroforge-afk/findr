@@ -572,7 +572,22 @@
       "colRenewal": "Renewal",
       "distTitle": "Health-Verteilung",
       "distSubtitle": "Wie sich Ihre analysierten Accounts auf die fünf Health-Stufen verteilen.",
-      "distEmpty": "Noch keine analysierten Accounts."
+      "distEmpty": "Noch keine analysierten Accounts.",
+      "retentionTitle": "Retention & wiederkehrender Umsatz",
+      "retentionSubtitle": "Deterministische Finanzkennzahlen – kein KI-Score. Einmalige Projektwerte sind ausgeschlossen.",
+      "statRecurringRevenue": "Wiederkehrender Umsatz (MRR)",
+      "recurringRevenueSub": "≈ {arr} / Jahr",
+      "recurringRevenueMulti": "+ {count} weitere Währung(en)",
+      "statNrr": "Net Revenue Retention",
+      "nrrPeriodSub": "Letzte {months} Monate",
+      "nrrPending": "Ab erster voller Periode verfügbar",
+      "nrrPendingFrom": "Verfügbar ab {date}",
+      "statActiveCustomers": "Aktive Kunden (wiederkehrend)",
+      "statActiveCustomersSub": "+ {count} Projektkunden (einmalig)",
+      "statChurn90d": "Churn (90 Tage)",
+      "churnRateSub": "{rate} % Churn-Rate",
+      "retentionNote": "NRR misst gehaltenen und expandierten Umsatz von Bestandskunden über eine Periode, abzüglich Churn und Downgrades. Sie braucht Umsatz zu zwei Zeitpunkten – die Wert-Historie wird ab jetzt erfasst, echte NRR folgt nach einer vollen Periode.",
+      "nrrTargetRef": "Zielreferenz (Kontext, kein Soll): 110 % / 130 % / 150 % in Jahr 1 / 2 / 3."
     },
     "detail": {
       "breadcrumbAccounts": "Accounts",
