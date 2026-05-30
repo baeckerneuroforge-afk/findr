@@ -1620,5 +1620,32 @@
     "errInvalidRequest": "The request was invalid.",
     "errEngine": "Cross-Study is currently unavailable.",
     "errNetwork": "Connection failed. Please try again."
+  },
+  "crossStudyAgent": {
+    "modeChat": "Chat",
+    "modeAgent": "Agent",
+    "modeAria": "Choose mode",
+    "chatHint": "Chat — quickly answers a question across all study syntheses at once. For deeper research (selective loading, exact counting, comparison) switch to the Agent.",
+    "agentHint": "Agent — researches in multiple steps: loads the relevant studies on demand, counts themes exactly (e.g. \"in how many studies …\") and compares. More thorough, but slower than Chat.",
+    "title": "Cross-Study agent",
+    "subtitle": "The agent researches across studies — it loads the relevant studies on demand, counts themes exactly, and compares. Every statement is anchored to a verbatim quote per study; anything it can't ground it labels as interpretation or honestly declines.",
+    "clear": "Clear history",
+    "notReady": "Once at least one study has been synthesized, the agent can research here.",
+    "questionLabel": "Question",
+    "answerLabel": "Answer",
+    "refusalLabel": "No grounded cross-study answer",
+    "sourcesLabel": "Sources",
+    "untitledStudy": "Untitled study",
+    "openStudyHint": "Open study",
+    "interpretationLabel": "Interpretation (not directly evidenced)",
+    "thinking": "Researching …",
+    "placeholder": "e.g. \"In how many studies does the onboarding theme appear?\" or \"Compare the pricing findings across studies.\"",
+    "anchoredHint": "Grounded statements are anchored per study; numbers come from exact counting. Anything not grounded appears separately as interpretation.",
+    "submit": "Research",
+    "submitting": "Researching …",
+    "errNoAccess": "No access — please sign in and select an organization.",
+    "errInvalidRequest": "The request was invalid.",
+    "errEngine": "The cross-study agent is currently unavailable.",
+    "errNetwork": "Connection failed. Please try again."
   }
 }

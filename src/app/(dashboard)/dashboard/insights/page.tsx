@@ -3,25 +3,26 @@ import { getTranslations } from "next-intl/server";
 
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { loadOrgSyntheses } from "@/lib/mission-control/engine";
-import { MissionControlPanel } from "@/components/dashboard/MissionControlPanel";
+import { InsightsModeSwitcher } from "@/components/dashboard/InsightsModeSwitcher";
 
 /**
- * /dashboard/insights — Mission-Control / Cross-Study-Chat (Etappe 2).
+ * /dashboard/insights — cross-study surface, with a MODE SWITCHER (Bau 3) between
+ * "Chat" (the Mission-Control chat panel, Etappe 2 — unchanged) and "Agent" (the
+ * Cross-Study-Agent panel — multi-step research: loads studies on demand, counts
+ * exactly, compares).
  *
- * Org-level surface (NOT inside a single study): ask questions ACROSS ALL of the
- * org's study syntheses and get answers with per-study verbatim citations that
- * link back to each source study's synthesis. The engine (mission-control/
- * engine.ts) owns the anti-hallucination per-study anchor filter; this page only
- * wires auth + loads the study list (for citation→study link labels and the
- * not-ready state) and hands the multi-turn chat to the client panel.
+ * Org-level (NOT inside a single study): ask questions ACROSS ALL of the org's
+ * study syntheses and get answers with per-study verbatim citations that link
+ * back to each source study's synthesis. Both panels share this page's study
+ * list; each engine owns its own anti-hallucination per-study anchor filter.
  *
  * Study titles come from the canonical loadOrgSyntheses() — the SAME read path
- * the engine uses per question, so there is no parallel data path. We keep only
- * the {studyId, studyTitle} the panel needs for the source links; the synthesis
+ * both engines use per question, so there is no parallel data path. We keep only
+ * the {studyId, studyTitle} the panels need for the source links; the synthesis
  * content itself is re-loaded + re-anchored by the engine on every turn.
  *
  * Auth mirrors the synthesis page: requireOrgId(), redirect on no_auth/no_org.
- * The chat is session-local (no persistence) — same posture as ResearchAgentPanel.
+ * Both panels are session-local (no persistence).
  */
 
 export default async function InsightsPage() {
@@ -52,7 +53,7 @@ export default async function InsightsPage() {
         <p className="mt-1 text-body text-neutral-500">{t("pageIntro")}</p>
       </div>
 
-      <MissionControlPanel studies={studies} />
+      <InsightsModeSwitcher studies={studies} />
     </div>
   );
 }

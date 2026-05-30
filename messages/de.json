@@ -1620,5 +1620,32 @@
     "errInvalidRequest": "Die Anfrage war ungültig.",
     "errEngine": "Cross-Study ist momentan nicht verfügbar.",
     "errNetwork": "Verbindung fehlgeschlagen. Bitte versuche es erneut."
+  },
+  "crossStudyAgent": {
+    "modeChat": "Chat",
+    "modeAgent": "Agent",
+    "modeAria": "Modus wählen",
+    "chatHint": "Chat — beantwortet schnell eine Frage über alle Studien-Synthesen auf einmal. Für tiefere Recherche (gezieltes Laden, exaktes Zählen, Vergleich) wechsle zum Agent.",
+    "agentHint": "Agent — recherchiert mehrstufig: lädt gezielt die relevanten Studien, zählt exakt (z. B. „in wie vielen Studien …\") und vergleicht. Gründlicher, aber langsamer als der Chat.",
+    "title": "Cross-Study-Agent",
+    "subtitle": "Der Agent recherchiert studienübergreifend — er lädt gezielt die passenden Studien, zählt Themen exakt aus und vergleicht. Jede Aussage ist mit einem wörtlichen Beleg je Studie verankert; was nicht belegbar ist, kennzeichnet er als Interpretation oder lehnt ehrlich ab.",
+    "clear": "Verlauf löschen",
+    "notReady": "Sobald mindestens eine Studie synthetisiert wurde, kann der Agent hier recherchieren.",
+    "questionLabel": "Frage",
+    "answerLabel": "Antwort",
+    "refusalLabel": "Keine belegbare studienübergreifende Antwort",
+    "sourcesLabel": "Quellen",
+    "untitledStudy": "Unbenannte Studie",
+    "openStudyHint": "Studie öffnen",
+    "interpretationLabel": "Interpretation (nicht direkt belegt)",
+    "thinking": "Recherchiert …",
+    "placeholder": "z. B. „In wie vielen Studien taucht das Onboarding-Thema auf?\" oder „Vergleiche die Pricing-Befunde über die Studien hinweg.\"",
+    "anchoredHint": "Belegte Aussagen sind je Studie verankert; Zahlen kommen aus exaktem Zählen. Nicht Belegbares erscheint separat als Interpretation.",
+    "submit": "Recherchieren",
+    "submitting": "Recherchiert …",
+    "errNoAccess": "Kein Zugriff — bitte melde dich an und wähle eine Organisation.",
+    "errInvalidRequest": "Die Anfrage war ungültig.",
+    "errEngine": "Der Cross-Study-Agent ist momentan nicht verfügbar.",
+    "errNetwork": "Verbindung fehlgeschlagen. Bitte versuche es erneut."
   }
 }
