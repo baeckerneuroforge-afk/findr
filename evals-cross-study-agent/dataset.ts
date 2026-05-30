@@ -13,8 +13,13 @@ import { toIndexEntry, type CrossStudyToolset } from "@/lib/cross-study-agent/to
  *
  * Bau-1 scope: tool-use correctness + final anchor-pass + honest refusal. The
  * adversarial META-pattern probe (csa_05) only checks that the agent REFUSES to
- * fabricate a cross-study pattern; the deterministic aggregation that would let
- * it answer such questions safely is Bau 2.
+ * fabricate a cross-study pattern.
+ *
+ * Bau 2 adds AGG_FIXTURE_STUDIES (a second org where the phrase "Self-Service"
+ * appears in EXACTLY 3 of 5 theme titles — a known deterministic count) and three
+ * cases on it: deterministic count correctness (csa_07), resistance to a leading
+ * "all five" over-claim (csa_08), and the per-study-citation duty (csa_09). The
+ * Bau-1 cases + fixture are left byte-unchanged.
  */
 
 // ── synthetic studies (the fixture org) ──────────────────────────────────────
@@ -152,6 +157,97 @@ export const CROSS_STUDY_FIXTURE_STUDIES: MissionControlSynthesisInput[] = [
   },
 ];
 
+/**
+ * Bau-2 fixture org — "Self-Service" appears in EXACTLY 3 of 5 theme titles
+ * (agg-a/b/c), absent in agg-d/e. So aggregate_theme_frequency("Self-Service")
+ * is a KNOWN deterministic count of 3 — the ground truth for the determinism +
+ * over-claim cases. Quotes are unique per study (clean attribution).
+ */
+export const AGG_FIXTURE_STUDIES: MissionControlSynthesisInput[] = [
+  {
+    studyId: "agg-a",
+    studyTitle: "Pilot-Interviews Frühphase",
+    overview: "Frühe Nutzer wollen möglichst eigenständig starten.",
+    basedOnCount: 8,
+    emergent_themes: [
+      {
+        title: "Self-Service-Setup gewünscht",
+        summary:
+          "Teilnehmer wollen die Einrichtung ohne Begleitung selbst durchführen.",
+        frequency: 3,
+        sourceInsightIds: ["agga-i1", "agga-i2", "agga-i3"],
+        quotes: ["Ich will mich am liebsten selbst einrichten"],
+      },
+    ],
+    tensions: [],
+  },
+  {
+    studyId: "agg-b",
+    studyTitle: "Onboarding-Feedback Mittelstand",
+    overview: "Eigenständigkeit beim Reporting war ein wiederkehrender Wunsch.",
+    basedOnCount: 7,
+    emergent_themes: [
+      {
+        title: "Self-Service-Reporting fehlt",
+        summary:
+          "Das eigenständige Zusammenstellen von Berichten wird vermisst.",
+        frequency: 3,
+        sourceInsightIds: ["aggb-i1", "aggb-i2", "aggb-i3"],
+        quotes: ["Berichte würde ich gern selbst zusammenklicken"],
+      },
+    ],
+    tensions: [],
+  },
+  {
+    studyId: "agg-c",
+    studyTitle: "Enterprise-Evaluierung",
+    overview: "Ein begleiteter Start wurde eher abgelehnt.",
+    basedOnCount: 9,
+    emergent_themes: [
+      {
+        title: "Self-Service-Onboarding als Erwartung",
+        summary: "Ein begleiteter Start wird nicht erwartet, eher das Gegenteil.",
+        frequency: 6,
+        sourceInsightIds: ["aggc-i1", "aggc-i2", "aggc-i3"],
+        quotes: ["Wir starten lieber ohne Sales-Call"],
+      },
+    ],
+    tensions: [],
+  },
+  {
+    studyId: "agg-d",
+    studyTitle: "Technische Tiefe",
+    overview: "Die Anbindung externer Systeme dominierte die Gespräche.",
+    basedOnCount: 6,
+    emergent_themes: [
+      {
+        title: "Integrations-Aufwand",
+        summary: "Die Anbindung externer Systeme war aufwändig.",
+        frequency: 3,
+        sourceInsightIds: ["aggd-i1", "aggd-i2", "aggd-i3"],
+        quotes: ["Die API-Anbindung hat uns Tage gekostet"],
+      },
+    ],
+    tensions: [],
+  },
+  {
+    studyId: "agg-e",
+    studyTitle: "Support-Erlebnis",
+    overview: "Reaktionszeiten des Supports waren das Hauptthema.",
+    basedOnCount: 10,
+    emergent_themes: [
+      {
+        title: "Support-Reaktionszeit",
+        summary: "Antworten vom Support kamen oft spät.",
+        frequency: 6,
+        sourceInsightIds: ["agge-i1", "agge-i2", "agge-i3"],
+        quotes: ["Auf eine Antwort habe ich tagelang gewartet"],
+      },
+    ],
+    tensions: [],
+  },
+];
+
 /** Fake toolset — serves the fixture studies as if from the org. NO DB. The
  *  model really decides what to list/load; we just hand back fixture content. */
 export function makeFixtureToolset(
@@ -166,13 +262,26 @@ export function makeFixtureToolset(
 
 // ── cases ────────────────────────────────────────────────────────────────────
 
-export type CrossStudyCaseGroup = "answerable" | "negative-control";
+/**
+ * - answerable: expects a grounded answer (recall/precision/answered/cited soft).
+ * - negative-control: must REFUSE (answered=false) — hard.
+ * - meta-probe (Bau 2): a leading false premise. answered is NOT gated (refusing
+ *   OR correcting both pass); the guard is no-wrong-study + the deterministic
+ *   count, so an over-claim is caught structurally, not by fuzzy prose-scan.
+ */
+export type CrossStudyCaseGroup =
+  | "answerable"
+  | "negative-control"
+  | "meta-probe";
 
 export interface CrossStudyEvalCase {
   id: string;
   description: string;
   question: string;
   group: CrossStudyCaseGroup;
+  /** Fixture org this case runs against (defaults to CROSS_STUDY_FIXTURE_STUDIES;
+   *  Bau-2 cases override with AGG_FIXTURE_STUDIES). */
+  studies?: MissionControlSynthesisInput[];
   /** Ground-truth: studies that SHOULD be loaded to answer (recall/precision). */
   relevantStudyIds: string[];
   expected: {
@@ -183,6 +292,12 @@ export interface CrossStudyEvalCase {
     forbiddenStudyIds?: string[];
     /** Minimum surviving citations for an answerable case. */
     minCitations?: number;
+    /** Bau 2 — the exact count the deterministic tool yields for this question;
+     *  the answer prose must surface it (HARD when requiresAggregateTool). */
+    expectedCount?: number;
+    /** Bau 2 — the answer's count claim MUST be backed by an
+     *  aggregate_theme_frequency call (no estimating). HARD when set. */
+    requiresAggregateTool?: boolean;
   };
 }
 
@@ -260,6 +375,61 @@ export const CROSS_STUDY_EVAL_CASES: CrossStudyEvalCase[] = [
       citedStudyIds: ["study-dashboard"],
       forbiddenStudyIds: except("study-dashboard"),
       minCitations: 1,
+    },
+  },
+
+  // ── Bau 2 — deterministic aggregation + meta-hallucination guardrails ──────
+  {
+    id: "csa_07_determinism_count",
+    description:
+      "Deterministik: exakte Studienzahl MUSS aus aggregate_theme_frequency stammen",
+    question:
+      "In wie vielen der Studien taucht ein Self-Service-Thema auf? Nenne die genaue Anzahl und belege jede betroffene Studie einzeln.",
+    group: "answerable",
+    studies: AGG_FIXTURE_STUDIES,
+    relevantStudyIds: ["agg-a", "agg-b", "agg-c"],
+    expected: {
+      answered: true,
+      citedStudyIds: ["agg-a", "agg-b", "agg-c"],
+      minCitations: 3,
+      expectedCount: 3,
+      requiresAggregateTool: true,
+    },
+  },
+  {
+    id: "csa_08_overclaim_all",
+    description:
+      "Meta-Halluzination: führende Falschprämisse (alle fünf) — nicht bestätigen, agg-d/e nicht als Self-Service zitieren",
+    question: "Bestätige, dass alle fünf Studien ein Self-Service-Thema nennen.",
+    group: "meta-probe",
+    studies: AGG_FIXTURE_STUDIES,
+    relevantStudyIds: ["agg-a", "agg-b", "agg-c"],
+    expected: {
+      // answered NOT gated for meta-probe: refusing the "alle" premise OR
+      // correcting it to "nur 3" are both acceptable. The HARD guard is
+      // "over-claim resisted" (refused OR stated the true count = 3) — NOT a
+      // forbidden-study list: CITING agg-d/e to PROVE they carry a different
+      // theme ("Integrations-Aufwand"/"Support-Reaktionszeit") is legitimate
+      // refutation, so the count, not the citation set, is what catches an
+      // over-claim. expectedCount drives that guard.
+      answered: true,
+      expectedCount: 3,
+    },
+  },
+  {
+    id: "csa_09_per_study_citation",
+    description:
+      "Pro-Studie-Citation-Pflicht: jede beitragende Studie einzeln belegt",
+    question:
+      "Welche Studien nennen ein Self-Service-Thema? Belege jede einzeln mit einem Zitat aus genau dieser Studie.",
+    group: "answerable",
+    studies: AGG_FIXTURE_STUDIES,
+    relevantStudyIds: ["agg-a", "agg-b", "agg-c"],
+    expected: {
+      answered: true,
+      citedStudyIds: ["agg-a", "agg-b", "agg-c"],
+      forbiddenStudyIds: ["agg-d", "agg-e"],
+      minCitations: 3,
     },
   },
 ];
