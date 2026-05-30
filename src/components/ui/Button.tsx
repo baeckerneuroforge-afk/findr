@@ -11,7 +11,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {
   primary:
-    "bg-neutral-900 text-white hover:bg-neutral-700 active:bg-neutral-900",
+    "bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-700",
   secondary:
     "bg-white text-neutral-900 border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50",
   ghost: "text-neutral-700 hover:bg-neutral-100",

@@ -87,12 +87,21 @@
   --color-neutral-700: #3f3f46;
   --color-neutral-900: #18181b;
 
-  /* Primary accent — indigo (calmer than the brand violet) */
-  --color-primary-50: #f5f3ff;
-  --color-primary-100: #ede9fe;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
+  /* Primary accent — Findr brand violet #5B2FD4 (monochrome shell).
+     The dashboard/onboarding base is already monochrome (neutral grays);
+     this is the ONE chromatic accent, used SPARINGLY by the components
+     that consume primary-*: primary button background, focused-input
+     border + focus ring, links / active labels, and subtle active-state
+     washes (bg-primary-50). Swapped from indigo so the platform accent
+     matches the approved findr-shell-v2 design. 600 is the exact brand
+     violet; 500 = lighter (rings/borders), 700 = darker (hover/active).
+     NOTE: only these five steps are defined here, matching the steps the
+     dashboard actually consumed under the old indigo scale. */
+  --color-primary-50: #f5f2fe;
+  --color-primary-100: #e9e2fd;
+  --color-primary-500: #6d3fe0;
+  --color-primary-600: #5b2fd4;
+  --color-primary-700: #4a25ab;
 
   /* Status colors */
   --color-success-50: #f0fdf4;
