@@ -8,7 +8,7 @@ import {
 } from "@/lib/anthropic/structured";
 import { RISK_SIGNAL_TYPES, type RiskSignal } from "@/lib/schemas/risk";
 import { DEFAULT_SOLUTION_MODEL } from "@/lib/solution/extractor";
-import type { HealthLevel } from "./types";
+import type { AccountValueType, HealthLevel } from "./types";
 
 /**
  * Save-Play Extractor — pure LLM portion of the save-play layer.
@@ -72,6 +72,11 @@ interface SavePlayAccountContext {
   sponsorEmail: string | null;
   renewalDate: string | null;
   mrr: number | null;
+  /**
+   * How to interpret `mrr` (monthly / yearly / one_time). Drives the prompt's
+   * value label so a one-time project value is never presented as recurring MRR.
+   */
+  valueType: AccountValueType;
   currency: string;
   transcriptsCount: number;
 }
@@ -98,7 +103,7 @@ export interface SavePlayInput {
 
 export const SAVE_PLAY_SYSTEM_PROMPT = `You are a senior B2B SaaS Customer Success strategist advising an experienced CSM / account manager on how to SAVE one specific at-risk CUSTOMER — i.e. prevent churn and protect the renewal. You work with DACH (Germany / Austria / Switzerland) accounts, in German and English.
 
-You receive: a health analysis of ONE customer account (detected churn signals, each with verbatim quotes from post-sale conversations), the account context (sponsor, renewal date, MRR), the transcript(s), and OPTIONALLY a profile of the selling company.
+You receive: a health analysis of ONE customer account (detected churn signals, each with verbatim quotes from post-sale conversations), the account context (sponsor, renewal date, account value — labeled as monthly MRR, annual contract value, or a one-time project value), the transcript(s), and OPTIONALLY a profile of the selling company.
 
 Your job: for EACH detected churn signal, produce ONE concrete, grounded save action to address it, plus the single most useful next step. Then give a one-line overall verdict on whether the customer is retainable.
 
@@ -137,6 +142,40 @@ OUTPUT — return ONLY this JSON object, no markdown, no code fences, no preambl
   }
 }`;
 
+/**
+ * The single account-value line for the prompt's ACCOUNT CONTEXT block. Labels
+ * the amount by HOW the customer actually pays, so a one-time project value is
+ * never presented to the model as recurring "MRR" — feeding "MRR: 50000" for a
+ * project-value customer would be a false fact (prompt RULE 4: never invent).
+ *
+ * Mirrors the three-way value-type switch of the canonical UI formatter
+ * (src/lib/accounts/value.ts → accountValueKey); it emits model-facing ENGLISH
+ * prompt text instead of an i18n key, because this string is read by the model,
+ * not by a next-intl translator. Same logic, different surface — `valueType`
+ * stays the single source of truth, no parallel data path.
+ *
+ * `yearly` shows the RAW annual contract value, NOT amount/12: the stored amount
+ * IS the yearly figure, and dividing would fabricate a precise monthly number
+ * that appears nowhere in the data (which the model could then quote verbatim).
+ * The honest annual figure lets the model weigh renewal value without inventing.
+ */
+export function buildAccountValueLine(
+  valueType: AccountValueType,
+  mrr: number | null,
+  currency: string,
+): string {
+  const amount =
+    mrr != null ? `${currency} ${mrr.toLocaleString()}` : "unknown";
+  switch (valueType) {
+    case "yearly":
+      return `Annual contract value: ${amount}`;
+    case "one_time":
+      return `Project value (one-time): ${amount}`;
+    default:
+      return `MRR: ${amount}`;
+  }
+}
+
 function buildSavePlayPrompt(input: SavePlayInput): string {
   const { health, account, transcript, companyProfile } = input;
 
@@ -155,11 +194,6 @@ function buildSavePlayPrompt(input: SavePlayInput): string {
           .join("\n")
       : "  (none — no churn signals detected)";
 
-  const mrrStr =
-    account.mrr != null
-      ? `${account.currency} ${account.mrr.toLocaleString()}`
-      : "unknown";
-
   const profileBlock = companyProfile?.trim()
     ? `\n\nSELLING COMPANY PROFILE:\n${companyProfile.trim()}`
     : "\n\nSELLING COMPANY PROFILE: (none provided — stay grounded in the transcript; do not speculate about differentiators)";
@@ -172,7 +206,7 @@ Sponsor: ${account.sponsorName ?? "unknown"}${
     account.sponsorEmail ? ` <${account.sponsorEmail}>` : ""
   }
 Renewal date: ${account.renewalDate ?? "not set"}
-MRR: ${mrrStr}
+${buildAccountValueLine(account.valueType, account.mrr, account.currency)}
 Transcripts on file: ${account.transcriptsCount}
 
 HEALTH ANALYSIS:
