@@ -22,6 +22,7 @@ import { InviteForm } from "@/components/dashboard/InviteForm";
 import { InviteFromPoolForm } from "@/components/dashboard/InviteFromPoolForm";
 import { PlanQuotaPanel } from "@/components/dashboard/PlanQuotaPanel";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
+import { ScreeningQuestionsPanel } from "@/components/dashboard/ScreeningQuestionsPanel";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
 import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
 
@@ -447,6 +448,29 @@ export default async function ResearchPlanDetailPage({
             </Card>
           </>
         )}
+      </section>
+
+      {/* Screening-Fragen — inbound Qualifizierung VOR dem Interview. Der
+          Researcher definiert Fragen + akzeptierte Antworten; die
+          deterministische Auswertung (Etappe 4) entscheidet qualifiziert /
+          abgewiesen. Leere Liste = kein Screening, jeder Eingeladene startet
+          direkt ins Interview. Auf archivierten Plänen read-only. Sitzt
+          bewusst zwischen Teilnehmer und Quoten ("erst screenen, dann
+          quotieren"). */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">{t("screeningTitle")}</h2>
+          <p className="text-small text-neutral-500">{t("screeningDesc")}</p>
+        </div>
+        <Card>
+          <CardBody>
+            <ScreeningQuestionsPanel
+              planId={plan.id}
+              initialQuestions={plan.screeningQuestions}
+              disabled={plan.status === "archived"}
+            />
+          </CardBody>
+        </Card>
       </section>
 
       {/* Screening-Quoten — manuelle Ziele pro Rolle, Fortschritt aus Pool-

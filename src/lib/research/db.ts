@@ -121,6 +121,9 @@ export type ResearchPlanRow = {
   title: string;
   objective: string;
   topic_script: Json;
+  // Screening-Fragen (Phase 4, 20260628000000). Weiches jsonb wie topic_script;
+  // Form lebt im TS-Layer (src/lib/schemas/screening.ts), DB default '[]'.
+  screening_questions: Json;
   persona: string | null;
   sample_target: number | null;
   status: ResearchPlanStatus;
@@ -133,6 +136,7 @@ type ResearchPlanInsert = {
   title: string;
   objective: string;
   topic_script?: Json;
+  screening_questions?: Json;
   persona?: string | null;
   sample_target?: number | null;
   status?: ResearchPlanStatus;
@@ -145,6 +149,7 @@ type ResearchPlanUpdate = {
   title?: string;
   objective?: string;
   topic_script?: Json;
+  screening_questions?: Json;
   persona?: string | null;
   sample_target?: number | null;
   status?: ResearchPlanStatus;

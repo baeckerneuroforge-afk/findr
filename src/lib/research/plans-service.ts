@@ -6,6 +6,10 @@ import type {
   ResearchTopic,
 } from "@/lib/voice-agent/interviewer";
 import { createResearchSupabase, type ResearchPlanRow } from "./db";
+import {
+  ScreeningQuestionSchema,
+  type ScreeningQuestion,
+} from "@/lib/schemas/screening";
 
 /**
  * Read + write helpers for the research layer. Mirrors the pattern of
@@ -28,6 +32,7 @@ export interface ResearchPlanRecord {
   persona: string | null;
   sampleTarget: number | null;
   status: "draft" | "active" | "completed" | "archived";
+  screeningQuestions: ScreeningQuestion[];
   createdAt: string;
 }
 
@@ -62,6 +67,24 @@ function coerceTopics(raw: unknown): ResearchTopic[] {
   return out;
 }
 
+/**
+ * Lenient read-mapper for screening_questions (jsonb). Mirrors coerceTopics:
+ * never throws on a partial/legacy/hand-edited row. Reuses the canonical
+ * per-question Zod schema as the single source of truth and drops any entry
+ * that doesn't parse — a malformed question never crashes the editor or the
+ * (Etappe-4) participant gate. The write path is Zod-validated in the route,
+ * so app-written rows are always well-formed.
+ */
+function coerceScreeningQuestions(raw: unknown): ScreeningQuestion[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ScreeningQuestion[] = [];
+  for (const entry of raw) {
+    const parsed = ScreeningQuestionSchema.safeParse(entry);
+    if (parsed.success) out.push(parsed.data);
+  }
+  return out;
+}
+
 function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
   return {
     id: row.id,
@@ -72,6 +95,7 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     persona: row.persona,
     sampleTarget: row.sample_target,
     status: row.status,
+    screeningQuestions: coerceScreeningQuestions(row.screening_questions),
     createdAt: row.created_at,
   };
 }
@@ -178,6 +202,7 @@ export interface UpdateResearchPlanInput {
   title?: string;
   objective?: string;
   topics?: ResearchTopic[];
+  screeningQuestions?: ScreeningQuestion[];
   persona?: string | null;
   sampleTarget?: number | null;
   status?: ResearchPlanRecord["status"];
@@ -205,6 +230,7 @@ export async function updateResearchPlan(
     title?: string;
     objective?: string;
     topic_script?: Json;
+    screening_questions?: Json;
     persona?: string | null;
     sample_target?: number | null;
     status?: ResearchPlanRecord["status"];
@@ -213,6 +239,8 @@ export async function updateResearchPlan(
   if (input.objective !== undefined) update.objective = input.objective;
   if (input.topics !== undefined)
     update.topic_script = input.topics as unknown as Json;
+  if (input.screeningQuestions !== undefined)
+    update.screening_questions = input.screeningQuestions as unknown as Json;
   if (input.persona !== undefined) update.persona = input.persona;
   if (input.sampleTarget !== undefined)
     update.sample_target = input.sampleTarget;
