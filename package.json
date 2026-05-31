@@ -26,7 +26,9 @@
     "eval:highlight-reels": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/highlight-reels/run.ts",
     "eval:research-agent": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-research-agent/run.ts",
     "eval:mission-control": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-mission-control/run.ts",
-    "eval:cross-study-agent": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-cross-study-agent/run.ts"
+    "eval:cross-study-agent": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-cross-study-agent/run.ts",
+    "voice:token": "tsx --conditions=react-server scripts/create-voice-token.ts",
+    "voice:smoke": "tsx scripts/voice-ingest-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
