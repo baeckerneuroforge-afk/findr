@@ -1,99 +1,104 @@
 "use client";
 
 import { useState } from "react";
-import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { ScreeningQuestion } from "@/lib/schemas/screening";
-import { InterviewChat } from "./InterviewChat";
 import { ParticipantShell } from "./ParticipantShell";
 import { ScreeningForm } from "./ScreeningForm";
 import { RejectionPanel } from "./RejectionPanel";
 
 /**
- * Step-router between the page and InterviewChat (Etappe 3 — RENDER ONLY).
+ * Participant screening gate (Etappe 4 — WIRED).
  *
- * Renders one of: ScreeningForm → RejectionPanel → InterviewChat. Branding
- * props are passed straight through, so `--brand-accent` and the logo/name
- * apply to all three screens identically.
+ * Rendered by the page ONLY in needs_screening mode (research invite, screening
+ * configured, no session yet — the session was DEFERRED server-side). Shows the
+ * form; on submit it POSTs to /api/interview/[token]/screen, which runs the
+ * deterministic evaluateScreening:
+ *   - qualified → the session was just created server-side → router.refresh()
+ *     re-renders the page into session mode → the interview appears.
+ *   - rejected  → render the RejectionPanel (no session, no Opus turn).
+ * Re-try is allowed: RejectionPanel → back to the form → fresh submit.
  *
- * E3 boundary: this only chooses WHAT renders. It does NOT suppress the
- * session (getPublicSession already lazy-created it server-side), does NOT call
- * evaluateScreening, and does NOT touch the entry path. The ScreeningForm's
- * submit is a local stub that advances to the interview. E4 turns this into the
- * real gate: defer session creation, run evaluateScreening on submit, branch to
- * interview vs rejection, and write the anonymous research_screening_responses
- * quote row.
+ * Session mode (the interview itself) is NOT handled here — once a session
+ * exists, the page renders InterviewChat directly.
  */
 
-export type ParticipantStep = "screening" | "rejected" | "interview";
-
-interface ScreeningGateProps {
-  token: string;
-  initialConversation: InterviewTurn[];
-  initialStatus: "open" | "completed" | "abandoned";
-  company: string | null;
-  brandless: boolean;
-  headingOverride: string | null;
-  brandName: string | null;
-  accentColor: string | null;
-  logoUrl: string | null;
-  screeningQuestions: ScreeningQuestion[];
-  /** E3-only visual-QA override (?screening=questions|rejected|interview).
-   *  Forces a specific screen so a Vercel preview can show each one without a
-   *  real evaluation. E4 removes this — the real gate decides the step. */
-  previewStep?: ParticipantStep | null;
-}
+type AnswerMap = Record<string, string | string[] | number>;
 
 export function ScreeningGate({
   token,
-  initialConversation,
-  initialStatus,
-  company,
-  brandless,
-  headingOverride,
-  brandName,
-  accentColor,
-  logoUrl,
-  screeningQuestions,
-  previewStep = null,
-}: ScreeningGateProps) {
-  // Render path: screening form when questions are configured, else straight to
-  // the interview (today's behavior). Preview override wins for QA.
-  const initialStep: ParticipantStep =
-    previewStep ?? (screeningQuestions.length > 0 ? "screening" : "interview");
-  const [step, setStep] = useState<ParticipantStep>(initialStep);
+  questions,
+  brandName = null,
+  accentColor = null,
+  logoUrl = null,
+  planTitle = null,
+}: {
+  token: string;
+  questions: ScreeningQuestion[];
+  brandName?: string | null;
+  accentColor?: string | null;
+  logoUrl?: string | null;
+  planTitle?: string | null;
+}) {
+  const router = useRouter();
+  const t = useTranslations("interview");
+  const [step, setStep] = useState<"screening" | "rejected">("screening");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (step === "interview") {
-    return (
-      <InterviewChat
-        token={token}
-        initialConversation={initialConversation}
-        initialStatus={initialStatus}
-        company={company}
-        brandless={brandless}
-        headingOverride={headingOverride}
-        brandName={brandName}
-        accentColor={accentColor}
-        logoUrl={logoUrl}
-      />
-    );
+  async function handleComplete(answers: AnswerMap) {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/interview/${token}/screen`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        qualified?: boolean;
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(data.error ?? t("error.generic"));
+      }
+      if (data.qualified) {
+        // Session was created server-side — re-render into session mode so the
+        // interview appears. Keep submitting=true; the gate unmounts on refresh.
+        router.refresh();
+        return;
+      }
+      setStep("rejected");
+      setSubmitting(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("error.generic"));
+      setSubmitting(false);
+    }
   }
 
   return (
     <ParticipantShell
-      brandless={brandless}
+      brandless
       brandName={brandName}
       accentColor={accentColor}
       logoUrl={logoUrl}
     >
       {step === "screening" ? (
         <ScreeningForm
-          questions={screeningQuestions}
-          planTitle={headingOverride}
-          // E3 stub: reveal the interview. E4 → evaluateScreening result.
-          onComplete={() => setStep("interview")}
+          questions={questions}
+          planTitle={planTitle}
+          submitting={submitting}
+          error={error}
+          onComplete={handleComplete}
         />
       ) : (
-        <RejectionPanel onRetry={() => setStep("screening")} />
+        <RejectionPanel
+          onRetry={() => {
+            setError(null);
+            setStep("screening");
+          }}
+        />
       )}
     </ParticipantShell>
   );

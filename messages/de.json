@@ -34,7 +34,9 @@
       "title": "Kurz vorab: Passt das Thema zu Ihnen?",
       "intro": "Bitte beantworten Sie die folgenden Fragen, damit wir sicherstellen können, dass das Interview zu Ihrem Profil passt. Das dauert weniger als eine Minute.",
       "submit": "Weiter zum Interview",
-      "note": "Ihre Angaben werden nur zur Auswahl der passenden Teilnehmer verwendet."
+      "submitting": "Wird geprüft …",
+      "note": "Ihre Angaben werden nur zur Auswahl der passenden Teilnehmer verwendet.",
+      "errRequired": "Bitte beantworten Sie alle Pflichtfragen."
     },
     "rejection": {
       "title": "Vielen Dank für Ihr Interesse!",

@@ -32,6 +32,9 @@ type Language = "de" | "en";
 
 type InterviewSessionsRow = {
   access_token: string;
+  // Phase 4 screening — answers of the QUALIFIED participant, written at session
+  // creation. Null for non-screened / post_loss / checkin sessions.
+  screening_answers: Json | null;
   account_id: string | null;
   completed_at: string | null;
   conversation: Json;
@@ -59,6 +62,7 @@ type InterviewSessionsRow = {
 
 type InterviewSessionsInsert = {
   access_token: string;
+  screening_answers?: Json | null;
   account_id?: string | null;
   completed_at?: string | null;
   conversation?: Json;
@@ -86,6 +90,7 @@ type InterviewSessionsInsert = {
 
 type InterviewSessionsUpdate = {
   access_token?: string;
+  screening_answers?: Json | null;
   account_id?: string | null;
   completed_at?: string | null;
   conversation?: Json;
@@ -416,6 +421,37 @@ type ResearchPlanQuotaUpdate = {
   created_at?: string;
 };
 
+// ── research_screening_responses ─────────────────────────────────────────────
+//
+// Per 20260628000000_screening.sql. ANONYME Quote pro Studie: nur plan_id +
+// verdict + Zeitpunkt, KEIN invite_id, KEIN Profil, KEINE Antworten. Eine Zeile
+// pro abgeschlossenem Screening (qualified beim Session-Anlegen, rejected beim
+// Abweisen). org_isolation RLS; der service-role-Client schreibt sie.
+
+export type ResearchScreeningResponseRow = {
+  id: string;
+  org_id: string;
+  plan_id: string;
+  verdict: "qualified" | "rejected";
+  created_at: string;
+};
+
+type ResearchScreeningResponseInsert = {
+  id?: string;
+  org_id: string;
+  plan_id: string;
+  verdict: "qualified" | "rejected";
+  created_at?: string;
+};
+
+type ResearchScreeningResponseUpdate = {
+  id?: string;
+  org_id?: string;
+  plan_id?: string;
+  verdict?: "qualified" | "rejected";
+  created_at?: string;
+};
+
 // ── synthesis_shares ─────────────────────────────────────────────────────────
 //
 // Per 20260622000000_synthesis_shares.sql. Public read-only share links for a
@@ -514,6 +550,12 @@ export type DatabaseWithResearch = {
         Row: ResearchPlanQuotaRow;
         Insert: ResearchPlanQuotaInsert;
         Update: ResearchPlanQuotaUpdate;
+        Relationships: [];
+      };
+      research_screening_responses: {
+        Row: ResearchScreeningResponseRow;
+        Insert: ResearchScreeningResponseInsert;
+        Update: ResearchScreeningResponseUpdate;
         Relationships: [];
       };
       synthesis_shares: {

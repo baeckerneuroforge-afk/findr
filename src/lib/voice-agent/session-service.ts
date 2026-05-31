@@ -3,6 +3,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 
 import type { Json } from "@/types/database";
+import type { ScreeningQuestion } from "@/lib/schemas/screening";
 import { analyzeAccountTranscript } from "@/lib/accounts/health-service";
 import {
   createResearchSupabase,
@@ -220,7 +221,9 @@ function conversationToTranscript(conversation: InterviewTurn[]): string {
     .join("\n");
 }
 
-async function loadByToken(token: string): Promise<InterviewSession | null> {
+export async function loadByToken(
+  token: string,
+): Promise<InterviewSession | null> {
   const supabase = createResearchSupabase();
   const { data, error } = await supabase
     .from("interview_sessions")
@@ -266,6 +269,11 @@ export async function createInterviewSession(params: {
   accessToken?: string;
   language?: InterviewLanguage;
   model?: string;
+  /** Phase 4: screening answers of the QUALIFIED participant, written to the
+   *  session row at creation. Null/omitted for non-screened sessions (the
+   *  post_loss / checkin / no-screening-research lazy path), so behavior there
+   *  is byte-identical to before. */
+  screeningAnswers?: Json | null;
 }): Promise<InterviewSession> {
   const kind = params.kind ?? "post_loss";
   const mode = params.mode ?? "text";
@@ -322,6 +330,7 @@ export async function createInterviewSession(params: {
       conversation: conversation as unknown as Json,
       deal_context: params.dealContext as unknown as Json,
       model,
+      screening_answers: params.screeningAnswers ?? null,
     })
     .select()
     .single();
@@ -398,6 +407,24 @@ export async function getPublicSession(
     return null;
   }
 
+  // E4 SCREENING GATE — if the invite's plan has screening questions and no
+  // session exists yet, DEFER: do NOT lazy-create (no Opus opening turn, no
+  // interview_sessions row). Return null so this back-compat accessor — and the
+  // GET/POST routes that use it — 404: there is nothing to advance until the
+  // participant qualifies. The participant page uses resolvePublicEntry, which
+  // surfaces the needs_screening render path; the session is created by POST
+  // /api/interview/[token]/screen on a QUALIFIED verdict. FAIL-SAFE: no
+  // questions configured (or plan missing) → fall through to the unchanged
+  // lazy-create path below. getResearchPlan is dynamically imported for the
+  // same cycle-avoidance reason as createResearchInterview.
+  {
+    const { getResearchPlan } = await import("@/lib/research/plans-service");
+    const plan = await getResearchPlan(invite.org_id, invite.plan_id);
+    if ((plan?.screeningQuestions ?? []).length > 0) {
+      return null;
+    }
+  }
+
   // createResearchInterview is dynamically imported here to break a static
   // circular dependency: research-orchestration.ts imports
   // createInterviewSession from THIS file. Top-level static import would
@@ -441,6 +468,57 @@ export async function getPublicSession(
 
   const created = await loadByToken(token);
   return created ? toPublicView(created) : null;
+}
+
+/** Screening-aware entry resolution for the participant page +
+ *  generateMetadata. Distinguishes a real session from a needs_screening
+ *  signal (a research invite whose plan has screening questions and no session
+ *  yet — deferred so NO session row + NO Opus turn exist before the participant
+ *  qualifies). */
+export interface NeedsScreeningView {
+  /** server-only — white-label branding + the /screen endpoint's org scope. */
+  orgId: string;
+  planId: string;
+  planTitle: string | null;
+  language: InterviewLanguage;
+  questions: ScreeningQuestion[];
+}
+
+export type PublicEntry =
+  | { mode: "session"; session: PublicInterviewView }
+  | { mode: "needs_screening"; screening: NeedsScreeningView };
+
+export async function resolvePublicEntry(
+  token: string,
+): Promise<PublicEntry | null> {
+  // Existing session → always a session (post_loss / checkin / already-created
+  // research, incl. a session created after a qualified screening).
+  const existing = await loadByToken(token);
+  if (existing) return { mode: "session", session: toPublicView(existing) };
+
+  // No session yet — research invite with screening configured?
+  const invite = await findInviteByAccessToken(token);
+  if (!invite || !invite.org_id) return null;
+  const { getResearchPlan } = await import("@/lib/research/plans-service");
+  const plan = await getResearchPlan(invite.org_id, invite.plan_id);
+  const questions = plan?.screeningQuestions ?? [];
+  if (questions.length > 0) {
+    return {
+      mode: "needs_screening",
+      screening: {
+        orgId: invite.org_id,
+        planId: invite.plan_id,
+        planTitle: plan?.title ?? null,
+        language: invite.language,
+        questions,
+      },
+    };
+  }
+
+  // No screening → delegate to getPublicSession for the unchanged lazy-create +
+  // race backstop (kept as the single source of that logic).
+  const session = await getPublicSession(token);
+  return session ? { mode: "session", session } : null;
 }
 
 /** Org-internal view of a deal's interview (for the dashboard deal page). */

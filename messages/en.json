@@ -34,7 +34,9 @@
       "title": "Quick check: is this a fit for you?",
       "intro": "Please answer the following questions so we can make sure the interview matches your profile. It takes less than a minute.",
       "submit": "Continue to the interview",
-      "note": "Your answers are only used to select the right participants."
+      "submitting": "Checking …",
+      "note": "Your answers are only used to select the right participants.",
+      "errRequired": "Please answer all required questions."
     },
     "rejection": {
       "title": "Thanks for your interest!",

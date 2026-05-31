@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Json } from "@/types/database";
 import { getOrgName } from "@/lib/auth/org";
 import { getOrgSettings } from "@/lib/settings/org-settings";
 import {
@@ -95,6 +96,9 @@ export async function createResearchInterview(params: {
   inviteId?: string | null;
   /** Override language; defaults to interviewer's DEFAULT_INTERVIEW_LANGUAGE. */
   language?: "de" | "en";
+  /** Phase 4: screening answers of the qualified participant, persisted onto
+   *  the created session. Omitted by the no-screening lazy path → null. */
+  screeningAnswers?: Json | null;
 }): Promise<CreateResearchInterviewResult> {
   const base: CreateResearchInterviewResult = {
     status: "error",
@@ -170,6 +174,7 @@ export async function createResearchInterview(params: {
       accessToken: inviteAccessToken,
       dealContext: input,
       language: params.language ?? "de",
+      screeningAnswers: params.screeningAnswers ?? null,
     });
 
     // Thread the freshly inserted session through — getPublicSession's
