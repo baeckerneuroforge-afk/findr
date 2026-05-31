@@ -29,6 +29,17 @@
       "researchTitle": "Research-Interview",
       "researchTitleWithPlan": "Research-Interview — {plan}",
       "researchDescription": "Ein kurzes, vertrauliches Research-Gespräch."
+    },
+    "screening": {
+      "title": "Kurz vorab: Passt das Thema zu Ihnen?",
+      "intro": "Bitte beantworten Sie die folgenden Fragen, damit wir sicherstellen können, dass das Interview zu Ihrem Profil passt. Das dauert weniger als eine Minute.",
+      "submit": "Weiter zum Interview",
+      "note": "Ihre Angaben werden nur zur Auswahl der passenden Teilnehmer verwendet."
+    },
+    "rejection": {
+      "title": "Vielen Dank für Ihr Interesse!",
+      "body": "Diesmal passen Sie nicht ganz in das gesuchte Profil — aber wir freuen uns, dass Sie sich die Zeit genommen haben. Vielleicht passt eine unserer nächsten Studien besser.",
+      "retry": "Antworten ändern"
     }
   },
   "email": {

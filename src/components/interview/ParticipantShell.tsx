@@ -1,0 +1,80 @@
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
+import { FONT, resolveAccent } from "./branding";
+
+/**
+ * Branded full-page chrome for the participant-facing screening + rejection
+ * screens. Mirrors InterviewChat's header + root exactly (same classes, same
+ * `--brand-accent` custom property, same "Confidential" caption) so the
+ * white-label rendering is consistent across all three participant screens.
+ * InterviewChat keeps its own copy of this chrome (left untouched); this shell
+ * serves the two NEW screens (ScreeningForm, RejectionPanel).
+ *
+ * Screening only ever runs on the research surface (brandless = true), where a
+ * Findr customer's logo/name + accent replace the Findr chrome. Children render
+ * inside the centered max-w-2xl main.
+ */
+export function ParticipantShell({
+  brandName = null,
+  accentColor = null,
+  logoUrl = null,
+  brandless = true,
+  children,
+}: {
+  brandName?: string | null;
+  accentColor?: string | null;
+  logoUrl?: string | null;
+  brandless?: boolean;
+  children: React.ReactNode;
+}) {
+  const t = useTranslations("interview");
+  const locale = useLocale();
+  const accent = resolveAccent(accentColor);
+  const hasBrand = brandless && Boolean(logoUrl || brandName);
+
+  return (
+    <div
+      lang={locale}
+      style={
+        { fontFamily: FONT, "--brand-accent": accent } as React.CSSProperties
+      }
+      className="flex min-h-screen w-full flex-col bg-white text-[#0E0A1F]"
+    >
+      <header className="border-b border-[#E8E4F2] px-5 py-4">
+        <div
+          className={`mx-auto flex max-w-2xl items-center ${
+            brandless && !hasBrand ? "justify-center" : "justify-between"
+          }`}
+        >
+          {!brandless && (
+            <span className="flex items-center text-[20px] font-extrabold tracking-[-0.02em] text-[#0E0A1F]">
+              findr
+              <span className="mb-[10px] ml-[1px] inline-block h-[4px] w-[4px] rounded-full bg-[#B00]" />
+            </span>
+          )}
+          {hasBrand &&
+            (logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt={brandName ?? ""}
+                className="h-7 w-auto max-w-[180px] object-contain"
+              />
+            ) : (
+              <span className="text-[20px] font-extrabold tracking-[-0.02em] text-[#0E0A1F]">
+                {brandName}
+              </span>
+            ))}
+          <span className="text-[12px] text-[#6B6680]">
+            {t("header.confidential")}
+          </span>
+        </div>
+      </header>
+
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 py-6">
+        {children}
+      </main>
+    </div>
+  );
+}

@@ -113,6 +113,11 @@ export interface PublicInterviewView {
    *  page server component) to resolve white-label branding for the research
    *  participant surface — never rendered, never sent to the client. */
   orgId: string;
+  /** For `research`: the plan UUID. Server-side ONLY (page server component)
+   *  to load the plan's screening questions for the render path — never
+   *  rendered, never sent to the client. Null for post_loss / checkin and
+   *  legacy rows. */
+  planId: string | null;
   /** A friendly company name for the greeting, if available. */
   company: string | null;
   /** Flow kind — exposed so the public page can switch on it (e.g. drop the
@@ -196,6 +201,7 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
     status: session.status,
     conversation: session.conversation,
     orgId: session.orgId,
+    planId: session.planId,
     company,
     kind: session.kind,
     planTitle,

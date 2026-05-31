@@ -29,6 +29,17 @@
       "researchTitle": "Research interview",
       "researchTitleWithPlan": "Research interview — {plan}",
       "researchDescription": "A short, confidential research conversation."
+    },
+    "screening": {
+      "title": "Quick check: is this a fit for you?",
+      "intro": "Please answer the following questions so we can make sure the interview matches your profile. It takes less than a minute.",
+      "submit": "Continue to the interview",
+      "note": "Your answers are only used to select the right participants."
+    },
+    "rejection": {
+      "title": "Thanks for your interest!",
+      "body": "This time you're not quite the profile we're looking for — but we appreciate you taking the time. One of our next studies may be a better match.",
+      "retry": "Change answers"
     }
   },
   "email": {

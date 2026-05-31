@@ -2,8 +2,12 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
-import { InterviewChat } from "@/components/interview/InterviewChat";
+import {
+  ScreeningGate,
+  type ParticipantStep,
+} from "@/components/interview/ScreeningGate";
 import { getPublicSession } from "@/lib/voice-agent/session-service";
+import { getResearchPlan } from "@/lib/research/plans-service";
 import { getOrgBranding } from "@/lib/settings/org-settings";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locale";
 import { MESSAGES, translate } from "@/i18n/messages";
@@ -79,8 +83,10 @@ export async function generateMetadata({
 
 export default async function InterviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { token } = await params;
   const session = await getCachedPublicSession(token);
@@ -98,12 +104,37 @@ export default async function InterviewPage({
   // Service-role read by org_id (the participant is unauthenticated).
   const branding = isResearch ? await getOrgBranding(session.orgId) : null;
 
+  // Etappe 3 (RENDER PATH ONLY): load the research plan's screening questions
+  // so the gate can render the screening form. Read-only + additive — the
+  // entry/lazy-create path in getPublicSession is untouched and NO session is
+  // suppressed. The real gating (defer session + evaluateScreening) is E4.
+  const screeningQuestions =
+    isResearch && session.planId
+      ? ((await getResearchPlan(session.orgId, session.planId))
+          ?.screeningQuestions ?? [])
+      : [];
+
+  // Etappe-3 visual-QA override: ?screening=questions|rejected|interview lets a
+  // Vercel preview deterministically show each white-label screen without a
+  // real evaluation. Unknown/absent → null (the gate decides by config).
+  // Removed in E4 (the real gate decides the step).
+  const sp = await searchParams;
+  const raw = typeof sp.screening === "string" ? sp.screening : null;
+  const previewStep: ParticipantStep | null =
+    raw === "questions"
+      ? "screening"
+      : raw === "rejected"
+        ? "rejected"
+        : raw === "interview"
+          ? "interview"
+          : null;
+
   return (
     <NextIntlClientProvider
       locale={locale}
       messages={{ interview: MESSAGES[locale].interview }}
     >
-      <InterviewChat
+      <ScreeningGate
         token={token}
         initialConversation={session.conversation}
         initialStatus={session.status}
@@ -117,6 +148,9 @@ export default async function InterviewPage({
         brandName={branding?.brandName ?? null}
         accentColor={branding?.accentColor ?? null}
         logoUrl={branding?.logoUrl ?? null}
+        // E3 render path + visual-QA override (see above).
+        screeningQuestions={screeningQuestions}
+        previewStep={previewStep}
       />
     </NextIntlClientProvider>
   );
