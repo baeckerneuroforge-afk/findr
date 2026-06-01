@@ -442,7 +442,7 @@
     },
     "coaching": {
       "title": "Team-Coaching",
-      "subtitle": "Loss-Muster und Coaching-Empfehlungen pro Sales-Rep.",
+      "subtitle": "Risiko-Muster und Coaching-Empfehlungen pro Sales-Rep.",
       "emptyTitle": "Noch keine Coaching-Daten",
       "emptyDesc": "Führen Sie Risiko-Analysen für einige Deals aus, um Team-Muster, Coaching-Empfehlungen und Rep-bezogene Risiko-Trends sichtbar zu machen.",
       "goToPipeline": "Zur Pipeline",
@@ -454,8 +454,8 @@
       "atRiskRatio": "{pct}% mit Risiko",
       "managerInsight": "Manager-Insight",
       "insightSentence": "{rep} zeigt {pattern} in {pct}% der erfassten Deals.",
-      "lossPatternFreq": "Häufigkeit der Loss-Muster",
-      "noPatterns": "Für diesen Rep wurden noch keine Loss-Muster erkannt.",
+      "lossPatternFreq": "Häufigkeit der Risiko-Muster",
+      "noPatterns": "Für diesen Rep wurden noch keine Risiko-Muster erkannt.",
       "detectedCount": "{count}× erkannt",
       "coachingRecs": "Coaching-Empfehlungen",
       "basedOnPattern": "Basierend auf Top-Muster: {pattern}"

@@ -15,6 +15,7 @@ const SIGNAL_LABELS: Record<string, string> = {
   LATE_DECISION_MAKER: "Late Decision Maker",
   STAKEHOLDER_CHURN: "Stakeholder Churn",
   ENGAGEMENT_DROP: "Engagement Drop",
+  MULTI_THREADING_FAILURE: "Multi-Threading Failure",
 };
 
 interface CoachingDashboardProps {

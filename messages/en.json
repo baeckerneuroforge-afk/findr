@@ -442,7 +442,7 @@
     },
     "coaching": {
       "title": "Team coaching",
-      "subtitle": "Loss patterns and coaching recommendations per sales rep.",
+      "subtitle": "Risk patterns and coaching recommendations per sales rep.",
       "emptyTitle": "No coaching data yet",
       "emptyDesc": "Run risk analysis on a few deals to reveal team patterns, coaching recommendations, and rep-level risk trends.",
       "goToPipeline": "Go to pipeline",
@@ -454,8 +454,8 @@
       "atRiskRatio": "{pct}% at risk",
       "managerInsight": "Manager insight",
       "insightSentence": "{rep} shows {pattern} in {pct}% of tracked deals.",
-      "lossPatternFreq": "Loss pattern frequency",
-      "noPatterns": "No loss patterns detected yet for this rep.",
+      "lossPatternFreq": "Risk pattern frequency",
+      "noPatterns": "No risk patterns detected yet for this rep.",
       "detectedCount": "{count}× detected",
       "coachingRecs": "Coaching recommendations",
       "basedOnPattern": "Based on top pattern: {pattern}"

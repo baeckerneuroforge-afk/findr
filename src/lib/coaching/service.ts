@@ -58,7 +58,24 @@ const COACHING_RECOMMENDATIONS: Record<string, string[]> = {
     "Bei Drop: explizite Re-Engagement-Sequence (3 Touchpoints in 5 Tagen, dann Pause)",
     "Pattern-Detection: bei welcher Stage tritt Engagement-Drop typisch auf",
   ],
+  MULTI_THREADING_FAILURE: [
+    "Multi-Threading ab Discovery: mindestens 3 Stakeholder-Rollen identifizieren (Economic Buyer, Champion, User)",
+    "Stakeholder-Map pro Deal pflegen: sichtbar machen wer kontaktiert ist, wer fehlt, wer Gegenwind gibt",
+    "Single-Threaded-Risiko früh ansprechen: wenn nach der Demo nur eine Person spricht, gezielt Intro zu weiteren Beteiligten erbitten",
+  ],
 };
+
+/** Display name for deals without an owner (incl. empty/whitespace-only). */
+const UNASSIGNED_REP = "Unassigned";
+
+/**
+ * Grouping key for a rep: case- and whitespace-insensitive so the same person
+ * ("sarah mueller" vs "Sarah Mueller") collapses into one rep. Display names
+ * keep their original spelling (see getRepCoachingProfiles).
+ */
+function normalizeRepKey(displayName: string): string {
+  return displayName.toLowerCase().replace(/\s+/g, " ");
+}
 
 type RiskScoreRow = Pick<
   Database["public"]["Tables"]["risk_scores"]["Row"],
@@ -66,6 +83,8 @@ type RiskScoreRow = Pick<
 >;
 
 interface RepAggregation {
+  /** Readable original spelling (first occurrence), used for display. */
+  displayName: string;
   deals: Deal[];
   scores: number[];
   activeCount: number;
@@ -130,19 +149,24 @@ export async function getRepCoachingProfiles(
   const repMap = new Map<string, RepAggregation>();
 
   for (const deal of deals) {
-    const repName = deal.ownerName;
-    if (!repMap.has(repName)) {
-      repMap.set(repName, {
+    // Display keeps the first original spelling; an empty/whitespace-only
+    // owner is treated like an unassigned deal rather than its own rep.
+    const trimmedName = (deal.ownerName ?? "").trim();
+    const displayName = trimmedName.length > 0 ? trimmedName : UNASSIGNED_REP;
+    const repKey = normalizeRepKey(displayName);
+
+    let rep = repMap.get(repKey);
+    if (!rep) {
+      rep = {
+        displayName,
         deals: [],
         scores: [],
         activeCount: 0,
         atRiskCount: 0,
         signalCounts: {},
-      });
+      };
+      repMap.set(repKey, rep);
     }
-
-    const rep = repMap.get(repName);
-    if (!rep) continue;
 
     rep.deals.push(deal);
 
@@ -153,7 +177,9 @@ export async function getRepCoachingProfiles(
     if (!latestScore) continue;
 
     rep.scores.push(latestScore.risk_score);
-    if (latestScore.risk_score >= 60) rep.atRiskCount++;
+    // "At risk" is an active-pipeline metric: closed deals (won/lost) never
+    // count, even if their last score was >= 60.
+    if (isActive && latestScore.risk_score >= 60) rep.atRiskCount++;
 
     for (const signal of parseSignals(latestScore.signals)) {
       rep.signalCounts[signal.type] = (rep.signalCounts[signal.type] ?? 0) + 1;
@@ -162,7 +188,7 @@ export async function getRepCoachingProfiles(
 
   const profiles: RepCoachingProfile[] = [];
 
-  for (const [repName, data] of repMap.entries()) {
+  for (const data of repMap.values()) {
     const avgRiskScore =
       data.scores.length > 0
         ? Math.round(
@@ -176,7 +202,7 @@ export async function getRepCoachingProfiles(
       : [];
 
     profiles.push({
-      repName,
+      repName: data.displayName,
       totalDeals: data.deals.length,
       activeDeals: data.activeCount,
       avgRiskScore,
