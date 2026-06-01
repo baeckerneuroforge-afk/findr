@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["framer-motion"],
   },
+  // /pricing was the old EN static-HTML pricing route; Etappe C replaces it with
+  // the German /preise. Keep old links alive with a permanent (308) redirect.
+  async redirects() {
+    return [{ source: "/pricing", destination: "/preise", permanent: true }];
+  },
 };
 
 // next-intl: point the plugin at the request config (i18n without routing).
