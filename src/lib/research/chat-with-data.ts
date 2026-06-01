@@ -436,6 +436,11 @@ export async function chatWithDataFromInputs(
       toolName: "emit_chat_answer",
       toolDescription:
         "Return the answer to the researcher's question — answered, a short German answer, and verbatim citations (interviewId + quote) drawn only from the supplied data.",
+      // Prompt-caching: the system prefix here is CHAT_WITH_DATA_SYSTEM_PROMPT +
+      // the full study insights/synthesis dump — identical across every turn of
+      // a chat session. Cache it so follow-up questions re-send only the new
+      // user turn instead of the whole corpus. Anchor filter / answer unchanged.
+      cacheSystemPrompt: true,
     });
   } catch (err) {
     if (err instanceof StructuredOutputError) {
@@ -643,7 +648,12 @@ export async function chatWithData(
       .select("*")
       .eq("org_id", input.orgId)
       .eq("plan_id", input.planId)
-      .order("analyzed_at", { ascending: true }),
+      .order("analyzed_at", { ascending: true })
+      // Deterministic tie-breaker so equal analyzed_at timestamps can't reorder
+      // the INSIGHTS dump between turns — a stable byte-identical system prefix
+      // is what lets prompt-caching (cacheSystemPrompt) actually HIT across the
+      // turns of a chat. Behaviour-preserving: same rows, just a stable order.
+      .order("id", { ascending: true }),
     supabase
       .from("study_synthesis")
       .select("*")

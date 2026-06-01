@@ -224,6 +224,11 @@ export async function runMissionControlDiagnostics(
       toolName: "emit_cross_study_answer",
       toolDescription:
         "Return the cross-study answer — answered, a short German answer, and verbatim citations (studyId + quote) each drawn ONLY from the named study's synthesis.",
+      // Prompt-caching: the system prefix here is MISSION_CONTROL_SYSTEM_PROMPT +
+      // the full per-study synthesis dump — identical across every turn of a
+      // cross-study chat. Cache it so follow-up questions re-send only the new
+      // user turn. Per-study anchor filter / answer contract unchanged.
+      cacheSystemPrompt: true,
     });
   } catch (err) {
     if (err instanceof StructuredOutputError) {
@@ -352,7 +357,12 @@ export async function loadOrgSyntheses(
     .from("study_synthesis")
     .select("*")
     .eq("org_id", orgId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    // Deterministic tie-breaker so equal created_at timestamps can't reorder the
+    // per-study synthesis dump between turns — a byte-identical system prefix is
+    // what lets prompt-caching (cacheSystemPrompt) HIT across cross-study chat
+    // turns. Behaviour-preserving: same rows, just a stable order.
+    .order("id", { ascending: true });
   if (error || !synthRows || synthRows.length === 0) return [];
 
   // Resolve study titles + types in one batched query (org-scoped). study_type

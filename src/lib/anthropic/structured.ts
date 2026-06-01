@@ -57,6 +57,26 @@ export interface CallClaudeStructuredOptions<T> {
   schema: z.ZodType<T>;
   /** System prompt (posture + data). Stable prefix — cacheable across turns. */
   system: string;
+  /**
+   * OPT-IN Anthropic prompt-caching (default false → byte-identical request for
+   * every existing caller). When true, the `system` string is sent as a single
+   * cache-breakpointed text block (`cache_control: {type:'ephemeral'}`) instead
+   * of a plain string. Anthropic then caches the stable prefix — render order is
+   * tools → system → messages, so the breakpoint on the (only) system block
+   * caches `tools + system` together; the volatile `messages` (history +
+   * question) render AFTER the breakpoint and stay outside the cached span, so
+   * the cache is NOT invalidated turn-to-turn.
+   *
+   * Behaviourally transparent: a single text block with the same text is the
+   * exact prompt the string form produces — the model sees identical tokens, so
+   * responses are unchanged; caching only alters what is re-sent vs. read from
+   * cache. Set this ONLY for the multi-turn loop callers (chat-with-data,
+   * mission-control) whose large data dump is re-sent every turn; single-shot
+   * extractors gain nothing and should leave it false. Requires SDK ≥ 0.96
+   * (CacheControlEphemeral on TextBlockParam, GA — no beta header). The minimum
+   * cacheable prefix on Opus is ~4096 tokens; shorter prefixes silently won't
+   * cache (no error, just no benefit). */
+  cacheSystemPrompt?: boolean;
   /** Conversation. Single-shot = [{ role: "user", content: prompt }]. */
   messages: StructuredMessage[];
   model?: string;
@@ -94,6 +114,7 @@ export async function callClaudeStructured<T>(
     toolDescription = DEFAULT_TOOL_DESCRIPTION,
     timeoutMs = 120_000,
     maxRetries = 1,
+    cacheSystemPrompt = false,
   } = opts;
 
   if (!TOOL_NAME_RE.test(toolName)) {
@@ -137,12 +158,25 @@ export async function callClaudeStructured<T>(
           "\n\nIMPORTANT: Your previous tool call did not match the required schema. Provide EVERY field with its correct type — arrays as arrays of objects (never as a string), and include all required fields. Call the tool exactly once."
         : system;
 
+    // OPT-IN prompt-caching: wrap the (identical) system text in one
+    // cache-breakpointed block. The breakpoint sits on the LAST stable block —
+    // tools + system render before `messages`, so the volatile history+question
+    // stay outside the cached span and never invalidate it. Default path keeps
+    // the plain string → byte-identical request for every non-caching caller.
+    // (On the rare schema-retry, `sys` carries the appended nag, so attempt 1's
+    // prefix differs from attempt 0's cached write — a benign one-off miss, not
+    // a cross-turn issue: `sys` is re-derived per call, so the next turn starts
+    // clean at attempt 0 and reads the cache.)
+    const systemParam: string | Anthropic.TextBlockParam[] = cacheSystemPrompt
+      ? [{ type: "text", text: sys, cache_control: { type: "ephemeral" } }]
+      : sys;
+
     const response = await client.messages.create(
       {
         model,
         max_tokens: maxTokens,
         // No `temperature` — Opus 4.7 rejects the parameter (400).
-        system: sys,
+        system: systemParam,
         messages,
         tools: [tool],
         tool_choice: { type: "tool", name: toolName },
