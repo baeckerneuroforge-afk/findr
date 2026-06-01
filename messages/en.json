@@ -59,6 +59,10 @@
       "unavailable": {
         "title": "This study isn't available right now",
         "body": "The link has expired or the study is no longer accepting participants. Thanks for your interest."
+      },
+      "full": {
+        "title": "This study is already full",
+        "body": "This study has reached its maximum number of participants and isn't accepting anyone else right now. Thanks for your interest."
       }
     }
   },

@@ -3,7 +3,11 @@ import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { DEFAULT_LOCALE } from "@/i18n/locale";
-import { findOpenLinkByAccessToken } from "@/lib/research/open-links";
+import {
+  findOpenLinkByAccessToken,
+  countOpenLinkSessions,
+  isOpenLinkAtCapacity,
+} from "@/lib/research/open-links";
 import { isOpenLinkExpired } from "@/lib/research/open-link-expiry";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { createResearchInterview } from "@/lib/research/research-orchestration";
@@ -43,7 +47,13 @@ import type { Json } from "@/types/database";
  *     guardrail, enforced here). A plan WITHOUT screening_questions → entry
  *     denied, NO session. A no-screening open link can never mint a session.
  *   evaluateScreening (deterministic, KI-frei, identity-free):
- *     QUALIFIED → createResearchInterview({ orgId, planId, inviteId: null,
+ *     QUALIFIED → ANTI-ABUSE CAP (E5) first: if the link has a max_sessions cap
+ *       and the COUNT of sessions already attributed to it (open_link_id, org-
+ *       scoped) is at/over the cap → "study is full", NO session, NO Opus turn,
+ *       NO qualified quote. The COUNT sits BEFORE createResearchInterview (the
+ *       Opus turn), so a full link costs zero AI spend. Only created sessions
+ *       carry open_link_id → rejections never consume the cap. Under cap →
+ *       createResearchInterview({ orgId, planId, inviteId: null,
  *       openLinkId: link.id, screeningAnswers }) — fires the opening Opus turn,
  *       inserts ONE interview_sessions row (org_id = link.org_id NOT NULL,
  *       invite_id NULL, open_link_id = link.id, FRESH access_token) — PLUS ONE
@@ -126,9 +136,35 @@ export async function POST(
     return NextResponse.json({ qualified: false });
   }
 
-  // ⑥ Qualified: mint a FRESH session via the canonical path. inviteId: null →
-  //    createInterviewSession generates a brand-new access_token (the open-link
-  //    token is NEVER reused). open_link_id = link.id stamps the attribution.
+  // ⑥ ANTI-ABUSE CAP (E5) — the structural cost brake, placed BEFORE the Opus
+  //    turn. Qualified means the next step (createResearchInterview) fires the
+  //    opening Opus turn (nextResearchMessage, inside createInterviewSession). So
+  //    we COUNT first: sessions already attributed to THIS link, org-scoped.
+  //    Only created/qualified sessions carry open_link_id, so REJECTIONS never
+  //    consume the cap. At/over the cap → NO session, NO Opus turn, NO qualified
+  //    quote — the friendly "study is full" denial. A transient count error fails
+  //    CLOSED (isOpenLinkAtCapacity treats null as full), consistent with this
+  //    route's fail-closed posture and protecting spend. max_sessions = null
+  //    (open-ended) skips the cap entirely. This is the ONLY guard against a
+  //    leaked/shared link becoming an open spend tor; it makes a full link cost
+  //    zero AI spend.
+  if (link.max_sessions !== null) {
+    const used = await countOpenLinkSessions(link.org_id, link.id);
+    if (isOpenLinkAtCapacity(link.max_sessions, used)) {
+      // 403 {full:true} is produced ONLY here — textually before
+      // createResearchInterview — so this response shape itself proves no Opus
+      // turn fired (the COUNT is the only DB read on this branch).
+      return NextResponse.json(
+        { available: false, full: true },
+        { status: 403 },
+      );
+    }
+  }
+
+  // ⑦ Qualified + under cap: mint a FRESH session via the canonical path.
+  //    inviteId: null → createInterviewSession generates a brand-new access_token
+  //    (the open-link token is NEVER reused). open_link_id = link.id stamps the
+  //    attribution (and is what the cap COUNT above measures).
   const result = await createResearchInterview({
     orgId: link.org_id,
     planId: link.plan_id,

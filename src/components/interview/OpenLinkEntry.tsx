@@ -24,6 +24,10 @@ import { RejectionPanel } from "./RejectionPanel";
  *   rejected    → the "not a fit" screen (RejectionPanel, reused). Re-try allowed.
  *   unavailable → the link went dead (expired / no longer accepting) between
  *                 page load and submit — the server denied entry (403).
+ *   full        → the max_sessions cap (E5) filled between page load and submit
+ *                 (N other walk-ins qualified meanwhile) — the server denied
+ *                 entry (403 {full:true}) BEFORE any Opus turn. Distinct, calmer
+ *                 "study is full" copy vs. the generic "unavailable" screen.
  *
  * QUALIFIED is NOT a step: the server minted a FRESH session token, so we
  * redirect to /interview/[sessionToken] (router.push). The shared open-link
@@ -32,7 +36,12 @@ import { RejectionPanel } from "./RejectionPanel";
  * a no-screening open link renders the page-level "unavailable" screen instead.
  */
 
-export type OpenLinkStep = "consent" | "screening" | "rejected" | "unavailable";
+export type OpenLinkStep =
+  | "consent"
+  | "screening"
+  | "rejected"
+  | "unavailable"
+  | "full";
 
 /** Mirrors ScreeningForm's submitted shape (number_range normalized to number). */
 type AnswerMap = Record<string, string | string[] | number>;
@@ -73,13 +82,16 @@ export function OpenLinkEntry({
         qualified?: boolean;
         sessionToken?: string;
         available?: boolean;
+        full?: boolean;
         error?: string;
       };
 
-      // Link went dead between load and submit (expired / screening removed) →
-      // the server denied entry. Show the calm "not available" screen.
+      // Link went dead between load and submit → the server denied entry (403).
+      // full:true → the max_sessions cap (E5) filled meanwhile; show the calmer
+      // "study is full" screen. Otherwise (expired / screening removed) → the
+      // generic "not available" screen.
       if (res.status === 403 || data.available === false) {
-        setStep("unavailable");
+        setStep(data.full === true ? "full" : "unavailable");
         setSubmitting(false);
         return;
       }
@@ -132,7 +144,9 @@ export function OpenLinkEntry({
         />
       )}
 
-      {step === "unavailable" && <UnavailablePanel />}
+      {step === "unavailable" && <TerminalNotice variant="unavailable" />}
+
+      {step === "full" && <TerminalNotice variant="full" />}
     </ParticipantShell>
   );
 }
@@ -194,21 +208,22 @@ function ConsentStep({
 }
 
 /**
- * Mid-flow "study not available" terminal. Reached when the server denies entry
- * at submit time (403) — the link expired or stopped accepting participants
- * between page load and submit. Reuses the same open.unavailable.* copy as the
- * page-level OpenLinkUnavailable screen, rendered inside the already-mounted
- * ParticipantShell.
+ * Mid-flow terminal notice. Reached when the server denies entry at submit time
+ * (403) — the link expired/stopped accepting ("unavailable") or hit its
+ * max_sessions cap ("full") between page load and submit. Mirrors the same
+ * open.unavailable.* / open.full.* copy as the page-level OpenLinkUnavailable
+ * screen, rendered inside the already-mounted ParticipantShell.
  */
-function UnavailablePanel() {
+function TerminalNotice({ variant }: { variant: "unavailable" | "full" }) {
   const t = useTranslations("interview");
+  const base = variant === "full" ? "open.full" : "open.unavailable";
   return (
     <div className="mb-10 mt-8 rounded-2xl border border-[#E8E4F2] bg-[#FAFAFE] px-6 py-10 text-center">
       <h1 className="text-[18px] font-semibold text-[#0E0A1F]">
-        {t("open.unavailable.title")}
+        {t(`${base}.title`)}
       </h1>
       <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6680]">
-        {t("open.unavailable.body")}
+        {t(`${base}.body`)}
       </p>
     </div>
   );

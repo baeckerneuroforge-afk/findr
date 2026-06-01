@@ -201,6 +201,61 @@ export async function resolvePublicOpenEntry(
   };
 }
 
+// ── Anti-Abuse: max_sessions-Cap (Etappe 5) ──────────────────────────────────
+//
+// Der offene Link ist funktional komplett, aber ungeschützt: jeder qualifizierte
+// Walk-in feuert einen Opus-Eröffnungs-Turn (createResearchInterview →
+// createInterviewSession), also ist ein geteilter/geleakter Link ohne Cap ein
+// offenes Spend-Tor. Das ist ein VOLUMEN-/KOSTEN-Risiko, KEIN Isolations-Risiko
+// (die Mandantentrennung ist in E1–E4 bewiesen). max_sessions ist die
+// strukturelle Bremse: die screen-Route zählt VOR dem teuren Opus-Call und
+// verweigert bei erreichtem Cap die Session — ein voller Link verursacht null
+// KI-Kosten. Reines Volumen-Limit, kein Mandantentrennungs-Mechanismus.
+
+/**
+ * Anzahl der bereits diesem offenen Link zugeschriebenen Sessions — die Basis des
+ * max_sessions-Caps (E5). Org-scoped (kanonisches Manual-Isolation-Muster;
+ * open_link_id allein ist schon link-eindeutig, org_id ist Defense-in-Depth).
+ *
+ * NUR erzeugte (qualifizierte) Sessions tragen open_link_id (gesetzt
+ * ausschließlich beim create-on-qualify, E4) — Abweisungen erzeugen keine Session
+ * und zählen daher NIE gegen den Cap.
+ *
+ * Rückgabe: number = exakter COUNT; null = Query-Fehler (der Aufrufer wählt die
+ * Fehler-Richtung — die screen-Route ist fail-closed [Spend-Schutz], die
+ * render-only-Page fail-open [keine lebende Studie verstecken]). Wir lesen mit
+ * head:true (kein Zeilen-Transfer) gegen den partial-index
+ * interview_sessions_open_link_idx.
+ */
+export async function countOpenLinkSessions(
+  orgId: string,
+  linkId: string,
+): Promise<number | null> {
+  const supabase = createResearchSupabase();
+  const { count, error } = await supabase
+    .from("interview_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .eq("open_link_id", linkId);
+  if (error) return null;
+  return count ?? 0;
+}
+
+/**
+ * Reiner Cap-Prädikat-Helper: ist der Link am/über seinem Cap? max_sessions=null
+ * → nie voll (open-ended). count=null (Fehler) wird hier als „voll" behandelt —
+ * geeignet für den fail-closed-Aufrufer (screen-Route). Die render-only-Page
+ * wertet stattdessen direkt aus (fail-open), siehe page.tsx.
+ */
+export function isOpenLinkAtCapacity(
+  maxSessions: number | null,
+  used: number | null,
+): boolean {
+  if (maxSessions === null) return false; // open-ended
+  if (used === null) return true; // Query-Fehler → fail-closed (Spend-Schutz)
+  return used >= maxSessions;
+}
+
 // ── Researcher-side management (Etappe 2) ─────────────────────────────────────
 //
 // Verwaltung des offenen Links DURCH den Researcher (Dashboard), strikt

@@ -31,7 +31,8 @@
     "voice:smoke": "tsx scripts/voice-ingest-smoke.ts",
     "openlink:smoke": "tsx --conditions=react-server scripts/open-link-smoke.ts",
     "openlink:e2:smoke": "tsx --conditions=react-server scripts/open-link-e2-smoke.ts",
-    "openlink:e4:smoke": "tsx --conditions=react-server scripts/open-link-e4-smoke.ts"
+    "openlink:e4:smoke": "tsx --conditions=react-server scripts/open-link-e4-smoke.ts",
+    "openlink:e5:smoke": "tsx --conditions=react-server scripts/open-link-e5-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",

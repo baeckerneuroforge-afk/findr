@@ -7,6 +7,7 @@ import { OpenLinkUnavailable } from "@/components/interview/OpenLinkUnavailable"
 import {
   findOpenLinkByAccessToken,
   resolvePublicOpenEntry,
+  countOpenLinkSessions,
 } from "@/lib/research/open-links";
 import { isOpenLinkExpired } from "@/lib/research/open-link-expiry";
 import { getOrgBranding } from "@/lib/settings/org-settings";
@@ -130,6 +131,34 @@ export default async function OpenInterviewPage({
     return (
       <NextIntlClientProvider locale={language} messages={messages}>
         <OpenLinkUnavailable
+          brandName={branding.brandName}
+          accentColor={branding.accentColor}
+          logoUrl={branding.logoUrl}
+        />
+      </NextIntlClientProvider>
+    );
+  }
+
+  // Anti-Abuse cap (E5), RENDER-ONLY: if the link's max_sessions cap is reached,
+  // show the calm "study is full" screen instead of the screening form. We only
+  // reach here for a LIVE, screened link (the guards above returned otherwise),
+  // so this COUNT runs solely on the path that could actually mint a session.
+  // The AUTHORITATIVE denial is server-side in POST /api/interview/open/[token]/
+  // screen, which counts BEFORE the Opus turn — this page never creates a
+  // session. Fail-OPEN on a count error (used === null): never hide a live study
+  // behind a transient DB hiccup; the route still hard-enforces. max_sessions =
+  // null (open-ended) skips the COUNT entirely.
+  const used =
+    link.max_sessions === null
+      ? null
+      : await countOpenLinkSessions(link.org_id, link.id);
+  const full =
+    link.max_sessions !== null && used !== null && used >= link.max_sessions;
+  if (full) {
+    return (
+      <NextIntlClientProvider locale={language} messages={messages}>
+        <OpenLinkUnavailable
+          variant="full"
           brandName={branding.brandName}
           accentColor={branding.accentColor}
           logoUrl={branding.logoUrl}

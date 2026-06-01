@@ -59,6 +59,10 @@
       "unavailable": {
         "title": "Diese Studie ist derzeit nicht verfügbar",
         "body": "Der Link ist abgelaufen oder die Studie nimmt aktuell keine weiteren Teilnehmer an. Vielen Dank für Ihr Interesse."
+      },
+      "full": {
+        "title": "Diese Studie ist bereits vollständig belegt",
+        "body": "Die Studie hat die maximale Teilnehmerzahl erreicht und nimmt aktuell keine weiteren Teilnehmer an. Vielen Dank für Ihr Interesse."
       }
     }
   },
