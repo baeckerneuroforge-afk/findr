@@ -73,14 +73,17 @@
   --font-grotesk: var(--font-space-grotesk);
 
   /* Platform shell faces (dashboard/onboarding), wired via next/font in
-     app/layout.tsx (self-hosted — no @import). Fraunces = display/headlines
-     (applied by the .text-display / .text-h* utilities below), Hanken Grotesk =
+     app/layout.tsx (self-hosted — no @import). Headlines/display + KPI numbers
+     render sans-serif in Hanken Grotesk (--font-heading, applied by the
+     .text-display / .text-h* utilities below), matching the body face so the
+     shell is a single family in different weights/sizes. Hanken Grotesk =
      body/UI (applied via `font-body` on the dashboard route-group root),
      JetBrains Mono = numbers/code. Setting --font-mono here overrides
      Tailwind's default mono token, so the `font-mono` utility resolves to
      JetBrains Mono — only dashboard surfaces use font-mono, landing is
-     unaffected. */
-  --font-heading: var(--font-fraunces);
+     unaffected. (Fraunces is still loaded in layout.tsx but now unused — flip
+     --font-heading back to var(--font-fraunces) to restore the serif headings.) */
+  --font-heading: var(--font-hanken);
   --font-body: var(--font-hanken);
   --font-mono: var(--font-jetbrains-mono);
 
@@ -250,12 +253,14 @@ body {
     font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   }
 
-  /* Display + headlines render in Fraunces (--font-heading); the rest of the
-     shell (body/UI) stays in Hanken via the route-group `font-body`. */
-  .text-display { font-family: var(--font-heading), ui-serif, Georgia, serif; font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.02em; }
-  .text-h1      { font-family: var(--font-heading), ui-serif, Georgia, serif; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; }
-  .text-h2      { font-family: var(--font-heading), ui-serif, Georgia, serif; font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; }
-  .text-h3      { font-family: var(--font-heading), ui-serif, Georgia, serif; font-size: 14px; line-height: 20px; font-weight: 600; }
+  /* Display + headlines render in Hanken Grotesk (--font-heading, sans-serif);
+     the rest of the shell (body/UI) stays in Hanken via the route-group
+     `font-body`. Only the font-family changed (serif → sans); size, weight,
+     letter-spacing and color are unchanged. */
+  .text-display { font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif; font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.02em; }
+  .text-h1      { font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; }
+  .text-h2      { font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif; font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .text-h3      { font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 20px; font-weight: 600; }
   .text-body          { font-size: 14px; line-height: 22px; font-weight: 400; }
   .text-body-strong   { font-size: 14px; line-height: 22px; font-weight: 500; }
   .text-small         { font-size: 13px; line-height: 18px; font-weight: 400; }

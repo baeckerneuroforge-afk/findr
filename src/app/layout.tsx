@@ -37,8 +37,10 @@ const spaceGrotesk = Space_Grotesk({
 // font files are fetched at BUILD time and served from our own origin, so there
 // is no runtime request to Google — no @import, no DSGVO regression. All three
 // are variable fonts, so the weight comes from the variable axis (no `weight`).
-//   Fraunces       → display / headlines (the .text-display + .text-h* utils)
-//   Hanken Grotesk → body / UI (the dashboard route-group body face)
+//   Fraunces       → loaded but currently unused (display/headlines moved to
+//                    sans; flip --font-heading in globals.css to restore serif)
+//   Hanken Grotesk → body / UI AND display / headlines (--font-heading is now
+//                    Hanken: KPI numbers + page titles render sans-serif)
 //   JetBrains Mono → numbers / code (the `font-mono` utility)
 const fraunces = Fraunces({
   variable: "--font-fraunces",
