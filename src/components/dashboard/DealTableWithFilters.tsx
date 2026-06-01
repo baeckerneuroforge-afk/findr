@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toBcp47 } from "@/i18n/locale";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -188,7 +188,25 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const filters = getFilterState(searchParams);
+  // The free-text search is held in local state, not the URL: filtering is
+  // already 100% client-side (applyDealFilters), but the dashboard page is
+  // dynamic, so a URL-controlled value made every keystroke a `router.replace`
+  // → full RSC refetch (getDealsByOrg + risk scores + forecast). Local state
+  // makes typing instant. The URL `?q=` is still kept as a *shareable
+  // snapshot* via the native History API (replaceState), which syncs with
+  // useSearchParams WITHOUT a server round-trip. Seeded from `?q=` so a shared
+  // link still populates the box on first paint. Dropdown filters (rarely
+  // changed) keep their URL params.
+  const [search, setSearch] = useState(
+    () => searchParams.get("q") ?? DEFAULT_DEAL_FILTERS.search,
+  );
+  // Memoized so its identity is stable across renders (it is the dependency
+  // of the filteredDeals memo below); recomputed only when the URL params or
+  // the local search text actually change.
+  const filters = useMemo(
+    () => ({ ...getFilterState(searchParams), search }),
+    [searchParams, search],
+  );
 
   const formatLastActivity = (days: number) =>
     days === 0 ? t("today") : t("daysAgo", { days });
@@ -228,6 +246,28 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
     replaceParams(params);
   }
 
+  function updateSearch(value: string) {
+    // Instant: local state re-runs applyDealFilters client-side. NO navigation
+    // and NO RSC refetch — that is the whole point of FUND 5.1.
+    setSearch(value);
+    // Mirror to the URL purely as a shareable snapshot. `replaceState` (not
+    // `pushState`) keeps the back button clean — per-keystroke URLs must not
+    // become individual history entries — and per Next 16 it syncs with
+    // useSearchParams without a server round-trip.
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "") {
+      params.delete("q");
+    } else {
+      params.set("q", value);
+    }
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      query ? `${pathname}?${query}` : pathname,
+    );
+  }
+
   function updateSort(sortKey: DealSortKey) {
     const params = new URLSearchParams(searchParams.toString());
     const nextDir =
@@ -249,6 +289,7 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
   }
 
   function clearFilters() {
+    setSearch("");
     const params = new URLSearchParams(searchParams.toString());
     params.delete("q");
     params.delete("stage");
@@ -264,8 +305,8 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
           type="search"
           aria-label={t("searchAria")}
           placeholder={t("searchPlaceholder")}
-          value={filters.search}
-          onChange={(event) => updateParam("q", event.target.value)}
+          value={search}
+          onChange={(event) => updateSearch(event.target.value)}
           className="h-9 min-w-[240px] flex-1 rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
         />
 
