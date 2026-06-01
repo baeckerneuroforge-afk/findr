@@ -38,6 +38,14 @@ export function researchInterviewUrl(accessToken: string): string {
   return `${appBaseUrl()}/interview/${accessToken}`;
 }
 
+/** Öffentliche URL eines offenen Studien-Links (Phase 4, Baustein 2). Spiegelt
+ *  researchInterviewUrl, aber unter dem physisch getrennten Open-Pfad. Die Route
+ *  /interview/open/[token] selbst landet erst in Etappe 3 — hier wird die URL nur
+ *  fürs Dashboard-Teilen gebaut (gleiche zentrale Env-Auflösung). */
+export function researchOpenLinkUrl(accessToken: string): string {
+  return `${appBaseUrl()}/interview/open/${accessToken}`;
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")

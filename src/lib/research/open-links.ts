@@ -200,3 +200,222 @@ export async function resolvePublicOpenEntry(
     },
   };
 }
+
+// ── Researcher-side management (Etappe 2) ─────────────────────────────────────
+//
+// Verwaltung des offenen Links DURCH den Researcher (Dashboard), strikt
+// org-scoped. Spiegelt das plans-service-Muster (typed admin client, org_id ist
+// IMMER ein FUNKTIONS-ARGUMENT aus der Clerk-Session der Route, NIE aus dem
+// Request-Body; plan_id kommt aus der URL). Diese Funktionen sind ADDITIV — der
+// öffentliche Eintritts-Pfad oben (findOpenLinkByAccessToken /
+// resolvePublicOpenEntry / der null-org-Guard) bleibt byte-identisch unberührt.
+//
+// ── MANDANTENTRENNUNG (gleicher roter Faden) ─────────────────────────────────
+// Die org_id der erzeugten Zeile ist STRUKTURELL an die org des Plans gebunden:
+// createOpenLink verifiziert getResearchPlan(orgId, planId) (erzwingt
+// .eq("org_id").eq("id")) BEVOR eine Zeile entsteht — ein Caller kann weder eine
+// fremde org_id noch eine Denorm-Drift (org passt nicht zum Plan-Owner)
+// einschleusen. Alle Mutationen sind .eq("org_id", orgId)-gescoped und lösen ihr
+// Ziel server-seitig aus (orgId, planId) auf; der Client liefert NIE eine
+// link_id. Der 256-bit access_token wird SERVER-SEITIG gemünzt
+// (randomBytes(32).base64url, gleiche Mechanik wie research-orchestration.ts).
+//
+// ── Modell: ein Link-Row pro Studie, status in-place getoggelt ───────────────
+// research_open_links_plan_active_idx (partial-unique über status='active')
+// erzwingt höchstens EINEN aktiven Link je Studie. E2 hält genau einen Row pro
+// Studie und togglet seinen status in-place (gleicher Token bleibt gültig):
+// Erzeugen = erstmalige Münzung, Deaktivieren = Kill-Switch/Widerruf,
+// Aktivieren = Re-Aktivieren. createOpenLink ist idempotent (existiert schon ein
+// aktiver Link, wird er unverändert zurückgegeben — kein Crash am Partial-Unique,
+// kein Token-Churn).
+
+/** Konservativer Default-Cap bei Erzeugung (vom Researcher überschreibbar; null
+ *  = unbegrenzt). Reines Volumen-/Kosten-Limit (E5 zählt
+ *  interview_sessions.open_link_id), KEIN Isolations-Mechanismus. */
+export const OPEN_LINK_DEFAULT_MAX_SESSIONS = 100;
+
+export interface OpenLinkSettingsInput {
+  /** undefined → Default (bei create) bzw. unverändert (bei update); null = unbegrenzt. */
+  maxSessions?: number | null;
+  /** ISO-Datum/-Timestamp; null = kein Ablauf. */
+  validUntil?: string | null;
+  /** Dashboard-Kosmetik; null = keine. */
+  label?: string | null;
+}
+
+/**
+ * Der EINE Link-Row dieser Studie (aktiv ODER widerrufen), org-scoped, oder
+ * null. Newest-first + limit 1 — defensiv, falls je mehrere Rows existierten.
+ * Powering die Researcher-Panel-Anzeige (active → teilbar, disabled → re-
+ * aktivierbar).
+ */
+export async function getOpenLinkForPlan(
+  orgId: string,
+  planId: string,
+): Promise<ResearchOpenLinkRecord | null> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_open_links")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("plan_id", planId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return toRecord(data);
+}
+
+/** Privater Helper: der AKTIVE Link-Row dieser Studie (≤1 garantiert durch die
+ *  partial-unique research_open_links_plan_active_idx), org-scoped, oder null. */
+async function findActiveOpenLinkRow(
+  orgId: string,
+  planId: string,
+): Promise<ResearchOpenLinkRecord | null> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_open_links")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("plan_id", planId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error || !data) return null;
+  return toRecord(data);
+}
+
+/**
+ * Erstmalige Münzung eines aktiven offenen Links für die Studie. Idempotent:
+ * existiert bereits ein AKTIVER Link, wird dieser unverändert zurückgegeben
+ * (respektiert die partial-unique-Invariante, kein Crash, kein Token-Churn).
+ *
+ * org_id/plan_id werden NIE vom Caller akzeptiert: org_id ist das
+ * Funktions-Argument (Clerk-Session der Route), plan_id die URL; beide werden
+ * — Defense-in-Depth — gegen getResearchPlan(orgId, planId) verifiziert, bevor
+ * eine Zeile entsteht. Gehört der Plan nicht zur org → Fehler, KEINE Zeile.
+ */
+export async function createOpenLink(
+  orgId: string,
+  planId: string,
+  input: OpenLinkSettingsInput = {},
+): Promise<ResearchOpenLinkRecord> {
+  // Defense-in-Depth: die org_id der Zeile darf NUR die org des echten Plans
+  // sein. getResearchPlan erzwingt .eq("org_id").eq("id") — eine Drift (org
+  // passt nicht zum Plan-Owner) oder ein fremder Plan fängt hier ab, nicht erst
+  // beim öffentlichen Eintritt. Der Insert nutzt orgId/planId aus den Argumenten.
+  const plan = await getResearchPlan(orgId, planId);
+  if (!plan) {
+    throw new Error(`createOpenLink: plan ${planId} not found in org ${orgId}`);
+  }
+
+  // Idempotent: schon ein aktiver Link da? → zurückgeben, nicht neu münzen.
+  const existingActive = await findActiveOpenLinkRow(orgId, planId);
+  if (existingActive) return existingActive;
+
+  // 256-bit URL-safe token, gleiche Form wie research-orchestration.ts:246.
+  const { randomBytes } = await import("node:crypto");
+  const accessToken = randomBytes(32).toString("base64url");
+
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_open_links")
+    .insert({
+      org_id: orgId,
+      plan_id: planId,
+      access_token: accessToken,
+      status: "active",
+      max_sessions:
+        input.maxSessions === undefined
+          ? OPEN_LINK_DEFAULT_MAX_SESSIONS
+          : input.maxSessions,
+      valid_until: input.validUntil ?? null,
+      label: input.label ?? null,
+    })
+    .select("*")
+    .single();
+  if (error || !data) {
+    // Nebenläufigkeit: zwei gleichzeitige create-Calls passieren beide den
+    // findActiveOpenLinkRow-Check oben; der zweite Insert verletzt dann das
+    // partial-unique research_open_links_plan_active_idx. Das ist KEIN echter
+    // Fehler, sondern der idempotente Fall — der nebenläufige Gewinner hat den
+    // aktiven Link bereits angelegt. Re-Query und zurückgeben (kein Token-Churn,
+    // kein 500, höchstens ein aktiver Link bleibt die Invariante). Nur wenn
+    // weiterhin kein aktiver Link existiert, ist es ein echter Insert-Fehler.
+    const racedWinner = await findActiveOpenLinkRow(orgId, planId);
+    if (racedWinner) return racedWinner;
+    throw new Error(
+      `createOpenLink: insert failed: ${error?.message ?? "no row returned"}`,
+    );
+  }
+  return toRecord(data);
+}
+
+/**
+ * Status-Toggle des offenen Links der Studie (Kill-Switch / Widerruf).
+ *
+ *   "disabled" → der aktive Link wird widerrufen (findOpenLinkByAccessToken ist
+ *                fail-closed auf status='active' → der öffentliche Eintritt ist
+ *                sofort tot, gleicher Token).
+ *   "active"   → ein widerrufener Link wird reaktiviert (gleicher Token).
+ *
+ * Org+Plan-scoped: das Ziel wird server-seitig aus (orgId, planId) aufgelöst,
+ * der Client liefert KEINE link_id. Bei "active" wird die partial-unique-
+ * Invariante respektiert — existiert bereits ein anderer aktiver Link, schlägt
+ * das UPDATE fehl → null (kein zweiter aktiver Link).
+ */
+export async function setOpenLinkStatus(
+  orgId: string,
+  planId: string,
+  status: "active" | "disabled",
+): Promise<ResearchOpenLinkRecord | null> {
+  const target = await getOpenLinkForPlan(orgId, planId);
+  if (!target) return null;
+  if (target.status === status) return target; // no-op
+
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_open_links")
+    .update({ status })
+    .eq("org_id", orgId)
+    .eq("id", target.id)
+    .select("*")
+    .maybeSingle();
+  if (error || !data) return null; // inkl. partial-unique-Verletzung beim Re-Enable
+  return toRecord(data);
+}
+
+/**
+ * Cap-/Ablauf-/Kosmetik-Felder des offenen Links der Studie setzen. Berührt
+ * status/access_token NICHT. Org+Plan-scoped; nur explizit gesetzte Felder
+ * werden geschrieben (sparse update — undefined lässt das Feld unberührt, null
+ * setzt es bewusst auf „kein Wert").
+ */
+export async function updateOpenLinkSettings(
+  orgId: string,
+  planId: string,
+  input: OpenLinkSettingsInput,
+): Promise<ResearchOpenLinkRecord | null> {
+  const target = await getOpenLinkForPlan(orgId, planId);
+  if (!target) return null;
+
+  const update: {
+    max_sessions?: number | null;
+    valid_until?: string | null;
+    label?: string | null;
+  } = {};
+  if (input.maxSessions !== undefined) update.max_sessions = input.maxSessions;
+  if (input.validUntil !== undefined) update.valid_until = input.validUntil;
+  if (input.label !== undefined) update.label = input.label;
+  if (Object.keys(update).length === 0) return target;
+
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_open_links")
+    .update(update)
+    .eq("org_id", orgId)
+    .eq("id", target.id)
+    .select("*")
+    .maybeSingle();
+  if (error || !data) return null;
+  return toRecord(data);
+}
