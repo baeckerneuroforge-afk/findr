@@ -35,6 +35,10 @@ type InterviewSessionsRow = {
   // Phase 4 screening — answers of the QUALIFIED participant, written at session
   // creation. Null for non-screened / post_loss / checkin sessions.
   screening_answers: Json | null;
+  // Phase 4 Baustein 2 — Walk-in-Session-Attribution für den offenen Studien-
+  // Link (20260629000000). NULL für jede per-Invite-/post_loss-/checkin-Session;
+  // verdrahtet erst in E4 (in E1 ist die Spalte da, wird aber nie geschrieben).
+  open_link_id: string | null;
   account_id: string | null;
   completed_at: string | null;
   conversation: Json;
@@ -63,6 +67,7 @@ type InterviewSessionsRow = {
 type InterviewSessionsInsert = {
   access_token: string;
   screening_answers?: Json | null;
+  open_link_id?: string | null;
   account_id?: string | null;
   completed_at?: string | null;
   conversation?: Json;
@@ -91,6 +96,7 @@ type InterviewSessionsInsert = {
 type InterviewSessionsUpdate = {
   access_token?: string;
   screening_answers?: Json | null;
+  open_link_id?: string | null;
   account_id?: string | null;
   completed_at?: string | null;
   conversation?: Json;
@@ -498,6 +504,53 @@ type SynthesisShareUpdate = {
   created_at?: string;
 };
 
+// ── research_open_links ──────────────────────────────────────────────────────
+//
+// Per 20260629000000_open_link.sql. Offener, studienweiter Link für anonyme
+// Walk-ins (Phase 4, Baustein 2). org_id NOT NULL — die zentrale Sicherheits-
+// Aussage: auf dem Walk-in-Pfad existiert NIE eine null-org-Zeile, der bestehende
+// !invite.org_id-Guard bleibt byte-identisch. access_token = 256-bit-Capability-
+// Credential (sparse-unique, wie research_invites/synthesis_shares); status =
+// active/disabled Kill-Switch; max_sessions/valid_until = additive Anti-Abuse-/
+// Ablauf-Felder (Enforcement in späteren Etappen). org_isolation RLS; der public
+// Eintritts-Pfad nutzt den service-role-Client (RLS bypassed, token-scoped).
+
+export type ResearchOpenLinkRow = {
+  id: string;
+  org_id: string;
+  plan_id: string;
+  access_token: string;
+  status: "active" | "disabled";
+  max_sessions: number | null;
+  valid_until: string | null;
+  label: string | null;
+  created_at: string;
+};
+
+type ResearchOpenLinkInsert = {
+  id?: string;
+  org_id: string;
+  plan_id: string;
+  access_token: string;
+  status?: "active" | "disabled";
+  max_sessions?: number | null;
+  valid_until?: string | null;
+  label?: string | null;
+  created_at?: string;
+};
+
+type ResearchOpenLinkUpdate = {
+  id?: string;
+  org_id?: string;
+  plan_id?: string;
+  access_token?: string;
+  status?: "active" | "disabled";
+  max_sessions?: number | null;
+  valid_until?: string | null;
+  label?: string | null;
+  created_at?: string;
+};
+
 // ── Augmented Database type ────────────────────────────────────────────────
 
 export type DatabaseWithResearch = {
@@ -562,6 +615,12 @@ export type DatabaseWithResearch = {
         Row: SynthesisShareRow;
         Insert: SynthesisShareInsert;
         Update: SynthesisShareUpdate;
+        Relationships: [];
+      };
+      research_open_links: {
+        Row: ResearchOpenLinkRow;
+        Insert: ResearchOpenLinkInsert;
+        Update: ResearchOpenLinkUpdate;
         Relationships: [];
       };
     };
