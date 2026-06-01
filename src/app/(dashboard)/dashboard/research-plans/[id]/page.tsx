@@ -3,8 +3,12 @@ import { notFound, redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { toBcp47 } from "@/i18n/locale";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
-import { researchInterviewUrl } from "@/lib/email/research-invite";
+import {
+  researchInterviewUrl,
+  researchOpenLinkUrl,
+} from "@/lib/email/research-invite";
 import { getResearchPlan } from "@/lib/research/plans-service";
+import { getOpenLinkForPlan } from "@/lib/research/open-links";
 import { listInvitesForPlan } from "@/lib/research/scheduling";
 import {
   listInvitedPoolMemberIds,
@@ -20,6 +24,7 @@ import { DeleteParticipantButton } from "@/components/dashboard/DeleteParticipan
 import { EditParticipantButton } from "@/components/dashboard/EditParticipantButton";
 import { InviteForm } from "@/components/dashboard/InviteForm";
 import { InviteFromPoolForm } from "@/components/dashboard/InviteFromPoolForm";
+import { OpenLinkPanel } from "@/components/dashboard/OpenLinkPanel";
 import { PlanQuotaPanel } from "@/components/dashboard/PlanQuotaPanel";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
 import { ScreeningQuestionsPanel } from "@/components/dashboard/ScreeningQuestionsPanel";
@@ -112,16 +117,35 @@ export default async function ResearchPlanDetailPage({
   // refresh).
   const invites = await listInvitesForPlan(orgId, planId);
 
-  // Participant-Pool + Screening-Quoten. Additiv zum bestehenden Invite-Flow —
-  // unabhängige Reads, parallel. Alle drei degradieren auf [] bei Fehler.
-  const [poolMembers, invitedPoolMemberIds, quotas] = await Promise.all([
-    listPoolMembers(orgId),
-    listInvitedPoolMemberIds(orgId, planId),
-    listQuotaProgress(orgId, planId),
-  ]);
+  // Participant-Pool + Screening-Quoten + offener Link. Additiv zum bestehenden
+  // Invite-Flow — unabhängige Reads, parallel. Listen degradieren auf [], der
+  // offene Link auf null (jeweils safe).
+  const [poolMembers, invitedPoolMemberIds, quotas, openLink] =
+    await Promise.all([
+      listPoolMembers(orgId),
+      listInvitedPoolMemberIds(orgId, planId),
+      listQuotaProgress(orgId, planId),
+      getOpenLinkForPlan(orgId, planId),
+    ]);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
   ].sort();
+
+  // Offener Link → Panel-Props. Der access_token verlässt den Server NUR als
+  // fertige share-URL (sie IST das öffentliche Credential); das Panel bekommt
+  // sonst keine Token-Spalte.
+  const openLinkView = openLink
+    ? {
+        status: openLink.status,
+        maxSessions: openLink.max_sessions,
+        validUntil: openLink.valid_until,
+        label: openLink.label,
+      }
+    : null;
+  const openLinkShareUrl = openLink
+    ? researchOpenLinkUrl(openLink.access_token)
+    : null;
+  const hasScreening = plan.screeningQuestions.length > 0;
 
   return (
     <div className="space-y-8">
@@ -467,6 +491,30 @@ export default async function ResearchPlanDetailPage({
             <ScreeningQuestionsPanel
               planId={plan.id}
               initialQuestions={plan.screeningQuestions}
+              disabled={plan.status === "archived"}
+            />
+          </CardBody>
+        </Card>
+      </section>
+
+      {/* Offener Link — EIN studienweiter, öffentlich teilbarer Link für
+          beliebig viele anonyme Walk-ins (Community/Social/QR), additiv NEBEN
+          dem per-Invite-Eintritt. Setzt Screening voraus (UI-Leitplanke hier,
+          hartes Erzwingen am Eintritt in einer späteren Etappe). Sitzt bewusst
+          direkt unter Screening — die Abhängigkeit wird so sichtbar. Auf
+          archivierten Plänen read-only. */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">{t("openLinkTitle")}</h2>
+          <p className="text-small text-neutral-500">{t("openLinkDesc")}</p>
+        </div>
+        <Card>
+          <CardBody>
+            <OpenLinkPanel
+              planId={plan.id}
+              openLink={openLinkView}
+              shareUrl={openLinkShareUrl}
+              hasScreening={hasScreening}
               disabled={plan.status === "archived"}
             />
           </CardBody>

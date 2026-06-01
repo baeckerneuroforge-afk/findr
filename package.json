@@ -29,7 +29,8 @@
     "eval:cross-study-agent": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-cross-study-agent/run.ts",
     "voice:token": "tsx --conditions=react-server scripts/create-voice-token.ts",
     "voice:smoke": "tsx scripts/voice-ingest-smoke.ts",
-    "openlink:smoke": "tsx --conditions=react-server scripts/open-link-smoke.ts"
+    "openlink:smoke": "tsx --conditions=react-server scripts/open-link-smoke.ts",
+    "openlink:e2:smoke": "tsx --conditions=react-server scripts/open-link-e2-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
