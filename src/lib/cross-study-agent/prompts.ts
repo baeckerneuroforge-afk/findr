@@ -1,4 +1,7 @@
-import type { MissionControlSynthesisInput } from "@/lib/mission-control/prompts";
+import {
+  studyTypeLabel,
+  type MissionControlSynthesisInput,
+} from "@/lib/mission-control/prompts";
 import type { StudyIndexEntry, ThemeFrequencyResult } from "./tools";
 
 /**
@@ -74,6 +77,7 @@ export function formatStudyIndexForTool(entries: StudyIndexEntry[]): string {
         ? e.themeTitles.map((t) => `"${t}"`).join(", ")
         : "(no emergent themes)";
     const meta = [
+      studyTypeLabel(e.studyType) || null,
       `based on ${e.basedOnCount} interviews`,
       `${e.tensionCount} tension(s)`,
       e.persona ? `persona: ${e.persona}` : null,
@@ -92,7 +96,11 @@ export function formatStudyIndexForTool(entries: StudyIndexEntry[]): string {
  *  here are a subset of that study's anchor haystack, so a quote copied from here
  *  fold-matches on the anchor check. */
 export function formatStudyBlockForTool(s: MissionControlSynthesisInput): string {
-  const lines = [`STUDY id=${s.studyId} "${s.studyTitle}" (based on ${s.basedOnCount} interviews)`];
+  const label = studyTypeLabel(s.studyType);
+  const labelPart = label ? ` [${label}]` : "";
+  const lines = [
+    `STUDY id=${s.studyId} "${s.studyTitle}"${labelPart} (based on ${s.basedOnCount} interviews)`,
+  ];
   if (s.overview && s.overview.trim() !== "") {
     lines.push(`  overview: ${s.overview.trim()}`);
   }
