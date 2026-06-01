@@ -87,6 +87,14 @@
   --font-body: var(--font-hanken);
   --font-mono: var(--font-jetbrains-mono);
 
+  /* Marketing-site headline voice. The public (marketing) route-group renders
+     headlines in Fraunces (serif, editorial) via the `font-marketing` utility
+     this token generates — distinct from the dashboard/app --font-heading
+     (Hanken, sans), which stays untouched. Fraunces is already loaded in
+     app/layout.tsx (--font-fraunces); this just gives the marketing surface its
+     own face without flipping the shell's heading face. */
+  --font-marketing: var(--font-fraunces);
+
   /* ────────────────────────────────────────────────────────────────
      Platform Design System v2 — light-mode tokens for /dashboard
      and /onboarding. Landing-page tokens above are untouched. */

@@ -13,6 +13,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
 import { MESSAGES } from "@/i18n/messages";
+import { SITE_URL } from "@/lib/marketing/seo";
 import "./globals.css";
 
 const inter = Inter({
@@ -57,10 +58,20 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+// App-wide metadata defaults.
+//   • metadataBase is mandatory for relative canonical/OG urls to resolve
+//     (otherwise next build errors); it reads the single SITE_URL placeholder.
+//   • `title` is a PLAIN default (the de-staled fallback) — NOT a template.
+//     The "%s — findr." title template + the OG/twitter/themeColor defaults are
+//     deliberately scoped to the (marketing) layout, so they DON'T leak a
+//     "— findr." suffix / findr OG onto the protected interview, dashboard,
+//     shared-synthesis and legacy /pricing routes (those keep their own titles
+//     unchanged — important for white-label participant pages).
 export const metadata: Metadata = {
-  title: "Findr — Revenue Intelligence OS",
+  metadataBase: new URL(SITE_URL),
+  title: "findr. — Conversation-Intelligence-Plattform für B2B-SaaS",
   description:
-    "Stop losing deals you should win. Predictive loss-risk detection for B2B SaaS sales teams.",
+    "Ein KI-Gehirn, vier Produkte: Sales Intelligence, Customer Success Health, Product Discovery und Market Research. findr. liest jedes Kundengespräch und macht es über alle Produkte hinweg nutzbar — DSGVO-nativ, in Frankfurt gehostet.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
