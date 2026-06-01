@@ -42,8 +42,9 @@
   --color-obsidian: #16101e;        /* Background */
   --color-obsidian-light: #1f1731;  /* Cards */
 
-  /* Semantic tokens */
-  --color-primary: #6d28d9;
+  /* Semantic tokens. NOTE: the bare --color-primary (#6d28d9) was a legacy dead
+     duplicate of the canonical brand ramp (--color-primary-600 #5b2fd4, below);
+     removed in Etappe D after grep verified 0 users. */
   --color-primary-foreground: #ffffff;
   --color-accent: #ef4444;
   --color-accent-foreground: #ffffff;
@@ -57,18 +58,11 @@
   --font-sans: var(--font-inter);
   --font-geist: var(--font-geist-sans);
 
-  /* ────────────────────────────────────────────────────────────────
-     Comic / Neobrutalism landing (/v2). Exact values from the
-     approved findr-comic-landingpage.html template. Scoped names so
-     they don't collide with Tailwind defaults or the tokens below. */
-  --color-paper: #fff8e7;
-  --color-ink: #1a1a1a;
-  --color-comic-red: #ff5436;
-  --color-comic-purple: #7c5cff;
-  --color-comic-yellow: #ffe34d;
-  --color-comic-green: #16b36a;
-  --color-comic-muted: #6b6b62;
-
+  /* Comic / Neobrutalism landing (/v2) colour tokens (--color-paper/-ink/
+     -comic-*) were removed in Etappe D together with the comic landing trees —
+     grep verified 0 remaining users. The --font-display/--font-grotesk tokens
+     stay: the fonts are loaded in app/layout.tsx (root, untouched) and the
+     tokens are out of the named cleanup scope. */
   --font-display: var(--font-bricolage);
   --font-grotesk: var(--font-space-grotesk);
 
@@ -198,59 +192,9 @@ body {
   }
 }
 
-/* ────────────────────────────────────────────────────────────────
-   Comic / Neobrutalism landing (/v2) utilities. Registered with
-   @utility so they support variants (hover:, md:, etc.). The hard
-   offset shadows have NO blur — that's the signature of the style. */
-@utility ink-border {
-  border: 2.5px solid var(--color-ink);
-}
-@utility shadow-hard-sm {
-  box-shadow: 3px 3px 0 var(--color-ink);
-}
-@utility shadow-hard {
-  box-shadow: 5px 5px 0 var(--color-ink);
-}
-@utility shadow-hard-lg {
-  box-shadow: 7px 7px 0 var(--color-ink);
-}
-@utility shadow-hard-purple {
-  box-shadow: 4px 4px 0 var(--color-comic-purple);
-}
-@utility shadow-hard-purple-lg {
-  box-shadow: 7px 7px 0 var(--color-comic-purple);
-}
-@utility shadow-hard-red {
-  box-shadow: 5px 5px 0 var(--color-comic-red);
-}
-/* paper grain dots — overlay at low opacity */
-@utility comic-dots {
-  background-image: radial-gradient(var(--color-ink) 0.6px, transparent 0.6px);
-  background-size: 22px 22px;
-}
-/* faint grid for the dark platform section */
-@utility comic-grid {
-  background-image: linear-gradient(var(--color-paper) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-paper) 1px, transparent 1px);
-  background-size: 46px 46px;
-}
-
-/* Comic doodle motion (/pricing-v2) — floating + spinning decorations.
-   Guarded so they hold still when the user prefers reduced motion.
-   --rot keeps a doodle's base tilt while it bobs. */
-@keyframes comic-bob {
-  0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
-  50% { transform: translateY(-7px) rotate(var(--rot, 0deg)); }
-}
-@keyframes comic-spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .doodle-float { animation: comic-bob 3.2s ease-in-out infinite; }
-  .doodle-float2 { animation: comic-bob 3.8s ease-in-out infinite 0.5s; }
-  .doodle-twirl { animation: comic-spin-slow 14s linear infinite; }
-}
+/* Comic / Neobrutalism landing (/v2) utilities (ink-border, shadow-hard*,
+   comic-dots, comic-grid) and the doodle-motion keyframes were removed in
+   Etappe D with the comic landing trees — grep verified 0 remaining users. */
 
 /* ────────────────────────────────────────────────────────────────
    Platform typography utilities. Apply Geist Sans via the .font-geist
@@ -284,50 +228,8 @@ body {
   }
 }
 
-@layer utilities {
-  .gradient-mesh {
-    background: radial-gradient(at 27% 37%, hsla(258, 84%, 60%, 0.15) 0px, transparent 50%),
-                radial-gradient(at 97% 21%, hsla(280, 91%, 65%, 0.10) 0px, transparent 50%),
-                radial-gradient(at 52% 99%, hsla(255, 89%, 58%, 0.12) 0px, transparent 50%),
-                radial-gradient(at 10% 29%, hsla(270, 95%, 70%, 0.08) 0px, transparent 50%),
-                radial-gradient(at 97% 96%, hsla(0, 95%, 65%, 0.05) 0px, transparent 50%);
-    background-size: 200% 200%;
-    animation: gradient 20s ease infinite;
-  }
-
-  .glass-card {
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(124, 58, 237, 0.15);
-    box-shadow: 0 0 40px -10px rgba(124, 58, 237, 0.1);
-  }
-
-  .glass-card-hover {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .glass-card-hover:hover {
-    background: rgba(124, 58, 237, 0.05);
-    border-color: rgba(124, 58, 237, 0.35);
-    transform: translateY(-4px);
-    box-shadow: 0 20px 60px -15px rgba(124, 58, 237, 0.3);
-  }
-
-  .text-gradient {
-    background: linear-gradient(135deg, #FFFFFF 0%, #C4B5FD 50%, #FFFFFF 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    background-size: 200% auto;
-    animation: gradient 8s linear infinite;
-  }
-
-  .glow-border {
-    position: relative;
-    background: linear-gradient(#0A0A0F, #0A0A0F) padding-box,
-                linear-gradient(135deg, #7C3AED, #EF4444, #7C3AED) border-box;
-    border: 1px solid transparent;
-    background-size: 200% 100%;
-    animation: border-flow 4s linear infinite;
-  }
-}
+/* Dark Gen-1 landing decorative utilities (.gradient-mesh, .glass-card,
+   .glass-card-hover, .text-gradient, .glow-border) were removed in Etappe D
+   with the dead landing trees — grep verified 0 remaining users. The
+   @keyframes `gradient` / `border-flow` they animated stay in @theme above
+   (still referenced by the --animate-* tokens). */

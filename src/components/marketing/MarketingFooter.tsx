@@ -23,8 +23,9 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     ],
   },
   {
-    // Legal routes are placeholders here — the pages land in Etappe D (texts
-    // come from André/Legal). DE-Pflicht: Impressum/Datenschutz/AGB.
+    // DE-Pflicht: Impressum/Datenschutz/AGB. The pages now exist (Etappe D) as
+    // scaffolding with clearly-marked placeholders — the binding texts come
+    // from André/Legal (open decision D8). Links wired below.
     title: "Rechtliches",
     links: [
       { label: "Impressum", href: "/impressum" },
@@ -34,6 +35,11 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   },
 ];
 
+// TODO D3: UWG-Claim — "DSGVO-konform" und "EU-AI-Act-konform" sind werbliche
+// Aussagen, die vor Live entweder belegt oder entschärft werden müssen
+// (Entscheidung André, vor Go-live). Bewusst UNVERÄNDERT gelassen — keine
+// erfundenen Belege. Dieselben Claims stehen auch in den Hero-Trust-Chips (`/`,
+// `/demo`) und einzelnen Modul-Beschreibungen.
 const COMPLIANCE = [
   "In Deutschland gebaut",
   "In Frankfurt gehostet",

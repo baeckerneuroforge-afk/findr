@@ -48,6 +48,8 @@ export default function HomePage() {
         subhead="findr. liest jedes Kundengespräch — Sales-Calls, Success-Reviews, Nutzer-Interviews — und macht es über vier Produkte hinweg nutzbar. Ein gemeinsames Gehirn statt vier getrennter Tools. DSGVO-nativ und in der EU gehostet."
         primary={{ label: "Demo buchen →", href: "/demo" }}
         secondary={{ label: "Plattform ansehen", href: "/produkt" }}
+        // TODO D3: UWG-Claim — "DSGVO-nativ" / "EU AI Act" sind werbliche
+        // Trust-Chips, vor Live belegen oder entschärfen (Entscheidung André).
         trust={["DSGVO-nativ", "EU-gehostet · Frankfurt", "EU AI Act"]}
         visual={<HeroDealCard />}
       />

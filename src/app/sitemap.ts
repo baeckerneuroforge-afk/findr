@@ -3,10 +3,15 @@ import { SITE_URL } from "@/lib/marketing/seo";
 import { getAllInsightSlugs } from "@/lib/insights/articles";
 
 /**
- * Sitemap — homepage, platform overview + four module pages (Etappe A + B), plus
- * Etappe C: /loesungen, /insights (and every article slug, loaded from the SAME
- * source as generateStaticParams so prebuilt routes and sitemap can't drift) and
- * /preise. Later etappen add /demo and the legal pages.
+ * Sitemap — homepage, platform overview + four module pages (Etappe A + B),
+ * Etappe C (/loesungen, /insights + every article slug loaded from the SAME
+ * source as generateStaticParams so prebuilt routes and sitemap can't drift,
+ * /preise) and Etappe D's /demo.
+ *
+ * The legal pages (/impressum, /datenschutz, /agb) are intentionally NOT listed
+ * yet: they ship as noindex placeholders (texts come from André/Legal, D8).
+ * Add /impressum + /datenschutz here once they carry the real, indexable text;
+ * /agb stays noindex by choice (§4.9).
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
@@ -20,6 +25,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/preise", priority: 0.8 },
     { path: "/loesungen", priority: 0.7 },
     { path: "/insights", priority: 0.6 },
+    { path: "/demo", priority: 0.5 },
     ...getAllInsightSlugs().map((slug) => ({
       path: `/insights/${slug}`,
       priority: 0.6,
