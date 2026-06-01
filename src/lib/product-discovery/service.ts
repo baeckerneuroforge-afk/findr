@@ -16,6 +16,11 @@ import {
   normalizePainPoints,
   normalizeThemes,
 } from "@/lib/schemas/product-discovery";
+import {
+  getResearchPlan,
+  type ResearchPlanRecord,
+} from "@/lib/research/plans-service";
+import { analyzeMarketResearch } from "@/lib/market-research/classifier";
 import { analyzeProductDiscovery } from "./classifier";
 
 /**
@@ -576,6 +581,24 @@ export async function analyzeCallForProductDiscovery(
   const call = await loadCall(callId);
   if (!call) return null;
 
+  // ── M1: study_type branch ─────────────────────────────────────────────────
+  // Only research-flow calls carry a planId; passive deal/account calls
+  // (planId null/undefined) skip the lookup entirely and fall straight into the
+  // byte-identical product_discovery path below — zero new DB calls, zero
+  // behaviour change for the default. For a research call we read the plan's
+  // study_type org-scoped (the call's own org_id is the trust boundary, same as
+  // the insert below), and when it is 'market_research' we run the MARKET lens
+  // instead. getResearchPlan returns null on any miss (plan deleted / cross-org)
+  // and coerceStudyType defaults the value to 'product_discovery' both pre- and
+  // post-migration, so the default path is the fail-safe in every uncertain
+  // case. See docs/findr-market-research-separation-plan.md §5 (M1).
+  if (options?.planId) {
+    const plan = await getResearchPlan(call.org_id, options.planId);
+    if (plan?.studyType === "market_research") {
+      return persistMarketResearchInsight(call, plan);
+    }
+  }
+
   const account = await resolveAccountContext(call);
 
   const result = await analyzeProductDiscovery({
@@ -617,6 +640,121 @@ export async function analyzeCallForProductDiscovery(
   if (error || !data) {
     throw new Error(
       `Failed to persist product discovery insight: ${error?.message ?? "no row returned"}`,
+    );
+  }
+
+  return toRecord(data);
+}
+
+/**
+ * M1 market-research extraction + persist. Reached ONLY from the study_type
+ * branch in analyzeCallForProductDiscovery when the call's research_plan has
+ * study_type='market_research'. Runs the MARKET lens (analyzeMarketResearch,
+ * the inverted-skip prompt + MARKET_FINDING_CATEGORIES) and stores the result
+ * in the SAME product_discovery_insights table.
+ *
+ * ── §9 #1 — STORAGE DECISION: REUSE the shared structure, NO new column ──────
+ * Checked against the real M0 market schema (schemas/market-research.ts):
+ * every market finding field fits the shared coded-finding container
+ * { category, title, description, intensity, confidence, evidence[] }
+ * byte-identically. The ONLY divergence is the category VOCABULARY
+ * (MARKET_FINDING_CATEGORIES vs FEATURE_REQUEST_CATEGORIES) — a renamed enum,
+ * not a new field type. No market field needs a non-text/numeric column: price
+ * thresholds live in description/evidence as the prompt + plan §2 intend
+ * (e.g. "mehr als 20 €/Monat würde ich nie zahlen" as a verbatim quote), NOT
+ * as a numeric column. The plan's only structural caveat — one `findings`
+ * array vs the table's feature_requests/pain_points split — is a column-NAMING
+ * question, not a field-fit one, so it does NOT trigger the additive
+ * market_findings column. We therefore reuse:
+ *
+ *   feature_requests ← market findings (the single market list)
+ *   pain_points      ← []  (the feature-vs-pain split is a product-feedback
+ *                           construct a market respondent does not produce)
+ *   themes           ← market themes, with relatedFindingIndices mapped onto
+ *                           relatedFeatureRequestIndices (findings are stored
+ *                           in feature_requests) so the persisted JSONB stays a
+ *                           structurally valid ProductDiscoveryResult and the
+ *                           existing defensive read-normalizers never crash and
+ *                           the index references still point at the right items.
+ *   summary / respondent_role / respondent_segment / sentiment ← direct
+ *                           (identical fields and scales, shared from M0).
+ *
+ * Disambiguation is research_plans.study_type (the M0 discriminator), NOT the
+ * column name — a market row is identifiable, not "lying". This keeps ONE
+ * table, ONE synthesis path, ONE cross-study aggregator: the whole win of the
+ * middle way over Weg B (no UNION, no silent cross-study narrowing).
+ *
+ * READ-COERCION CAVEAT (belongs to M2, latent in M1): the product-discovery
+ * read-normalizers coerce an unknown category to a discovery default
+ * (asEnumMember fallback → NEW_CAPABILITY), so a DISCOVERY-LENS read of a
+ * market row would mislabel its category. M1 wires NO market-row reader
+ * (synthesis is M2), so this is latent, not live; M2 makes reads
+ * study_type-aware. The returned record below therefore carries discovery-
+ * coerced category labels — but the market callers (transcript-service, voice
+ * router) discard the return, and the passive route that uses it never reaches
+ * this branch (no planId). The DB row is the source of truth and holds the raw
+ * market categories. André can still elect option (b) — an additive
+ * market_findings column — later without touching M1, since this path is
+ * purely additive.
+ */
+async function persistMarketResearchInsight(
+  call: CallRecord,
+  plan: ResearchPlanRecord,
+): Promise<ProductDiscoveryInsightRecord> {
+  // Org name for framing only (the market prompt never assumes a customer
+  // relationship). One read; subject + market come from the plan we already
+  // loaded for the study_type check, so no extra plan fetch.
+  const orgName = await getOrgName(call.org_id).catch(() => null);
+
+  const result = await analyzeMarketResearch({
+    transcript: call.transcript,
+    study: {
+      subject: plan.title,
+      market: plan.persona,
+      orgName: orgName?.trim() || null,
+    },
+    recordedAt: call.recorded_at,
+  });
+
+  // Map the single market `findings` list onto the shared container — see the
+  // §9 #1 decision above. Themes carry their index references onto the
+  // feature-request side (where findings are stored).
+  const themes = result.themes.map((t) => ({
+    label: t.label,
+    summary: t.summary,
+    relatedFeatureRequestIndices: t.relatedFindingIndices,
+    relatedPainPointIndices: [] as number[],
+  }));
+
+  const supabase = createPDSupabase();
+  const { data, error } = await supabase
+    .from("product_discovery_insights")
+    .insert({
+      org_id: call.org_id,
+      source_call_id: call.id,
+      // Both null on the research flow (calls row is inserted parentless);
+      // mirror the discovery insert rather than hardcoding so the row is
+      // consistent with however the call was attached.
+      deal_id: call.deal_id,
+      account_id: call.account_id,
+      feature_requests: result.findings as unknown as Json,
+      pain_points: [] as unknown as Json,
+      themes: themes as unknown as Json,
+      summary: result.summary,
+      analysis_method: "ai",
+      analyzed_at: new Date().toISOString(),
+      respondent_role: result.respondentRole,
+      respondent_segment: result.respondentSegment,
+      sentiment: result.sentiment,
+      respondent_source: "ai",
+      plan_id: plan.id,
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(
+      `Failed to persist market research insight: ${error?.message ?? "no row returned"}`,
     );
   }
 
