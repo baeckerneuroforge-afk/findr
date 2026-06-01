@@ -140,6 +140,7 @@ export default async function RootLayout({
               researchAgent: MESSAGES[locale].researchAgent,
               missionControl: MESSAGES[locale].missionControl,
               crossStudyAgent: MESSAGES[locale].crossStudyAgent,
+              syntheticTest: MESSAGES[locale].syntheticTest,
             }}
           >
             {children}

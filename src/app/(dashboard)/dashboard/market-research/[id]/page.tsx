@@ -113,6 +113,7 @@ export default async function MarketCampaignDetailPage({
 
   const t = await getTranslations("research.plans");
   const tm = await getTranslations("research.market");
+  const ts = await getTranslations("syntheticTest");
   const locale = await getLocale();
 
   const { id: planId } = await params;
@@ -347,6 +348,29 @@ export default async function MarketCampaignDetailPage({
             ))}
           </ul>
         )}
+      </section>
+
+      {/* Studie testen (Trockenlauf) — synthetische Test-Teilnehmer, BEVOR echte
+          Menschen eingeladen werden. Eigene Route + eigene (separate) Tabellen;
+          zählt NICHT in den Ziel-Pool und fließt NICHT in die echte Synthese. */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">{ts("linkOutTitle")}</h2>
+          <p className="text-small text-neutral-500">{ts("linkOutDesc")}</p>
+        </div>
+        <Card>
+          <CardBody>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-body text-neutral-700">{ts("pageSubtitle")}</p>
+              <Link
+                href={`/dashboard/market-research/${plan.id}/test`}
+                className="shrink-0 text-body-strong text-primary-700 hover:underline"
+              >
+                {ts("linkOutCta")}
+              </Link>
+            </div>
+          </CardBody>
+        </Card>
       </section>
 
       {/* Teilnehmer */}
