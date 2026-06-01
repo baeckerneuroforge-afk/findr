@@ -90,10 +90,34 @@ const INITIAL_FORM: FormState = {
   topics: [emptyTopicDraft()],
 };
 
-export function ResearchPlanForm() {
+/**
+ * M3 — the SAME form serves both research areas. `studyType` decides exactly
+ * two things: (1) the create payload stamps 'market_research' (omitted for the
+ * default product_discovery path → byte-identical discovery create), and (2)
+ * the post-create redirect lands in the matching area. Everything else — the
+ * fields, the AI guide generator, validation — is shared verbatim.
+ */
+type FormStudyType = "product_discovery" | "market_research";
+
+export function ResearchPlanForm({
+  studyType = "product_discovery",
+}: {
+  studyType?: FormStudyType;
+} = {}) {
   const router = useRouter();
   const t = useTranslations("research.plans");
   const tc = useTranslations("research.common");
+  const isMarket = studyType === "market_research";
+  // The two areas share one create form but redirect into their own detail
+  // route after save. Discovery → byte-identical to pre-M3.
+  const detailBase = isMarket
+    ? "/dashboard/market-research"
+    : "/dashboard/research-plans";
+  // Market-only create-payload key — see createResearchPlan: omitting it on the
+  // discovery path keeps that POST body + DB row byte-identical.
+  const studyTypePayload = isMarket
+    ? ({ studyType: "market_research" } as const)
+    : ({} as const);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -175,6 +199,7 @@ export function ResearchPlanForm() {
             topics: [],
             persona: form.persona.trim() === "" ? null : form.persona.trim(),
             sampleTarget: null,
+            ...studyTypePayload,
           }),
         });
         const createData = (await createRes.json().catch(() => ({}))) as {
@@ -292,7 +317,7 @@ export function ResearchPlanForm() {
         if (!res.ok) {
           throw new Error(data.error ?? t("errSavePlan"));
         }
-        router.push(`/dashboard/research-plans/${planId}`);
+        router.push(`${detailBase}/${planId}`);
         return;
       }
 
@@ -305,6 +330,7 @@ export function ResearchPlanForm() {
           topics,
           persona: form.persona.trim() === "" ? null : form.persona.trim(),
           sampleTarget,
+          ...studyTypePayload,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -315,7 +341,7 @@ export function ResearchPlanForm() {
         throw new Error(data.error ?? t("errCreatePlan"));
       }
       // Hand off to the detail page; status starts as 'draft' there.
-      router.push(`/dashboard/research-plans/${data.planId}`);
+      router.push(`${detailBase}/${data.planId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("errCreatePlan"));
     } finally {

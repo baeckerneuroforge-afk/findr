@@ -49,13 +49,19 @@ const MODULES: NavGroupDef[] = [
       { href: "/dashboard/health", labelKey: "item.health" },
     ],
   },
-  // Research module — what we learn ABOUT the product, from two angles:
+  // Research module — what we learn ABOUT the product/market, from several
+  // angles:
   //   Product Discovery — retrospective extraction from existing calls
   //                       (Sales + CS) via the per-call classifier.
-  //   Research Plans    — proactive: plan-driven research interviews, run
-  //                       by the AI agent against invited participants.
-  // Both surfaces feed the same product_discovery_insights table; the
-  // grouping reflects that they're two ways into the same learning loop.
+  //   Research Plans    — proactive: plan-driven Product-Discovery research
+  //                       interviews (study_type='product_discovery').
+  //   Market Research   — proactive: market campaigns (study_type=
+  //                       'market_research') — anonymous market outreach on the
+  //                       SAME engine, only the study_type discriminator + the
+  //                       campaign bundling differ (separation plan §5 M3).
+  // All surfaces feed the same product_discovery_insights / study_synthesis
+  // tables; the grouping reflects that they're ways into the same learning
+  // loop, separated by lens (product vs. market), not by data store.
   {
     labelKey: "group.research",
     items: [
@@ -64,6 +70,10 @@ const MODULES: NavGroupDef[] = [
         labelKey: "item.productDiscovery",
       },
       { href: "/dashboard/research-plans", labelKey: "item.researchPlans" },
+      {
+        href: "/dashboard/market-research",
+        labelKey: "item.marketResearch",
+      },
       {
         href: "/dashboard/research-plans/pool",
         labelKey: "item.participantPool",

@@ -9,6 +9,8 @@ import {
   StructuredOutputError,
 } from "@/lib/anthropic/structured";
 import { normalizeThemes } from "@/lib/schemas/product-discovery";
+import { coerceStudyType } from "./plans-service";
+import type { ResearchPlanStudyType } from "./db";
 import type { Database, Json } from "@/types/database";
 
 /**
@@ -117,6 +119,15 @@ export interface ChatPlanContext {
   title: string;
   objective: string;
   persona: string | null;
+  /**
+   * M3 — display lens. Optional so eval callers of chatWithDataFromInputs that
+   * don't set it stay byte-identical (treated as product_discovery). When
+   * 'market_research', the data section labels the coded findings as MARKET
+   * findings instead of product feature_requests — per-plan scoped, the
+   * study_type comes from THIS plan, so there is no KPI / cross-plan
+   * contamination. Pure display correctness (separation plan §M3 part 4).
+   */
+  studyType?: ResearchPlanStudyType;
 }
 
 export interface ChatFromInputs {
@@ -179,8 +190,21 @@ const ANCHOR_FALLBACK_ANSWER =
   "Dazu liegt in dieser Studie keine eindeutige Evidenz vor.";
 
 /** Mirror of synthesis/prompts.ts formatInsight — same shape so a researcher
- *  reading a chat answer recognizes the same evidence the synthesis surfaced. */
-function formatInsight(insight: ChatInsightInput): string {
+ *  reading a chat answer recognizes the same evidence the synthesis surfaced.
+ *
+ *  M3 — `studyType` only changes the LABEL of the coded-findings line. A market
+ *  study stores its MARKET findings (categories PRICE_SENSITIVITY /
+ *  PURCHASE_INTENT / COMPETITIVE_PERCEPTION / SEGMENT_NEED / BRAND_PERCEPTION)
+ *  in the SAME `feature_requests` column (M1 reuse decision); labelling them
+ *  "market_findings" stops the model from framing a price signal as a product
+ *  feature request. Discovery (undefined / 'product_discovery') is byte-
+ *  identical. Market rows carry pain_points=[] by construction, so that block
+ *  simply never renders for them. */
+function formatInsight(
+  insight: ChatInsightInput,
+  studyType?: ResearchPlanStudyType,
+): string {
+  const isMarket = studyType === "market_research";
   const lines: string[] = [
     `INSIGHT id=${insight.id}`,
     `  respondent: role=${insight.respondentRole ?? "—"}, segment=${
@@ -191,7 +215,11 @@ function formatInsight(insight: ChatInsightInput): string {
     lines.push(`  summary: ${insight.summary.trim()}`);
   }
   if (insight.featureRequests.length > 0) {
-    lines.push(`  feature_requests: ${JSON.stringify(insight.featureRequests)}`);
+    lines.push(
+      isMarket
+        ? `  market_findings: ${JSON.stringify(insight.featureRequests)}`
+        : `  feature_requests: ${JSON.stringify(insight.featureRequests)}`,
+    );
   }
   if (insight.painPoints.length > 0) {
     lines.push(`  pain_points: ${JSON.stringify(insight.painPoints)}`);
@@ -229,11 +257,21 @@ function buildChatDataSection(input: ChatFromInputs): string {
   if (input.plan.persona && input.plan.persona.trim() !== "") {
     planLines.push(`Persona:   ${input.plan.persona.trim()}`);
   }
+  // M3 — market lens hint (additive, market-only → discovery byte-identical).
+  // Tells the model the coded findings are MARKET signals so it interprets the
+  // category vocabulary correctly instead of as product feedback.
+  if (input.plan.studyType === "market_research") {
+    planLines.push(
+      `Study type: Market research — the coded findings below are MARKET signals (price sensitivity, purchase intent, competitive perception, segment need, brand perception), not product feature requests.`,
+    );
+  }
 
   const insightsBlock =
     input.insights.length === 0
       ? "(no insights in this study — answered=false for any question)"
-      : input.insights.map(formatInsight).join("\n\n");
+      : input.insights
+          .map((i) => formatInsight(i, input.plan.studyType))
+          .join("\n\n");
 
   const synthesisBlock = input.synthesis
     ? formatSynthesisBlock(input.synthesis)
@@ -498,6 +536,10 @@ type ResearchPlanRow = {
   persona: string | null;
   sample_target: number | null;
   status: string;
+  // M3 — optional/nullable on purpose: select("*") does not return the column
+  // before the 20260630000000 migration is applied; coerceStudyType maps the
+  // resulting undefined → 'product_discovery' (byte-identical pre-migration).
+  study_type?: string | null;
   created_at: string;
 };
 
@@ -639,6 +681,8 @@ export async function chatWithData(
     title: planResp.data.title,
     objective: planResp.data.objective,
     persona: planResp.data.persona,
+    // M3 — display lens for THIS plan only (per-plan scoped, no contamination).
+    studyType: coerceStudyType(planResp.data.study_type),
   };
 
   const insights: ChatInsightInput[] = insightsResp.data.map((r) => ({

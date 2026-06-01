@@ -4,25 +4,27 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { toBcp47 } from "@/i18n/locale";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { listResearchPlans } from "@/lib/research/plans-service";
-import { listBridgeSuggestions } from "@/lib/bridge/cs-to-research";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
-import { BridgeSuggestionsPanel } from "@/components/dashboard/BridgeSuggestionsPanel";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 
 /**
- * /dashboard/research-plans — Plan-Index.
+ * /dashboard/market-research — Markt-Kampagnen-Index (Phase M3).
  *
- * Pure-read server component, mirror of /dashboard/health: requireOrgId
- * with the established redirect contract, listResearchPlans returns
- * newest-first, empty-state when no plans exist yet.
+ * Eigener BEREICH, DIESELBE Engine: ein Klon-in-Geist von
+ * /dashboard/research-plans, nur auf study_type='market_research' gescoped
+ * (listResearchPlans mit Filter) und campaign-geframt. KEINE neue Tabelle,
+ * KEIN zweiter Pfad — die Studien sind weitere research_plans-Zeilen, der
+ * Diskriminator trennt nur die Linse (separation plan §5 M3).
+ *
+ * Bewusst OHNE BridgeSuggestionsPanel: die churn-getriebenen Brücken-Vorschläge
+ * sind INTERNE Kunden-Studien (§9 #3) und gehören auf die Product-Discovery-
+ * Research-Seite, nicht in den Markt-Bereich.
  */
 
 type Status = "draft" | "active" | "completed" | "archived";
 
-// Plan status labels are translated via t(`status.${status}`); only the badge
-// variant lives here.
 const STATUS_VARIANT: Record<Status, BadgeVariant> = {
   draft: "default",
   active: "success",
@@ -30,7 +32,7 @@ const STATUS_VARIANT: Record<Status, BadgeVariant> = {
   archived: "default",
 };
 
-function ResearchIcon() {
+function MarketIcon() {
   return (
     <svg
       className="h-6 w-6"
@@ -43,7 +45,7 @@ function ResearchIcon() {
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M9 4h6m-7 4h8m-9 4h10M5 16h14M7 20h10"
+        d="M3 13h2l2-7 3 14 3-11 2 4h6"
       />
     </svg>
   );
@@ -59,7 +61,7 @@ function formatDate(iso: string, locale: string): string {
   });
 }
 
-export default async function ResearchPlansIndexPage() {
+export default async function MarketResearchIndexPage() {
   let orgId: string;
   try {
     orgId = await requireOrgId();
@@ -72,32 +74,14 @@ export default async function ResearchPlansIndexPage() {
     throw err;
   }
 
-  const t = await getTranslations("research.plans");
+  const t = await getTranslations("research.market");
+  // Shared headings (columns + status labels) come from research.plans — the
+  // two surfaces deliberately reuse the same vocabulary for the same concepts.
+  const tp = await getTranslations("research.plans");
   const locale = await getLocale();
 
-  // Plans + bridge suggestions load in parallel — independent reads, no
-  // ordering constraint. listBridgeSuggestions returns only `pending`
-  // suggestions; approved/dismissed don't show up here anymore.
-  //
-  // M3 — this index is the PRODUCT-DISCOVERY research surface; Market-Research
-  // campaigns live in their own /dashboard/market-research area. We therefore
-  // scope to study_type='product_discovery' so the two stay visibly separate.
-  // Behaviourally byte-identical for existing data: every pre-M3 plan carries
-  // the DB DEFAULT 'product_discovery', so this list returns the exact same
-  // rows it did before — it only stops surfacing the NEW market campaigns.
-  const [plans, bridgeSuggestions] = await Promise.all([
-    listResearchPlans(orgId, "product_discovery"),
-    listBridgeSuggestions(orgId),
-  ]);
-
-  // Brücke #2 (sales_handover) teilt sich die bridge_suggestions-Tabelle.
-  // Hier rendert nur Brücke #1 (churn_cluster). Filtern wir defensiv
-  // kind-spezifisch, damit ein sales_handover-Vorschlag NICHT als
-  // research-Vorschlag mit undefined-Labels in BridgeSuggestionsPanel
-  // landet. Brücke #2's eigener Panel sitzt auf /dashboard/accounts.
-  const researchSuggestions = bridgeSuggestions.filter(
-    (s) => s.kind === "churn_cluster",
-  );
+  // Scoped to market campaigns only — the discriminator does the separation.
+  const plans = await listResearchPlans(orgId, "market_research");
 
   return (
     <div className="space-y-8">
@@ -107,36 +91,30 @@ export default async function ResearchPlansIndexPage() {
           <p className="mt-1 text-body text-neutral-500">{t("indexSubtitle")}</p>
         </div>
         <Link
-          href="/dashboard/research-plans/new"
+          href="/dashboard/market-research/new"
           className="inline-flex h-8 items-center justify-center rounded-md bg-neutral-900 px-3 text-body-strong font-medium text-white transition-colors hover:bg-neutral-700"
         >
-          {t("newPlan")}
+          {t("newCampaign")}
         </Link>
       </div>
 
-      {/* Bridge-Suggestions: CS-Health → Research. Pflicht-Human-Gate —
-          renderwert nur das pending-Set; approved/dismissed sind weg. Steht
-          BEWUSST oberhalb der Plans-Tabelle, damit ein neuer Vorschlag
-          sichtbar ist BEVOR der User in die Plans-Liste taucht. */}
-      <BridgeSuggestionsPanel initialSuggestions={researchSuggestions} />
-
       {plans.length === 0 ? (
         <EmptyState
-          icon={<ResearchIcon />}
+          icon={<MarketIcon />}
           title={t("emptyTitle")}
           description={t("emptyDesc")}
-          cta={{ label: t("emptyCta"), href: "/dashboard/research-plans/new" }}
+          cta={{ label: t("emptyCta"), href: "/dashboard/market-research/new" }}
         />
       ) : (
         <Card>
           <Table>
             <THead>
               <TR>
-                <TH>{t("colTitle")}</TH>
-                <TH>{t("colStatus")}</TH>
-                <TH className="text-right">{t("colTopics")}</TH>
-                <TH className="text-right">{t("colSampleTarget")}</TH>
-                <TH>{t("colCreated")}</TH>
+                <TH>{tp("colTitle")}</TH>
+                <TH>{tp("colStatus")}</TH>
+                <TH className="text-right">{tp("colTopics")}</TH>
+                <TH className="text-right">{tp("colSampleTarget")}</TH>
+                <TH>{tp("colCreated")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -144,7 +122,7 @@ export default async function ResearchPlansIndexPage() {
                 <TR key={plan.id}>
                   <TD>
                     <Link
-                      href={`/dashboard/research-plans/${plan.id}`}
+                      href={`/dashboard/market-research/${plan.id}`}
                       className="text-body-strong text-neutral-900 hover:text-primary-700 hover:underline"
                     >
                       {plan.title}
@@ -157,7 +135,7 @@ export default async function ResearchPlansIndexPage() {
                   </TD>
                   <TD>
                     <Badge variant={STATUS_VARIANT[plan.status]}>
-                      {t(`status.${plan.status}`)}
+                      {tp(`status.${plan.status}`)}
                     </Badge>
                   </TD>
                   <TD className="text-right text-neutral-700">
