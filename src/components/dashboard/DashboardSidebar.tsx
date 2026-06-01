@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 /**
  * Primary navigation, grouped by product module. The grouping is the
  * navigation's main job: tell users at a glance which feature belongs to
- * which Findr capability (Sales Intelligence vs Customer Health) and which
+ * which Findr capability (Sales Intelligence / Customer / Research) and which
  * tools are workspace-level plumbing.
  *
  * Routes themselves are UNCHANGED from the previous flat version — only the
@@ -43,13 +43,13 @@ const MODULES: NavGroupDef[] = [
     ],
   },
   {
-    labelKey: "group.customerHealth",
+    labelKey: "group.customer",
     items: [
       { href: "/dashboard/accounts", labelKey: "item.accounts" },
       { href: "/dashboard/health", labelKey: "item.health" },
     ],
   },
-  // Product module — what we learn ABOUT the product, from two angles:
+  // Research module — what we learn ABOUT the product, from two angles:
   //   Product Discovery — retrospective extraction from existing calls
   //                       (Sales + CS) via the per-call classifier.
   //   Research Plans    — proactive: plan-driven research interviews, run
@@ -57,7 +57,7 @@ const MODULES: NavGroupDef[] = [
   // Both surfaces feed the same product_discovery_insights table; the
   // grouping reflects that they're two ways into the same learning loop.
   {
-    labelKey: "group.product",
+    labelKey: "group.research",
     items: [
       {
         href: "/dashboard/product-discovery",

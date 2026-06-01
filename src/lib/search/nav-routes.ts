@@ -34,13 +34,13 @@ export const PALETTE_ROUTES: PaletteRoute[] = [
   { labelKey: "nav.item.lossAnalysis", href: "/dashboard/loss-analysis", groupKey: "nav.group.salesIntelligence" },
   { labelKey: "nav.item.coaching", href: "/dashboard/coaching", groupKey: "nav.group.salesIntelligence" },
 
-  // Customer Health
-  { labelKey: "nav.item.accounts", href: "/dashboard/accounts", groupKey: "nav.group.customerHealth" },
-  { labelKey: "nav.item.health", href: "/dashboard/health", groupKey: "nav.group.customerHealth" },
+  // Customer
+  { labelKey: "nav.item.accounts", href: "/dashboard/accounts", groupKey: "nav.group.customer" },
+  { labelKey: "nav.item.health", href: "/dashboard/health", groupKey: "nav.group.customer" },
 
-  // Product
-  { labelKey: "nav.item.productDiscovery", href: "/dashboard/product-discovery", groupKey: "nav.group.product" },
-  { labelKey: "nav.item.crossStudy", href: "/dashboard/insights", groupKey: "nav.group.product" },
+  // Research
+  { labelKey: "nav.item.productDiscovery", href: "/dashboard/product-discovery", groupKey: "nav.group.research" },
+  { labelKey: "nav.item.crossStudy", href: "/dashboard/insights", groupKey: "nav.group.research" },
 
   // Workspace
   { labelKey: "nav.item.dataSources", href: "/dashboard/data-sources", groupKey: "nav.group.workspace" },

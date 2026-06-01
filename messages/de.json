@@ -101,8 +101,8 @@
   "nav": {
     "group": {
       "salesIntelligence": "Sales Intelligence",
-      "customerHealth": "Customer Health",
-      "product": "Produkt",
+      "customer": "Customer",
+      "research": "Research",
       "workspace": "Arbeitsbereich"
     },
     "item": {
