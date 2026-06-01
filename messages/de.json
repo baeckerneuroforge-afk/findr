@@ -42,6 +42,24 @@
       "title": "Vielen Dank für Ihr Interesse!",
       "body": "Diesmal passen Sie nicht ganz in das gesuchte Profil — aber wir freuen uns, dass Sie sich die Zeit genommen haben. Vielleicht passt eine unserer nächsten Studien besser.",
       "retry": "Antworten ändern"
+    },
+    "open": {
+      "consent": {
+        "title": "Bevor es losgeht",
+        "intro": "Sie nehmen anonym an einer kurzen Studie teil. Es ist keine Anmeldung nötig, und wir fragen vorab keine persönlichen Daten ab.",
+        "privacyTitle": "Datenschutz",
+        "privacyBody": "Das Gespräch wird vertraulich verarbeitet und ausschließlich für Forschungszwecke ausgewertet. Bitte teilen Sie nur, was Sie freiwillig preisgeben möchten — geben Sie keine sensiblen personenbezogenen Daten ein. Ihre Antworten werden nicht für Werbung verwendet.",
+        "agree": "Ich habe den Datenschutzhinweis gelesen und nehme freiwillig teil.",
+        "continue": "Weiter"
+      },
+      "ready": {
+        "title": "Alles bereit",
+        "body": "Vielen Dank. Sie sind startklar für das Interview."
+      },
+      "unavailable": {
+        "title": "Diese Studie ist derzeit nicht verfügbar",
+        "body": "Der Link ist abgelaufen oder die Studie nimmt aktuell keine weiteren Teilnehmer an. Vielen Dank für Ihr Interesse."
+      }
     }
   },
   "email": {

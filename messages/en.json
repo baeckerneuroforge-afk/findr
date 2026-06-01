@@ -42,6 +42,24 @@
       "title": "Thanks for your interest!",
       "body": "This time you're not quite the profile we're looking for — but we appreciate you taking the time. One of our next studies may be a better match.",
       "retry": "Change answers"
+    },
+    "open": {
+      "consent": {
+        "title": "Before you begin",
+        "intro": "You're taking part anonymously in a short study. No sign-in is required, and we don't ask for any personal details up front.",
+        "privacyTitle": "Privacy",
+        "privacyBody": "This conversation is handled confidentially and used only for research. Please share only what you're comfortable disclosing — don't enter sensitive personal data. Your answers are never used for advertising.",
+        "agree": "I've read the privacy notice and am taking part voluntarily.",
+        "continue": "Continue"
+      },
+      "ready": {
+        "title": "You're all set",
+        "body": "Thanks. You're ready to start the interview."
+      },
+      "unavailable": {
+        "title": "This study isn't available right now",
+        "body": "The link has expired or the study is no longer accepting participants. Thanks for your interest."
+      }
     }
   },
   "email": {
