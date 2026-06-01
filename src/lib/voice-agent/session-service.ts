@@ -274,6 +274,13 @@ export async function createInterviewSession(params: {
    *  post_loss / checkin / no-screening-research lazy path), so behavior there
    *  is byte-identical to before. */
   screeningAnswers?: Json | null;
+  /** Phase 4 Baustein 2 (offener Studien-Link): the open-link row this walk-in
+   *  session belongs to. Additive, nullable attribution (mirrors invite_id,
+   *  20260629000000) — set ONLY on the open-link path; null/omitted for every
+   *  per-invite / post_loss / checkin session, so behavior there is byte-
+   *  identical. Mutually exclusive with inviteId by construction (the open route
+   *  passes inviteId: null + openLinkId, the invite route the inverse). */
+  openLinkId?: string | null;
 }): Promise<InterviewSession> {
   const kind = params.kind ?? "post_loss";
   const mode = params.mode ?? "text";
@@ -323,6 +330,8 @@ export async function createInterviewSession(params: {
       mode,
       plan_id: params.planId ?? null,
       invite_id: params.inviteId ?? null,
+      // Additive walk-in attribution; null for every existing INSERT (no-op).
+      open_link_id: params.openLinkId ?? null,
       transcript_source: mode === "text" ? "typed" : null,
       access_token: params.accessToken ?? generateToken(),
       status: "open",

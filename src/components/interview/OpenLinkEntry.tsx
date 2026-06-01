@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { ScreeningQuestion } from "@/lib/schemas/screening";
 import { ParticipantShell } from "./ParticipantShell";
@@ -8,7 +9,7 @@ import { ScreeningForm } from "./ScreeningForm";
 import { RejectionPanel } from "./RejectionPanel";
 
 /**
- * Open-link participant entry gate (Phase 4, Baustein 2 — Etappe 3, RENDER ONLY).
+ * Open-link participant entry gate (Phase 4, Baustein 2 — Etappe 4, WIRED).
  *
  * The open-path analog of ScreeningGate (which is the INVITE-path gate and POSTs
  * to /api/interview/[token]/screen — left byte-identical, NOT reused here). This
@@ -16,46 +17,90 @@ import { RejectionPanel } from "./RejectionPanel";
  * invite endpoint is NEVER reached from the open-link surface.
  *
  * Step machine, all white-label (ParticipantShell + `--brand-accent`):
- *   consent   → the MANDATORY DSGVO/privacy choke point for anonymous walk-ins.
- *               The participant must actively confirm before anything else.
- *   screening → the plan's screening questions (ScreeningForm, reused).
- *   rejected  → the "not a fit" screen (RejectionPanel, reused).
- *   ready     → no-screening confirmation (consent is then the only gate).
+ *   consent     → the MANDATORY DSGVO/privacy choke point for anonymous walk-ins.
+ *                 The participant must actively confirm before anything else.
+ *   screening   → the plan's screening questions (ScreeningForm, reused). Submit
+ *                 POSTs to /api/interview/open/[token]/screen.
+ *   rejected    → the "not a fit" screen (RejectionPanel, reused). Re-try allowed.
+ *   unavailable → the link went dead (expired / no longer accepting) between
+ *                 page load and submit — the server denied entry (403).
  *
- * E3 boundary — this ONLY chooses WHAT renders. It creates NO session, fires NO
- * Opus turn, and calls NO endpoint. The screening submit is a local stub. E4
- * turns the submit into the real POST /api/interview/open/[token]/screen →
- * evaluateScreening (qualified → redirect to a FRESH session token; rejected →
- * the rejection screen + anonymous research_screening_responses quote).
+ * QUALIFIED is NOT a step: the server minted a FRESH session token, so we
+ * redirect to /interview/[sessionToken] (router.push). The shared open-link
+ * token is NEVER reused as a session token. Open links presuppose screening
+ * (enforced server-side), so there is no no-screening "ready"/start path here —
+ * a no-screening open link renders the page-level "unavailable" screen instead.
  */
 
-export type OpenLinkStep = "consent" | "screening" | "ready" | "rejected";
+export type OpenLinkStep = "consent" | "screening" | "rejected" | "unavailable";
+
+/** Mirrors ScreeningForm's submitted shape (number_range normalized to number). */
+type AnswerMap = Record<string, string | string[] | number>;
 
 export function OpenLinkEntry({
-  mode,
+  token,
   questions,
   planTitle = null,
   brandName = null,
   accentColor = null,
   logoUrl = null,
-  initialStep = "consent",
 }: {
-  mode: "needs_screening" | "ready";
+  token: string;
   questions: ScreeningQuestion[];
   planTitle?: string | null;
   brandName?: string | null;
   accentColor?: string | null;
   logoUrl?: string | null;
-  /** Live flow always begins at "consent"; a Vercel-preview ?view= override can
-   *  force any step for visual QA (the page parses + validates it). */
-  initialStep?: OpenLinkStep;
 }) {
-  const [step, setStep] = useState<OpenLinkStep>(initialStep);
+  const router = useRouter();
+  const t = useTranslations("interview");
+  const [step, setStep] = useState<OpenLinkStep>("consent");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // After the participant confirms consent: screening form if the study has
-  // questions, otherwise the no-screening ready screen. RENDER ONLY.
-  const afterConsent: OpenLinkStep =
-    mode === "needs_screening" ? "screening" : "ready";
+  async function handleComplete(answers: AnswerMap) {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/interview/open/${token}/screen`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Body carries ONLY the answers — never an org/plan/link field. The
+        // server reads org_id + plan_id from the open-link row alone.
+        body: JSON.stringify({ answers }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        qualified?: boolean;
+        sessionToken?: string;
+        available?: boolean;
+        error?: string;
+      };
+
+      // Link went dead between load and submit (expired / screening removed) →
+      // the server denied entry. Show the calm "not available" screen.
+      if (res.status === 403 || data.available === false) {
+        setStep("unavailable");
+        setSubmitting(false);
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(data.error ?? t("error.generic"));
+      }
+      if (data.qualified && data.sessionToken) {
+        // The session was just created server-side with a FRESH token. Redirect
+        // onto the existing /interview/[sessionToken] path (loadByToken). Keep
+        // submitting=true; the gate unmounts on navigation.
+        router.push(`/interview/${data.sessionToken}`);
+        return;
+      }
+      // qualified === false → not a fit.
+      setStep("rejected");
+      setSubmitting(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("error.generic"));
+      setSubmitting(false);
+    }
+  }
 
   return (
     <ParticipantShell
@@ -65,29 +110,29 @@ export function OpenLinkEntry({
       logoUrl={logoUrl}
     >
       {step === "consent" && (
-        <ConsentStep
-          planTitle={planTitle}
-          onAccept={() => setStep(afterConsent)}
-        />
+        <ConsentStep planTitle={planTitle} onAccept={() => setStep("screening")} />
       )}
 
       {step === "screening" && (
         <ScreeningForm
           questions={questions}
           planTitle={planTitle}
-          // E3 render-only STUB: no fetch, no session. Advancing to the
-          // rejection screen previews that white-label state (the qualified
-          // branch mints a fresh session — deliberately E4). E4 replaces this
-          // with POST /api/interview/open/[token]/screen.
-          onComplete={() => setStep("rejected")}
+          submitting={submitting}
+          error={error}
+          onComplete={handleComplete}
         />
       )}
 
       {step === "rejected" && (
-        <RejectionPanel onRetry={() => setStep("screening")} />
+        <RejectionPanel
+          onRetry={() => {
+            setError(null);
+            setStep("screening");
+          }}
+        />
       )}
 
-      {step === "ready" && <ReadyStep />}
+      {step === "unavailable" && <UnavailablePanel />}
     </ParticipantShell>
   );
 }
@@ -149,20 +194,21 @@ function ConsentStep({
 }
 
 /**
- * No-screening confirmation. After consent there are no questions, so this is a
- * static "you're all set" screen. E4 turns the open link's no-screening path
- * into a session mint + redirect to /interview/[freshSessionToken]; in E3 it
- * stays render-only (no button, no session).
+ * Mid-flow "study not available" terminal. Reached when the server denies entry
+ * at submit time (403) — the link expired or stopped accepting participants
+ * between page load and submit. Reuses the same open.unavailable.* copy as the
+ * page-level OpenLinkUnavailable screen, rendered inside the already-mounted
+ * ParticipantShell.
  */
-function ReadyStep() {
+function UnavailablePanel() {
   const t = useTranslations("interview");
   return (
     <div className="mb-10 mt-8 rounded-2xl border border-[#E8E4F2] bg-[#FAFAFE] px-6 py-10 text-center">
       <h1 className="text-[18px] font-semibold text-[#0E0A1F]">
-        {t("open.ready.title")}
+        {t("open.unavailable.title")}
       </h1>
       <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6680]">
-        {t("open.ready.body")}
+        {t("open.unavailable.body")}
       </p>
     </div>
   );

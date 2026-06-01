@@ -2,10 +2,7 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
-import {
-  OpenLinkEntry,
-  type OpenLinkStep,
-} from "@/components/interview/OpenLinkEntry";
+import { OpenLinkEntry } from "@/components/interview/OpenLinkEntry";
 import { OpenLinkUnavailable } from "@/components/interview/OpenLinkUnavailable";
 import {
   findOpenLinkByAccessToken,
@@ -89,33 +86,10 @@ export async function generateMetadata({
   };
 }
 
-/** Etappe-3 visual-QA override (?view=consent|screening|ready|rejected|
- *  unavailable): forces a single white-label screen so a Vercel preview can show
- *  each one without real fixtures (an expired link, a failed evaluation). Mirrors
- *  the screening-E3 ?screening= override. Unknown/absent → null (live flow).
- *  Removed in E4. */
-const OPEN_LINK_VIEWS = [
-  "consent",
-  "screening",
-  "ready",
-  "rejected",
-  "unavailable",
-] as const;
-type OpenLinkView = (typeof OPEN_LINK_VIEWS)[number];
-
-function parseView(raw: string | string[] | undefined): OpenLinkView | null {
-  const v = typeof raw === "string" ? raw : null;
-  return v !== null && (OPEN_LINK_VIEWS as readonly string[]).includes(v)
-    ? (v as OpenLinkView)
-    : null;
-}
-
 export default async function OpenInterviewPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { token } = await params;
 
@@ -127,7 +101,8 @@ export default async function OpenInterviewPage({
 
   // ② Screening-aware entry resolution (E1 resolver, reused verbatim). null →
   //    a plan of another org or a denorm drift → fail-closed → notFound(). It
-  //    NEVER mints a session (E1 skeleton stops at "ready"; create is E4).
+  //    NEVER mints a session — the qualified-create + fresh-token hand-off lives
+  //    server-side in POST /api/interview/open/[token]/screen.
   const entry = await getCachedEntry(token);
   if (!entry) notFound();
 
@@ -140,25 +115,18 @@ export default async function OpenInterviewPage({
     entry.mode === "needs_screening"
       ? entry.screening.language
       : entry.ready.language;
-  const planTitle =
-    entry.mode === "needs_screening"
-      ? entry.screening.planTitle
-      : entry.ready.planTitle;
-  const questions =
-    entry.mode === "needs_screening" ? entry.screening.questions : [];
-
   const messages = { interview: MESSAGES[language].interview };
-  const sp = await searchParams;
-  const view = parseView(sp.view);
 
-  // Expired (valid_until in the past) → the calmer "study not available" screen
-  // instead of a screening form for a dead study. RENDER ONLY — read straight
-  // off the link row (the E1 resolver intentionally does not enforce expiry);
-  // no session is created either way. The ?view=unavailable override also lands
-  // here so the screen is previewable on a live link.
+  // The "not available" screen is shown when entry is impossible:
+  //  • valid_until in the past (expiry — the route enforces it too at submit), OR
+  //  • the plan has NO screening questions: open links PRESUPPOSE screening
+  //    (the E2 guardrail, enforced server-side in the screen route). A
+  //    no-screening open link can never mint a session, so we never present a
+  //    start affordance for it.
+  // Render-only here; the authoritative denial is server-side. No session is
+  // created either way.
   const expired = isOpenLinkExpired(link.valid_until);
-
-  if (view === "unavailable" || (view === null && expired)) {
+  if (expired || entry.mode === "ready") {
     return (
       <NextIntlClientProvider locale={language} messages={messages}>
         <OpenLinkUnavailable
@@ -170,21 +138,19 @@ export default async function OpenInterviewPage({
     );
   }
 
-  // Live flow ALWAYS starts at the mandatory consent step; the QA override can
-  // force any non-unavailable step (the "unavailable" case already returned
-  // above, so the control-flow has narrowed it out of `view` here).
-  const initialStep: OpenLinkStep = view ?? "consent";
-
+  // needs_screening only past this point (narrowed by the guard above): the
+  // mandatory consent step, then the screening form whose submit POSTs to the
+  // open-link screen route.
+  const { screening } = entry;
   return (
     <NextIntlClientProvider locale={language} messages={messages}>
       <OpenLinkEntry
-        mode={entry.mode}
-        questions={questions}
-        planTitle={planTitle}
+        token={token}
+        questions={screening.questions}
+        planTitle={screening.planTitle}
         brandName={branding.brandName}
         accentColor={branding.accentColor}
         logoUrl={branding.logoUrl}
-        initialStep={initialStep}
       />
     </NextIntlClientProvider>
   );

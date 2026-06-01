@@ -99,6 +99,14 @@ export async function createResearchInterview(params: {
   /** Phase 4: screening answers of the qualified participant, persisted onto
    *  the created session. Omitted by the no-screening lazy path → null. */
   screeningAnswers?: Json | null;
+  /** Phase 4 Baustein 2 (offener Studien-Link): the open-link row a qualified
+   *  ANONYMOUS walk-in entered through. Additive, threaded verbatim onto the
+   *  session's open_link_id (nullable attribution, mirrors invite_id). Set ONLY
+   *  by the open-link screen route; null/omitted on every per-invite / ad-hoc
+   *  call, so those stay byte-identical. The open path always passes
+   *  inviteId: null + openLinkId → a FRESH session token is minted internally
+   *  (the open-link token is shared and must NEVER become a session token). */
+  openLinkId?: string | null;
 }): Promise<CreateResearchInterviewResult> {
   const base: CreateResearchInterviewResult = {
     status: "error",
@@ -169,8 +177,12 @@ export async function createResearchInterview(params: {
       mode: "text",
       planId: plan.id,
       inviteId: params.inviteId ?? null,
+      // Additive open-link attribution. Null on the invite/ad-hoc paths → no-op.
+      openLinkId: params.openLinkId ?? null,
       // Pass the invite-bound token through when present; otherwise
-      // createInterviewSession generates a fresh one.
+      // createInterviewSession generates a fresh one. On the open-link path
+      // inviteAccessToken is undefined (inviteId is null) → a FRESH session
+      // token is minted, never the shared open-link token.
       accessToken: inviteAccessToken,
       dealContext: input,
       language: params.language ?? "de",
