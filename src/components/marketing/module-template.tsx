@@ -181,19 +181,29 @@ export type ExampleRow = { label: string; value: ReactNode; quote?: boolean };
 export function ExampleCard({
   badge,
   rows,
+  tone = "risk",
   className = "",
 }: {
   badge?: string;
   rows: ExampleRow[];
+  /** Badge colour: "risk" = red (loss/churn signals), "neutral" = violet
+   * (positive findings). Default "risk" keeps the Etappe-A pages unchanged. */
+  tone?: "risk" | "neutral";
   className?: string;
 }) {
+  const badgeTone =
+    tone === "neutral"
+      ? "bg-primary-50 text-primary-700"
+      : "bg-danger-50 text-danger-700";
   return (
     <div
       className={`relative rounded border border-neutral-200 bg-white p-6 sm:p-7 ${className}`}
     >
       <CornerBrackets className="border-primary-200" />
       {badge ? (
-        <span className="inline-flex items-center gap-1.5 rounded bg-danger-50 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.06em] text-danger-700">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.06em] ${badgeTone}`}
+        >
           {badge}
         </span>
       ) : null}
