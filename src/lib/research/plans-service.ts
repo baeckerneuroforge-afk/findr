@@ -169,16 +169,29 @@ export function planToAgentContext(plan: ResearchPlanRecord): ResearchPlanContex
  * Returns [] on any error — empty list reads as "no plans yet" in the UI,
  * which is correct in both the no-data and the transient-failure case;
  * the failure is logged at the supabase-js layer.
+ *
+ * M3 — optional study_type filter for the two SEPARATE list surfaces on the
+ * shared engine: the Product-Discovery research index passes
+ * 'product_discovery', the Market-Research campaign index passes
+ * 'market_research'. The parameter is OPTIONAL: omitting it returns every plan
+ * (the pre-M3 behaviour), so any existing caller is byte-identical. The .eq is
+ * only added when a type is given — a discovery list of pre-M3 plans (all
+ * 'product_discovery' by DB DEFAULT) therefore returns the exact same rows it
+ * did before M3.
  */
 export async function listResearchPlans(
   orgId: string,
+  studyType?: ResearchPlanStudyType,
 ): Promise<ResearchPlanRecord[]> {
   const supabase = createResearchSupabase();
-  const { data, error } = await supabase
+  let query = supabase
     .from("research_plans")
     .select("*")
-    .eq("org_id", orgId)
-    .order("created_at", { ascending: false });
+    .eq("org_id", orgId);
+  if (studyType !== undefined) {
+    query = query.eq("study_type", studyType);
+  }
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error || !data) return [];
   return data.map(toRecord);
 }
@@ -214,6 +227,43 @@ export async function getMarketResearchPlanIds(
   return new Set(data.map((r) => r.id));
 }
 
+/**
+ * Anzahl ABGESCHLOSSENER Interview-Sessions einer Studie — die Mess-Seite des
+ * studienweiten Ziel-Pools (`sample_target`, separation plan §7, "47 von 200").
+ *
+ * Byte-genauer Klon von countOpenLinkSessions (open-links.ts:230-242), nur der
+ * Prädikat-Satz unterscheidet sich: org+plan-scoped, status='completed'.
+ * head:true → kein Zeilen-Transfer; trifft den vorhandenen
+ * interview_sessions_plan_idx. number = exakter COUNT; null = Query-Fehler
+ * (fail-open: der Aufrufer zeigt "—" statt zu crashen — kein Spend-Schutz hier,
+ * nur Anzeige).
+ *
+ * ⚠️ DIE DREI ZAHLEN BLEIBEN BEWUSST GETRENNT (§7) — NICHT vereinheitlichen:
+ *   1. sample_target  — studienweites Ziel, gemessen NUR an status='completed'
+ *      (dieser Zähler). „Wie viele fertige Interviews von N?"
+ *   2. listQuotaProgress (participant-pool.ts) — per-ROLLE Pool-EINLADUNGEN,
+ *      zählt „invited" pro Rolle, NICHT abgeschlossene Interviews.
+ *   3. max_sessions (open-links.ts, E5) — link-scoped, ALL-STATUS Spend-Cap,
+ *      zählt JEDE Session (auch open/abandoned) gegen ein Kosten-Limit.
+ * Würde man (1) auf den all-status-Nenner von (3) ziehen, bräche der Spend-
+ * Schutz; würde man (1) mit (2) verschmelzen, zählte man Einladungen statt
+ * Abschlüsse. Sie koexistieren mit Absicht.
+ */
+export async function countCompletedSessionsForPlan(
+  orgId: string,
+  planId: string,
+): Promise<number | null> {
+  const supabase = createResearchSupabase();
+  const { count, error } = await supabase
+    .from("interview_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .eq("plan_id", planId)
+    .eq("status", "completed");
+  if (error) return null;
+  return count ?? 0;
+}
+
 // ── Writes ──────────────────────────────────────────────────────────────────
 
 export interface CreateResearchPlanInput {
@@ -222,6 +272,15 @@ export interface CreateResearchPlanInput {
   topics: ResearchTopic[];
   persona?: string | null;
   sampleTarget?: number | null;
+  /**
+   * Studientyp-Diskriminator (M3 write-side). OPTIONAL — undefined leaves the
+   * insert WITHOUT a study_type key, so the DB DEFAULT ('product_discovery')
+   * applies and a discovery create is byte-identical to pre-M3. Only the
+   * Market-Research create path passes 'market_research'. This is what makes
+   * "study_type sets the create, everything else is shared": a single new
+   * column on the create, nothing else branches.
+   */
+  studyType?: ResearchPlanStudyType;
 }
 
 /**
@@ -246,6 +305,13 @@ export async function createResearchPlan(
       topic_script: input.topics as unknown as Json,
       persona: input.persona ?? null,
       sample_target: input.sampleTarget ?? null,
+      // Market-only insert key: when the caller is the Product-Discovery path
+      // (studyType undefined / 'product_discovery'), the column is OMITTED so
+      // the DB DEFAULT writes 'product_discovery' — a byte-identical discovery
+      // row. Only a Market-Research create stamps the discriminator explicitly.
+      ...(input.studyType === "market_research"
+        ? { study_type: "market_research" as const }
+        : {}),
     })
     .select("*")
     .single();

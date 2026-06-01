@@ -13,6 +13,8 @@ import {
   normalizeEmergentThemes,
   type EmergentTheme,
 } from "@/lib/schemas/synthesis";
+import { coerceStudyType } from "./plans-service";
+import type { ResearchPlanStudyType } from "./db";
 import type { Database, Json } from "@/types/database";
 
 /**
@@ -133,6 +135,13 @@ export interface ReelPlanContext {
   title: string;
   objective: string;
   persona: string | null;
+  /**
+   * M3 — display lens (mirror of ChatPlanContext.studyType). Optional → eval
+   * callers of generateReelFromInputs stay byte-identical (product_discovery).
+   * When 'market_research', the condensation block labels the coded findings as
+   * MARKET findings. Per-plan scoped, display-only (separation plan §M3 part 4).
+   */
+  studyType?: ResearchPlanStudyType;
 }
 
 export interface ReelFromInputs {
@@ -184,7 +193,16 @@ OUTPUT — return ONLY this JSON object, no markdown, no preamble:
 
 // ── Data-section assembly ──────────────────────────────────────────────────
 
-function formatCondensation(c: ReelCondensationInput): string {
+// M3 — `studyType` only changes the LABEL of the coded-findings line, exactly
+// like chat-with-data's formatInsight. Market findings live in the shared
+// `feature_requests` column (M1 reuse); labelling them "market_findings" keeps
+// the reel from framing a price/competitive signal as a product feature
+// request. Discovery is byte-identical; market rows carry pain_points=[].
+function formatCondensation(
+  c: ReelCondensationInput,
+  studyType?: ResearchPlanStudyType,
+): string {
+  const isMarket = studyType === "market_research";
   const lines: string[] = [
     `INSIGHT id=${c.id}`,
     `  respondent: role=${c.respondentRole ?? "—"}, segment=${
@@ -195,7 +213,11 @@ function formatCondensation(c: ReelCondensationInput): string {
     lines.push(`  summary: ${c.summary.trim()}`);
   }
   if (c.featureRequests.length > 0) {
-    lines.push(`  feature_requests: ${JSON.stringify(c.featureRequests)}`);
+    lines.push(
+      isMarket
+        ? `  market_findings: ${JSON.stringify(c.featureRequests)}`
+        : `  feature_requests: ${JSON.stringify(c.featureRequests)}`,
+    );
   }
   if (c.painPoints.length > 0) {
     lines.push(`  pain_points: ${JSON.stringify(c.painPoints)}`);
@@ -235,11 +257,19 @@ function buildReelUserPrompt(input: ReelFromInputs): string {
   if (input.plan.persona && input.plan.persona.trim() !== "") {
     planLines.push(`Persona:   ${input.plan.persona.trim()}`);
   }
+  // M3 — market lens hint (additive, market-only → discovery byte-identical).
+  if (input.plan.studyType === "market_research") {
+    planLines.push(
+      `Study type: Market research — the coded findings below are MARKET signals (price sensitivity, purchase intent, competitive perception, segment need, brand perception), not product feature requests.`,
+    );
+  }
 
   const insightsBlock =
     input.condensations.length === 0
       ? "(no verdichtete Interviews — return highlights: [])"
-      : input.condensations.map(formatCondensation).join("\n\n");
+      : input.condensations
+          .map((c) => formatCondensation(c, input.plan.studyType))
+          .join("\n\n");
 
   return `${planLines.join("\n")}
 
@@ -524,6 +554,8 @@ type ResearchPlanRow = {
   persona: string | null;
   sample_target: number | null;
   status: string;
+  // M3 — see chat-with-data: optional/nullable for the pre-migration select("*").
+  study_type?: string | null;
   created_at: string;
 };
 
@@ -669,6 +701,8 @@ export async function generateHighlightReel(
     title: planResp.data.title,
     objective: planResp.data.objective,
     persona: planResp.data.persona,
+    // M3 — display lens for THIS plan only (per-plan scoped, no contamination).
+    studyType: coerceStudyType(planResp.data.study_type),
   };
 
   const condensations: ReelCondensationInput[] = insightsResp.data.map(

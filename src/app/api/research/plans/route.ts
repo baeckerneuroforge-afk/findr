@@ -36,6 +36,14 @@ const CreatePlanBodySchema = z.object({
     .optional()
     .transform((v) => (v === "" ? null : v)),
   sampleTarget: z.number().int().min(1).max(1000).nullable().optional(),
+  // M3 — Studientyp-Diskriminator. Optional; fehlt er (Product-Discovery-
+  // Create, byte-identisch zu pre-M3), defaultet er auf 'product_discovery' und
+  // createResearchPlan lässt die Spalte weg → DB-DEFAULT. Nur der Market-
+  // Research-Bereich sendet 'market_research'. Setzt das Anlegen, sonst nichts.
+  studyType: z
+    .enum(["product_discovery", "market_research"])
+    .optional()
+    .default("product_discovery"),
 });
 
 export async function POST(req: NextRequest) {
@@ -60,6 +68,7 @@ export async function POST(req: NextRequest) {
       topics: parsed.data.topics,
       persona: parsed.data.persona ?? null,
       sampleTarget: parsed.data.sampleTarget ?? null,
+      studyType: parsed.data.studyType,
     });
     return NextResponse.json({ success: true, planId: plan.id, plan });
   } catch (err) {

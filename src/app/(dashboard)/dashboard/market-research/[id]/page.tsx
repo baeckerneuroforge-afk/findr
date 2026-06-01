@@ -7,7 +7,10 @@ import {
   researchInterviewUrl,
   researchOpenLinkUrl,
 } from "@/lib/email/research-invite";
-import { getResearchPlan } from "@/lib/research/plans-service";
+import {
+  countCompletedSessionsForPlan,
+  getResearchPlan,
+} from "@/lib/research/plans-service";
 import { getOpenLinkForPlan } from "@/lib/research/open-links";
 import { listInvitesForPlan } from "@/lib/research/scheduling";
 import {
@@ -32,18 +35,25 @@ import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteActio
 import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
 
 /**
- * /dashboard/research-plans/[id] — Detail-Seite.
+ * /dashboard/market-research/[id] — Markt-Kampagne (Phase M3).
  *
- * Read-only Darstellung des Plans plus Status-Lifecycle-Buttons + Teilnehmer-
- * Liste (Etappe B Teil 1). Topics werden hier nicht inline editiert (Edit-
- * Modal kommt in einer späteren Etappe). Scheduling + Mailversand pro
- * Invite (proposeSlots + scheduleAndSendInvite) sind Teil 2.
+ * Der KAMPAGNEN-FLOW: bündelt die schon existierenden Teile an EINEM Ort —
+ * Topics/Ziel + Agenten-Script (Plan-Felder), Screening
+ * (ScreeningQuestionsPanel), offener Link (OpenLinkPanel), Quoten
+ * (PlanQuotaPanel) und die Auswertung (Synthese/Chat/Export, verlinkt auf den
+ * GETEILTEN /synthesis-Pfad). ALLE Panels sind die der Product-Discovery-
+ * Detailseite — WIEDERVERWENDET, nicht neu gebaut. Der Unterschied zu
+ * Discovery ist study_type + die Bündelung als Kampagnen-Erlebnis +
+ * der Ziel-Pool-Fortschritt (§7). DIESELBE Engine darunter.
+ *
+ * Die Synthese/Chat/Highlight-Reel/Export leben weiter auf
+ * /dashboard/research-plans/[id]/synthesis — EIN Synthese-Pfad, eine Engine
+ * (kein zweiter Auswertungs-Bau). Der Markt-Diskriminator macht die Engine
+ * (M2) typ-bewusst; hier wird nur verlinkt.
  */
 
 type Status = "draft" | "active" | "completed" | "archived";
 
-// Plan + invite status labels are translated via t(`status.*`) /
-// t(`inviteStatus.*`); only the badge variants live here.
 const STATUS_VARIANT: Record<Status, BadgeVariant> = {
   draft: "default",
   active: "success",
@@ -51,9 +61,6 @@ const STATUS_VARIANT: Record<Status, BadgeVariant> = {
   archived: "default",
 };
 
-// Invite-status-Mapping. Halbwegs konservativ — "completed" leuchtet grün,
-// "no_show" rot; die Zwischenzustände bleiben neutral, damit die Tabelle
-// nicht wie ein Ampelfeuerwerk aussieht.
 type InviteStatus =
   | "pending"
   | "scheduled"
@@ -87,7 +94,7 @@ function formatDate(iso: string, locale: string): string {
   });
 }
 
-export default async function ResearchPlanDetailPage({
+export default async function MarketCampaignDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -105,44 +112,37 @@ export default async function ResearchPlanDetailPage({
   }
 
   const t = await getTranslations("research.plans");
+  const tm = await getTranslations("research.market");
   const locale = await getLocale();
 
   const { id: planId } = await params;
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) notFound();
 
-  // M3 — keep the two areas visibly separate: a Market-Research campaign always
-  // renders in its own /dashboard/market-research/[id] experience (Ziel-Pool,
-  // campaign framing), never on this Product-Discovery detail. Market-only
-  // branch — for product_discovery plans this is a no-op, so the discovery
-  // render path below stays byte-identical.
-  if (plan.studyType === "market_research") {
-    redirect(`/dashboard/market-research/${planId}`);
+  // Symmetric guard to the discovery detail's market-redirect: this area is the
+  // Market-Research experience only. A product_discovery plan reached here
+  // (stale link / hand-typed URL) belongs on the discovery detail — send it
+  // there rather than render the campaign chrome around it.
+  if (plan.studyType !== "market_research") {
+    redirect(`/dashboard/research-plans/${planId}`);
   }
 
-  // Etappe B Teil 1 — read invites alongside the plan. Empty list reads as
-  // "no participants yet"; listInvitesForPlan returns [] on transient
-  // failure (safe degrade — the UI shows the InviteForm and the user can
-  // refresh).
   const invites = await listInvitesForPlan(orgId, planId);
 
-  // Participant-Pool + Screening-Quoten + offener Link. Additiv zum bestehenden
-  // Invite-Flow — unabhängige Reads, parallel. Listen degradieren auf [], der
-  // offene Link auf null (jeweils safe).
-  const [poolMembers, invitedPoolMemberIds, quotas, openLink] =
+  // Pool + Quoten + offener Link + Ziel-Pool-Fortschritt — alle unabhängig,
+  // parallel. Der completed-Count ist die §7-Messung; null → "—" (fail-open).
+  const [poolMembers, invitedPoolMemberIds, quotas, openLink, completed] =
     await Promise.all([
       listPoolMembers(orgId),
       listInvitedPoolMemberIds(orgId, planId),
       listQuotaProgress(orgId, planId),
       getOpenLinkForPlan(orgId, planId),
+      countCompletedSessionsForPlan(orgId, planId),
     ]);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
   ].sort();
 
-  // Offener Link → Panel-Props. Der access_token verlässt den Server NUR als
-  // fertige share-URL (sie IST das öffentliche Credential); das Panel bekommt
-  // sonst keine Token-Spalte.
   const openLinkView = openLink
     ? {
         status: openLink.status,
@@ -156,22 +156,34 @@ export default async function ResearchPlanDetailPage({
     : null;
   const hasScreening = plan.screeningQuestions.length > 0;
 
+  // Ziel-Pool-Fortschritt (§7) — sample_target ist das studienweite Ziel,
+  // completed der gemessene Fortschritt (NUR status='completed'). Die drei
+  // Quota-Begriffe bleiben getrennt (siehe countCompletedSessionsForPlan).
+  const sampleTarget = plan.sampleTarget;
+  const targetReached =
+    sampleTarget !== null && completed !== null && completed >= sampleTarget;
+  const targetPct =
+    sampleTarget !== null && sampleTarget > 0 && completed !== null
+      ? Math.min(100, Math.round((completed / sampleTarget) * 100))
+      : 0;
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
         <div className="mb-2">
           <Link
-            href="/dashboard/research-plans"
+            href="/dashboard/market-research"
             className="text-small text-neutral-500 transition-colors hover:text-neutral-900"
           >
-            {t("backAll")}
+            {tm("backToCampaigns")}
           </Link>
         </div>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-display text-neutral-900">{plan.title}</h1>
+              <Badge variant="low">{tm("studyTypeBadge")}</Badge>
               <Badge variant={STATUS_VARIANT[plan.status]}>
                 {t(`status.${plan.status}`)}
               </Badge>
@@ -193,7 +205,7 @@ export default async function ResearchPlanDetailPage({
             {plan.objective}
           </p>
 
-          {(plan.persona || plan.sampleTarget !== null) && (
+          {(plan.persona || sampleTarget !== null) && (
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div>
                 <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
@@ -212,8 +224,8 @@ export default async function ResearchPlanDetailPage({
                   {t("sampleTargetField")}
                 </div>
                 <p className="mt-1 text-body text-neutral-700">
-                  {plan.sampleTarget !== null ? (
-                    t("sampleTargetValue", { count: plan.sampleTarget })
+                  {sampleTarget !== null ? (
+                    t("sampleTargetValue", { count: sampleTarget })
                   ) : (
                     <span className="text-neutral-400">
                       {t("sampleOpenEnded")}
@@ -226,7 +238,55 @@ export default async function ResearchPlanDetailPage({
         </CardBody>
       </Card>
 
-      {/* Topics (read-only — Edit modal lands in Etappe B) */}
+      {/* Ziel-Pool-Fortschritt (§7) — "47 von 200". Misst sample_target gegen
+          abgeschlossene Interviews. Bewusst GETRENNT von den Rollen-Quoten
+          (unten) und vom max_sessions-Spend-Cap des offenen Links. */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">{tm("poolTitle")}</h2>
+          <p className="text-small text-neutral-500">{tm("poolDesc")}</p>
+        </div>
+        <Card>
+          <CardBody>
+            {completed === null ? (
+              <p className="text-small text-neutral-500">
+                {tm("poolCountUnknownDesc")}
+              </p>
+            ) : sampleTarget !== null ? (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <span className="text-h2 text-neutral-900">
+                    {tm("poolProgress", {
+                      completed,
+                      target: sampleTarget,
+                    })}
+                  </span>
+                  <span className="text-small text-neutral-500">
+                    {tm("poolProgressCaption")}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+                  <div
+                    className={`h-full rounded-full ${
+                      targetReached ? "bg-success-500" : "bg-primary-500"
+                    }`}
+                    style={{ width: `${targetPct}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-body text-neutral-700">
+                {tm("poolNoTarget")}{" "}
+                <span className="text-neutral-500">
+                  {tm("poolNoTargetCount", { completed })}
+                </span>
+              </p>
+            )}
+          </CardBody>
+        </Card>
+      </section>
+
+      {/* Topics (read-only) */}
       <section className="space-y-4">
         <div>
           <h2 className="text-h2 text-neutral-900">{t("topicsTitle")}</h2>
@@ -289,10 +349,7 @@ export default async function ResearchPlanDetailPage({
         )}
       </section>
 
-      {/* Teilnehmer — Section unterhalb Topics, oberhalb Lifecycle.
-          Reihenfolge folgt dem Mental Model: Plan definieren → Leute
-          einladen → Lifecycle. Bulk-Anlage + Einzelanlage + Löschen
-          sind alle hier verortet. */}
+      {/* Teilnehmer */}
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -324,13 +381,6 @@ export default async function ResearchPlanDetailPage({
               </THead>
               <TBody>
                 {invites.map((invite) => {
-                  // Termin-/Versand-Aktionen deaktivieren wir, sobald der
-                  // Plan nicht mehr bearbeitbar ist ODER die Zeile selbst
-                  // einen Terminalstatus erreicht hat. Löschen bleibt
-                  // davon UNBERÜHRT — wir wollen aufräumen können, auch
-                  // wenn der Plan archiviert oder die Zeile abgesagt
-                  // ist. Nur ein vollständig archivierter Plan friert
-                  // alle Aktionen ein.
                   const planLocked =
                     plan.status === "archived" || plan.status === "completed";
                   const inviteTerminal =
@@ -374,14 +424,6 @@ export default async function ResearchPlanDetailPage({
                         </Badge>
                       </TD>
                       <TD>
-                        {/* Send-Button gating mirrors the API's pre-checks:
-                            need scheduled_at + contact_email; idempotency
-                            kicks in once invited_at is set. Same disabled
-                            flag as Schedule — terminal invite / locked plan
-                            → button locked too. Rows OHNE E-Mail haben
-                            den Button automatisch deaktiviert (Hint
-                            "E-Mail nötig") — Link kopieren funktioniert
-                            trotzdem in der nächsten Spalte. */}
                         <SendInviteAction
                           inviteId={invite.id}
                           scheduledAt={invite.scheduled_at}
@@ -391,14 +433,6 @@ export default async function ResearchPlanDetailPage({
                         />
                       </TD>
                       <TD>
-                        {/* Pure utility: copy the public interview URL to
-                            the clipboard. The URL is resolved server-side
-                            via the canonical researchInterviewUrl() helper
-                            so it matches the link the invite mail sends.
-                            Independent of Send — useful when the user
-                            wants to share through Slack/WhatsApp instead
-                            of (or in addition to) email, oder bei
-                            Teilnehmern ohne hinterlegte E-Mail. */}
                         <CopyInterviewLinkButton
                           link={
                             invite.access_token
@@ -408,11 +442,6 @@ export default async function ResearchPlanDetailPage({
                         />
                       </TD>
                       <TD>
-                        {/* Edit + Delete share this cell as the row's
-                            "Aktionen" column. Both are gated on the
-                            archived-plan flag (deleteDisabled) — editing
-                            a frozen plan is just as confusing as deleting
-                            from it. */}
                         <div className="flex items-center gap-1">
                           <EditParticipantButton
                             planId={plan.id}
@@ -483,13 +512,7 @@ export default async function ResearchPlanDetailPage({
         )}
       </section>
 
-      {/* Screening-Fragen — inbound Qualifizierung VOR dem Interview. Der
-          Researcher definiert Fragen + akzeptierte Antworten; die
-          deterministische Auswertung (Etappe 4) entscheidet qualifiziert /
-          abgewiesen. Leere Liste = kein Screening, jeder Eingeladene startet
-          direkt ins Interview. Auf archivierten Plänen read-only. Sitzt
-          bewusst zwischen Teilnehmer und Quoten ("erst screenen, dann
-          quotieren"). */}
+      {/* Screening-Fragen */}
       <section className="space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">{t("screeningTitle")}</h2>
@@ -506,12 +529,8 @@ export default async function ResearchPlanDetailPage({
         </Card>
       </section>
 
-      {/* Offener Link — EIN studienweiter, öffentlich teilbarer Link für
-          beliebig viele anonyme Walk-ins (Community/Social/QR), additiv NEBEN
-          dem per-Invite-Eintritt. Setzt Screening voraus (UI-Leitplanke hier,
-          hartes Erzwingen am Eintritt in einer späteren Etappe). Sitzt bewusst
-          direkt unter Screening — die Abhängigkeit wird so sichtbar. Auf
-          archivierten Plänen read-only. */}
+      {/* Offener Link — der Kern des Markt-Outreach: EIN studienweiter,
+          öffentlich teilbarer Link für anonyme Walk-ins. */}
       <section className="space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">{t("openLinkTitle")}</h2>
@@ -530,9 +549,7 @@ export default async function ResearchPlanDetailPage({
         </Card>
       </section>
 
-      {/* Screening-Quoten — manuelle Ziele pro Rolle, Fortschritt aus Pool-
-          Einladungen. Deterministisch, additiv. Auf archivierten Plänen
-          read-only (disabled). */}
+      {/* Screening-Quoten (Rollen-Pool) — bewusst getrennt vom Ziel-Pool oben. */}
       <section className="space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">{t("quotasTitle")}</h2>
@@ -550,11 +567,7 @@ export default async function ResearchPlanDetailPage({
         </Card>
       </section>
 
-      {/* Synthesis — link to the dedicated /synthesis route. Compact card,
-          no data fetched here so the plan-detail page stays cheap. The
-          synthesis page itself does the heavy lift (read + render + the
-          re-run trigger). Additive section — does NOT alter the surrounding
-          sections. */}
+      {/* Auswertung — GETEILTER Synthese-Pfad (eine Engine, M2-typ-bewusst). */}
       <section className="space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">
