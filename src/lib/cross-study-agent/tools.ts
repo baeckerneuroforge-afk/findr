@@ -4,6 +4,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 
 import { fold, loadOrgSyntheses } from "@/lib/mission-control/engine";
 import type { MissionControlSynthesisInput } from "@/lib/mission-control/prompts";
+import type { ResearchPlanStudyType } from "@/lib/research/db";
 
 /**
  * Cross-Study-Agent tools — Bau 1: the TWO SAFE load tools; Bau 2 adds the THIRD
@@ -38,6 +39,11 @@ export interface StudyIndexEntry {
   basedOnCount: number;
   themeTitles: string[];
   tensionCount: number;
+  /** Studientyp (M2) — lets list_studies show "Markt-Studie" / "Discovery-Studie"
+   *  in the thin index so the agent can pick the right kind before loading.
+   *  Optional: eval fixtures leave it undefined (no label); production fills it
+   *  via loadOrgSyntheses. Display-only, never anchored. */
+  studyType?: ResearchPlanStudyType;
 }
 
 /**
@@ -68,6 +74,7 @@ export function toIndexEntry(s: MissionControlSynthesisInput): StudyIndexEntry {
     basedOnCount: s.basedOnCount,
     themeTitles: s.emergent_themes.map((t) => t.title),
     tensionCount: s.tensions.length,
+    studyType: s.studyType,
   };
 }
 

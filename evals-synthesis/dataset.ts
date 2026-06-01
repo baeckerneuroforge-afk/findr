@@ -28,6 +28,16 @@
  *              empty themes, empty tensions, honest one-sentence
  *              overview ("the inputs do not contain product feedback").
  *
+ *   synth_05 — MARKET-RESEARCH lens (M2 persona). study_type=
+ *              'market_research'; the Stage-1 MARKET findings live in the
+ *              shared feature_requests field (M1 reuse §9 #1) with MARKET
+ *              categories. 3 respondents put a hard price ceiling (≤15-20€),
+ *              2 pay premium for quality/support, 1 names a competitor +
+ *              switch trigger. Expectation: the market persona condenses
+ *              MARKET signal (price lager + purchase intent), surfacing ≥1
+ *              price theme and ONE price tension with disjoint sides — NOT
+ *              feature/pain themes. Proves the persona branch.
+ *
  * Each insight cites quotes that exist verbatim inside its own evidence
  * arrays — so the engine's anchored-filter has a haystack to validate
  * against. The fake IDs (insight_01_a … insight_04_d) are arbitrary
@@ -370,9 +380,130 @@ const synth04: SynthesisEvalCase = {
   expected: { minThemes: 0, maxThemes: 0, tensions: 0 },
 };
 
+// ── synth_05 — MARKET-RESEARCH lens (M2 persona) ───────────────────────────
+//
+// study_type='market_research'. The Stage-1 MARKET findings sit in the shared
+// feature_requests field (M1 reuse §9 #1) with MARKET categories. The market
+// persona must read them AS market findings and condense the price lager(s) +
+// purchase intent + competitive perception — surfacing the price-sensitive vs
+// premium-willing TENSION — NOT product feature/pain themes. The fixtures store
+// market findings via the same `insight()` feature helper (same container; only
+// the category vocabulary differs, exactly as M1 stores them).
+
+const synth05: SynthesisEvalCase = {
+  id: "synth_05",
+  description:
+    "Market study: price lager split (price-sensitive ≤20€ vs premium-willing) + switch intent",
+  rationale:
+    "The M2 market-persona case. 3 respondents set a hard price ceiling (≤15-20€), 2 pay premium for quality/support → ≥1 price theme + ONE price tension with DISJOINT sides; plus a competitive/switch-intent signal. The synthesis must read feature_requests as MARKET findings and condense price/intent, never reframe them as product feature requests.",
+  input: {
+    plan: {
+      title: "Preisstudie PM-Tool DACH",
+      objective:
+        "Zahlungsbereitschaft, Kaufabsicht und Wettbewerbswahrnehmung für ein neues Projektmanagement-Tool im SMB-Segment verstehen.",
+      persona: "SMB-Eigentümer & Selbstständige DACH",
+      studyType: "market_research",
+    },
+    insights: [
+      insight("call_05_a", "SMB-Eigentümer", "Preis ist die Hürde.", {
+        feature: [
+          {
+            category: "PRICE_SENSITIVITY",
+            title: "Harte Preisobergrenze 20 €",
+            description: "Würde für ein PM-Tool nie mehr als 20 €/Monat zahlen.",
+            intensity: "blocker",
+            confidence: 0.95,
+            evidence: [
+              "Mehr als 20 Euro im Monat würde ich für so ein Tool nie zahlen.",
+            ],
+          },
+        ],
+      }),
+      insight("call_05_b", "Freiberufler", "Schmerzgrenze 15 €.", {
+        feature: [
+          {
+            category: "PRICE_SENSITIVITY",
+            title: "Schmerzgrenze 15 €",
+            description: "15 €/Monat ist die absolute Obergrenze.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Für ein PM-Tool sind 15 Euro pro Monat meine absolute Schmerzgrenze.",
+            ],
+          },
+        ],
+      }),
+      insight("call_05_c", "Solo-Selbstständige", "Will nichts zahlen.", {
+        feature: [
+          {
+            category: "PRICE_SENSITIVITY",
+            title: "Bevorzugt kostenlose Tools",
+            description: "Greift lieber zu kostenlosen Alternativen.",
+            intensity: "high",
+            confidence: 0.85,
+            evidence: [
+              "Ich nutze lieber was Kostenloses, zahlen will ich dafür eigentlich gar nichts.",
+            ],
+          },
+        ],
+      }),
+      insight("call_05_d", "Agentur-Inhaber", "Zahlt für guten Support.", {
+        feature: [
+          {
+            category: "PRICE_SENSITIVITY",
+            title: "Premium für guten Support",
+            description: "Guter Support rechtfertigt einen höheren Preis.",
+            intensity: "medium",
+            confidence: 0.8,
+            evidence: [
+              "Wenn der Support gut ist, zahle ich auch gern 50 Euro im Monat pro Nutzer.",
+            ],
+          },
+        ],
+      }),
+      insight("call_05_e", "Team-Lead Mittelstand", "Qualität vor Preis.", {
+        feature: [
+          {
+            category: "PRICE_SENSITIVITY",
+            title: "Qualität vor Preis",
+            description: "Bei einem verlässlichen Tool ist der Preis zweitrangig.",
+            intensity: "medium",
+            confidence: 0.8,
+            evidence: [
+              "Qualität hat ihren Preis, bei einem verlässlichen Tool ist Geld nicht das Thema.",
+            ],
+          },
+        ],
+      }),
+      insight(
+        "call_05_f",
+        "Trello-Nutzer",
+        "Würde bei besserer Automatisierung wechseln.",
+        {
+          feature: [
+            {
+              category: "COMPETITIVE_PERCEPTION",
+              title: "Wechsel von Trello bei besserer Automatisierung",
+              description:
+                "Nutzt aktuell Trello; bessere Automatisierung wäre der Wechsel-Trigger.",
+              intensity: "high",
+              confidence: 0.85,
+              evidence: [
+                "Aktuell nutze ich Trello, aber wenn euer Tool bessere Automatisierung hätte, würde ich sofort wechseln.",
+              ],
+            },
+          ],
+        },
+      ),
+    ],
+  },
+  expected: { minThemes: 1, maxThemes: 4, tensions: 1, maxThemeFrequency: 6 },
+};
+
 export const SYNTHESIS_EVAL_CASES: SynthesisEvalCase[] = [
   synth01,
   synth02,
   synth03,
   synth04,
+  synth05,
 ];

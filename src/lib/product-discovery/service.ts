@@ -18,6 +18,7 @@ import {
 } from "@/lib/schemas/product-discovery";
 import {
   getResearchPlan,
+  getMarketResearchPlanIds,
   type ResearchPlanRecord,
 } from "@/lib/research/plans-service";
 import { analyzeMarketResearch } from "@/lib/market-research/classifier";
@@ -408,6 +409,25 @@ export async function getInsightsForAccount(
  * cast-based join for typical org sizes since both lookups hit the primary
  * key index directly. Same pattern as getLatestHealthScoresForAccounts in
  * src/lib/accounts/health-service.ts.
+ *
+ * ── §6 KPI DE-CONTAMINATION (M2) ────────────────────────────────────────────
+ * This is the ONLY org-wide insight read (it powers the Product-Discovery
+ * overview's KPIs). Market-research studies persist their findings into the
+ * SAME product_discovery_insights table (M1 reuse decision §9 #1), so without
+ * a filter a market walk-in's price/brand finding folds into the product KPIs
+ * (counted as a feature request / blocker — the separation plan's one real
+ * defect). We exclude rows whose plan is a market_research study:
+ *   - plan_id IS NULL          → passive customer call → product discovery → KEPT
+ *   - plan_id → discovery plan → KEPT
+ *   - plan_id → market plan    → DROPPED
+ * The filter is JS-side ON PURPOSE: a DB `.not("plan_id","in",(…))` would use
+ * SQL `NOT IN`, and `NULL NOT IN (…)` is NULL (not true) — it would silently
+ * drop every passive (plan_id NULL) row, the common case. getMarketResearchPlanIds
+ * fails OPEN (empty set → exclude nothing), so a transient error or a
+ * pre-migration DB degrades to the old behaviour, never a crash. The other
+ * insight reads (per-call / per-deal / per-account / per-plan) need no filter:
+ * market rows carry deal_id/account_id = NULL and are reached only by their own
+ * plan_id, so they never leak into a deal/account view.
  */
 export async function getAllInsightsForOrg(
   orgId: string,
@@ -424,19 +444,29 @@ export async function getAllInsightsForOrg(
   const { data, error } = await query;
   if (error || !data) return [];
 
+  // §6 — drop market_research-study rows so the product KPIs count product
+  // signal only. Fail-open empty set → no exclusion (see function docstring).
+  const marketPlanIds = await getMarketResearchPlanIds(orgId);
+  const rows =
+    marketPlanIds.size === 0
+      ? data
+      : data.filter(
+          (r) => r.plan_id === null || !marketPlanIds.has(r.plan_id),
+        );
+
   // Collect unique parent ids for the two label lookups. deal_id is filtered
   // to UUID-shaped values; legacy non-UUID strings have no matching deals
   // row and resolve to null source_label.
   const dealIds = [
     ...new Set(
-      data
+      rows
         .map((r) => r.deal_id)
         .filter((id): id is string => id !== null && UUID_RE.test(id)),
     ),
   ];
   const accountIds = [
     ...new Set(
-      data
+      rows
         .map((r) => r.account_id)
         .filter((id): id is string => id !== null),
     ),
@@ -447,7 +477,7 @@ export async function getAllInsightsForOrg(
     fetchAccountNames(supabase, orgId, accountIds),
   ]);
 
-  return data.map((row) => {
+  return rows.map((row) => {
     const label =
       row.deal_id !== null
         ? (dealNames.get(row.deal_id) ?? null)

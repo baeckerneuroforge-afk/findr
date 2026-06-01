@@ -1,5 +1,6 @@
 import type { EmergentTheme, Tension } from "@/lib/schemas/synthesis";
 import type { MissionControlHistoryTurn } from "@/lib/schemas/mission-control";
+import type { ResearchPlanStudyType } from "@/lib/research/db";
 
 /**
  * Mission-Control prompt + data-section assembly. Pure string-building, no
@@ -31,6 +32,14 @@ export interface MissionControlSynthesisInput {
   /** Interviews this study's synthesis was built on. A respondent count for
    *  this study may never exceed it. */
   basedOnCount: number;
+  /** Studientyp (M2) — surfaces "Markt-Studie" vs "Discovery-Studie" as a
+   *  DISPLAY/FRAMING label so a cross-study answer can tell the kinds apart.
+   *  Deliberately NOT part of the anchor haystack (same status as studyTitle —
+   *  metadata, not a finding). OPTIONAL: the eval fixtures + any pre-M2 caller
+   *  leave it undefined, which renders no label and keeps those prompts
+   *  byte-identical; loadOrgSyntheses populates it in production. ONE table,
+   *  ONE path — this is a label, not a second data source. */
+  studyType?: ResearchPlanStudyType;
 }
 
 export interface MissionControlFromInputs {
@@ -93,6 +102,21 @@ OUTPUT — call the tool exactly once with this shape, no markdown, no preamble:
 
 // ── Data-section assembly ───────────────────────────────────────────────────
 
+/**
+ * Human label for a study's type — cross-study DISPLAY/FRAMING only (M2). Lets
+ * a cross-study answer distinguish "Markt-Studie" from "Discovery-Studie"
+ * without changing the ONE-table / ONE-path contract. NEVER folded into the
+ * anchor haystack (the haystack is overview + emergent_themes + tensions). A
+ * missing studyType yields "" so the eval fixtures + any pre-M2 caller render
+ * no label and their prompts stay byte-identical. Shared with the
+ * Cross-Study-Agent formatters so both surfaces label studies identically.
+ */
+export function studyTypeLabel(studyType?: ResearchPlanStudyType): string {
+  if (studyType === "market_research") return "Markt-Studie";
+  if (studyType === "product_discovery") return "Discovery-Studie";
+  return "";
+}
+
 function formatTheme(theme: EmergentTheme, idx: number): string {
   const lines = [
     `  THEME ${idx}: "${theme.title}" (frequency=${theme.frequency})`,
@@ -126,8 +150,10 @@ function formatTension(tension: Tension, idx: number): string {
  *  source. Only the synthesis strings (overview / themes / tensions) are
  *  evidence; the title is framing. */
 function formatStudyBlock(s: MissionControlSynthesisInput): string {
+  const label = studyTypeLabel(s.studyType);
+  const labelPart = label ? ` [${label}]` : "";
   const lines = [
-    `STUDY id=${s.studyId} "${s.studyTitle}" (based on ${s.basedOnCount} interviews)`,
+    `STUDY id=${s.studyId} "${s.studyTitle}"${labelPart} (based on ${s.basedOnCount} interviews)`,
   ];
   if (s.overview && s.overview.trim() !== "") {
     lines.push(`  overview: ${s.overview.trim()}`);

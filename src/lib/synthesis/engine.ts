@@ -16,8 +16,10 @@ import {
   type Tension,
   type TensionSide,
 } from "@/lib/schemas/synthesis";
+import { coerceStudyType } from "@/lib/research/plans-service";
+import type { ResearchPlanStudyType } from "@/lib/research/db";
 import {
-  STUDY_SYNTHESIS_SYSTEM_PROMPT,
+  selectSynthesisSystemPrompt,
   buildSynthesisUserPrompt,
   type SynthesisInput,
   type SynthesisInsightInput,
@@ -129,6 +131,10 @@ type ResearchPlanRow = {
   persona: string | null;
   sample_target: number | null;
   status: string;
+  // Studientyp-Diskriminator (M0, 20260630000000). Read in synthesizeStudy to
+  // select the synthesis persona (M2). Coerced defensively via coerceStudyType
+  // on read — pre-migration select("*") omits the column (undefined → default).
+  study_type: ResearchPlanStudyType;
   created_at: string;
 };
 
@@ -165,6 +171,7 @@ type ResearchPlanInsert = {
   persona?: string | null;
   sample_target?: number | null;
   status?: string;
+  study_type?: ResearchPlanStudyType;
   created_at?: string;
 };
 
@@ -367,7 +374,11 @@ export async function synthesizeFromInputs(
   try {
     raw = await callClaudeStructured({
       schema: StudySynthesisResultSchema,
-      system: STUDY_SYNTHESIS_SYSTEM_PROMPT,
+      // M2: persona by study_type. 'market_research' → market lens; anything
+      // else (incl. undefined) → the byte-identical product-discovery prompt.
+      // Everything else about this call — schema, user prompt, tool name,
+      // maxTokens, anchored-filter — is shared and unchanged for both personas.
+      system: selectSynthesisSystemPrompt(input.plan.studyType),
       messages: [{ role: "user", content: userPrompt }],
       model,
       maxTokens: 4096,
@@ -443,6 +454,11 @@ export async function synthesizeStudy(
     title: planRow.title,
     objective: planRow.objective,
     persona: planRow.persona,
+    // M2: select the synthesis persona by study_type. Coerced defensively
+    // (undefined pre-migration → 'product_discovery'), so a discovery plan
+    // synthesizes byte-identically and only a market_research plan flips to the
+    // market lens. Reuses plans-service.coerceStudyType (single source of truth).
+    studyType: coerceStudyType(planRow.study_type),
   };
 
   // Insights — `select("*")` for the same type-narrowing reason as the plan

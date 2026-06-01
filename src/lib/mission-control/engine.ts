@@ -15,6 +15,8 @@ import {
   normalizeEmergentThemes,
   normalizeTensions,
 } from "@/lib/schemas/synthesis";
+import { coerceStudyType } from "@/lib/research/plans-service";
+import type { ResearchPlanStudyType } from "@/lib/research/db";
 import type { Database, Json } from "@/types/database";
 import {
   MISSION_CONTROL_SYSTEM_PROMPT,
@@ -284,6 +286,11 @@ type ResearchPlanRow = {
   persona: string | null;
   sample_target: number | null;
   status: string;
+  // Studientyp (M0) — read alongside the title so each cross-study block can be
+  // labelled "Markt-Studie" / "Discovery-Studie" (M2). Typed as the precise
+  // union (mirrors synthesis/engine.ts); coerced defensively on read for the
+  // pre-migration undefined; not part of the anchor haystack.
+  study_type: ResearchPlanStudyType;
   created_at: string;
 };
 
@@ -348,15 +355,20 @@ export async function loadOrgSyntheses(
     .order("created_at", { ascending: false });
   if (error || !synthRows || synthRows.length === 0) return [];
 
-  // Resolve study titles in one batched query (org-scoped).
+  // Resolve study titles + types in one batched query (org-scoped). study_type
+  // (M2) only labels each block as Markt-/Discovery-Studie — still ONE table,
+  // ONE path, no UNION; it never enters the anchor haystack.
   const planIds = [...new Set(synthRows.map((r) => r.plan_id))];
   const { data: planRows } = await supabase
     .from("research_plans")
-    .select("id, title")
+    .select("id, title, study_type")
     .eq("org_id", orgId)
     .in("id", planIds);
   const titleByPlan = new Map<string, string>(
     (planRows ?? []).map((p) => [p.id, p.title]),
+  );
+  const typeByPlan = new Map<string, ResearchPlanStudyType>(
+    (planRows ?? []).map((p) => [p.id, p.study_type]),
   );
 
   return synthRows.map((row) => ({
@@ -366,6 +378,9 @@ export async function loadOrgSyntheses(
     emergent_themes: normalizeEmergentThemes(row.emergent_themes),
     tensions: normalizeTensions(row.tensions),
     basedOnCount: row.based_on_count,
+    // Defensive coercion: an orphaned synthesis (plan deleted) or a
+    // pre-migration row → undefined → 'product_discovery', the safe default.
+    studyType: coerceStudyType(typeByPlan.get(row.plan_id)),
   }));
 }
 

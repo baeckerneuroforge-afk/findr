@@ -104,7 +104,12 @@ function coerceScreeningQuestions(raw: unknown): ScreeningQuestion[] {
  * is what makes every existing plan read byte-identically both before and after
  * the migration.
  */
-function coerceStudyType(raw: unknown): ResearchPlanStudyType {
+// Exported as the SINGLE source of truth for this coercion: M2's synthesis
+// engine (synthesis/engine.ts) reads study_type off its own plan query and
+// reuses this exact mapping rather than duplicating the literal, so the
+// pre-migration fail-safe (undefined → 'product_discovery') stays identical on
+// every read path.
+export function coerceStudyType(raw: unknown): ResearchPlanStudyType {
   return raw === "market_research" ? "market_research" : "product_discovery";
 }
 
@@ -176,6 +181,37 @@ export async function listResearchPlans(
     .order("created_at", { ascending: false });
   if (error || !data) return [];
   return data.map(toRecord);
+}
+
+/**
+ * The set of plan_ids in an org whose study_type is 'market_research'.
+ *
+ * Powers the §6 KPI de-contamination in product-discovery's
+ * getAllInsightsForOrg: a market-research study's Stage-1 findings live in the
+ * SHARED product_discovery_insights table (M1 reuse decision, separation plan
+ * §9 #1), tagged ONLY by their plan's study_type — so the Product-Discovery
+ * overview must exclude those rows from its product KPIs. The discriminator
+ * (plan_id → study_type) is one indexed research_plans read; the caller drops
+ * insights whose plan_id is in this set.
+ *
+ * FAIL-OPEN: returns an EMPTY set on any error — including the pre-migration
+ * state where the study_type column does not exist yet and the .eq filter
+ * errors. An empty set excludes nothing, i.e. degrades to the exact M1
+ * behaviour (market rows still folded in), never a crash. After the
+ * 20260630000000 migration is applied this filters correctly. Same fail-safe
+ * posture as coerceStudyType.
+ */
+export async function getMarketResearchPlanIds(
+  orgId: string,
+): Promise<Set<string>> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_plans")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("study_type", "market_research");
+  if (error || !data) return new Set();
+  return new Set(data.map((r) => r.id));
 }
 
 // ── Writes ──────────────────────────────────────────────────────────────────
