@@ -126,6 +126,14 @@ type InterviewSessionsUpdate = {
 
 type ResearchPlanStatus = "draft" | "active" | "completed" | "archived";
 
+// Studientyp-Diskriminator (Phase M0, 20260630000000). Trennt Market Research
+// von Product Discovery auf der GETEILTEN Engine — kein eigenes Schema (siehe
+// docs/findr-market-research-separation-plan.md §5). Literal-Union wie
+// ResearchPlanStatus; der DB-CHECK garantiert genau diese zwei Werte, der
+// DEFAULT 'product_discovery' hält alle Bestandszeilen byte-identisch. In M0
+// liest KEIN Verhaltenspfad diese Spalte scharf.
+export type ResearchPlanStudyType = "product_discovery" | "market_research";
+
 export type ResearchPlanRow = {
   id: string;
   org_id: string | null;
@@ -138,6 +146,12 @@ export type ResearchPlanRow = {
   persona: string | null;
   sample_target: number | null;
   status: ResearchPlanStatus;
+  // Studientyp (Phase M0, 20260630000000). NOT NULL DEFAULT 'product_discovery'
+  // in der DB — nicht-nullbar getypt wie status. Vor angewandter Migration
+  // liefert select("*") die Spalte nicht; der Lese-Mapper (plans-service
+  // coerceStudyType) defaultet undefined→'product_discovery', sodass der Code
+  // auch pre-migration byte-identisch bleibt.
+  study_type: ResearchPlanStudyType;
   created_at: string;
 };
 
@@ -151,6 +165,9 @@ type ResearchPlanInsert = {
   persona?: string | null;
   sample_target?: number | null;
   status?: ResearchPlanStatus;
+  // Optional beim Insert — wird heute NIE gesetzt (kein Write-Pfad in M0); der
+  // DB-DEFAULT vergibt 'product_discovery'. Verdrahtung kommt in M1/M3.
+  study_type?: ResearchPlanStudyType;
   created_at?: string;
 };
 
@@ -164,6 +181,7 @@ type ResearchPlanUpdate = {
   persona?: string | null;
   sample_target?: number | null;
   status?: ResearchPlanStatus;
+  study_type?: ResearchPlanStudyType;
   created_at?: string;
 };
 

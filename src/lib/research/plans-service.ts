@@ -5,7 +5,11 @@ import type {
   ResearchPlanContext,
   ResearchTopic,
 } from "@/lib/voice-agent/interviewer";
-import { createResearchSupabase, type ResearchPlanRow } from "./db";
+import {
+  createResearchSupabase,
+  type ResearchPlanRow,
+  type ResearchPlanStudyType,
+} from "./db";
 import {
   ScreeningQuestionSchema,
   type ScreeningQuestion,
@@ -33,6 +37,11 @@ export interface ResearchPlanRecord {
   sampleTarget: number | null;
   status: "draft" | "active" | "completed" | "archived";
   screeningQuestions: ScreeningQuestion[];
+  /** Studientyp-Diskriminator (Phase M0). Trägt 'product_discovery' für jeden
+   *  Bestandsplan (DB-DEFAULT). In M0 liest KEIN Verhaltenspfad dieses Feld —
+   *  es ist reines Typ-Fundament; die typ-bewusste Verzweigung (Markt-Prompt /
+   *  Synthese-Persona / UI-Bereich) kommt in M1–M3. */
+  studyType: ResearchPlanStudyType;
   createdAt: string;
 }
 
@@ -85,6 +94,20 @@ function coerceScreeningQuestions(raw: unknown): ScreeningQuestion[] {
   return out;
 }
 
+/**
+ * Defensive read-mapper for study_type. Mirrors coerceTopics /
+ * coerceScreeningQuestions: never throws, always returns a valid member of the
+ * union. Returns 'market_research' ONLY for that exact value; everything else
+ * — including `undefined` (the runtime value before the 20260630000000
+ * migration is applied, when select("*") doesn't return the column), `null`,
+ * or a corrupt legacy value — falls back to 'product_discovery'. That fallback
+ * is what makes every existing plan read byte-identically both before and after
+ * the migration.
+ */
+function coerceStudyType(raw: unknown): ResearchPlanStudyType {
+  return raw === "market_research" ? "market_research" : "product_discovery";
+}
+
 function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
   return {
     id: row.id,
@@ -96,6 +119,7 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     sampleTarget: row.sample_target,
     status: row.status,
     screeningQuestions: coerceScreeningQuestions(row.screening_questions),
+    studyType: coerceStudyType(row.study_type),
     createdAt: row.created_at,
   };
 }
