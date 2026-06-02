@@ -529,3 +529,33 @@ export async function updateOpenLinkSettings(
   if (error || !data) return null;
   return toRecord(data);
 }
+
+/**
+ * Panel-Anbieter E3: verdrahtet die provider-spezifischen Completion-Return-
+ * URLs additiv auf dem bestehenden offenen Link. Dies ist bewusst NUR ein
+ * Researcher-side Write-Helper; die öffentliche E1/E2-Empfangslogik bleibt in
+ * findOpenLinkByAccessToken / parsePanelParams / buildPanelRedirectUrl
+ * unverändert.
+ */
+export async function updateOpenLinkPanelCompletion(
+  orgId: string,
+  linkId: string,
+  completion: PanelCompletion,
+): Promise<ResearchOpenLinkRecord | null> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_open_links")
+    .update({
+      panel_completion: {
+        complete_url: completion.complete_url,
+        screenout_url: completion.screenout_url,
+        quotafull_url: completion.quotafull_url,
+      },
+    })
+    .eq("org_id", orgId)
+    .eq("id", linkId)
+    .select("*")
+    .maybeSingle();
+  if (error || !data) return null;
+  return toRecord(data);
+}

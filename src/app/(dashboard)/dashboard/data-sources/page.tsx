@@ -8,6 +8,7 @@ import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { getHubspotIntegration } from "@/lib/hubspot/service";
 import { getGongIntegration } from "@/lib/gong/service";
+import { getProlificCredentialSummary } from "@/lib/panel/service";
 import { getSlackIntegration } from "@/lib/slack/service";
 
 type SourceStatus = "connected" | "available" | "not_connected";
@@ -71,9 +72,10 @@ export default async function DataSourcesPage() {
 
   const locale = await getLocale();
   const supabase = createAdminSupabaseClient();
-  const [hubspot, gong, slack, manualCountResult] = await Promise.all([
+  const [hubspot, gong, prolific, slack, manualCountResult] = await Promise.all([
     getHubspotIntegration(orgId),
     getGongIntegration(orgId),
+    getProlificCredentialSummary(orgId),
     getSlackIntegration(orgId),
     supabase
       .from("deals")
@@ -110,6 +112,23 @@ export default async function DataSourcesPage() {
         : undefined,
       icon: (
         <InlineIcon path="M7 8v8m5-11v14m5-10v6M4 18h16M4 6h16" />
+      ),
+    },
+    {
+      title: "Prolific",
+      category: "Panels",
+      description: "Create unpublished Prolific study drafts for open links.",
+      href: "/dashboard/integrations/prolific",
+      cta: prolific ? "Manage Prolific" : "Connect Prolific",
+      status: prolific?.status === "connected" ? "connected" : "not_connected",
+      detail:
+        prolific?.status === "connected"
+          ? prolific.providerUserEmail ?? prolific.tokenHint ?? undefined
+          : prolific?.status === "invalid"
+            ? "Stored token is invalid"
+            : undefined,
+      icon: (
+        <InlineIcon path="M4 7h16M4 12h16M4 17h10M7 4v16m10-16v8" />
       ),
     },
     {

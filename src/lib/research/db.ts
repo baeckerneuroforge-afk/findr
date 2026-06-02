@@ -584,6 +584,68 @@ type ResearchOpenLinkUpdate = {
   created_at?: string;
 };
 
+// ── panel_provider_credentials ───────────────────────────────────────────────
+//
+// Phase 4 Baustein 3 (Panel-Anbieter) E3 — per-org provider credentials. This
+// table deliberately does NOT mirror the older HubSpot/Gong/Slack plaintext
+// token columns; Prolific tokens can create studies and are money-adjacent after
+// a researcher publishes in Prolific, so E3 stores them encrypted at rest. The
+// older integrations remain a separate hardening backlog item, not part of E3.
+
+export type PanelProviderCredentialRow = {
+  id: string;
+  org_id: string;
+  provider: "prolific";
+  encrypted_api_token: string;
+  token_iv: string;
+  token_auth_tag: string;
+  encryption_key_id: string | null;
+  token_hint: string | null;
+  status: "connected" | "invalid" | "unknown";
+  provider_user_id: string | null;
+  provider_user_email: string | null;
+  last_validated_at: string | null;
+  validation_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PanelProviderCredentialInsert = {
+  id?: string;
+  org_id: string;
+  provider: "prolific";
+  encrypted_api_token: string;
+  token_iv: string;
+  token_auth_tag: string;
+  encryption_key_id?: string | null;
+  token_hint?: string | null;
+  status?: "connected" | "invalid" | "unknown";
+  provider_user_id?: string | null;
+  provider_user_email?: string | null;
+  last_validated_at?: string | null;
+  validation_error?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type PanelProviderCredentialUpdate = {
+  id?: string;
+  org_id?: string;
+  provider?: "prolific";
+  encrypted_api_token?: string;
+  token_iv?: string;
+  token_auth_tag?: string;
+  encryption_key_id?: string | null;
+  token_hint?: string | null;
+  status?: "connected" | "invalid" | "unknown";
+  provider_user_id?: string | null;
+  provider_user_email?: string | null;
+  last_validated_at?: string | null;
+  validation_error?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 // ── Augmented Database type ────────────────────────────────────────────────
 
 export type DatabaseWithResearch = {
@@ -654,6 +716,12 @@ export type DatabaseWithResearch = {
         Row: ResearchOpenLinkRow;
         Insert: ResearchOpenLinkInsert;
         Update: ResearchOpenLinkUpdate;
+        Relationships: [];
+      };
+      panel_provider_credentials: {
+        Row: PanelProviderCredentialRow;
+        Insert: PanelProviderCredentialInsert;
+        Update: PanelProviderCredentialUpdate;
         Relationships: [];
       };
     };

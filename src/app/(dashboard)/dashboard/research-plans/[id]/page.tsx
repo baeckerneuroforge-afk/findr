@@ -7,6 +7,7 @@ import {
   researchInterviewUrl,
   researchOpenLinkUrl,
 } from "@/lib/email/research-invite";
+import { getProlificCredentialSummary } from "@/lib/panel/service";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { getOpenLinkForPlan } from "@/lib/research/open-links";
 import { listInvitesForPlan } from "@/lib/research/scheduling";
@@ -27,6 +28,7 @@ import { InviteFromPoolForm } from "@/components/dashboard/InviteFromPoolForm";
 import { OpenLinkPanel } from "@/components/dashboard/OpenLinkPanel";
 import { PlanQuotaPanel } from "@/components/dashboard/PlanQuotaPanel";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
+import { ProlificDraftPanel } from "@/components/dashboard/ProlificDraftPanel";
 import { ScreeningQuestionsPanel } from "@/components/dashboard/ScreeningQuestionsPanel";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
 import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
@@ -126,15 +128,16 @@ export default async function ResearchPlanDetailPage({
   // refresh).
   const invites = await listInvitesForPlan(orgId, planId);
 
-  // Participant-Pool + Screening-Quoten + offener Link. Additiv zum bestehenden
-  // Invite-Flow — unabhängige Reads, parallel. Listen degradieren auf [], der
-  // offene Link auf null (jeweils safe).
-  const [poolMembers, invitedPoolMemberIds, quotas, openLink] =
+  // Participant-Pool + Screening-Quoten + offener Link + Panel-Credentials.
+  // Additiv zum bestehenden Invite-Flow — unabhängige Reads, parallel. Listen
+  // degradieren auf [], der offene Link / Prolific-Status auf null (safe).
+  const [poolMembers, invitedPoolMemberIds, quotas, openLink, prolificCredential] =
     await Promise.all([
       listPoolMembers(orgId),
       listInvitedPoolMemberIds(orgId, planId),
       listQuotaProgress(orgId, planId),
       getOpenLinkForPlan(orgId, planId),
+      getProlificCredentialSummary(orgId),
     ]);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
@@ -155,6 +158,10 @@ export default async function ResearchPlanDetailPage({
     ? researchOpenLinkUrl(openLink.access_token)
     : null;
   const hasScreening = plan.screeningQuestions.length > 0;
+  const panelCompletionConfigured = Boolean(
+    openLink?.panel_completion?.complete_url ||
+      openLink?.panel_completion?.screenout_url,
+  );
 
   return (
     <div className="space-y-8">
@@ -524,6 +531,40 @@ export default async function ResearchPlanDetailPage({
               openLink={openLinkView}
               shareUrl={openLinkShareUrl}
               hasScreening={hasScreening}
+              disabled={plan.status === "archived"}
+            />
+          </CardBody>
+        </Card>
+      </section>
+
+      {/* Prolific Panel-Anbieter E3 — baut NUR einen unveröffentlichten Draft im
+          Kunden-Prolific und schreibt anschließend die erzeugten Completion-
+          URLs additiv in research_open_links.panel_completion. Kein Publish,
+          kein Funding, keine Änderung am öffentlichen Empfangspfad. */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">Prolific panel</h2>
+          <p className="text-small text-neutral-500">
+            Create an unpublished Prolific draft for the active open link.
+          </p>
+        </div>
+        <Card>
+          <CardBody>
+            <ProlificDraftPanel
+              planId={plan.id}
+              planTitle={plan.title}
+              planObjective={plan.objective}
+              sampleTarget={plan.sampleTarget}
+              openLink={
+                openLink
+                  ? {
+                      status: openLink.status,
+                      maxSessions: openLink.max_sessions,
+                    }
+                  : null
+              }
+              credentialStatus={prolificCredential?.status ?? "missing"}
+              panelCompletionConfigured={panelCompletionConfigured}
               disabled={plan.status === "archived"}
             />
           </CardBody>
