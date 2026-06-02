@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/marketing/seo";
 import { getAllInsightSlugs } from "@/lib/insights/articles";
+import { ROLES } from "@/components/marketing/role-template";
 
 /**
  * Sitemap — homepage, platform overview + four module pages (Etappe A + B),
@@ -24,6 +25,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/produkt/market-research", priority: 0.8 },
     { path: "/preise", priority: 0.8 },
     { path: "/loesungen", priority: 0.7 },
+    ...ROLES.map((r) => ({
+      path: `/loesungen/${r.slug}`,
+      priority: 0.7,
+    })),
     { path: "/branchen/konsumgueter", priority: 0.7 },
     { path: "/branchen/handel", priority: 0.7 },
     { path: "/branchen/tech", priority: 0.7 },

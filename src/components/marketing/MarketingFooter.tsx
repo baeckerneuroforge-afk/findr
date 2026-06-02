@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Container } from "./primitives";
 import { Wordmark } from "./Wordmark";
 import { INDUSTRIES } from "./industry-template";
+import { ROLES } from "./role-template";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
@@ -12,6 +13,18 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "Customer Success Health", href: "/produkt/customer-health" },
       { label: "Product Discovery", href: "/produkt/product-discovery" },
       { label: "Market Research", href: "/produkt/market-research" },
+    ],
+  },
+  {
+    // B2B role pages (/loesungen/<slug>) — built from the single ROLES registry
+    // (hub first, then the three roles) so footer + cross-links can't drift.
+    title: "Lösungen",
+    links: [
+      { label: "Übersicht", href: "/loesungen" },
+      ...ROLES.map((r) => ({
+        label: r.name,
+        href: `/loesungen/${r.slug}`,
+      })),
     ],
   },
   {
@@ -26,7 +39,6 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Unternehmen",
     links: [
-      { label: "Lösungen", href: "/loesungen" },
       { label: "Preise", href: "/preise" },
       { label: "Insights", href: "/insights" },
       { label: "Demo buchen", href: "/demo" },
@@ -62,7 +74,7 @@ export function MarketingFooter() {
   return (
     <footer className="border-t border-neutral-200 bg-neutral-50">
       <Container className="py-16">
-        <div className="grid gap-12 md:grid-cols-[1.3fr_repeat(4,1fr)]">
+        <div className="grid gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-[1.3fr_repeat(5,1fr)]">
           <div className="flex flex-col gap-3">
             <Wordmark />
             <p className="max-w-xs text-sm leading-relaxed text-neutral-500">
