@@ -1,28 +1,24 @@
 /**
- * Shared hero background atmosphere — the restrained, reduced-motion-safe layer
- * that gives the homepage hero its depth: a faint violet top wash, a low-opacity
- * primary dot grid (masked to fade out), and one slow floating accent blur.
+ * Shared hero background atmosphere — de-glassed in the Farbsystem pass.
  *
- * Values mirror the homepage hero (src/app/(marketing)/page.tsx) VERBATIM so
- * every subpage hero inherits the exact same treatment — the homepage stays the
- * single visual reference (kept untouched). Drop this inside a hero <section>
- * that is `relative overflow-hidden`; it paints behind the content at -z-10.
+ * Previously a faint violet wash + a violet dot grid + one slow floating blur
+ * blob ("Glas"). The blur blob and the violet wash are gone: the hero now sits
+ * on the warm off-white canvas as a clear, calm surface. What remains is a very
+ * faint NEUTRAL dot texture at the top (paper grain, not a violet glass field),
+ * masked to fade out so a short hero's overflow-hidden clip lands invisibly.
  *
- * Only `opacity` + `transform` move (the float blur is GPU-composited). The
- * float is gated by `motion-safe:` / `motion-reduce:` so prefers-reduced-motion
- * renders it completely still — the wash + grid are static regardless.
+ * Purely presentational, fully static — nothing animates, so prefers-reduced-
+ * motion is respected by construction. Drop this inside a hero <section> that is
+ * `relative overflow-hidden`; it paints behind the content at -z-10.
  */
 export function HeroAtmosphere() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-      {/* Faint violet top wash. Both the colour gradient AND a fade mask reach
-          0 toward the bottom, so a short hero's overflow-hidden clip lands where
-          the wash has already faded out — no visible band edge. */}
-      <div className="absolute inset-x-0 top-0 h-[460px] bg-gradient-to-b from-primary-50/70 to-transparent [mask-image:linear-gradient(to_bottom,black,transparent)]" />
-      {/* Low-opacity dot grid, masked to fade out toward the bottom. */}
-      <div className="absolute inset-x-0 top-0 h-[520px] opacity-[0.13] [background-image:radial-gradient(var(--color-primary-300)_1px,transparent_1.4px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
-      {/* One slow floating accent (decorative). Reduced motion → fully still. */}
-      <div className="absolute -right-24 -top-16 h-72 w-72 rounded-full bg-primary-200/30 blur-3xl motion-safe:animate-float motion-reduce:animate-none" />
+      {/* Faint neutral dot texture, masked to fade out toward the bottom. Kept
+          just perceptible (opacity 0.12) so text-only subpage heros — which no
+          longer have a violet wash and may lack a product window — still read as
+          an intentional, textured surface rather than an empty page. */}
+      <div className="absolute inset-x-0 top-0 h-[440px] opacity-[0.12] [background-image:radial-gradient(var(--color-neutral-400)_1px,transparent_1.4px)] [background-size:24px_24px] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
     </div>
   );
 }

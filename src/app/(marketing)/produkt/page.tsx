@@ -126,10 +126,9 @@ export default function ProduktPage() {
         </Container>
       </Section>
 
-      {/* Section rhythm: the band sits on neutral-50 (like the homepage) so it
-          reads as its own muted step between the white flows grid and the
-          violet closing CTA. */}
-      <div className="bg-neutral-50">
+      {/* Section rhythm: the band sits on the warm cream (like the homepage) so
+          it reads as its own step between the flows grid and the closing CTA. */}
+      <div className="bg-warm">
         <StatBand />
       </div>
 

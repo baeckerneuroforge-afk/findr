@@ -15,7 +15,7 @@ import { PRIMARY_NAV } from "./nav-data";
  */
 export function MarketingHeader() {
   return (
-    <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/85 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-neutral-200 bg-canvas/85 backdrop-blur">
       <Container className="flex h-16 items-center justify-between gap-4">
         <Wordmark />
 

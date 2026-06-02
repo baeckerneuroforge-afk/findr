@@ -29,10 +29,15 @@ const ANCHORS: {
 
 export function TrustBar() {
   return (
-    <section className="border-y border-neutral-200 bg-neutral-50">
+    // Farbsystem: the SINGLE yellow highlight surface site-wide (homepage only).
+    // Ink text throughout — neutral-500 fails on yellow (3.5:1), so the eyebrow/
+    // sub use neutral-700 (7.6:1) and labels use neutral-900 (12.9:1). No violet
+    // on the yellow: the icon badges are ink-outlined with ink icons, not the
+    // usual violet. Hairlines are ink at 15 % (neutral-200 would vanish).
+    <section className="border-y border-neutral-900/15 bg-accent-warm">
       <Container className="py-8 sm:py-10">
         <Reveal>
-          <p className="text-center text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+          <p className="text-center text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-700">
             Souverän aus Europa — keine Plattform-Lock-ins, keine US-Cloud
           </p>
         </Reveal>
@@ -45,14 +50,14 @@ export function TrustBar() {
               delay={i * 0.06}
               className="flex items-start gap-3"
             >
-              <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-neutral-200 bg-white text-primary-600">
+              <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-neutral-900/25 text-neutral-900">
                 <a.Icon className="h-[18px] w-[18px]" />
               </span>
               <div>
                 <div className="text-[13px] font-semibold text-neutral-900">
                   {a.label}
                 </div>
-                <div className="mt-0.5 text-[12px] leading-snug text-neutral-500">
+                <div className="mt-0.5 text-[12px] leading-snug text-neutral-700">
                   {a.sub}
                 </div>
               </div>

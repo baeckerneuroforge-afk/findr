@@ -176,7 +176,7 @@ function NarrativeBand({
 /** Bordered accent callout used inside the narrative bands. */
 function Callout({ strong, body }: { strong: string; body: ReactNode }) {
   return (
-    <div className="rounded border-l-2 border-primary-300 bg-primary-50/50 py-4 pl-4 pr-3 text-[15px] leading-relaxed text-neutral-700">
+    <div className="rounded border-l-2 border-primary-300 bg-white py-4 pl-4 pr-3 text-[15px] leading-relaxed text-neutral-700">
       <strong className="font-semibold text-neutral-900">{strong}</strong>
       <br />
       {body}

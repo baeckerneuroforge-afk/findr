@@ -187,7 +187,7 @@ export default function SalesIntelligencePage() {
                   nächsten Schritt (wer macht was bis wann) und das exakte Zitat,
                   das es ausgelöst hat.
                 </p>
-                <div className="rounded border-l-2 border-primary-300 bg-primary-50/50 py-4 pl-4 pr-3 text-[15px] leading-relaxed text-neutral-700">
+                <div className="rounded border-l-2 border-primary-300 bg-white py-4 pl-4 pr-3 text-[15px] leading-relaxed text-neutral-700">
                   <strong className="font-semibold text-neutral-900">
                     Keine Floskeln. Kein Raten.
                   </strong>

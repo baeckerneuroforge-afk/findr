@@ -27,7 +27,11 @@ export function CTASection({
   secondary?: Cta | null;
 }) {
   return (
-    <Section tone="wash">
+    // Farbsystem: the closing CTA stays a calm, light block on the warm canvas
+    // (was a violet wash). The white card + violet brackets define it; the
+    // primary CtaLink keeps violet as the interaction accent. The dark anchor
+    // is the footer right below.
+    <Section tone="default">
       <Container>
         <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-5 rounded border border-neutral-200 bg-white px-6 py-16 text-center sm:px-12">
           <CornerBrackets className="border-primary-300" />

@@ -9,6 +9,7 @@ import { HomeWorkflow } from "@/components/marketing/HomeWorkflow";
 import { PlatformModules } from "@/components/marketing/PlatformModules";
 import { StatBand } from "@/components/marketing/StatBand";
 import { CTASection } from "@/components/marketing/CTASection";
+import { HeroAtmosphere } from "@/components/marketing/HeroAtmosphere";
 import { JsonLd } from "@/components/marketing/JsonLd";
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
@@ -43,16 +44,10 @@ export default function HomePage() {
 
       {/* ── HERO + interactive demo (the above-the-fold composition) ───── */}
       <section className="relative overflow-hidden pt-14 pb-16 sm:pt-20 sm:pb-24">
-        {/* Restrained, reduced-motion-safe atmosphere: a faint violet top wash,
-            a low-opacity dot grid, and one slow floating accent. No heavy
-            purple-on-white gradient (that's the AI-slop trap). */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute inset-x-0 top-0 h-[460px] bg-gradient-to-b from-primary-50/70 to-transparent" />
-          <div
-            className="absolute inset-x-0 top-0 h-[520px] opacity-[0.13] [background-image:radial-gradient(var(--color-primary-300)_1px,transparent_1.4px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent)]"
-          />
-          <div className="absolute -right-24 -top-16 h-72 w-72 rounded-full bg-primary-200/30 blur-3xl motion-safe:animate-float motion-reduce:animate-none" />
-        </div>
+        {/* De-glassed atmosphere: warm off-white canvas + a faint neutral dot
+            texture (the violet wash + blur blob were removed in the Farbsystem
+            pass). Shared verbatim with every subpage hero. */}
+        <HeroAtmosphere />
 
         <Container>
           <Reveal>
@@ -119,9 +114,9 @@ export default function HomePage() {
           the component default unchanged. */}
       <PlatformModules accent title="Ein KI-Gehirn. Vier Produkte." />
 
-      {/* Section rhythm: the band sits on neutral-50 so it reads as its own
-          step between the white module grid and the violet closing CTA. */}
-      <div className="bg-neutral-50">
+      {/* Section rhythm: the band sits on the warm cream so it reads as its own
+          step between the module grid and the closing CTA. */}
+      <div className="bg-warm">
         <StatBand />
       </div>
 

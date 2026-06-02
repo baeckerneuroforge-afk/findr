@@ -94,6 +94,25 @@
   --font-marketing: var(--font-geist-sans);
 
   /* ────────────────────────────────────────────────────────────────
+     Marketing surface system (Farbsystem). COLOR TOKENS ONLY — the fonts,
+     spacing and @keyframes elsewhere in this file are deliberately untouched.
+     These four feed the (marketing) layout base, the Section primitive tones,
+     the dark footer anchor and the single yellow highlight (TrustBar, home).
+     The brand violet #5b2fd4 (--color-primary-600) stays the INTERACTION accent
+     on every surface; --color-anchor is only that same violet pulled dark.
+     Real WCAG (4.5:1 normal text / 3:1 large + UI), measured on these hexes:
+       • neutral-500 body  4.68:1 on canvas · 4.56:1 on warm
+       • white heading 15.2:1 + obsidian-50 body 13.9:1 on anchor
+       • ink heading 12.9:1 + neutral-700 body 7.6:1 on accent-warm
+     The failing combos (white/violet text on yellow, any dark text on anchor)
+     are never used — see TrustBar / MarketingFooter. */
+  --color-canvas: #fdfbf7;            /* warm off-white — marketing page base */
+  --color-warm: #fbf8f1;              /* warm cream — the muted "rest" band */
+  --color-anchor: #2e1065;            /* dark-violet anchor (footer) */
+  --color-anchor-foreground: #f6f4f8; /* light body text on the anchor */
+  --color-accent-warm: #fcda4b;       /* yellow highlight surface — ink text only */
+
+  /* ────────────────────────────────────────────────────────────────
      Platform Design System v2 — light-mode tokens for /dashboard
      and /onboarding. Landing-page tokens above are untouched. */
 

@@ -120,7 +120,7 @@ export function PlatformDiagram() {
 
           {/* Core (middle) */}
           <Reveal>
-            <div className="relative mx-auto max-w-[920px] rounded border border-primary-200 bg-primary-50/60 px-5 py-7 text-center sm:px-7">
+            <div className="relative mx-auto max-w-[920px] rounded border border-primary-200 bg-white px-5 py-7 text-center sm:px-7">
               <CornerBrackets className="border-primary-300" />
               <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary-600">
                 Conversation-Intelligence-Core
@@ -131,7 +131,7 @@ export function PlatformDiagram() {
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {CORE_CARDS.map((c, i) => (
                   <Reveal key={c.title} delay={i * 0.06}>
-                    <div className="flex h-full flex-col items-center gap-2.5 rounded border border-neutral-200 bg-white px-4 py-5 text-center">
+                    <div className="flex h-full flex-col items-center gap-2.5 rounded border border-neutral-200 bg-warm px-4 py-5 text-center">
                       <span className="flex h-10 w-10 items-center justify-center rounded border border-primary-200 bg-primary-50 text-primary-600">
                         <c.Icon className="h-5 w-5" />
                       </span>
@@ -161,7 +161,7 @@ export function PlatformDiagram() {
           <div className="mx-auto grid max-w-[920px] grid-cols-1 gap-4 sm:grid-cols-3">
             {INPUTS.map((input, i) => (
               <Reveal key={input.title} delay={i * 0.06}>
-                <div className="h-full rounded border border-dashed border-neutral-300 bg-neutral-50 px-4 py-4 text-center">
+                <div className="h-full rounded border border-dashed border-neutral-300 bg-white px-4 py-4 text-center">
                   <div className="text-[14px] font-semibold text-neutral-900">
                     {input.title}
                   </div>

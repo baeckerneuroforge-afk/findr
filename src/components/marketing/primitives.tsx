@@ -28,10 +28,14 @@ export function Container({
 
 type SectionTone = "default" | "wash" | "muted";
 
+// Farbsystem: the section rhythm is now warm + calm. `muted` is the warm-cream
+// "rest" band (was cool neutral-50); `wash` is de-violetted to the same warm
+// cream (the old violet glass wash is gone — violet stays an accent, never a
+// flat surface). `default` inherits the warm off-white canvas from the layout.
 const TONE_BG: Record<SectionTone, string> = {
   default: "",
-  wash: "bg-primary-50/50",
-  muted: "bg-neutral-50",
+  wash: "bg-warm",
+  muted: "bg-warm",
 };
 
 /** Vertical-rhythm section band. `tone` paints an optional light background. */

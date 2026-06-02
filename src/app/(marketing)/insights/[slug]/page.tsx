@@ -79,7 +79,7 @@ function ArticleBlock({ block }: { block: InsightBlock }) {
       );
     case "quote":
       return (
-        <blockquote className="mt-7 border-l-2 border-primary-300 bg-primary-50/50 py-4 pl-5 pr-4">
+        <blockquote className="mt-7 rounded border-l-2 border-primary-300 bg-white py-4 pl-5 pr-4">
           <p className="text-[17px] italic leading-relaxed text-neutral-700">
             „{block.text}“
           </p>

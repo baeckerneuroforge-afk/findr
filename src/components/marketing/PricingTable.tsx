@@ -53,7 +53,7 @@ function PlanCard({ tier }: { tier: PricingTier }) {
   return (
     <div
       className={`relative flex flex-col p-9 ${
-        tier.featured ? "bg-primary-50/40" : "bg-white"
+        tier.featured ? "bg-warm" : "bg-white"
       }`}
     >
       <CornerBrackets

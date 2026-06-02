@@ -181,7 +181,7 @@ export default function CustomerHealthPage() {
                   findr. erkennt auch Upsell- und Expansions-Chancen aus dem
                   Gespräch, bevor sie im Forecast auftauchen.
                 </p>
-                <div className="rounded border-l-2 border-primary-300 bg-primary-50/50 py-4 pl-4 pr-3 text-[15px] leading-relaxed text-neutral-700">
+                <div className="rounded border-l-2 border-primary-300 bg-white py-4 pl-4 pr-3 text-[15px] leading-relaxed text-neutral-700">
                   <strong className="font-semibold text-neutral-900">
                     Belegt, nicht geraten.
                   </strong>
