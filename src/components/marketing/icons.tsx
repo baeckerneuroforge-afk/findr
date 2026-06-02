@@ -90,3 +90,55 @@ export function CheckIcon(props: IconProps) {
     </svg>
   );
 }
+
+// DSGVO / trust — shield with a check
+export function ShieldCheckIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3 5 6v5.5c0 4.3 2.9 7.4 7 8.5 4.1-1.1 7-4.2 7-8.5V6z" />
+      <path d="M9 11.8 11 14l4-4.2" />
+    </svg>
+  );
+}
+
+// EU-hosted — server stack
+export function ServerIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3.5" y="4" width="17" height="6" rx="1.5" />
+      <rect x="3.5" y="14" width="17" height="6" rx="1.5" />
+      <path d="M7 7h.01M7 17h.01" />
+    </svg>
+  );
+}
+
+// Made in Germany — map pin
+export function MapPinIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 21s6.5-5.2 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.8 12 21 12 21z" />
+      <circle cx="12" cy="10.5" r="2.4" />
+    </svg>
+  );
+}
+
+// EU AI Act / evidence — document with a check
+export function FileCheckIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="M9.5 14.5 11 16l3.5-3.6" />
+    </svg>
+  );
+}
+
+// Cross-study synthesis — stacked layers
+export function LayersIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3 3 8l9 5 9-5z" />
+      <path d="m3.5 12.5 8.5 4.7 8.5-4.7" />
+    </svg>
+  );
+}

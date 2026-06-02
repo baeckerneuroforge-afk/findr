@@ -67,12 +67,19 @@ export function PlatformModules({
   ),
   // Platform thesis, verbatim from landing.html:1452.
   lead = "Vier gleichwertige Produkte auf einer gemeinsamen Conversation-Intelligence-Engine. Die Module reden miteinander: Ein Churn-Signal wird zur Research-Frage, ein gewonnener Deal startet das CS-Onboarding, ein Research-Insight schärft das Risiko-Modell. Daten kumulieren statt in Silos zu verschwinden.",
+  accent = false,
 }: {
   /** Set false when a page provides its own section heading above the grid. */
   heading?: boolean;
   eyebrow?: ReactNode;
   title?: ReactNode;
   lead?: ReactNode;
+  /**
+   * Opt-in violet accent edge on each card. Off by default so every other
+   * surface (/produkt) renders byte-identically; the homepage passes it to tie
+   * the module grid into its accent motif.
+   */
+  accent?: boolean;
 }) {
   return (
     <Section id="module">
@@ -83,13 +90,17 @@ export function PlatformModules({
           </Reveal>
         ) : null}
 
-        <Reveal>
-          <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-4">
-            {MODULES.map((m) => (
+        {/* Staggered tile reveal: each card fades in on its own ~60ms delay.
+            Pure opacity (y=0) so the gap-px hairline grid never exposes its
+            neutral-200 backing mid-transform. Reduced motion → instant. */}
+        <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-4">
+          {MODULES.map((m, i) => (
+            <Reveal key={m.href} y={0} delay={i * 0.06} className="flex">
               <Link
-                key={m.href}
                 href={m.href}
-                className="group flex h-full flex-col gap-4 bg-white p-7 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+                className={`group flex h-full w-full flex-col gap-4 bg-white p-7 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 ${
+                  accent ? "border-l-2 border-primary-600" : ""
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium tracking-[0.08em] text-neutral-400">
@@ -111,9 +122,9 @@ export function PlatformModules({
                   </span>
                 </span>
               </Link>
-            ))}
-          </div>
-        </Reveal>
+            </Reveal>
+          ))}
+        </div>
       </Container>
     </Section>
   );
