@@ -3,7 +3,6 @@ import {
   Container,
   Section,
   Eyebrow,
-  Accent,
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
 import {
@@ -123,7 +122,7 @@ export default function ProductDiscoveryPage() {
         eyebrow="Product Discovery"
         title={
           <>
-            Was Kunden wirklich brauchen — <Accent>belegt</Accent>, nicht
+            Was Kunden wirklich brauchen — belegt, nicht
             geraten.
           </>
         }
@@ -137,7 +136,7 @@ export default function ProductDiscoveryPage() {
         eyebrow="So funktioniert Product Discovery"
         title={
           <>
-            Vom rohen Interview zur <Accent>belegten Roadmap.</Accent>
+            Vom rohen Interview zur belegten Roadmap.
           </>
         }
         lead="Vier verbundene Schritte. Kein neues Tool, kein Bauchgefühl — nur Aussagen, die jederzeit auf ihre Quelle zurückführen."
@@ -148,7 +147,7 @@ export default function ProductDiscoveryPage() {
         eyebrow="Produkt-Vorschau"
         title={
           <>
-            Jede Aussage führt zur <Accent>Quelle</Accent> zurück.
+            Jede Aussage führt zur Quelle zurück.
           </>
         }
         lead="Synthese links, Beleg-Zitat rechts — der Platzhalter zeigt, wo später die echte Studien-Ansicht mit klickbaren Transkript-Belegen steht."
@@ -164,7 +163,7 @@ export default function ProductDiscoveryPage() {
                 <Eyebrow>Product Discovery · Lösungsebene</Eyebrow>
                 <h2 className="font-marketing text-[clamp(26px,3.5vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-neutral-900">
                   Voice of Customer steckt schon in deinen{" "}
-                  <Accent>Gesprächen.</Accent>
+                  Gesprächen.
                 </h2>
                 <p className="text-[16px] leading-relaxed text-neutral-500">
                   Du musst keine neue Studie aufsetzen, um zu wissen, was Kunden
@@ -220,7 +219,7 @@ export default function ProductDiscoveryPage() {
         eyebrow="Belegt, nicht geraten"
         title={
           <>
-            Was Product Discovery <Accent>konkret liefert.</Accent>
+            Was Product Discovery konkret liefert.
           </>
         }
         lead="Jede Fähigkeit ist am echten Interview verankert — Live, was Live ist, Bald, was kommt."
@@ -232,7 +231,7 @@ export default function ProductDiscoveryPage() {
       <CTASection
         title={
           <>
-            Frag deine Gespräche — <Accent>belegt</Accent>, nicht geraten.
+            Frag deine Gespräche — belegt, nicht geraten.
           </>
         }
         lead="Buch eine Demo und sieh, welche Produkt-Signale in deinen bestehenden Calls schon stecken — jede Aussage am Transkript verankert."

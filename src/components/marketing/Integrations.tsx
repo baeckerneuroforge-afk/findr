@@ -1,4 +1,4 @@
-import { Container, Section, SectionHeading, Accent, StatusTag } from "./primitives";
+import { Container, Section, SectionHeading, StatusTag } from "./primitives";
 import { Reveal } from "./Reveal";
 
 /**
@@ -33,11 +33,7 @@ export function Integrations() {
               <SectionHeading
                 align="left"
                 eyebrow="Integrationen"
-                title={
-                  <>
-                    Live-Daten aus <Accent>allen Quellen.</Accent>
-                  </>
-                }
+                title="Live-Daten aus allen Quellen."
                 lead="findr. sitzt im Zentrum deines Revenue-Stacks. Jedes Gespräch, jedes CRM-Update, jedes Signal fließt in eine gemeinsame Intelligenz — so wird aus einem Churn-Signal eine Research-Frage, und ein Research-Insight schärft das Risiko-Modell."
               />
               <ul className="flex flex-col gap-2.5">

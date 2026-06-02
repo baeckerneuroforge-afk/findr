@@ -9,7 +9,6 @@ import {
   Container,
   Section,
   SectionHeading,
-  Accent,
   CornerBrackets,
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
@@ -72,7 +71,7 @@ export default function ProduktPage() {
         eyebrow="Die Plattform"
         title={
           <>
-            Ein <Accent>KI-Gehirn.</Accent> Vier Produkte. Ein System.
+            Ein KI-Gehirn. Vier Produkte. Ein System.
           </>
         }
         subhead="findr. ist keine Sammlung von Tools, sondern eine Conversation-Intelligence-Engine mit vier gleichwertigen Produkten. Jedes Gespräch fließt in ein gemeinsames Gehirn — DSGVO-nativ und in der EU gehostet."
@@ -83,7 +82,9 @@ export default function ProduktPage() {
 
       <PlatformDiagram />
 
-      <PlatformModules />
+      {/* `title` passed explicitly (single ink colour) to drop the component
+          default's two-tone <Accent> split — matches the homepage pattern. */}
+      <PlatformModules title="Ein KI-Gehirn. Vier Produkte." />
 
       <Integrations />
 
@@ -95,7 +96,7 @@ export default function ProduktPage() {
               eyebrow="Ein System"
               title={
                 <>
-                  Die Module <Accent>reden miteinander.</Accent>
+                  Die Module reden miteinander.
                 </>
               }
               lead="Weil alle vier Produkte aus demselben Gehirn lesen, fließen Signale zwischen ihnen — statt in vier getrennten Tools zu versanden."
@@ -128,7 +129,7 @@ export default function ProduktPage() {
       <CTASection
         title={
           <>
-            Vier Produkte. <Accent>Ein</Accent> gemeinsames Gehirn.
+            Vier Produkte. Ein gemeinsames Gehirn.
           </>
         }
         lead="Sieh, was findr. in deinen Gesprächen findet — über alle vier Produkte hinweg, auf einer Plattform."

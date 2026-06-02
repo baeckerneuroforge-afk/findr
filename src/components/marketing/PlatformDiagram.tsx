@@ -1,4 +1,4 @@
-import { Container, Section, SectionHeading, Accent, CornerBrackets } from "./primitives";
+import { Container, Section, SectionHeading, CornerBrackets } from "./primitives";
 import { Reveal } from "./Reveal";
 import { CpuIcon, NetworkIcon, RadarIcon } from "./icons";
 import type { ComponentType, SVGProps } from "react";
@@ -86,11 +86,7 @@ export function PlatformDiagram() {
         <Reveal>
           <SectionHeading
             eyebrow="Architektur"
-            title={
-              <>
-                Ein gemeinsames Gehirn. <Accent>Keine Datensilos.</Accent>
-              </>
-            }
+            title="Ein gemeinsames Gehirn. Keine Datensilos."
             lead="Vier Module ziehen aus demselben Conversation-Intelligence-Core. Die Daten kumulieren über Module hinweg, statt in vier getrennten Tools zu verschwinden."
           />
         </Reveal>

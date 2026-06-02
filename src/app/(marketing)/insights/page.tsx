@@ -3,7 +3,6 @@ import {
   Container,
   Section,
   SectionHeading,
-  Accent,
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
 import { InsightTeaser } from "@/components/marketing/InsightTeaser";
@@ -56,7 +55,7 @@ export default function InsightsPage() {
               eyebrow="Insights"
               title={
                 <>
-                  Was wir übers Zuhören <Accent>gelernt</Accent> haben.
+                  Was wir übers Zuhören gelernt haben.
                 </>
               }
               lead="Ressourcen zu Conversation Intelligence, Revenue, Product Research und DSGVO-nativer KI. Belegt, nicht geraten — und ohne Hype."
@@ -81,7 +80,7 @@ export default function InsightsPage() {
         eyebrow="Bereit?"
         title={
           <>
-            Lieber selbst sehen als <Accent>nachlesen?</Accent>
+            Lieber selbst sehen als nachlesen?
           </>
         }
         lead="Buch eine Demo und sieh, was findr. in deinen eigenen Gesprächen findet — über alle vier Produkte hinweg."

@@ -3,7 +3,6 @@ import {
   Container,
   Section,
   Eyebrow,
-  Accent,
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
 import {
@@ -125,7 +124,7 @@ export default function MarketResearchPage() {
         eyebrow="Market Research"
         title={
           <>
-            Echte Interviews. <Accent>Exakt</Accent> gezählt. Je Studie belegt.
+            Echte Interviews. Exakt gezählt. Je Studie belegt.
           </>
         }
         subhead="Fahre dedizierte KI-Interview-Studien mit echten Endnutzer:innen — auf Deutsch, über einen offenen Studien-Link. findr. synthetisiert über alle Studien hinweg, zählt deterministisch und erfindet keine Trends."
@@ -138,7 +137,7 @@ export default function MarketResearchPage() {
         eyebrow="So funktioniert Market Research"
         title={
           <>
-            Von der Studie zur <Accent>belegten Zahl.</Accent>
+            Von der Studie zur belegten Zahl.
           </>
         }
         lead="Vier verbundene Schritte. Kein Moderator, kein Kalender-Ping-Pong — und am Ende eine Zahl, die je Studie mit Zitat belegt ist."
@@ -149,7 +148,7 @@ export default function MarketResearchPage() {
         eyebrow="Produkt-Vorschau"
         title={
           <>
-            „In <Accent>3 von 7</Accent> Studien“ — je belegt.
+            „In 3 von 7 Studien“ — je belegt.
           </>
         }
         lead="Eine Frage über die ganze Studien-Bibliothek, jede Zahl auf ihre Studie und ihr Zitat zurückführbar — der Platzhalter zeigt, wo später die echte Cross-Study-Ansicht steht."
@@ -165,7 +164,7 @@ export default function MarketResearchPage() {
                 <Eyebrow>Market Research · Lösungsebene</Eyebrow>
                 <h2 className="font-marketing text-[clamp(26px,3.5vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-neutral-900">
                   Exakt gezählt. Je Studie belegt.{" "}
-                  <Accent>Keine erfundenen Trends.</Accent>
+                  Keine erfundenen Trends.
                 </h2>
                 <p className="text-[16px] leading-relaxed text-neutral-500">
                   Während Product Discovery aus deinen <em>bestehenden</em> B2B-Calls
@@ -220,7 +219,7 @@ export default function MarketResearchPage() {
         eyebrow="Belegt, nicht geraten"
         title={
           <>
-            Was Market Research <Accent>konkret liefert.</Accent>
+            Was Market Research konkret liefert.
           </>
         }
         lead="Jede Fähigkeit ist an echten Interviews verankert — Live, was Live ist, Bald, was kommt."
@@ -232,7 +231,7 @@ export default function MarketResearchPage() {
       <CTASection
         title={
           <>
-            Eine Frage über alle Studien — <Accent>exakt</Accent> beantwortet.
+            Eine Frage über alle Studien — exakt beantwortet.
           </>
         }
         lead="Buch eine Demo und sieh, wie findr. eine ganze Studien-Bibliothek befragt — deterministisch gezählt, je Studie belegt."

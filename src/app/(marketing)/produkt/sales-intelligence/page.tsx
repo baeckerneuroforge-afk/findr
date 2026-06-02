@@ -4,7 +4,6 @@ import {
   Section,
   SectionHeading,
   Eyebrow,
-  Accent,
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
 import {
@@ -130,7 +129,7 @@ export default function SalesIntelligencePage() {
         eyebrow="Sales Intelligence"
         title={
           <>
-            Sieh einem Deal beim <Accent>Zerfallen</Accent> zu — in 30 Sekunden.
+            Sieh einem Deal beim Zerfallen zu — in 30 Sekunden.
           </>
         }
         subhead="Deal-Risiko aus echten Gesprächen: Echtzeit-Risiko-Score, automatische Verlustgrund-Erkennung und risiko-adjustierte Pipeline-Prognose."
@@ -143,7 +142,7 @@ export default function SalesIntelligencePage() {
         eyebrow="So funktioniert Sales Intelligence"
         title={
           <>
-            Vom rohen Call zur <Accent>klaren Entscheidung.</Accent>
+            Vom rohen Call zur klaren Entscheidung.
           </>
         }
         lead="Fünf verbundene Schritte. Keine Dateneingabe. Kein „KI-Zusammenfassung“-Rauschen — nur die Risiko-Signale, die Deals wirklich bewegen."
@@ -158,7 +157,7 @@ export default function SalesIntelligencePage() {
               eyebrow="Live-Analyse"
               title={
                 <>
-                  Ein echter Call. <Accent>Ein Klick.</Accent>
+                  Ein echter Call. Ein Klick.
                 </>
               }
               lead="Ein echtes Verkaufsgespräch — und eines von vier Produkten auf der Plattform. Klick auf Analysieren und findr. fängt die Signale, die ein menschlicher Reviewer übersehen hat."
@@ -179,7 +178,7 @@ export default function SalesIntelligencePage() {
                 <Eyebrow>Sales Intelligence · Lösungsebene</Eyebrow>
                 <h2 className="font-marketing text-[clamp(26px,3.5vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-neutral-900">
                   findr. diagnostiziert nicht nur das Risiko —{" "}
-                  <Accent>es liefert die Lösung.</Accent>
+                  es liefert die Lösung.
                 </h2>
                 <p className="text-[16px] leading-relaxed text-neutral-500">
                   Generische Ratschläge bringen in komplexen B2B-Deals nichts.
@@ -237,7 +236,7 @@ export default function SalesIntelligencePage() {
         eyebrow="Belegt, nicht geraten"
         title={
           <>
-            Was Sales Intelligence <Accent>konkret liefert.</Accent>
+            Was Sales Intelligence konkret liefert.
           </>
         }
         lead="Jede Fähigkeit ist am echten Gespräch verankert — Live, was Live ist, Bald, was kommt."
@@ -249,7 +248,7 @@ export default function SalesIntelligencePage() {
       <CTASection
         title={
           <>
-            Sieh, was findr. in <Accent>deinen</Accent> Deals findet.
+            Sieh, was findr. in deinen Deals findet.
           </>
         }
         lead="Lade ein echtes Gespräch hoch oder buch eine Demo — in 30 Sekunden zum ersten Risiko-Score."

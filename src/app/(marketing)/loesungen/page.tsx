@@ -5,7 +5,6 @@ import {
   Container,
   Section,
   Eyebrow,
-  Accent,
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
 import { Hero } from "@/components/marketing/Hero";
@@ -145,7 +144,7 @@ export default function LoesungenPage() {
         eyebrow="Lösungen"
         title={
           <>
-            Was du mit findr. <Accent>konkret</Accent> machst.
+            Was du mit findr. konkret machst.
           </>
         }
         subhead="findr. ist eine Plattform — aber du löst damit konkrete Probleme. Hier nach Rolle sortiert: was heute weh tut, wie findr. es löst und woran du es belegst."
@@ -158,7 +157,7 @@ export default function LoesungenPage() {
         title={
           <>
             Wenn der Forecast erst beim verlorenen Deal{" "}
-            <Accent>ehrlich</Accent> wird.
+            ehrlich wird.
           </>
         }
         problem="Dein Forecast stützt sich auf CRM-Felder, die Reps optimistisch pflegen. Warum ein Deal wirklich kippt, erfährst du oft erst, wenn er schon weg ist."
@@ -185,7 +184,7 @@ export default function LoesungenPage() {
         eyebrow="Für CS-Leads · Customer Success"
         title={
           <>
-            Wenn Renewals dich <Accent>überraschen.</Accent>
+            Wenn Renewals dich überraschen.
           </>
         }
         problem="Der Health-Score ist eine Bauchgefühl-Ampel in einer Tabelle, gepflegt nach der letzten Eskalation. Gefährdete Accounts fallen erst auf, wenn die Kündigung schon im Raum steht."
@@ -213,7 +212,7 @@ export default function LoesungenPage() {
         eyebrow="Für Product- & Research-Leads"
         title={
           <>
-            Wenn die lauteste Stimme die <Accent>Roadmap</Accent> bestimmt.
+            Wenn die lauteste Stimme die Roadmap bestimmt.
           </>
         }
         problem="Entscheidungen fallen nach der lautesten Meinung im Raum. Interview-Insights verstauben in Notizen, die niemand mehr nachprüft — und „die meisten Kunden wollen X“ kann keiner belegen."
@@ -247,7 +246,7 @@ export default function LoesungenPage() {
         eyebrow="Häufige Fragen"
         title={
           <>
-            Was Teams uns <Accent>zuerst</Accent> fragen.
+            Was Teams uns zuerst fragen.
           </>
         }
         items={FAQ_ITEMS}
@@ -256,7 +255,7 @@ export default function LoesungenPage() {
       <CTASection
         title={
           <>
-            Such dir das Problem — findr. <Accent>belegt</Accent> die Lösung.
+            Such dir das Problem — findr. belegt die Lösung.
           </>
         }
         lead="Buch eine Demo und sieh am echten Gespräch, was findr. für deine Rolle heute schon findet."

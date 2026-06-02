@@ -3,7 +3,6 @@ import {
   Container,
   Section,
   Eyebrow,
-  Accent,
   CornerBrackets,
 } from "@/components/marketing/primitives";
 import { Hero } from "@/components/marketing/Hero";
@@ -32,7 +31,7 @@ export default function DemoPage() {
         title={
           <>
             Sieh, was findr. in deinen{" "}
-            <Accent>Gesprächen</Accent> findet.
+            Gesprächen findet.
           </>
         }
         subhead="In einer kurzen, persönlichen Demo zeigen wir dir findr. an einem echten Gesprächsbeispiel — keine Folien, sondern dein Use-Case über alle vier Produkte hinweg."

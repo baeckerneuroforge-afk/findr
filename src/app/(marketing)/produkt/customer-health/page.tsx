@@ -3,7 +3,6 @@ import {
   Container,
   Section,
   Eyebrow,
-  Accent,
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
 import {
@@ -130,7 +129,7 @@ export default function CustomerHealthPage() {
         eyebrow="Customer Success Health"
         title={
           <>
-            Erkenne gefährdete Accounts — <Accent>bevor</Accent> sie kündigen.
+            Erkenne gefährdete Accounts — bevor sie kündigen.
           </>
         }
         subhead="Health-Score pro Account aus echten Kunden-Calls: belegte Risiko-Signale, konkrete Save-Plays und ein Renewal-Forecast, der rechnet statt rät."
@@ -143,7 +142,7 @@ export default function CustomerHealthPage() {
         eyebrow="So funktioniert Customer Success Health"
         title={
           <>
-            Vom Kunden-Call zum <Accent>gehaltenen Account.</Accent>
+            Vom Kunden-Call zum gehaltenen Account.
           </>
         }
         lead="Fünf verbundene Schritte. Keine Dateneingabe, kein manuelles Health-Scoring — nur die Signale, die über Renewal und Churn entscheiden."
@@ -154,7 +153,7 @@ export default function CustomerHealthPage() {
         eyebrow="Produkt-Vorschau"
         title={
           <>
-            Der Health-Score, an <Accent>jedem</Accent> Account.
+            Der Health-Score, an jedem Account.
           </>
         }
         lead="Accounts nach Risiko sortiert, jedes Signal auf das Transkript zurückführbar — der Platzhalter zeigt, wo später das echte Customer-Health-Dashboard steht."
@@ -170,7 +169,7 @@ export default function CustomerHealthPage() {
                 <Eyebrow>Customer Health · Lösungsebene</Eyebrow>
                 <h2 className="font-marketing text-[clamp(26px,3.5vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-neutral-900">
                   findr. zeigt nicht nur das Risiko —{" "}
-                  <Accent>es zeigt den Weg raus.</Accent>
+                  es zeigt den Weg raus.
                 </h2>
                 <p className="text-[16px] leading-relaxed text-neutral-500">
                   Ein gewonnener Deal in Sales Intelligence übergibt den Account
@@ -227,7 +226,7 @@ export default function CustomerHealthPage() {
         eyebrow="Belegt, nicht geraten"
         title={
           <>
-            Was Customer Success Health <Accent>konkret liefert.</Accent>
+            Was Customer Success Health konkret liefert.
           </>
         }
         lead="Jede Fähigkeit ist am echten Gespräch verankert — Live, was Live ist, Bald, was kommt."
@@ -239,7 +238,7 @@ export default function CustomerHealthPage() {
       <CTASection
         title={
           <>
-            Sieh den Churn kommen, <Accent>bevor</Accent> er passiert.
+            Sieh den Churn kommen, bevor er passiert.
           </>
         }
         lead="Buch eine Demo und sieh, welche deiner Accounts findr. heute schon als gefährdet markieren würde — belegt am echten Gespräch."

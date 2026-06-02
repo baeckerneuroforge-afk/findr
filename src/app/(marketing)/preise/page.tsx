@@ -3,7 +3,6 @@ import {
   Container,
   Section,
   SectionHeading,
-  Accent,
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
 import {
@@ -198,7 +197,7 @@ export default function PreisePage() {
               eyebrow="Preise"
               title={
                 <>
-                  Eine Plattform. <Accent>Ehrliche Preise.</Accent>
+                  Eine Plattform. Ehrliche Preise.
                 </>
               }
             />
@@ -229,7 +228,7 @@ export default function PreisePage() {
               eyebrow="Der Discovery-Prozess"
               title={
                 <>
-                  Was dich in deinem <Accent>kostenlosen Test</Accent> erwartet.
+                  Was dich in deinem kostenlosen Test erwartet.
                 </>
               }
               lead="So bringen wir dich mit findr. in vier Schritten an den Start."
@@ -271,7 +270,7 @@ export default function PreisePage() {
         eyebrow="Häufige Fragen"
         title={
           <>
-            Alles, was du <Accent>vor</Accent> dem Test wissen willst.
+            Alles, was du vor dem Test wissen willst.
           </>
         }
         items={FAQ_ITEMS}
@@ -281,7 +280,7 @@ export default function PreisePage() {
         eyebrow="Loslegen"
         title={
           <>
-            Sieh, was dein CRM <Accent>übersieht.</Accent>
+            Sieh, was dein CRM übersieht.
           </>
         }
         lead="14 Tage kostenlos testen. Keine Kreditkarte. Keine Haken."

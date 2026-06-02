@@ -5,7 +5,6 @@ import {
   Container,
   Section,
   Eyebrow,
-  Accent,
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
 import { CTASection } from "@/components/marketing/CTASection";
@@ -175,7 +174,7 @@ export default async function InsightArticlePage({
       <CTASection
         title={
           <>
-            Von der Theorie zum <Accent>eigenen</Accent> Gespräch.
+            Von der Theorie zum eigenen Gespräch.
           </>
         }
         lead="Buch eine Demo und sieh, was findr. in deinen eigenen Calls findet — belegt, nicht geraten."
