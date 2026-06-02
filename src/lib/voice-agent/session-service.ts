@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomBytes } from "node:crypto";
+import { after } from "next/server";
 
 import type { Json } from "@/types/database";
 import type { ScreeningQuestion } from "@/lib/schemas/screening";
@@ -836,16 +837,20 @@ export async function advanceInterview(
   const finished = done || agentTurnCount(history) >= MAX_AGENT_TURNS;
 
   if (finished) {
-    const result = await extractLossReasonFromInterview(input, history, model);
+    // Decouple the loss-reason extraction from the participant's request path.
+    // The closing message (the `nextInterviewMessage` Opus call above) is what
+    // the participant actually sees and MUST be in the response. The loss-reason
+    // extraction is a SECOND Opus call producing purely internal analytics
+    // (extracted_reason / evidence / matched_risk_prediction / result) that the
+    // participant never sees — `toPublicView` exposes none of those fields. So
+    // we persist the completed status + closing message NOW and return
+    // immediately, instead of making the participant wait that extra Opus call
+    // before they see "completed".
     const { data, error } = await supabase
       .from("interview_sessions")
       .update({
         conversation: history as unknown as Json,
         status: "completed",
-        extracted_reason: result.extractedReason,
-        evidence: result.evidence,
-        matched_risk_prediction: result.matchedRiskPrediction,
-        result: result as unknown as Json,
         completed_at: new Date().toISOString(),
       })
       .eq("access_token", token)
@@ -856,6 +861,42 @@ export async function advanceInterview(
         `Failed to finalize interview_session: ${error?.message ?? "no row returned"}`,
       );
     }
+
+    // Run the extraction AFTER the response is sent. `after` (next/server) is
+    // backed by Vercel's `waitUntil`, which extends the serverless invocation's
+    // lifetime until this promise settles — so, unlike a bare floating promise,
+    // the extraction is NOT cut off when the response goes out, and its result
+    // still lands reliably in the same row (just shortly after the participant
+    // already saw completion). The extraction failing must never surface to, or
+    // retroactively break, the already-sent participant response, so it is
+    // caught and logged here rather than thrown.
+    after(async () => {
+      try {
+        const result = await extractLossReasonFromInterview(
+          input,
+          history,
+          model,
+        );
+        const { error: extractionError } = await supabase
+          .from("interview_sessions")
+          .update({
+            extracted_reason: result.extractedReason,
+            evidence: result.evidence,
+            matched_risk_prediction: result.matchedRiskPrediction,
+            result: result as unknown as Json,
+          })
+          .eq("access_token", token);
+        if (extractionError) {
+          throw new Error(extractionError.message);
+        }
+      } catch (err) {
+        console.error(
+          "[post-loss] loss-reason extraction failed (session already completed):",
+          err instanceof Error ? err.message : err,
+        );
+      }
+    });
+
     return toPublicView(toSession(data));
   }
 
