@@ -82,12 +82,16 @@
   --font-mono: var(--font-jetbrains-mono);
 
   /* Marketing-site headline voice. The public (marketing) route-group renders
-     headlines in Fraunces (serif, editorial) via the `font-marketing` utility
-     this token generates — distinct from the dashboard/app --font-heading
-     (Hanken, sans), which stays untouched. Fraunces is already loaded in
-     app/layout.tsx (--font-fraunces); this just gives the marketing surface its
-     own face without flipping the shell's heading face. */
-  --font-marketing: var(--font-fraunces);
+     headlines in Geist (Vercel's clean, modern sans — NO serif) via the
+     `font-marketing` utility this token generates — distinct from the
+     dashboard/app --font-heading (Hanken, sans), which stays untouched. Geist is
+     already self-hosted via next/font in app/layout.tsx (--font-geist-sans, on
+     <html>) — no external request, no DSGVO regression — so this is a pure token
+     remap: every `font-marketing` heading across the marketing surface switches
+     to clean sans at once, without touching the protected root layout. (Fraunces
+     stays loaded in layout.tsx but is now unused by marketing — flip this token
+     back to var(--font-fraunces) to restore the serif headings.) */
+  --font-marketing: var(--font-geist-sans);
 
   /* ────────────────────────────────────────────────────────────────
      Platform Design System v2 — light-mode tokens for /dashboard
