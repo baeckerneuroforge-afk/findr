@@ -23,9 +23,15 @@ const POINTS = [
   "Bidirektionaler Sync — Insights fließen zurück ins CRM",
 ];
 
-export function Integrations() {
+export function Integrations({
+  tone = "default",
+}: {
+  /** Section background — /produkt sets "muted" to keep the page's section
+   * rhythm alternating (matches the homepage). */
+  tone?: "default" | "muted";
+} = {}) {
   return (
-    <Section>
+    <Section tone={tone}>
       <Container>
         <div className="grid items-start gap-12 lg:grid-cols-[0.95fr_1.05fr]">
           <Reveal>

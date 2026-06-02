@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Container, Section, Eyebrow } from "./primitives";
 import { CtaLink } from "./CtaLink";
 import { Reveal } from "./Reveal";
+import { HeroAtmosphere } from "./HeroAtmosphere";
 
 type Cta = { label: string; href: string };
 
@@ -28,7 +29,8 @@ export function Hero({
   visual?: ReactNode;
 }) {
   return (
-    <Section className="pt-14 sm:pt-20">
+    <Section className="relative overflow-hidden pt-14 sm:pt-20">
+      <HeroAtmosphere />
       <Container>
         <div
           className={

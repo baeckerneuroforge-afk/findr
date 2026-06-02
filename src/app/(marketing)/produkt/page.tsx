@@ -86,10 +86,12 @@ export default function ProduktPage() {
           default's two-tone <Accent> split — matches the homepage pattern. */}
       <PlatformModules title="Ein KI-Gehirn. Vier Produkte." />
 
-      <Integrations />
+      <Integrations tone="muted" />
 
-      {/* Module reden miteinander — the cross-module flows */}
-      <Section tone="muted">
+      {/* Module reden miteinander — the cross-module flows. On white so the page
+          keeps the homepage's alternating rhythm (diagram M → modules W →
+          integrations M → flows W → statband M → cta wash). */}
+      <Section>
         <Container>
           <Reveal>
             <SectionHeading
@@ -104,7 +106,7 @@ export default function ProduktPage() {
           </Reveal>
           <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 md:grid-cols-3">
             {FLOWS.map((f, i) => (
-              <Reveal key={f.from} delay={i * 0.06}>
+              <Reveal key={f.from} y={0} delay={i * 0.06}>
                 <div className="relative flex h-full flex-col gap-4 bg-white p-7">
                   <CornerBrackets className="border-primary-200" />
                   <div className="flex flex-wrap items-center gap-2 font-marketing text-lg font-semibold text-neutral-900">
@@ -124,7 +126,12 @@ export default function ProduktPage() {
         </Container>
       </Section>
 
-      <StatBand />
+      {/* Section rhythm: the band sits on neutral-50 (like the homepage) so it
+          reads as its own muted step between the white flows grid and the
+          violet closing CTA. */}
+      <div className="bg-neutral-50">
+        <StatBand />
+      </div>
 
       <CTASection
         title={

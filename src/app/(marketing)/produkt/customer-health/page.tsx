@@ -147,6 +147,7 @@ export default function CustomerHealthPage() {
         }
         lead="Fünf verbundene Schritte. Keine Dateneingabe, kein manuelles Health-Scoring — nur die Signale, die über Renewal und Churn entscheiden."
         steps={STEPS}
+        tone="muted"
       />
 
       <DemoPlaceholder
@@ -160,8 +161,10 @@ export default function CustomerHealthPage() {
         label="Customer-Health-Dashboard"
       />
 
-      {/* Solution layer — ExampleCard makes the "belegt, nicht geraten" promise visible */}
-      <Section>
+      {/* Solution layer — ExampleCard makes the "belegt, nicht geraten" promise
+          visible. On a muted band so the white card pops and the page keeps the
+          homepage's alternating section rhythm (W-M-W-M-W-M). */}
+      <Section tone="muted">
         <Container>
           <div className="grid items-start gap-12 lg:grid-cols-2">
             <Reveal>

@@ -142,6 +142,7 @@ export default function MarketResearchPage() {
         }
         lead="Vier verbundene Schritte. Kein Moderator, kein Kalender-Ping-Pong — und am Ende eine Zahl, die je Studie mit Zitat belegt ist."
         steps={STEPS}
+        tone="muted"
       />
 
       <DemoPlaceholder
@@ -155,8 +156,10 @@ export default function MarketResearchPage() {
         label="Cross-Study-Synthese"
       />
 
-      {/* Solution layer — ExampleCard makes the "exakt gezählt, je belegt" promise visible */}
-      <Section>
+      {/* Solution layer — ExampleCard makes the "exakt gezählt, je belegt"
+          promise visible. On a muted band so the white card pops and the page
+          keeps the homepage's alternating section rhythm (W-M-W-M-W-M). */}
+      <Section tone="muted">
         <Container>
           <div className="grid items-start gap-12 lg:grid-cols-2">
             <Reveal>

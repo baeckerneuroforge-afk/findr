@@ -10,6 +10,10 @@ import {
 } from "./primitives";
 import { CtaLink } from "./CtaLink";
 import { Reveal } from "./Reveal";
+import { HeroAtmosphere } from "./HeroAtmosphere";
+import { HowItWorksTimeline, type HowStep } from "./HowItWorksTimeline";
+
+export type { HowStep };
 
 type Cta = { label: string; href: string };
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
@@ -39,7 +43,8 @@ export function ModuleHero({
   secondary?: Cta;
 }) {
   return (
-    <Section className="pt-14 sm:pt-20">
+    <Section className="relative overflow-hidden pt-14 sm:pt-20">
+      <HeroAtmosphere />
       <Container>
         <Reveal>
           <div className="flex max-w-3xl flex-col items-start gap-6">
@@ -74,57 +79,33 @@ export function ModuleHero({
 }
 
 // ── HowItWorks ──────────────────────────────────────────────────────────────
-export type HowStep = {
-  phase?: string;
-  title: string;
-  body: string;
-  tag?: "Live" | "Bald";
-};
+// `HowStep` is defined in (and re-exported from) ./HowItWorksTimeline.
 
 export function HowItWorks({
   eyebrow = "So funktioniert's",
   title,
   lead,
   steps,
+  tone = "default",
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
   lead?: ReactNode;
   steps: HowStep[];
+  /** Section background — pages set "muted" to slot this as the first muted
+   * "rest" band after the hero, matching the homepage's section rhythm. */
+  tone?: "default" | "muted";
 }) {
   return (
-    <Section>
+    <Section tone={tone}>
       <Container>
         <Reveal>
           <SectionHeading align="left" eyebrow={eyebrow} title={title} lead={lead} />
         </Reveal>
-        <ol className="mt-14 flex flex-col gap-10">
-          {steps.map((s, i) => (
-            <Reveal key={s.title} delay={i * 0.05}>
-              <li className="flex gap-5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary-200 bg-primary-50 text-sm font-semibold text-primary-700">
-                  {i + 1}
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  {s.phase ? (
-                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-neutral-400">
-                      {s.phase}
-                    </div>
-                  ) : null}
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h3 className="font-marketing text-xl font-semibold text-neutral-900">
-                      {s.title}
-                    </h3>
-                    {s.tag ? <StatusTag status={s.tag} /> : null}
-                  </div>
-                  <p className="max-w-2xl text-[15px] leading-relaxed text-neutral-500">
-                    {s.body}
-                  </p>
-                </div>
-              </li>
-            </Reveal>
-          ))}
-        </ol>
+        {/* The vertical "durchgehender Faden": the violet thread DRAWS down
+            through the numbered nodes on scroll-in and the rings light up in
+            sequence (client component; reduced-motion → final state, no movement). */}
+        <HowItWorksTimeline steps={steps} />
       </Container>
     </Section>
   );
@@ -146,27 +127,32 @@ export function DemoPlaceholder({
   label?: string;
 }) {
   return (
-    <Section tone="muted">
+    <Section>
       <Container>
         <Reveal>
           <SectionHeading eyebrow={eyebrow} title={title} lead={lead} />
         </Reveal>
         <Reveal>
-          <div className="relative mt-12 aspect-[16/9] w-full overflow-hidden rounded border border-neutral-200 bg-white">
+          {/* A recessed neutral-50 panel on the white section — reads clearly as
+              an intentional, framed preview slot (not a broken/empty element).
+              Honest placeholder: a real screenshot / Remotion walk-through lands
+              here later; we never fake a product window. */}
+          <div className="relative mt-12 aspect-[16/9] w-full overflow-hidden rounded border border-neutral-200 bg-neutral-50">
             <CornerBrackets className="border-primary-200" />
             <div
               aria-hidden
               className="absolute inset-0 opacity-50"
               style={{
                 backgroundImage:
-                  "radial-gradient(#e4e4e7 0.5px, transparent 0.5px)",
+                  "radial-gradient(#d4d4d8 0.5px, transparent 0.5px)",
                 backgroundSize: "22px 22px",
               }}
             />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="rounded border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs uppercase tracking-[0.14em] text-neutral-400">
-                {label}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
+              <span className="rounded border border-neutral-200 bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-500">
+                Vorschau folgt
               </span>
+              <span className="text-xs text-neutral-500">{label}</span>
             </div>
           </div>
         </Reveal>
@@ -254,9 +240,17 @@ export function ProofPoints({
         <Reveal>
           <SectionHeading eyebrow={eyebrow} title={title} lead={lead} />
         </Reveal>
+        {/* Staggered tile reveal — pure opacity (y=0) so the gap-px hairline
+            grid never exposes its neutral-200 backing mid-transform (matches
+            HomeFeatures / PlatformModules). Reduced motion → instant. */}
         <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-3">
-          {points.map((p) => (
-            <div key={p.title} className="flex flex-col gap-3 bg-white p-7">
+          {points.map((p, i) => (
+            <Reveal
+              key={p.title}
+              y={0}
+              delay={i * 0.06}
+              className="flex h-full flex-col gap-3 bg-white p-7"
+            >
               <div className="flex items-center justify-between">
                 <p.Icon className="h-6 w-6 text-primary-600" />
                 {p.tag ? <StatusTag status={p.tag} /> : null}
@@ -265,7 +259,7 @@ export function ProofPoints({
                 {p.title}
               </h3>
               <p className="text-sm leading-relaxed text-neutral-500">{p.body}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </Container>

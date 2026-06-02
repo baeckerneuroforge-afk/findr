@@ -141,6 +141,7 @@ export default function ProductDiscoveryPage() {
         }
         lead="Vier verbundene Schritte. Kein neues Tool, kein Bauchgefühl — nur Aussagen, die jederzeit auf ihre Quelle zurückführen."
         steps={STEPS}
+        tone="muted"
       />
 
       <DemoPlaceholder
@@ -154,8 +155,10 @@ export default function ProductDiscoveryPage() {
         label="Studien-Synthese"
       />
 
-      {/* Solution layer — ExampleCard makes the "belegt, nicht geraten" promise visible */}
-      <Section>
+      {/* Solution layer — ExampleCard makes the "belegt, nicht geraten" promise
+          visible. On a muted band so the white card pops and the page keeps the
+          homepage's alternating section rhythm (W-M-W-M-W-M). */}
+      <Section tone="muted">
         <Container>
           <div className="grid items-start gap-12 lg:grid-cols-2">
             <Reveal>

@@ -5,6 +5,7 @@ import {
   SectionHeading,
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
+import { HeroAtmosphere } from "@/components/marketing/HeroAtmosphere";
 import {
   PricingTable,
   type PricingTier,
@@ -189,7 +190,8 @@ export default function PreisePage() {
     <>
       <JsonLd data={PRICING_JSONLD} />
 
-      <Section className="pt-14 sm:pt-20">
+      <Section className="relative overflow-hidden pt-14 sm:pt-20">
+        <HeroAtmosphere />
         <Container>
           <Reveal>
             <SectionHeading

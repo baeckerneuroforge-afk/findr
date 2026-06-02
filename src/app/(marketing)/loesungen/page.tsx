@@ -153,6 +153,7 @@ export default function LoesungenPage() {
       />
 
       <UseCase
+        tone="muted"
         eyebrow="Für Sales-Leader · VP Sales & RevOps"
         title={
           <>
@@ -180,7 +181,6 @@ export default function LoesungenPage() {
       />
 
       <UseCase
-        tone="muted"
         eyebrow="Für CS-Leads · Customer Success"
         title={
           <>
@@ -209,6 +209,7 @@ export default function LoesungenPage() {
       />
 
       <UseCase
+        tone="muted"
         eyebrow="Für Product- & Research-Leads"
         title={
           <>
@@ -242,7 +243,6 @@ export default function LoesungenPage() {
       />
 
       <FAQ
-        tone="muted"
         eyebrow="Häufige Fragen"
         title={
           <>
