@@ -2,6 +2,7 @@ import "server-only";
 
 import { createResearchSupabase, type ResearchOpenLinkRow } from "./db";
 import { getResearchPlan } from "./plans-service";
+import { coercePanelCompletion, type PanelCompletion } from "./panel";
 import type { NeedsScreeningView } from "@/lib/voice-agent/session-service";
 import type { InterviewLanguage } from "@/lib/voice-agent/interviewer";
 
@@ -63,6 +64,11 @@ export interface ResearchOpenLinkRecord {
   /** NULL = kein Ablauf; additiv, Eintritts-Prüfung in späterer Etappe. */
   valid_until: string | null;
   label: string | null;
+  /** Panel-Anbieter E2 (20260702000001): pro-Link Completion-Return-URLs
+   *  (complete/screenout/quotafull). NULL = kein Panel-Completion konfiguriert →
+   *  der outcome-verzweigte Redirect ist ein no-op. Defensiv genarrowed; vor
+   *  angewandter Migration (select("*") ohne die Spalte) → null. */
+  panel_completion: PanelCompletion | null;
   created_at: string;
 }
 
@@ -76,6 +82,12 @@ function toRecord(row: ResearchOpenLinkRow): ResearchOpenLinkRecord {
     max_sessions: row.max_sessions,
     valid_until: row.valid_until,
     label: row.label,
+    // `row.panel_completion` is undefined pre-migration (select("*") omits the
+    // missing column) → coerce treats it as null. Same defensive read as
+    // plans-service's coerceStudyType.
+    panel_completion: coercePanelCompletion(
+      (row as { panel_completion?: unknown }).panel_completion,
+    ),
     created_at: row.created_at,
   };
 }
@@ -239,6 +251,49 @@ export async function countOpenLinkSessions(
     .eq("open_link_id", linkId);
   if (error) return null;
   return count ?? 0;
+}
+
+// ── Panel-Anbieter (Baustein 3) E1 — Dedup über die externe Teilnehmer-ID ─────
+//
+// Ein Panel-Link ist ein GETEILTES Credential; ein Teilnehmer kann ihn neu laden
+// oder erneut eintreten. Ohne Dedup würde jeder erneute qualifizierte Submit eine
+// NEUE Session + einen NEUEN Opus-Eröffnungs-Turn erzeugen (Doppel-Kosten) und
+// den max_sessions-Cap doppelt belasten. Diese Lookup-Funktion findet eine
+// bereits diesem (offenen Link × Teilnehmer-ID) zugeschriebene Session, sodass die
+// screen-Route kurzschließen und die BESTEHENDE Session weiterverwenden kann —
+// kein Doppel-Spend, keine doppelte Cap-Belastung.
+//
+// Org-scoped + open_link_id-scoped (beide typed columns); der participant_id-
+// Match läuft in JS über panel_context (jsonb). Das Set ist durch den
+// max_sessions-Cap praktisch beschränkt (Default 100); eine jsonb-Index-/
+// ->>-Filter-Optimierung ist ein späteres (E3/E4-)Thema, nicht E1.
+
+/**
+ * Die access_token-Capability einer bereits existierenden Session, die diesem
+ * offenen Link UND dieser externen Panel-Teilnehmer-ID zugeschrieben ist, oder
+ * null. Fehler/Query-Probleme → null (fail-open: lieber im Zweifel neu anlegen
+ * als einen legitimen Teilnehmer aussperren — der seltene transiente Fehler kann
+ * höchstens ein Duplikat erzeugen, das der Cap weiter deckelt). Liest nur
+ * access_token + panel_context, org+link-gescoped.
+ */
+export async function findOpenLinkSessionByParticipant(
+  orgId: string,
+  linkId: string,
+  participantId: string,
+): Promise<{ accessToken: string } | null> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select("access_token, panel_context")
+    .eq("org_id", orgId)
+    .eq("open_link_id", linkId);
+  if (error || !data) return null;
+  const match = data.find(
+    (row) =>
+      (row.panel_context as { participant_id?: unknown } | null)
+        ?.participant_id === participantId,
+  );
+  return match ? { accessToken: match.access_token } : null;
 }
 
 /**

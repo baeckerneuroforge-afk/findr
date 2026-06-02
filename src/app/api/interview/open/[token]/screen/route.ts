@@ -7,11 +7,13 @@ import {
   findOpenLinkByAccessToken,
   countOpenLinkSessions,
   isOpenLinkAtCapacity,
+  findOpenLinkSessionByParticipant,
 } from "@/lib/research/open-links";
 import { isOpenLinkExpired } from "@/lib/research/open-link-expiry";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { createResearchInterview } from "@/lib/research/research-orchestration";
 import { recordScreeningResponse } from "@/lib/research/screening-responses";
+import { coercePanelInbound, type PanelContext } from "@/lib/research/panel";
 import { evaluateScreening } from "@/lib/screening/evaluate";
 import { ScreeningAnswersSchema } from "@/lib/schemas/screening";
 import type { Json } from "@/types/database";
@@ -71,7 +73,15 @@ import type { Json } from "@/types/database";
  */
 
 const TokenSchema = z.string().min(20).max(200);
-const BodySchema = z.object({ answers: ScreeningAnswersSchema });
+// `panel` is the ADDITIVE, OPTIONAL panel-attribution bucket forwarded by the
+// open-link entry component when a Prolific PID rode in on the entry URL. Typed
+// as unknown here on purpose — the REAL validation (PID charset/length, no
+// injection) happens server-side via coercePanelInbound below, the persistence
+// trust boundary. Non-panel submits omit it entirely → byte-identical to today.
+const BodySchema = z.object({
+  answers: ScreeningAnswersSchema,
+  panel: z.unknown().optional(),
+});
 
 export async function POST(
   req: NextRequest,
@@ -114,6 +124,12 @@ export async function POST(
     );
   }
 
+  // Panel-Anbieter E1 — die externe Teilnehmer-ID aus dem (client-gelieferten)
+  // Body server-seitig RE-VALIDIEREN (charset/Länge, kein Injection); null, wenn
+  // kein/ungültiger PID → der ganze Pfad bleibt byte-identisch zum Nicht-Panel-
+  // Walk-in (panel_context wird nie gesetzt, kein Redirect). Nie blind übernehmen.
+  const panelInbound = coercePanelInbound(parsed.data.panel);
+
   // ③ Second structural barrier (inherited unchanged): getResearchPlan enforces
   //    .eq("org_id", link.org_id).eq("id", link.plan_id). A plan of another org
   //    — or any denorm drift — resolves to null → fail-closed, no session.
@@ -125,6 +141,30 @@ export async function POST(
   //    (this is a config denial, not a participant rejection — nothing to count).
   if (questions.length === 0) {
     return NextResponse.json({ available: false }, { status: 403 });
+  }
+
+  // ④b PANEL-DEDUP (E1) — VOR Screening + Cap + Opus-Turn. Ein Panel-Link ist ein
+  //    GETEILTES Credential; ein Teilnehmer kann ihn neu laden oder erneut
+  //    eintreten. Hat dieselbe PID an DIESEM Link bereits eine Session, schließen
+  //    wir kurz und geben den BESTEHENDEN frischen Session-Token zurück — KEINE
+  //    neue Session, KEIN zweiter Opus-Turn, KEINE doppelte Cap-Belastung, KEINE
+  //    doppelte Screening-Quote (die wurde beim ersten Mal geschrieben). Der
+  //    Client redirectet auf /interview/[sessionToken] und der Teilnehmer setzt
+  //    sein Gespräch fort (oder sieht — falls abgeschlossen — den Completion-
+  //    Redirect). Nur auf dem Panel-Pfad; Nicht-Panel-Submits überspringen das.
+  if (panelInbound) {
+    const existing = await findOpenLinkSessionByParticipant(
+      link.org_id,
+      link.id,
+      panelInbound.participantId,
+    );
+    if (existing) {
+      return NextResponse.json({
+        qualified: true,
+        sessionToken: existing.accessToken,
+        resumed: true,
+      });
+    }
   }
 
   // ⑤ Deterministic, KI-frei, identity-free.
@@ -165,12 +205,32 @@ export async function POST(
   //    inviteId: null → createInterviewSession generates a brand-new access_token
   //    (the open-link token is NEVER reused). open_link_id = link.id stamps the
   //    attribution (and is what the cap COUNT above measures).
+  //
+  //    Panel-Anbieter E1/E2: ist es ein Panel-Eintritt, bauen wir hier den
+  //    panel_context-Snapshot — die validierten Inbound-Felder PLUS die
+  //    Complete-Return-URL aus der Link-Completion-Konfig (E2). Der Snapshot macht
+  //    die Session selbst-enthalten: der Completion-Redirect (CompletedPanel)
+  //    braucht später keinen zweiten Read des offenen Links. complete_url ist
+  //    null, wenn (noch) keine E2-Konfig hinterlegt ist → reine Attribution.
+  //    Nicht-Panel: panelContext bleibt null → der INSERT referenziert die Spalte
+  //    nie (byte-identisch).
+  const panelContext: PanelContext | null = panelInbound
+    ? {
+        provider: panelInbound.provider,
+        participant_id: panelInbound.participantId,
+        study_id: panelInbound.studyId,
+        session_id: panelInbound.sessionId,
+        complete_url: link.panel_completion?.complete_url ?? null,
+      }
+    : null;
+
   const result = await createResearchInterview({
     orgId: link.org_id,
     planId: link.plan_id,
     inviteId: null,
     openLinkId: link.id,
     screeningAnswers: parsed.data.answers as unknown as Json,
+    panelContext: panelContext as unknown as Json | null,
   });
 
   if (result.status === "created" && result.accessToken) {
@@ -184,10 +244,37 @@ export async function POST(
     });
   }
 
-  // No fallback loadByToken here: the open-link token is NOT a session token, so
-  // it must never be matched against interview_sessions. A non-'created' status
-  // is a genuine failure (random fresh tokens make a unique-collision race
-  // impossible — every qualified walk-in gets its own session).
+  // PANEL DEDUP RACE BACKSTOP (E1): the sequential dedup at ④b covers the common
+  // re-entry case, but a CONCURRENT first-entry of the same NEW PID (double-click
+  // / parallel retry) can pass ④b twice and both reach the INSERT. The fresh
+  // session tokens differ, so the access_token UNIQUE does NOT collide — instead
+  // the partial-unique index interview_sessions_open_link_panel_pid_idx
+  // (open_link_id, panel_context->>'participant_id') makes the LOSER's INSERT fail
+  // → createResearchInterview maps it to a non-'created' status here. The WINNER's
+  // row now exists, so we re-read it (org+link+PID scoped) and hand back ITS token:
+  // ONE session, ONE cap slot, NO duplicate qualified quote (the winner already
+  // wrote it). This mirrors getPublicSession's loadByToken backstop after a raced
+  // invite insert. Only the rare wasted opening Opus turn remains — the same,
+  // explicitly-accepted edge the invite lazy-create + walk-in paths already carry.
+  if (panelInbound) {
+    const raced = await findOpenLinkSessionByParticipant(
+      link.org_id,
+      link.id,
+      panelInbound.participantId,
+    );
+    if (raced) {
+      return NextResponse.json({
+        qualified: true,
+        sessionToken: raced.accessToken,
+        resumed: true,
+      });
+    }
+  }
+
+  // Non-panel: no fallback loadByToken — the open-link token is NOT a session
+  // token, so it must never be matched against interview_sessions. With distinct
+  // fresh tokens and no participant-id index on this path, a non-'created' status
+  // is a genuine failure.
   console.error(
     `[open-screen] createResearchInterview failed: status=${result.status} ${result.message ?? ""}`,
   );

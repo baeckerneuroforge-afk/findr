@@ -10,6 +10,11 @@ import {
   createResearchSupabase,
   type DatabaseWithResearch,
 } from "@/lib/research/db";
+import {
+  buildPanelRedirectUrl,
+  coercePanelContext,
+  type PanelContext,
+} from "@/lib/research/panel";
 import { findInviteByAccessToken } from "@/lib/research/scheduling";
 import { persistResearchTranscriptAndDiscovery } from "@/lib/research/transcript-service";
 import {
@@ -105,6 +110,10 @@ export interface InterviewSession {
   model: string | null;
   createdAt: string;
   completedAt: string | null;
+  /** Phase 4 Baustein 3 (Panel-Anbieter) — Inbound-Attribution der externen
+   *  Teilnehmer-ID + Snapshot der Complete-Return-URL. Null für JEDE
+   *  Nicht-Panel-Session (defensiv genarrowed via coercePanelContext). */
+  panelContext: PanelContext | null;
 }
 
 /** Minimal, safe-to-expose view for the public chat page. */
@@ -135,6 +144,13 @@ export interface PublicInterviewView {
    *  as its NextIntlClientProvider locale, so the chrome matches the language
    *  the agent + emails speak (closes the EN-chrome / DE-interview mismatch). */
   language: InterviewLanguage;
+  /** Panel-Anbieter E2 — die FERTIG aufgebaute Complete-Return-URL (Template aus
+   *  panel_context.complete_url + substituierte Teilnehmer-ID, validiert), an die
+   *  CompletedPanel den Browser zurück zum Anbieter leitet, sobald das Interview
+   *  abgeschlossen ist. NULL für JEDE Nicht-Panel-Session (kein Redirect →
+   *  byte-identischer Dank-Screen wie heute). Enthält NUR die eigene pseudonyme
+   *  ID des Teilnehmers, KEINE org/internal-Daten. */
+  panelCompleteRedirect: string | null;
 }
 
 function generateToken(): string {
@@ -165,6 +181,11 @@ function toSession(row: Row): InterviewSession {
     model: row.model,
     createdAt: row.created_at,
     completedAt: row.completed_at,
+    // Defensive narrow; undefined pre-migration (select("*") omits the column) →
+    // null, so every existing read stays byte-identical.
+    panelContext: coercePanelContext(
+      (row as { panel_context?: unknown }).panel_context,
+    ),
   };
 }
 
@@ -199,6 +220,19 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
     planTitle = ctx?.plan?.title?.trim() || null;
   }
 
+  // Panel-Anbieter E2: die Complete-Return-URL einmal hier server-seitig bauen
+  // (Template-Snapshot + validierte ID-Substitution) und als fertigen String
+  // exponieren. Null für jede Nicht-Panel-Session ODER wenn keine complete_url
+  // gesnapshottet wurde (Attribution-only) ODER wenn das Template keine sichere
+  // http(s)-URL ist (buildPanelRedirectUrl → null). Der Client navigiert nur,
+  // wenn dieser Wert gesetzt ist → kein Redirect, byte-identisch, sonst.
+  const panelCompleteRedirect = session.panelContext?.complete_url
+    ? buildPanelRedirectUrl(
+        session.panelContext.complete_url,
+        session.panelContext.participant_id,
+      )
+    : null;
+
   return {
     status: session.status,
     conversation: session.conversation,
@@ -208,6 +242,7 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
     kind: session.kind,
     planTitle,
     language: session.language,
+    panelCompleteRedirect,
   };
 }
 
@@ -282,6 +317,14 @@ export async function createInterviewSession(params: {
    *  identical. Mutually exclusive with inviteId by construction (the open route
    *  passes inviteId: null + openLinkId, the invite route the inverse). */
   openLinkId?: string | null;
+  /** Phase 4 Baustein 3 (Panel-Anbieter) E1: Inbound-Attribution-Bucket (provider
+   *  + opake Teilnehmer-ID + Complete-URL-Snapshot, PanelContext-Form als Json).
+   *  Gesetzt NUR auf dem Panel-Pfad (Open-Link mit ?PROLIFIC_PID=); null/omitted
+   *  auf JEDEM anderen Pfad. NULL-SICHER + BYTE-IDENTISCH: der panel_context-Key
+   *  wird NUR dann überhaupt in den INSERT aufgenommen, wenn er gesetzt ist —
+   *  jeder Nicht-Panel-INSERT referenziert die Spalte gar nicht (funktioniert
+   *  also auch, falls die Migration 20260702000000 noch nicht angewandt ist). */
+  panelContext?: Json | null;
 }): Promise<InterviewSession> {
   const kind = params.kind ?? "post_loss";
   const mode = params.mode ?? "text";
@@ -341,6 +384,13 @@ export async function createInterviewSession(params: {
       deal_context: params.dealContext as unknown as Json,
       model,
       screening_answers: params.screeningAnswers ?? null,
+      // Panel-Anbieter E1: den panel_context-Key NUR aufnehmen, wenn gesetzt.
+      // So ist jeder Nicht-Panel-INSERT byte-identisch (referenziert die Spalte
+      // nie) — auch vor angewandter Migration. Panel-INSERTs treten erst auf,
+      // nachdem die Migration angewandt + Panel konfiguriert ist.
+      ...(params.panelContext != null
+        ? { panel_context: params.panelContext }
+        : {}),
     })
     .select()
     .single();

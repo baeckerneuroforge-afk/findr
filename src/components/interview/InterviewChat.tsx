@@ -40,6 +40,11 @@ interface InterviewChatProps {
   accentColor?: string | null;
   /** Public logo URL; null → fall back to the text brand name (or nothing). */
   logoUrl?: string | null;
+  /** Panel-Anbieter E2: die fertig aufgebaute Complete-Return-URL des Anbieters.
+   *  Wenn gesetzt (nur Panel-Sessions), leitet CompletedPanel den Browser dorthin
+   *  zurück, sobald das Interview abgeschlossen ist. Null für JEDE Nicht-Panel-
+   *  Session → der bestehende Dank-Screen, KEIN Redirect (byte-identisch). */
+  panelCompleteRedirect?: string | null;
 }
 
 /** Default Findr accent — fallback when no org accent color is set. */
@@ -84,8 +89,19 @@ function TypingBubble() {
   );
 }
 
-function CompletedPanel() {
+function CompletedPanel({
+  redirectUrl = null,
+}: {
+  /** Panel-Anbieter E2: wenn gesetzt, wird der Teilnehmer beim Mount (= Interview
+   *  abgeschlossen) zur Anbieter-Complete-URL zurückgeleitet. Der Dank-Screen ist
+   *  dann nur ein kurzer Fallback (z. B. falls die Navigation scheitert). Null →
+   *  reiner Dank-Screen, byte-identisch zu heute. */
+  redirectUrl?: string | null;
+}) {
   const t = useTranslations("interview");
+  useEffect(() => {
+    if (redirectUrl) window.location.href = redirectUrl;
+  }, [redirectUrl]);
   return (
     <div className="mb-10 mt-8 rounded-2xl border border-[#E8E4F2] bg-[#FAFAFE] px-6 py-8 text-center">
       <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#2E9E6B] text-[18px] text-white">
@@ -111,6 +127,7 @@ export function InterviewChat({
   brandName = null,
   accentColor = null,
   logoUrl = null,
+  panelCompleteRedirect = null,
 }: InterviewChatProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
@@ -277,7 +294,7 @@ export function InterviewChat({
             </p>
           </div>
         ) : (
-          <CompletedPanel />
+          <CompletedPanel redirectUrl={panelCompleteRedirect} />
         )}
       </main>
     </div>

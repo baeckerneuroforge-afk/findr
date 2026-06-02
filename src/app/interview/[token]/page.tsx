@@ -147,6 +147,9 @@ export default async function InterviewPage({
         brandName={branding?.brandName ?? null}
         accentColor={branding?.accentColor ?? null}
         logoUrl={branding?.logoUrl ?? null}
+        // Panel-Anbieter E2: server-seitig aufgebaute Complete-Return-URL. Nur für
+        // Panel-Sessions gesetzt (sonst null → kein Redirect, byte-identisch).
+        panelCompleteRedirect={session.panelCompleteRedirect}
       />
     </NextIntlClientProvider>
   );

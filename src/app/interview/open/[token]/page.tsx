@@ -10,6 +10,7 @@ import {
   countOpenLinkSessions,
 } from "@/lib/research/open-links";
 import { isOpenLinkExpired } from "@/lib/research/open-link-expiry";
+import { parsePanelParams, buildPanelRedirectUrl } from "@/lib/research/panel";
 import { getOrgBranding } from "@/lib/settings/org-settings";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locale";
 import { MESSAGES, translate } from "@/i18n/messages";
@@ -89,8 +90,13 @@ export async function generateMetadata({
 
 export default async function OpenInterviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  // Panel-Anbieter E1: die Eintritts-URL kann ?PROLIFIC_PID=… (+ STUDY_ID /
+  // SESSION_ID) tragen. searchParams ist in Next 16 ein Promise. Fehlt der
+  // Param, ist `panel` unten null → der GANZE Pfad bleibt byte-identisch.
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { token } = await params;
 
@@ -111,6 +117,27 @@ export default async function OpenInterviewPage({
   // is unauthenticated; org_id is used only to fetch branding and never reaches
   // the client (the gate receives brandName/accent/logo, not the org UUID).
   const branding = await getOrgBranding(link.org_id);
+
+  // Panel-Anbieter E1/E2 — die Inbound-ID aus der Eintritts-URL validieren und
+  // (E2) die outcome-verzweigten Return-URLs server-seitig FERTIG aufbauen
+  // (Template aus link.panel_completion + validierte ID-Substitution). `panel`
+  // null ⇒ kein Panel-Eintritt ⇒ alle drei Werte null ⇒ kein Redirect, der
+  // bestehende Flow ist byte-identisch. Die Screenout-/QuotaFull-Redirects greifen
+  // auf den NICHT-Session-Pfaden (Abweisung / „Studie voll"), wo es keine Session
+  // gibt, die die Complete-URL tragen könnte — daher hier am Link aufgelöst.
+  const panel = parsePanelParams(await searchParams);
+  const panelScreenoutUrl = panel
+    ? buildPanelRedirectUrl(
+        link.panel_completion?.screenout_url,
+        panel.participantId,
+      )
+    : null;
+  const panelQuotafullUrl = panel
+    ? buildPanelRedirectUrl(
+        link.panel_completion?.quotafull_url,
+        panel.participantId,
+      )
+    : null;
 
   const language =
     entry.mode === "needs_screening"
@@ -162,6 +189,11 @@ export default async function OpenInterviewPage({
           brandName={branding.brandName}
           accentColor={branding.accentColor}
           logoUrl={branding.logoUrl}
+          // Panel E2: ein Panel-Teilnehmer auf einem vollen Link wird zur
+          // QuotaFull-Return-URL des Anbieters geleitet (damit Prolific das
+          // korrekte Disposition setzt), statt nur „Studie voll" zu sehen. Null
+          // für Nicht-Panel → reiner Screen, byte-identisch.
+          redirectUrl={panelQuotafullUrl}
         />
       </NextIntlClientProvider>
     );
@@ -180,6 +212,12 @@ export default async function OpenInterviewPage({
         brandName={branding.brandName}
         accentColor={branding.accentColor}
         logoUrl={branding.logoUrl}
+        // Panel E1/E2: die validierte Inbound-ID (für den POST-Body → panel_context)
+        // + die fertig aufgebauten Screenout-/QuotaFull-Return-URLs (für die
+        // Redirects bei Abweisung / „voll" am Submit). Alle null für Nicht-Panel.
+        panel={panel}
+        panelScreenoutUrl={panelScreenoutUrl}
+        panelQuotafullUrl={panelQuotafullUrl}
       />
     </NextIntlClientProvider>
   );

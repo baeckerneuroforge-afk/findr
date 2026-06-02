@@ -39,6 +39,12 @@ type InterviewSessionsRow = {
   // Link (20260629000000). NULL für jede per-Invite-/post_loss-/checkin-Session;
   // verdrahtet erst in E4 (in E1 ist die Spalte da, wird aber nie geschrieben).
   open_link_id: string | null;
+  // Phase 4 Baustein 3 (Panel-Anbieter) — Inbound-Attribution der externen
+  // Panel-Teilnehmer-ID (20260702000000). NULL für JEDE Nicht-Panel-Session;
+  // gesetzt NUR auf dem Open-Link-Pfad, wenn ?PROLIFIC_PID= mitläuft. Form:
+  // PanelContext (src/lib/research/panel.ts). Vor angewandter Migration liefert
+  // select("*") die Spalte nicht → der Lese-Mapper defaultet undefined→null.
+  panel_context: Json | null;
   account_id: string | null;
   completed_at: string | null;
   conversation: Json;
@@ -68,6 +74,7 @@ type InterviewSessionsInsert = {
   access_token: string;
   screening_answers?: Json | null;
   open_link_id?: string | null;
+  panel_context?: Json | null;
   account_id?: string | null;
   completed_at?: string | null;
   conversation?: Json;
@@ -97,6 +104,7 @@ type InterviewSessionsUpdate = {
   access_token?: string;
   screening_answers?: Json | null;
   open_link_id?: string | null;
+  panel_context?: Json | null;
   account_id?: string | null;
   completed_at?: string | null;
   conversation?: Json;
@@ -542,6 +550,11 @@ export type ResearchOpenLinkRow = {
   max_sessions: number | null;
   valid_until: string | null;
   label: string | null;
+  // Phase 4 Baustein 3 (Panel-Anbieter) E2 — pro-Link Completion-Return-URLs
+  // (20260702000001). NULL = kein Panel-Completion konfiguriert. Form:
+  // PanelCompletion (src/lib/research/panel.ts). Vor angewandter Migration
+  // liefert select("*") die Spalte nicht → der Lese-Mapper defaultet undef→null.
+  panel_completion: Json | null;
   created_at: string;
 };
 
@@ -554,6 +567,7 @@ type ResearchOpenLinkInsert = {
   max_sessions?: number | null;
   valid_until?: string | null;
   label?: string | null;
+  panel_completion?: Json | null;
   created_at?: string;
 };
 
@@ -566,6 +580,7 @@ type ResearchOpenLinkUpdate = {
   max_sessions?: number | null;
   valid_until?: string | null;
   label?: string | null;
+  panel_completion?: Json | null;
   created_at?: string;
 };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { ParticipantShell } from "./ParticipantShell";
 
@@ -25,14 +26,24 @@ export function OpenLinkUnavailable({
   brandName = null,
   accentColor = null,
   logoUrl = null,
+  redirectUrl = null,
 }: {
   variant?: "unavailable" | "full";
   brandName?: string | null;
   accentColor?: string | null;
   logoUrl?: string | null;
+  /** Panel-Anbieter E2: wenn gesetzt (nur „full" + Panel-Eintritt mit QuotaFull-
+   *  Template), wird der Teilnehmer beim Mount zur Anbieter-Return-URL geleitet —
+   *  der Screen ist dann nur ein kurzer Fallback, falls die Navigation scheitert.
+   *  Null (Nicht-Panel / kein Template) → reiner Screen, byte-identisch. Server-
+   *  seitig auf eine sichere http(s)-URL validiert (buildPanelRedirectUrl). */
+  redirectUrl?: string | null;
 }) {
   const t = useTranslations("interview");
   const base = variant === "full" ? "open.full" : "open.unavailable";
+  useEffect(() => {
+    if (redirectUrl) window.location.href = redirectUrl;
+  }, [redirectUrl]);
   return (
     <ParticipantShell
       brandless

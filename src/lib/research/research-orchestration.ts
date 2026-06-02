@@ -107,6 +107,12 @@ export async function createResearchInterview(params: {
    *  inviteId: null + openLinkId → a FRESH session token is minted internally
    *  (the open-link token is shared and must NEVER become a session token). */
   openLinkId?: string | null;
+  /** Phase 4 Baustein 3 (Panel-Anbieter) E1: Inbound-Attribution-Bucket
+   *  (PanelContext-Form als Json), threaded verbatim onto the session's
+   *  panel_context — EXAKT wie openLinkId/screeningAnswers. Set ONLY by the
+   *  open-link screen route when a Prolific PID is present; null/omitted on every
+   *  other call → byte-identisch. KEIN Provider-Call, KEIN Key (das wäre E3). */
+  panelContext?: Json | null;
 }): Promise<CreateResearchInterviewResult> {
   const base: CreateResearchInterviewResult = {
     status: "error",
@@ -179,6 +185,10 @@ export async function createResearchInterview(params: {
       inviteId: params.inviteId ?? null,
       // Additive open-link attribution. Null on the invite/ad-hoc paths → no-op.
       openLinkId: params.openLinkId ?? null,
+      // Additive panel attribution. Null on every non-panel path → the INSERT
+      // never references the column (byte-identical). Threaded verbatim, mirrors
+      // openLinkId/screeningAnswers.
+      panelContext: params.panelContext ?? null,
       // Pass the invite-bound token through when present; otherwise
       // createInterviewSession generates a fresh one. On the open-link path
       // inviteAccessToken is undefined (inviteId is null) → a FRESH session
