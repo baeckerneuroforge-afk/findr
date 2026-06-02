@@ -1,39 +1,25 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/marketing/seo";
 import { getAllInsightSlugs } from "@/lib/insights/articles";
-import { ROLES } from "@/components/marketing/role-template";
+import { SITEMAP_ROUTES } from "@/components/marketing/nav-data";
 
 /**
- * Sitemap — homepage, platform overview + four module pages (Etappe A + B),
- * Etappe C (/loesungen, /insights + every article slug loaded from the SAME
- * source as generateStaticParams so prebuilt routes and sitemap can't drift,
- * /preise) and Etappe D's /demo.
+ * Sitemap — the indexable marketing routes (homepage, /produkt + four modules,
+ * /loesungen + roles, /branchen, /preise, /insights, /demo) come from the single
+ * nav registry (nav-data.ts: SITEMAP_ROUTES), so the menu, the footer and this
+ * file can't drift apart. Article slugs are appended from the SAME source as
+ * generateStaticParams (getAllInsightSlugs) so prebuilt routes and sitemap stay
+ * in lockstep too.
  *
- * The legal pages (/impressum, /datenschutz, /agb) are intentionally NOT listed
- * yet: they ship as noindex placeholders (texts come from André/Legal, D8).
- * Add /impressum + /datenschutz here once they carry the real, indexable text;
- * /agb stays noindex by choice (§4.9).
+ * The legal pages (/impressum, /datenschutz, /agb) are intentionally NOT listed:
+ * they ship as noindex placeholders (texts come from André/Legal, D8) and are
+ * therefore omitted from SITEMAP_ROUTES. Add /impressum + /datenschutz there
+ * once they carry the real, indexable text; /agb stays noindex by choice (§4.9).
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const routes: { path: string; priority: number }[] = [
-    { path: "/", priority: 1.0 },
-    { path: "/produkt", priority: 0.8 },
-    { path: "/produkt/sales-intelligence", priority: 0.8 },
-    { path: "/produkt/customer-health", priority: 0.8 },
-    { path: "/produkt/product-discovery", priority: 0.8 },
-    { path: "/produkt/market-research", priority: 0.8 },
-    { path: "/preise", priority: 0.8 },
-    { path: "/loesungen", priority: 0.7 },
-    ...ROLES.map((r) => ({
-      path: `/loesungen/${r.slug}`,
-      priority: 0.7,
-    })),
-    { path: "/branchen/konsumgueter", priority: 0.7 },
-    { path: "/branchen/handel", priority: 0.7 },
-    { path: "/branchen/tech", priority: 0.7 },
-    { path: "/insights", priority: 0.6 },
-    { path: "/demo", priority: 0.5 },
+    ...SITEMAP_ROUTES,
     ...getAllInsightSlugs().map((slug) => ({
       path: `/insights/${slug}`,
       priority: 0.6,

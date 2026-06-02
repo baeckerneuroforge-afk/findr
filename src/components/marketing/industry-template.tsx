@@ -23,6 +23,7 @@ import {
   RadarIcon,
   HexagonIcon,
   CpuIcon,
+  type IconName,
 } from "./icons";
 
 /**
@@ -116,23 +117,34 @@ const MR_PROOFS: Proof[] = [
 ];
 
 // ── Industry registry (single source for footer + cross-links + slugs) ───────
-export type IndustryRef = { slug: string; name: string; tagline: string };
+// `icon` is additive: the industry PAGES never rendered a per-industry icon, but
+// the "Lösungen" mega-menu panel does, so the icon NAME lives here (single
+// source, serializable) alongside the slug/name/tagline it already owned.
+export type IndustryRef = {
+  slug: string;
+  name: string;
+  tagline: string;
+  icon: IconName;
+};
 
 export const INDUSTRIES: IndustryRef[] = [
   {
     slug: "konsumgueter",
     name: "Konsumgüter",
     tagline: "Rezeptur, Verpackung, Markenversprechen — belegt vor dem Launch.",
+    icon: "HexagonIcon",
   },
   {
     slug: "handel",
     name: "Handel & E-Commerce",
     tagline: "Warenkorbabbruch, Sortiment, Preisgefühl — der Grund hinter dem Klick.",
+    icon: "ShoppingBagIcon",
   },
   {
     slug: "tech",
     name: "Tech & Consumer Apps",
     tagline: "Onboarding-Frust, Feature-Wunsch, Abwanderung — die Stimme hinter der Kurve.",
+    icon: "SmartphoneIcon",
   },
 ];
 

@@ -1,61 +1,15 @@
 import Link from "next/link";
 import { Container } from "./primitives";
 import { Wordmark } from "./Wordmark";
-import { INDUSTRIES } from "./industry-template";
-import { ROLES } from "./role-template";
+import { FOOTER_COLUMNS, FOOTER_GRID_BY_COLS } from "./nav-data";
 
-const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
-  {
-    title: "Produkt",
-    links: [
-      { label: "Plattform", href: "/produkt" },
-      { label: "Sales Intelligence", href: "/produkt/sales-intelligence" },
-      { label: "Customer Success Health", href: "/produkt/customer-health" },
-      { label: "Product Discovery", href: "/produkt/product-discovery" },
-      { label: "Market Research", href: "/produkt/market-research" },
-    ],
-  },
-  {
-    // B2B role pages (/loesungen/<slug>) — built from the single ROLES registry
-    // (hub first, then the three roles) so footer + cross-links can't drift.
-    title: "Lösungen",
-    links: [
-      { label: "Übersicht", href: "/loesungen" },
-      ...ROLES.map((r) => ({
-        label: r.name,
-        href: `/loesungen/${r.slug}`,
-      })),
-    ],
-  },
-  {
-    // B2C Market-Research industry pages (/branchen/<slug>) — built from the
-    // single INDUSTRIES registry so footer + cross-links can't drift.
-    title: "Branchen",
-    links: INDUSTRIES.map((i) => ({
-      label: i.name,
-      href: `/branchen/${i.slug}`,
-    })),
-  },
-  {
-    title: "Unternehmen",
-    links: [
-      { label: "Preise", href: "/preise" },
-      { label: "Insights", href: "/insights" },
-      { label: "Demo buchen", href: "/demo" },
-    ],
-  },
-  {
-    // DE-Pflicht: Impressum/Datenschutz/AGB. The pages now exist (Etappe D) as
-    // scaffolding with clearly-marked placeholders — the binding texts come
-    // from André/Legal (open decision D8). Links wired below.
-    title: "Rechtliches",
-    links: [
-      { label: "Impressum", href: "/impressum" },
-      { label: "Datenschutz", href: "/datenschutz" },
-      { label: "AGB", href: "/agb" },
-    ],
-  },
-];
+// Footer columns + the matching grid template both come from the single nav
+// registry (nav-data.ts), which composes the canonical MODULES / ROLES /
+// INDUSTRIES sets. Adding a product/role/industry there flows into the footer,
+// the header mega-menu and the sitemap at once — no hand-kept copy to drift.
+const COLUMNS = FOOTER_COLUMNS;
+const GRID_COLS =
+  FOOTER_GRID_BY_COLS[COLUMNS.length] ?? FOOTER_GRID_BY_COLS[5];
 
 // TODO D3: UWG-Claim — "DSGVO-konform" und "EU-AI-Act-konform" sind werbliche
 // Aussagen, die vor Live entweder belegt oder entschärft werden müssen
@@ -74,7 +28,7 @@ export function MarketingFooter() {
   return (
     <footer className="border-t border-neutral-200 bg-neutral-50">
       <Container className="py-16">
-        <div className="grid gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-[1.3fr_repeat(5,1fr)]">
+        <div className={`grid gap-x-8 gap-y-12 md:grid-cols-2 ${GRID_COLS}`}>
           <div className="flex flex-col gap-3">
             <Wordmark />
             <p className="max-w-xs text-sm leading-relaxed text-neutral-500">

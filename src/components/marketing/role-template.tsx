@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ComponentType, ReactNode, SVGProps } from "react";
+import type { ReactNode } from "react";
 import { Container, Section, Eyebrow } from "./primitives";
 import { Reveal } from "./Reveal";
 import {
@@ -12,9 +12,7 @@ import {
   type ExampleRow,
 } from "./module-template";
 import { CTASection } from "./CTASection";
-import { RadarIcon, ShieldCheckIcon, CpuIcon } from "./icons";
-
-type IconType = ComponentType<SVGProps<SVGSVGElement>>;
+import { ICONS, type IconName } from "./icons";
 
 /**
  * Shared template for the B2B ROLE pages (/loesungen/<slug>).
@@ -51,7 +49,9 @@ export type RoleRef = {
   name: string;
   /** Eyebrow used on the hub card AND the page hero. */
   eyebrow: string;
-  Icon: IconType;
+  /** Icon NAME (resolved via ICONS) — kept serializable so the mega-menu can
+   *  consume this same registry without crossing a component over the boundary. */
+  icon: IconName;
   /** One-sentence pain for the hub card. */
   painTeaser: string;
   /** The single module this role maps to. */
@@ -64,7 +64,7 @@ export const ROLES: RoleRef[] = [
     slug: "sales-leader",
     name: "Sales-Leader",
     eyebrow: "Für Sales-Leader · VP Sales & RevOps",
-    Icon: RadarIcon,
+    icon: "RadarIcon",
     painTeaser:
       "Das CRM sagt „verloren wegen Preis“ — aber nicht, dass der Champion absprang. findr. liest das echte Gespräch.",
     moduleSlug: "sales-intelligence",
@@ -74,7 +74,7 @@ export const ROLES: RoleRef[] = [
     slug: "customer-success",
     name: "Customer Success",
     eyebrow: "Für Customer Success · CS-Leads & CSMs",
-    Icon: ShieldCheckIcon,
+    icon: "ShieldCheckIcon",
     painTeaser:
       "Churn merkst du oft erst beim Kündigungs-Call. findr. erkennt die Signale Wochen vorher — aus den Gesprächen, die du ohnehin führst.",
     moduleSlug: "customer-health",
@@ -84,7 +84,7 @@ export const ROLES: RoleRef[] = [
     slug: "product",
     name: "Product & Research",
     eyebrow: "Für Product & Research · PM & UX-Research",
-    Icon: CpuIcon,
+    icon: "CpuIcon",
     painTeaser:
       "Roadmap-Prioritäten aus Tickets und Bauchgefühl? findr. führt KI-Interviews mit deinen eigenen Nutzer:innen und verdichtet belegt.",
     moduleSlug: "product-discovery",
@@ -197,14 +197,16 @@ export function RoleCards({ tone = "default" }: { tone?: "default" | "muted" }) 
     <Section tone={tone}>
       <Container>
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 lg:grid-cols-3">
-          {ROLES.map((r, i) => (
+          {ROLES.map((r, i) => {
+            const Icon = ICONS[r.icon];
+            return (
             <Reveal key={r.slug} y={0} delay={i * 0.06} className="bg-white">
               <Link
                 href={`/loesungen/${r.slug}`}
                 className="group flex h-full flex-col gap-4 p-7 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
               >
                 <div className="flex items-center justify-between">
-                  <r.Icon className="h-6 w-6 text-primary-600" />
+                  <Icon className="h-6 w-6 text-primary-600" />
                   <span
                     aria-hidden
                     className="text-primary-600 transition-transform group-hover:translate-x-0.5"
@@ -232,7 +234,8 @@ export function RoleCards({ tone = "default" }: { tone?: "default" | "muted" }) 
                 </span>
               </Link>
             </Reveal>
-          ))}
+            );
+          })}
         </div>
       </Container>
     </Section>

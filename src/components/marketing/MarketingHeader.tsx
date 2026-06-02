@@ -2,20 +2,16 @@ import Link from "next/link";
 import { Container } from "./primitives";
 import { CtaLink } from "./CtaLink";
 import { Wordmark } from "./Wordmark";
+import { MegaMenu } from "./MegaMenu";
 import { MobileNav } from "./MobileNav";
-
-/** Single source for the primary nav (desktop + mobile + footer reference). */
-export const NAV_LINKS = [
-  { label: "Plattform", href: "/produkt" },
-  { label: "Lösungen", href: "/loesungen" },
-  { label: "Preise", href: "/preise" },
-  { label: "Insights", href: "/insights" },
-];
+import { PRIMARY_NAV } from "./nav-data";
 
 /**
- * Sticky, hairline-bottomed header. Server component; the only interactive part
- * (mobile burger) is the <MobileNav> client child — the page stays a Server
- * Component so metadata works. (Befund 2.)
+ * Sticky, hairline-bottomed header. Server component; the interactive parts (the
+ * desktop <MegaMenu> dropdowns and the mobile <MobileNav> accordion) are the two
+ * "use client" islands — the header itself stays a Server Component so page
+ * metadata still works. Both islands read the SAME serializable nav registry
+ * (PRIMARY_NAV from nav-data), which also feeds the footer and the sitemap.
  */
 export function MarketingHeader() {
   return (
@@ -23,17 +19,7 @@ export function MarketingHeader() {
       <Container className="flex h-16 items-center justify-between gap-4">
         <Wordmark />
 
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Hauptnavigation">
-          {NAV_LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="rounded text-sm text-neutral-700 transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+        <MegaMenu nav={PRIMARY_NAV} />
 
         <div className="hidden items-center gap-2 md:flex">
           <Link
@@ -50,7 +36,7 @@ export function MarketingHeader() {
           </CtaLink>
         </div>
 
-        <MobileNav navLinks={NAV_LINKS} />
+        <MobileNav nav={PRIMARY_NAV} />
       </Container>
     </header>
   );

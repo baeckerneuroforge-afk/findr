@@ -142,3 +142,61 @@ export function LayersIcon(props: IconProps) {
     </svg>
   );
 }
+
+// Handel & E-Commerce — shopping bag
+export function ShoppingBagIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 8h12l-1 12H7z" />
+      <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+    </svg>
+  );
+}
+
+// Tech & Consumer Apps — smartphone
+export function SmartphoneIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="7" y="2.5" width="10" height="19" rx="2.2" />
+      <path d="M10.5 18.5h3" />
+    </svg>
+  );
+}
+
+// Disclosure caret — chevron down (rotates 180° when its panel is open)
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+/**
+ * Name → component map. The mega-menu / mobile accordion live in "use client"
+ * islands and receive the nav registry as serializable props — a React
+ * component (a function) can't cross the server→client boundary, so the registry
+ * stores an icon NAME string and the client resolves it here. This is also the
+ * single source the data registries (MODULES / ROLES / INDUSTRIES) reference, so
+ * an icon choice is declared exactly once. Components are plain `currentColor`
+ * SVGs (no hooks) → safe in both server and client trees.
+ */
+export const ICONS = {
+  CpuIcon,
+  NetworkIcon,
+  RadarIcon,
+  TargetIcon,
+  TrendingUpIcon,
+  HexagonIcon,
+  CheckIcon,
+  ShieldCheckIcon,
+  ServerIcon,
+  MapPinIcon,
+  FileCheckIcon,
+  LayersIcon,
+  ShoppingBagIcon,
+  SmartphoneIcon,
+  ChevronDownIcon,
+} as const;
+
+export type IconName = keyof typeof ICONS;

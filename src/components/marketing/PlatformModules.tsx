@@ -1,24 +1,30 @@
 import Link from "next/link";
-import type { ComponentType, ReactNode, SVGProps } from "react";
+import type { ReactNode } from "react";
 import { Container, Section, SectionHeading, Accent, StatusTag } from "./primitives";
 import { Reveal } from "./Reveal";
-import { TrendingUpIcon, RadarIcon, NetworkIcon, TargetIcon } from "./icons";
+import { ICONS, type IconName } from "./icons";
 
-type ModuleEntry = {
+export type ModuleEntry = {
   idx: string;
   name: string;
   href: string;
   blurb: string;
   status: "Live" | "Bald";
-  Icon: ComponentType<SVGProps<SVGSVGElement>>;
+  /** Icon NAME (resolved via ICONS) so the entry stays serializable for the
+   *  mega-menu, which consumes this same array as its single source. */
+  icon: IconName;
 };
 
 /**
  * The four products, given EQUAL weight (same card, same depth) — this is the
  * core rebalancing away from the old ~70%-Sales homepage. Blurbs are verbatim
  * from landing.html:1459/1466/1473/1480. Each card links to its module page.
+ *
+ * Exported as the single source for the four-module set: the homepage grid (this
+ * file) AND the header's "Plattform" mega-menu panel (via nav-data) read it, so
+ * route + copy + icon can never drift between them.
  */
-const MODULES: ModuleEntry[] = [
+export const MODULES: ModuleEntry[] = [
   {
     idx: "01",
     name: "Sales Intelligence",
@@ -26,7 +32,7 @@ const MODULES: ModuleEntry[] = [
     blurb:
       "Deal-Risiko aus echten Gesprächen: Echtzeit-Risiko-Score, automatische Verlustgrund-Erkennung und risiko-adjustierte Pipeline-Prognose.",
     status: "Live",
-    Icon: TrendingUpIcon,
+    icon: "TrendingUpIcon",
   },
   {
     idx: "02",
@@ -35,7 +41,7 @@ const MODULES: ModuleEntry[] = [
     blurb:
       "Churn-Früherkennung aus jedem Kunden-Call: Health-Score pro Account, Risiko-Signale und Expansions-Chancen, bevor es zu spät ist.",
     status: "Live",
-    Icon: RadarIcon,
+    icon: "RadarIcon",
   },
   {
     idx: "03",
@@ -44,7 +50,7 @@ const MODULES: ModuleEntry[] = [
     blurb:
       "KI-geführte Nutzer-Interviews und automatische Studien-Synthese — was Kunden wirklich brauchen, verankert im Transkript statt im Bauchgefühl.",
     status: "Live",
-    Icon: NetworkIcon,
+    icon: "NetworkIcon",
   },
   {
     idx: "04",
@@ -53,7 +59,7 @@ const MODULES: ModuleEntry[] = [
     blurb:
       "Studienübergreifende Insights: frag über alle Interviews und Studien hinweg, exakt gezählt und je Studie belegt.",
     status: "Live",
-    Icon: TargetIcon,
+    icon: "TargetIcon",
   },
 ];
 
@@ -94,7 +100,9 @@ export function PlatformModules({
             Pure opacity (y=0) so the gap-px hairline grid never exposes its
             neutral-200 backing mid-transform. Reduced motion → instant. */}
         <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-4">
-          {MODULES.map((m, i) => (
+          {MODULES.map((m, i) => {
+            const Icon = ICONS[m.icon];
+            return (
             <Reveal key={m.href} y={0} delay={i * 0.06} className="flex">
               <Link
                 href={m.href}
@@ -108,7 +116,7 @@ export function PlatformModules({
                   </span>
                   <StatusTag status={m.status} />
                 </div>
-                <m.Icon className="h-7 w-7 text-primary-600" />
+                <Icon className="h-7 w-7 text-primary-600" />
                 <h3 className="font-marketing text-xl font-semibold leading-tight tracking-[-0.01em] text-neutral-900">
                   {m.name}
                 </h3>
@@ -123,7 +131,8 @@ export function PlatformModules({
                 </span>
               </Link>
             </Reveal>
-          ))}
+            );
+          })}
         </div>
       </Container>
     </Section>
