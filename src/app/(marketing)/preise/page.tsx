@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   Container,
   Section,
@@ -6,20 +7,29 @@ import {
 } from "@/components/marketing/primitives";
 import { Reveal } from "@/components/marketing/Reveal";
 import { HeroAtmosphere } from "@/components/marketing/HeroAtmosphere";
-import {
-  PricingTable,
-  type PricingTier,
-  type PricingEnterprise,
-} from "@/components/marketing/PricingTable";
+import { CtaLink } from "@/components/marketing/CtaLink";
+import { PlatformModules } from "@/components/marketing/PlatformModules";
+import { PricingMatrix } from "@/components/marketing/PricingMatrix";
 import { FAQ, type FaqItem } from "@/components/marketing/FAQ";
-import { CTASection } from "@/components/marketing/CTASection";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { SITE_URL, SITE_NAME, ogDefaults } from "@/lib/marketing/seo";
+import {
+  LayersIcon,
+  TrendingUpIcon,
+  NetworkIcon,
+  FileCheckIcon,
+  MapPinIcon,
+  ServerIcon,
+  ShieldCheckIcon,
+  CpuIcon,
+  CheckIcon,
+} from "@/components/marketing/icons";
+import { ogDefaults } from "@/lib/marketing/seo";
+import type { ComponentType, SVGProps } from "react";
 
 const PATH = "/preise";
 const OG_TITLE = "Preise — findr.";
 const DESCRIPTION =
-  "Eine Plattform, ehrliche Preise: Starter, Growth und Scale plus Enterprise — 14 Tage kostenlos testen, ohne Kreditkarte. In Frankfurt gehostet, DSGVO-konform.";
+  "Custom-based Pricing für findr.: Du zahlst für die Module, den Umfang und die Begleitung, die zu deinem Team passen — den konkreten Preis legen wir gemeinsam im Demo-Call fest. In Frankfurt gehostet, DSGVO-konform.";
 
 export const metadata: Metadata = {
   title: "Preise",
@@ -28,168 +38,125 @@ export const metadata: Metadata = {
   openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
 };
 
-// Product/Offer JSON-LD. Prices are plain numbers (no thousands separator) per
-// schema.org; the DE "1.999 €" formatting lives only in the visible markup.
-const PRICING_JSONLD = {
+type IconType = ComponentType<SVGProps<SVGSVGElement>>;
+
+// ── Sektion 2: Was den Preis bestimmt ──────────────────────────────────────
+// Transparenz statt Zahl: die vier Stellschrauben, aus denen sich der individuelle
+// Preis ergibt. Bewusst Fließtext, kein Bullet-Stakkato.
+const FACTORS: { Icon: IconType; title: string; body: string }[] = [
+  {
+    Icon: LayersIcon,
+    title: "Module",
+    body: "Du startest mit dem Modul, das heute den größten Hebel hat, und buchst die anderen drei dazu, wenn dein Team so weit ist. Bezahlt wird, was du wirklich einsetzt — nicht das Voll-Paket auf Verdacht.",
+  },
+  {
+    Icon: TrendingUpIcon,
+    title: "Umfang",
+    body: "Gesprächsvolumen, Interviews und Studien, Sitzplätze für dein Team — der Umfang skaliert mit dem, was zur Größe deiner Organisation und deiner tatsächlichen Nutzung passt.",
+  },
+  {
+    Icon: NetworkIcon,
+    title: "Begleitung",
+    body: "Von Self-Serve bis zum eng begleiteten Rollout: Wie viel Onboarding, Schulung und laufende Betreuung du brauchst, fließt in den Umfang ein — manche Teams legen allein los, andere wollen uns an ihrer Seite.",
+  },
+  {
+    Icon: FileCheckIcon,
+    title: "Laufzeit",
+    body: "Monatlich flexibel oder mit fester Laufzeit: Wie verbindlich du planen willst, ist Teil des Gesprächs und wirkt sich auf die Konditionen aus. Ohne Kleingedrucktes, ohne automatische Fallen.",
+  },
+];
+
+// ── Sektion 5: Was bei jedem Konto dabei ist ───────────────────────────────
+// Vertrauens-/Plattform-Anker, modul-unabhängig. Die vier DACH-Souveränitäts-
+// Anker übernehmen die echten Anker der Startseiten-TrustBar/des Footers: gleiche
+// Labels und Aussagen, die Sub-Zeilen hier nur als ganze Sätze ausformuliert
+// (konsistent, nicht neu erfunden). Dazu zwei plattform-weite Produkt-Stärken,
+// die jede Modul-Seite real nennt (deutschsprachige KI-Interviews; Beleg am
+// Transkript).
+//
+// TODO D3 (André, vor Go-live): „DSGVO-konform“ / „EU AI Act“ sind werbliche
+// Aussagen (UWG) — belegen oder entschärfen. Verbatim aus TrustBar/Footer, keine
+// erfundenen Zertifikate oder Siegel.
+const ALWAYS_INCLUDED: { Icon: IconType; label: string; sub: string }[] = [
+  {
+    Icon: MapPinIcon,
+    label: "In Deutschland gebaut",
+    sub: "Team & Entwicklung in der DACH-Region.",
+  },
+  {
+    Icon: ServerIcon,
+    label: "In der EU gehostet",
+    sub: "Rechenzentrum Frankfurt am Main.",
+  },
+  {
+    Icon: ShieldCheckIcon,
+    label: "DSGVO-konform",
+    sub: "Datenschutz als Grundlage, nicht als Nachgedanke.",
+  },
+  {
+    Icon: FileCheckIcon,
+    label: "EU AI Act",
+    sub: "Auf den europäischen KI-Rahmen ausgerichtet.",
+  },
+  {
+    Icon: CpuIcon,
+    label: "KI-Interviews auf Deutsch",
+    sub: "DACH-Gesprächssprache, wo rein englische Tools an ihre Grenzen kommen.",
+  },
+  {
+    Icon: CheckIcon,
+    label: "Belegt, nicht geraten",
+    sub: "Jede Aussage ist am exakten Transkript-Moment verankert.",
+  },
+];
+
+// FAQ — nimmt die typische Custom-Pricing-Reibung vorab (Outset-Stil). Antworten
+// sind reiner Text, damit dieselbe Quelle die FAQPage-JSON-LD speist.
+const FAQ_ITEMS: { q: string; a: string }[] = [
+  {
+    q: "Warum nennt ihr keine festen Preise?",
+    a: "Weil der passende Preis von den Modulen, dem Umfang und der Begleitung abhängt, die dein Team wirklich braucht. Ein Schubladen-Tarif würde die meisten Teams entweder über- oder unterversorgen. Im Demo-Call schnüren wir stattdessen genau das, was zu deiner Situation passt — transparent und nachvollziehbar.",
+  },
+  {
+    q: "Kann ich mit einem einzigen Modul starten?",
+    a: "Ja. Du beginnst mit dem Modul, das heute den größten Hebel hat, und buchst die anderen dazu, sobald dein Team so weit ist. Alle vier Module teilen sich dieselbe Conversation-Intelligence-Engine — bereits erfasste Gespräche zählen weiter, nichts geht beim Erweitern verloren.",
+  },
+  {
+    q: "Wonach richtet sich der Umfang, und wie wird abgerechnet?",
+    a: "Der Umfang richtet sich nach dem, was du nutzt: Gesprächsvolumen, Interviews oder Studien, Sitzplätze und der Grad der Begleitung. Welche dieser Größen zu deinem Team passen, legen wir gemeinsam fest — ohne versteckte Posten und ohne Kleingedrucktes.",
+  },
+  {
+    q: "Bekomme ich Unterstützung beim Setup?",
+    a: "Ja. findr. verbindet sich mit deinem bestehenden Stack — Gong, HubSpot, Slack, Kalender — ohne technisches Projekt. Wie eng wir dich beim Rollout, beim Onboarding und im laufenden Betrieb begleiten, stimmen wir auf dein Team ab.",
+  },
+  {
+    q: "Ist das DSGVO-konform?",
+    a: "findr. ist in Deutschland gebaut, in Frankfurt gehostet und DSGVO-nativ, ausgerichtet auf den EU AI Act. Datenschutz ist die Grundlage der Plattform, nicht der Nachgedanke — das gilt für jedes Modul und jeden Account.",
+  },
+  {
+    q: "Gibt es einen Piloten oder Einstieg?",
+    a: "Ein begleiteter Einstieg ist möglich. Wir definieren gemeinsam einen klaren Rahmen, in dem du findr. an deinen echten Gesprächen erlebst, bevor du dich festlegst. Wie dieser Einstieg konkret aussieht, besprechen wir im Demo-Call.",
+  },
+];
+
+const FAQPAGE_JSONLD = {
   "@context": "https://schema.org",
-  "@type": "Product",
-  name: `${SITE_NAME} — Conversation-Intelligence-Plattform`,
-  description: DESCRIPTION,
-  brand: { "@type": "Brand", name: SITE_NAME },
-  offers: {
-    "@type": "AggregateOffer",
-    priceCurrency: "EUR",
-    lowPrice: "499",
-    highPrice: "1999",
-    offerCount: 3,
-    url: `${SITE_URL}${PATH}`,
-    offers: [
-      { "@type": "Offer", name: "Starter", price: "499", priceCurrency: "EUR", url: `${SITE_URL}${PATH}` },
-      { "@type": "Offer", name: "Growth", price: "999", priceCurrency: "EUR", url: `${SITE_URL}${PATH}` },
-      { "@type": "Offer", name: "Scale", price: "1999", priceCurrency: "EUR", url: `${SITE_URL}${PATH}` },
-    ],
-  },
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((it) => ({
+    "@type": "Question",
+    name: it.q,
+    acceptedAnswer: { "@type": "Answer", text: it.a },
+  })),
 };
 
-// TODO D7 (Produktentscheidung André — NICHT hier auflösen): Das Pricing ist
-// heute mit Sales-Rep-Bändern (5/15/30) modelliert — also als Pricing für EIN
-// Sales-Produkt —, während die Site vier gleichwertige Produkte bewirbt. Die drei
-// Nicht-Sales-Module (Customer Success Health, Product Discovery, Market Research)
-// erscheinen hier nur als „bald“-Upsell. Offene Optionen (Plan §4.6 / §9 D7):
-//   (a) ehrlich als Sales-Pricing framen + Module als sichtbare Roadmap, oder
-//   (b) Plattform-Fee + Module/Per-Modul.
-// Bis zur Entscheidung bewusst mit dem BESTEHENDEN Rep-Band-Modell gebaut — kein
-// neues Pricing-Modell erfunden.
-const TIERS: PricingTier[] = [
-  {
-    name: "Starter",
-    audience: "Für kleine Teams",
-    desc: "Bis 5 Reps. Das echte Bild zu jedem Deal.",
-    amount: "499",
-    period: "/Monat",
-    priceSub: "pro Monat, monatlich abgerechnet",
-    cta: { label: "Kostenlos testen", href: "/sign-up" },
-    features: [
-      { label: "Bis 5 Sales-Reps" },
-      { label: "Echtzeit-Deal-Risiko-Score" },
-      { label: "8 Risiko-Signale mit Beleg" },
-      { label: "Automatische Verlustgrund-Erkennung" },
-      { label: "Risiko-adjustierte Pipeline-Prognose" },
-      { label: "HubSpot-, Gong- & Slack-Integration" },
-      { label: "Customer Success Health", soon: true },
-      { label: "Closing-the-Loop Voice-Agent", soon: true },
-    ],
-  },
-  {
-    name: "Growth",
-    audience: "Für wachsende Teams",
-    desc: "Bis 15 Reps. Die komplette Conversation-Intelligence-Engine.",
-    amount: "999",
-    period: "/Monat",
-    priceSub: "pro Monat, monatlich abgerechnet",
-    featured: true,
-    popularLabel: "Beliebteste Wahl",
-    cta: { label: "Kostenlos testen", href: "/sign-up" },
-    features: [
-      { label: "Bis 15 Sales-Reps" },
-      { label: "Alles aus Starter" },
-      { label: "Risiko-Dashboards auf Team-Ebene" },
-      { label: "Forecast: Best / wahrscheinlich / Worst Case" },
-      { label: "Individuelle Risiko-Schwellen" },
-      { label: "Slack-Alerts bei Deal-Änderungen" },
-      { label: "Customer Success Health", soon: true },
-      { label: "Closing-the-Loop Voice-Agent", soon: true },
-      { label: "Product-Discovery-Modul", soon: true },
-    ],
-  },
-  {
-    name: "Scale",
-    audience: "Für große Teams",
-    desc: "Bis 30 Reps. Team-übergreifende Intelligence und Reporting.",
-    amount: "1.999",
-    period: "/Monat",
-    priceSub: "pro Monat, monatlich abgerechnet",
-    cta: { label: "Kostenlos testen", href: "/sign-up" },
-    features: [
-      { label: "Bis 30 Sales-Reps" },
-      { label: "Alles aus Growth" },
-      { label: "Team-übergreifendes Risiko-Reporting" },
-      { label: "Win/Loss-Trend-Analysen" },
-      { label: "Coaching-Ansichten für Manager:innen" },
-      { label: "Priorisierter Support" },
-      { label: "Alle vier Plattform-Module", soon: true },
-      { label: "Individuell trainierte Modelle", soon: true },
-    ],
-  },
-];
-
-const ENTERPRISE: PricingEnterprise = {
-  name: "Enterprise",
-  title: "Individuell, für komplexe Organisationen",
-  desc: "Für Teams jenseits von 30 Reps — mit eigenen Anforderungen an Deployment, Sicherheit und Modelle.",
-  cta: { label: "Sprich mit uns", href: "/demo" },
-  bullets: [
-    { label: "Unbegrenzte Reps" },
-    { label: "SSO + erweiterte Sicherheit" },
-    { label: "Individuelle Integrationen" },
-    { label: "Individuell trainierte Modelle", soon: true },
-  ],
-};
-
-// Trial-Timeline („Der Discovery-Prozess“). Source bugs fixed: the marker column
-// holds meaningful durations (was the "00:00" placeholder), and the lead matches
-// the FOUR rendered steps (the source said "3 simple steps" but rendered 4).
-const TIMELINE: { marker: string; title: string; body: string }[] = [
-  {
-    marker: "15 Min",
-    title: "Discovery-Call buchen",
-    body: "Buch einen 15-minütigen Call, in dem wir deinen Vertriebsprozess und deine konkreten Anforderungen besprechen. Kein Sales-Pitch — einfach ein Gespräch.",
-  },
-  {
-    marker: "< 10 Min",
-    title: "Onboarding & Einrichtung",
-    body: "Wir verbinden findr. mit deinem Sales-Stack (Gong, HubSpot & Co.) in unter 10 Minuten. Kein technisches Know-how nötig.",
-  },
-  {
-    marker: "< 24 h",
-    title: "Erste Insights sehen",
-    body: "Innerhalb von 24 Stunden siehst du echte Deal-Risiko-Scores und Insights auf deinen ersten verbundenen Calls. Keine Wartezeit.",
-  },
-  {
-    marker: "14 Tage",
-    title: "Dein 14-tägiger Test",
-    body: "Nutze findr. 14 Tage lang mit deinem ganzen Team. Voller Funktionsumfang. Jederzeit kündbar, ohne Wenn und Aber.",
-  },
-];
-
-const FAQ_ITEMS: FaqItem[] = [
-  {
-    q: "Brauche ich eine Kreditkarte für den Test?",
-    a: "Nein. Der 14-tägige Test läuft ohne Kreditkarte und ist jederzeit kündbar.",
-  },
-  {
-    q: "Wie wird abgerechnet?",
-    a: "Die Preise verstehen sich pro Monat, monatlich abgerechnet. Du wählst das Rep-Band, das zu deiner Team-Größe passt.",
-  },
-  {
-    q: "Was passiert, wenn mein Team wächst?",
-    a: "Du wechselst jederzeit das Band — von Starter über Growth bis Scale. Ab 30+ Reps bist du im Enterprise-Bereich, mit individuellem Angebot.",
-  },
-  {
-    q: "Welche Module sind heute enthalten?",
-    a: "Live ist heute Sales Intelligence. Customer Success Health, Product Discovery und Market Research sind als „bald“ gekennzeichnet — wir verkaufen nichts als Live, was noch nicht Live ist.",
-  },
-  {
-    q: "Wo werden meine Daten gehostet?",
-    a: "In Frankfurt, DSGVO-nativ und EU-AI-Act-konform — in Deutschland gebaut.",
-  },
-];
+const faqItems: FaqItem[] = FAQ_ITEMS;
 
 export default function PreisePage() {
   return (
     <>
-      <JsonLd data={PRICING_JSONLD} />
+      <JsonLd data={FAQPAGE_JSONLD} />
 
+      {/* 1 ── HERO ─────────────────────────────────────────────────────────── */}
       <Section className="relative overflow-hidden pt-14 sm:pt-20">
         <HeroAtmosphere />
         <Container>
@@ -197,98 +164,160 @@ export default function PreisePage() {
             <SectionHeading
               as="h1"
               eyebrow="Preise"
-              title={
-                <>
-                  Eine Plattform. Ehrliche Preise.
-                </>
-              }
+              title="Du zahlst für das, was du nutzt — nicht für ein Paket, das nicht passt."
+              lead="findr. passt sich an dein Team, die Module und den Umfang an. Den konkreten Preis legen wir gemeinsam im Gespräch fest — transparent, ohne Schubladen-Tarif."
             />
           </Reveal>
           <Reveal>
-            <p className="mx-auto mt-6 text-center text-[15px] text-neutral-500">
-              <strong className="font-medium text-neutral-900">
-                14 Tage kostenlos testen
-              </strong>{" "}
-              · Keine Kreditkarte nötig · Jederzeit kündbar
+            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <CtaLink href="/demo" variant="primary" size="lg">
+                Demo buchen →
+              </CtaLink>
+              <CtaLink href="/loesungen" variant="secondary" size="lg">
+                Lösungen ansehen
+              </CtaLink>
+            </div>
+          </Reveal>
+        </Container>
+      </Section>
+
+      {/* 2 ── WIE CUSTOM-PRICING FUNKTIONIERT ──────────────────────────────── */}
+      <Section tone="muted">
+        <Container>
+          <Reveal>
+            <SectionHeading
+              eyebrow="So funktioniert unser Pricing"
+              title="Vier Faktoren bestimmen deinen Preis."
+              lead="Custom heißt nicht intransparent. Der Preis ergibt sich aus dem, was du tatsächlich nutzt — und genau diese vier Stellschrauben gehen wir im Demo-Call gemeinsam durch."
+            />
+          </Reveal>
+          <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-4">
+            {FACTORS.map((f, i) => (
+              <Reveal
+                key={f.title}
+                y={0}
+                delay={i * 0.06}
+                className="flex h-full flex-col gap-3 bg-white p-7"
+              >
+                <f.Icon className="h-6 w-6 text-primary-600" />
+                <h3 className="font-marketing text-lg font-semibold leading-snug text-neutral-900">
+                  {f.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-neutral-500">
+                  {f.body}
+                </p>
+              </Reveal>
+            ))}
+          </div>
+        </Container>
+      </Section>
+
+      {/* 3 ── MODUL-BAUKASTEN (kanonische PlatformModules, einfarbige Headline) */}
+      <PlatformModules
+        eyebrow="Der Baukasten"
+        title="Starte mit einem Modul. Buch die anderen dazu."
+        lead="Vier gleichwertige Produkte auf einer gemeinsamen Conversation-Intelligence-Engine. Du musst nicht alles auf einmal nehmen — wähl, was heute zählt, und erweitere, wenn dein Team so weit ist. Jedes Modul führt zu seiner eigenen Seite."
+      />
+
+      {/* 4 ── FEATURE-/MODUL-MATRIX ────────────────────────────────────────── */}
+      <Section tone="muted">
+        <Container>
+          <Reveal>
+            <SectionHeading
+              eyebrow="Was in welchem Modul steckt"
+              title="Die Plattform im Überblick."
+              lead="Zeilen sind Fähigkeiten, Spalten sind die vier Module. So siehst du auf einen Blick, was jedes Modul liefert — und woraus sich dein Baukasten zusammensetzt."
+            />
+          </Reveal>
+          <Reveal>
+            <PricingMatrix />
+          </Reveal>
+        </Container>
+      </Section>
+
+      {/* 5 ── WAS IMMER DABEI IST ───────────────────────────────────────────── */}
+      <Section>
+        <Container>
+          <Reveal>
+            <SectionHeading
+              eyebrow="In jedem Konto"
+              title="Was bei jedem findr.-Konto dabei ist."
+              lead="Unabhängig davon, welche Module du wählst: Diese Grundlagen gelten für jeden Account — die DACH-Souveränität, auf die es in Europa ankommt, und das Beleg-Versprechen, das durch jedes Modul läuft."
+            />
+          </Reveal>
+          <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-3">
+            {ALWAYS_INCLUDED.map((a, i) => (
+              <Reveal
+                key={a.label}
+                y={0}
+                delay={i * 0.05}
+                className="flex h-full items-start gap-3.5 bg-white p-7"
+              >
+                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-primary-200 text-primary-600">
+                  <a.Icon className="h-[18px] w-[18px]" />
+                </span>
+                <div>
+                  <div className="text-[14px] font-semibold text-neutral-900">
+                    {a.label}
+                  </div>
+                  <div className="mt-1 text-[13px] leading-relaxed text-neutral-500">
+                    {a.sub}
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal>
+            <p className="mx-auto mt-10 max-w-2xl text-center text-[14px] leading-relaxed text-neutral-500">
+              Du willst findr. erst an deinen eigenen Gesprächen sehen? Ein
+              begleiteter Einstieg ist möglich — den passenden Rahmen besprechen
+              wir im Demo-Call.
             </p>
           </Reveal>
         </Container>
       </Section>
 
-      <Section className="pt-0">
-        <Container>
-          <Reveal>
-            <PricingTable tiers={TIERS} enterprise={ENTERPRISE} />
-          </Reveal>
-        </Container>
-      </Section>
-
-      <Section tone="muted">
-        <Container>
-          <Reveal>
-            <SectionHeading
-              eyebrow="Der Discovery-Prozess"
-              title={
-                <>
-                  Was dich in deinem kostenlosen Test erwartet.
-                </>
-              }
-              lead="So bringen wir dich mit findr. in vier Schritten an den Start."
-            />
-          </Reveal>
-          <ol className="mx-auto mt-14 max-w-2xl">
-            {TIMELINE.map((step, i) => (
-              <Reveal key={step.title} delay={i * 0.05}>
-                <li className="relative flex gap-6 pb-10 last:pb-0">
-                  {i < TIMELINE.length - 1 ? (
-                    <span
-                      aria-hidden
-                      className="absolute bottom-1 left-[15px] top-9 w-px bg-neutral-200"
-                    />
-                  ) : null}
-                  <span
-                    aria-hidden
-                    className="relative z-10 mt-0.5 h-8 w-8 shrink-0 rounded-full border-2 border-primary-200 bg-primary-600"
-                  />
-                  <div className="flex flex-col gap-1 pt-0.5">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-600">
-                      {step.marker}
-                    </div>
-                    <h3 className="font-marketing text-lg font-semibold text-neutral-900">
-                      {step.title}
-                    </h3>
-                    <p className="max-w-xl text-[14px] leading-relaxed text-neutral-500">
-                      {step.body}
-                    </p>
-                  </div>
-                </li>
-              </Reveal>
-            ))}
-          </ol>
-        </Container>
-      </Section>
-
+      {/* 6 ── FAQ ──────────────────────────────────────────────────────────── */}
       <FAQ
         eyebrow="Häufige Fragen"
-        title={
-          <>
-            Alles, was du vor dem Test wissen willst.
-          </>
-        }
-        items={FAQ_ITEMS}
+        title="Alles, was du zum Pricing wissen willst."
+        lead="Die Fragen, die vor einem Custom-Angebot am häufigsten kommen — ehrlich beantwortet."
+        items={faqItems}
+        tone="muted"
       />
 
-      <CTASection
-        eyebrow="Loslegen"
-        title={
-          <>
-            Sieh, was dein CRM übersieht.
-          </>
-        }
-        lead="14 Tage kostenlos testen. Keine Kreditkarte. Keine Haken."
-        primary={{ label: "Kostenlos testen →", href: "/sign-up" }}
-        secondary={{ label: "Demo buchen", href: "/demo" }}
-      />
+      {/* 7 ── ABSCHLUSS-CTA (dunkler Anker #2E1065) ────────────────────────── */}
+      <section className="bg-anchor">
+        <Container className="py-20 sm:py-28">
+          <Reveal>
+            <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 text-center">
+              <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-primary-300">
+                <span aria-hidden className="h-px w-6 bg-primary-400" />
+                Loslegen
+              </span>
+              <h2 className="font-marketing text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
+                Sprich mit uns über deinen Umfang.
+              </h2>
+              <p className="max-w-xl text-[17px] leading-relaxed text-neutral-300">
+                In einem kurzen Gespräch klären wir, welche Module, welcher Umfang
+                und welche Begleitung zu deinem Team passen — und du siehst, was
+                findr. an deinen echten Gesprächen leistet.
+              </p>
+              <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
+                <CtaLink href="/demo" variant="secondary" size="lg">
+                  Demo buchen →
+                </CtaLink>
+                <Link
+                  href="/loesungen"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded border border-white/25 px-6 text-[15px] font-medium text-neutral-300 transition-colors hover:border-white/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-anchor"
+                >
+                  Lösungen ansehen
+                </Link>
+              </div>
+            </div>
+          </Reveal>
+        </Container>
+      </section>
     </>
   );
 }
