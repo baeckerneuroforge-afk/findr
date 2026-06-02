@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { ScreeningQuestion } from "@/lib/schemas/screening";
+import type { PanelInbound } from "@/lib/research/panel";
 import { ParticipantShell } from "./ParticipantShell";
 import { ScreeningForm } from "./ScreeningForm";
 import { RejectionPanel } from "./RejectionPanel";
@@ -53,6 +54,9 @@ export function OpenLinkEntry({
   brandName = null,
   accentColor = null,
   logoUrl = null,
+  panel = null,
+  panelScreenoutUrl = null,
+  panelQuotafullUrl = null,
 }: {
   token: string;
   questions: ScreeningQuestion[];
@@ -60,6 +64,15 @@ export function OpenLinkEntry({
   brandName?: string | null;
   accentColor?: string | null;
   logoUrl?: string | null;
+  /** Panel-Anbieter E1: validierte Inbound-ID, im POST-Body an die screen-Route
+   *  weitergereicht → panel_context. Null für Nicht-Panel-Eintritte. */
+  panel?: PanelInbound | null;
+  /** Panel E2: fertig aufgebaute Screenout-Return-URL (Abweisung). Null → der
+   *  bestehende Rejection-Screen, kein Redirect. */
+  panelScreenoutUrl?: string | null;
+  /** Panel E2: fertig aufgebaute QuotaFull-Return-URL (Cap voll am Submit). Null
+   *  → der bestehende „Studie voll"-Screen, kein Redirect. */
+  panelQuotafullUrl?: string | null;
 }) {
   const router = useRouter();
   const t = useTranslations("interview");
@@ -74,9 +87,11 @@ export function OpenLinkEntry({
       const res = await fetch(`/api/interview/open/${token}/screen`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Body carries ONLY the answers — never an org/plan/link field. The
-        // server reads org_id + plan_id from the open-link row alone.
-        body: JSON.stringify({ answers }),
+        // Body carries the answers — never an org/plan/link field. The server
+        // reads org_id + plan_id from the open-link row alone. PANEL E1: when this
+        // is a panel entry, the validated inbound id rides along under `panel`;
+        // the server RE-validates it before persisting (trust boundary).
+        body: JSON.stringify(panel ? { answers, panel } : { answers }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         qualified?: boolean;
@@ -91,6 +106,13 @@ export function OpenLinkEntry({
       // "study is full" screen. Otherwise (expired / screening removed) → the
       // generic "not available" screen.
       if (res.status === 403 || data.available === false) {
+        // PANEL E2: a panel participant on a now-full link is handed back to the
+        // provider's QuotaFull return URL (correct disposition) instead of just
+        // seeing the screen. Non-panel (or no template) → the existing screen.
+        if (data.full === true && panelQuotafullUrl) {
+          window.location.href = panelQuotafullUrl;
+          return;
+        }
         setStep(data.full === true ? "full" : "unavailable");
         setSubmitting(false);
         return;
@@ -99,13 +121,19 @@ export function OpenLinkEntry({
         throw new Error(data.error ?? t("error.generic"));
       }
       if (data.qualified && data.sessionToken) {
-        // The session was just created server-side with a FRESH token. Redirect
-        // onto the existing /interview/[sessionToken] path (loadByToken). Keep
-        // submitting=true; the gate unmounts on navigation.
+        // The session was created (or, on panel re-entry, resumed) server-side
+        // with a FRESH token. Redirect onto the existing /interview/[sessionToken]
+        // path (loadByToken). Keep submitting=true; the gate unmounts on
+        // navigation.
         router.push(`/interview/${data.sessionToken}`);
         return;
       }
-      // qualified === false → not a fit.
+      // qualified === false → not a fit. PANEL E2: hand a panel participant back
+      // to the provider's Screenout return URL; non-panel → the rejection screen.
+      if (panelScreenoutUrl) {
+        window.location.href = panelScreenoutUrl;
+        return;
+      }
       setStep("rejected");
       setSubmitting(false);
     } catch (err) {
