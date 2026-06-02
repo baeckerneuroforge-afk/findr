@@ -38,22 +38,22 @@ const CONTENT: IndustryContent = {
     "Marken-, Insights- und Innovationsteams in der Konsumgüterindustrie — Lebensmittel, Getränke, Markenartikel.",
   pain: {
     eyebrow: "Konsumgüter · Der blinde Fleck",
-    title: <>Abverkaufszahlen sagen dir, dass etwas floppt. Nicht warum.</>,
+    title: <>Abverkaufszahlen zeigen, dass eine Variante liegen bleibt. Nicht, warum.</>,
     problem:
-      "Panels sind langsam und teuer, Fokusgruppen verzerren durch die lauteste Stimme im Raum, und Abverkaufsdaten melden den Misserfolg erst, wenn die Charge längst produziert ist. Warum eine neue Rezeptur im Regal liegen bleibt — zu süß, falsche Portionsgröße, eine Verpackung, die billiger wirkt als das Versprechen — steht in keinem Dashboard.",
+      "Panels sind langsam und teuer, Fokusgruppen verzerren durch die lauteste Stimme im Raum, und Abverkaufsdaten zeigen erst, dass eine neue Rezeptur liegen bleibt, wenn die Charge längst produziert ist. Warum sie im Regal stehen bleibt — zu süß, falsche Portionsgröße, eine Verpackung, die billiger wirkt als das Versprechen — steht in keinem Dashboard.",
     stakes: {
-      strong: "Was ein Fehlstart kostet.",
-      body: "Verlorene Listung, abgeschriebene Produktion, beschädigtes Vertrauen beim Handel. Ein belegtes Nein vor dem Launch ist günstiger als ein stiller Misserfolg danach.",
+      strong: "Was offen bleibt, solange nur der Abverkauf spricht.",
+      body: "Ob die Portionsgröße passt, ob die Verpackung das Versprechen trägt, ob der Preis sitzt — das bleibt unbelegt, bis du die Käufer:innen selbst fragst. Eine Lücke, kein Drama: sie ist nur noch nicht gefüllt.",
     },
     blindCard: {
       badge: "Ohne O-Ton · nur Abverkauf",
       rows: [
         {
           label: "Was die Zahl zeigt",
-          value: "Neue Rezeptur: Wiederkaufrate liegt deutlich unter der alten Variante.",
+          value: "Neue Rezeptur: Wiederkaufrate liegt unter der gewohnten Variante.",
         },
         {
-          label: "Was die Zahl verschweigt",
+          label: "Was die Zahl offenlässt",
           value:
             "Warum. Liegt es am Geschmack, am Preis, an der neuen Verpackung — oder daran, dass Stammkäufer:innen das gewohnte Produkt im Regal nicht mehr finden?",
         },
@@ -87,6 +87,35 @@ const CONTENT: IndustryContent = {
           quote: true,
           value:
             "„Das war früher mein Feierabend-Riegel — die neue Version ist mir ehrlich zu süß, ich greif jetzt zum No-Name daneben.“",
+        },
+      ],
+    },
+  },
+  proactive: {
+    eyebrow: "Konsumgüter · Vor dem Launch",
+    title: <>Prüf die Idee, bevor die erste Charge läuft.</>,
+    body: "Dieselbe Studie funktioniert auch andersherum: nicht erst deuten, was der Abverkauf meldet, sondern vorher fragen, ob das Konzept trägt. Setz für einen Rezeptur-Entwurf, ein Verpackungsmuster oder ein neues Markenversprechen eine eigene Studie an und lass echte Käufer:innen deiner Kategorie im KI-Interview auf Deutsch antworten — bevor Produktion, Listung und Mediabudget gebunden sind. Die Markt-Linse liest Kaufabsicht, Preisbereitschaft und Segment heraus, über mehrere Konzept-Studien hinweg deterministisch gezählt.",
+    payoff: {
+      strong: "Eine belegte Grundlage fürs Go oder No-Go — vor dem Produktionslauf.",
+      body: "Statt nach dem Launch aus Abverkaufszahlen zu lernen, gehst du mit einer Zahl ins Innovationsboard, die zeigt, wie viele die Idee wirklich kaufen würden — und woran die anderen zögern.",
+    },
+    card: {
+      badge: "Konzept-Test · vor der Produktion",
+      rows: [
+        {
+          label: "Frage",
+          value: "Würden Stammkäufer:innen die neue Rezeptur-Idee kaufen?",
+        },
+        {
+          label: "Antwort",
+          value:
+            "In 3 von 4 Konzept-Studien klares Kaufinteresse — zwei nannten die kleinere Packung als Hürde, jede mit Zitat aus der jeweiligen Studie belegt.",
+        },
+        {
+          label: "Beleg aus einem Interview",
+          quote: true,
+          value:
+            "„Die Richtung gefällt mir total — nur die Packung wirkt mir fürs Geld zu klein, da würde ich beim großen Klassiker bleiben.“",
         },
       ],
     },

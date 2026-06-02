@@ -42,8 +42,8 @@ const CONTENT: IndustryContent = {
     problem:
       "Dein Funnel weiß auf den Klick genau, wo Nutzer:innen abspringen — und schweigt zum Grund. War das Onboarding verwirrend, fehlte der eine Aha-Moment, war ein Pflichtfeld zu viel, oder hat eine andere App den Job schon erledigt? Session-Replays zeigen das Verhalten, nie die Absicht dahinter.",
     stakes: {
-      strong: "Feature-Wünsche aus dem Support-Postfach sind die lauteste Stimme, nicht die häufigste.",
-      body: "Was die Mehrheit wirklich vermisst, sagt dir kein Ticket-Volumen.",
+      strong: "Was die Analytics offenlassen.",
+      body: "Tickets sind die lauteste Stimme, nicht die häufigste — was die Mehrheit wirklich vermisst, steht in keinem Ticket-Volumen. Eine Lücke, die erst ein Gespräch füllt.",
     },
     blindCard: {
       badge: "Ohne O-Ton · nur Analytics",
@@ -53,7 +53,7 @@ const CONTENT: IndustryContent = {
           value: "Ein großer Teil bricht das Onboarding bei Schritt 3 ab.",
         },
         {
-          label: "Was die Kurve verschweigt",
+          label: "Was die Kurve offenlässt",
           value:
             "Ob der Schritt überfordert, das Pflichtfeld nervt — oder die Nutzer:innen schlicht nicht verstehen, was die App ihnen an dieser Stelle bringt.",
         },
@@ -87,6 +87,35 @@ const CONTENT: IndustryContent = {
           quote: true,
           value:
             "„Ich hab mich durch fünf Screens geklickt und dann nicht mehr gewusst, was die App jetzt eigentlich für mich tut — also wieder gelöscht.“",
+        },
+      ],
+    },
+  },
+  proactive: {
+    eyebrow: "Tech · Vor dem Build",
+    title: <>Klär die Nachfrage, bevor das Team monatelang baut.</>,
+    body: "Dieselbe Studie greift schon vor der ersten Zeile Code: bevor ein Feature auf die Roadmap wandert, fragst du, ob es wirklich gewünscht ist und was stattdessen fehlt. Echte Nutzer:innen starten über einen offenen Link selbst ein KI-Interview auf Deutsch; das Screening trennt die Zielgruppe vom Rest. Die Markt-Linse liest Kaufabsicht, Zahlungsbereitschaft und Segment heraus — über mehrere Studien deterministisch gezählt, sodass die Priorität aus der Häufigkeit kommt, nicht aus der lautesten Stimme im Backlog.",
+    payoff: {
+      strong: "Belegte Priorität, bevor du Wochen in den Build steckst.",
+      body: "Statt erst an der Retention-Kurve zu sehen, dass ein Feature kaum jemand wollte, weißt du vorher, wie viele es wirklich brauchen — und welches Problem es lösen soll.",
+    },
+    card: {
+      badge: "Feature-Test · vor dem Build",
+      rows: [
+        {
+          label: "Frage",
+          value: "Lohnt sich das geplante Feature — oder fehlt etwas anderes mehr?",
+        },
+        {
+          label: "Antwort",
+          value:
+            "In 2 von 5 Studien war das geplante Feature zweitrangig — zuerst gefragt war ein einfacherer Einstieg, jede mit Zitat aus der jeweiligen Studie belegt.",
+        },
+        {
+          label: "Beleg aus einem Interview",
+          quote: true,
+          value:
+            "„Ehrlich, das neue Feature bräuchte ich selten — was mich wirklich nervt, ist dass ich beim Start jedes Mal von vorn anfange.“",
         },
       ],
     },

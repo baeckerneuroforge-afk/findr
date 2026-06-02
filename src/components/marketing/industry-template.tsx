@@ -35,11 +35,22 @@ import {
  * order so the three industries read as equally weighted; only the
  * industry-specific copy in the passed-in `content` varies:
  *
- *   ModuleHero → Pain (muted) → HowItWorks (white) → Solution (muted) →
- *   ProofPoints (white) → IndustryGrid (muted) → CTASection (wash)
+ *   ModuleHero (canvas) → Pain (cream) → HowItWorks (canvas) →
+ *   Solution (cream) → Proactive (canvas) → ProofPoints (canvas) →
+ *   IndustryGrid (cream) → CTASection (canvas)
  *
- * → the homepage's W-M-W-M-W-M-Wash rhythm, single-ink headings, Reveal
+ * → the homepage's warm canvas/cream rhythm, single-ink headings, Reveal
  * staggers and reduced-motion-safe atmosphere, exactly like the module pages.
+ *
+ * TWO ANGLES, ONE PROMISE: the page deliberately shows both sides of the same
+ * Market-Research engine. The Pain → Solution pair is the REACTIVE angle —
+ * the voice behind what already happened, the gap a dashboard leaves open
+ * (sachlich, not fear-framed). The Proactive band is the FORWARD angle — the
+ * same studies run BEFORE the decision (launch / roll-out / build, per
+ * industry), to validate instead of guess. Both land on findr.'s one promise:
+ * echte Gespräche mit echten Menschen, belegt statt geraten. The Proactive
+ * band sits on the canvas surface so it reads as its own forward beat rather
+ * than a clone of the cream Solution band above it.
  *
  * GROUNDING: the steps and proof points below are the REAL Market-Research
  * capabilities, lifted faithfully from /produkt/market-research (product truth,
@@ -178,6 +189,23 @@ export type IndustryContent = {
     /** Violet payoff card — the belegte "in X von Y Studien" answer. */
     answerCard: { badge: string; rows: ExampleRow[] };
   };
+  /**
+   * The PROACTIVE angle — validate BEFORE the decision, per-industry axis
+   * (Konsumgüter = Launch-Validierung, Handel = Sortiment/Konzept vor dem
+   * Roll-out, Tech = Feature-Wunsch vor dem Build). The forward-looking
+   * counterpart to the reactive pain/solution: the SAME engine run earlier.
+   * Mirrors the `solution` shape so the template stays one code path; rendered
+   * on the canvas surface with the violet (neutral-tone) "validation" card.
+   */
+  proactive: {
+    eyebrow: string;
+    title: ReactNode;
+    body: ReactNode;
+    /** The forward payoff — the belegte basis you have before you commit. */
+    payoff: { strong: string; body: ReactNode };
+    /** Violet card — a "vor der Entscheidung" validation example. */
+    card: { badge: string; rows: ExampleRow[] };
+  };
   /** Industry-tuned lead for the ProofPoints (capabilities stay the real ones). */
   proofLead: ReactNode;
   cta: { title: ReactNode; lead: ReactNode };
@@ -193,14 +221,19 @@ function NarrativeBand({
   title,
   children,
   card,
+  tone = "muted",
 }: {
   eyebrow: string;
   title: ReactNode;
   children: ReactNode;
   card: ReactNode;
+  /** Band surface. Pain/Solution keep the cream "rest" band (default); the
+   * Proactive band passes "default" to sit on the canvas and read as its own
+   * forward beat. */
+  tone?: "default" | "muted";
 }) {
   return (
-    <Section tone="muted">
+    <Section tone={tone}>
       <Container>
         <div className="grid items-start gap-12 lg:grid-cols-2">
           <Reveal>
@@ -352,6 +385,23 @@ export function IndustryPage({ content }: { content: IndustryContent }) {
           {content.solution.body}
         </p>
         <Callout strong={content.solution.payoff.strong} body={content.solution.payoff.body} />
+      </NarrativeBand>
+
+      {/* The PROACTIVE angle: the same Market-Research engine run BEFORE the
+          decision (launch / roll-out / build, per industry). A forward, positive
+          counterpart to the reactive gap above — validate instead of guess. The
+          canvas tone sets it apart from the two cream payoff bands; the violet
+          (neutral) card shows a "vor der Entscheidung" validation result. */}
+      <NarrativeBand
+        tone="default"
+        eyebrow={content.proactive.eyebrow}
+        title={content.proactive.title}
+        card={<ExampleCard tone="neutral" badge={content.proactive.card.badge} rows={content.proactive.card.rows} />}
+      >
+        <p className="text-[16px] leading-relaxed text-neutral-700">
+          {content.proactive.body}
+        </p>
+        <Callout strong={content.proactive.payoff.strong} body={content.proactive.payoff.body} />
       </NarrativeBand>
 
       {/* The real capabilities — same six as the module page, same Live/Bald. */}

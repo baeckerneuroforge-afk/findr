@@ -42,8 +42,8 @@ const CONTENT: IndustryContent = {
     problem:
       "Heatmaps, Funnels und Abbruchraten erzählen dir präzise, wo Kund:innen abspringen — aber nie, warum. War der Versand zu teuer, fehlte eine Größe, wirkte das Sortiment beliebig, oder lag dasselbe Produkt nebenan zwei Euro günstiger? Die Klickspur endet genau dort, wo die Antwort anfängt.",
     stakes: {
-      strong: "Optimieren ohne den Grund ist Raten mit mehr Schritten.",
-      body: "Ein A/B-Test sagt dir, welche Variante gewinnt — nicht, welches Bedürfnis du verfehlst.",
+      strong: "Was der Funnel offenlässt.",
+      body: "Ein A/B-Test zeigt dir, welche Variante gewinnt — nicht, welches Bedürfnis dahintersteht. Das ist keine Schwäche der Daten, nur ihre Grenze: das Warum steht woanders.",
     },
     blindCard: {
       badge: "Ohne O-Ton · nur Funnel",
@@ -53,7 +53,7 @@ const CONTENT: IndustryContent = {
           value: "Ein Großteil bricht auf der Versandkostenseite ab.",
         },
         {
-          label: "Was der Funnel verschweigt",
+          label: "Was der Funnel offenlässt",
           value:
             "Ob es die Höhe der Versandkosten ist, die fehlende Lieferzeit-Angabe oder das Gefühl, dasselbe Produkt anderswo schon günstiger gesehen zu haben.",
         },
@@ -87,6 +87,35 @@ const CONTENT: IndustryContent = {
           quote: true,
           value:
             "„Der Preis war okay. Aber nirgends stand, ob das vor dem Wochenende da ist — da hab ich’s woanders bestellt, wo’s klar dranstand.“",
+        },
+      ],
+    },
+  },
+  proactive: {
+    eyebrow: "Handel · Vor dem Roll-out",
+    title: <>Test das Konzept, bevor das Sortiment in die Fläche geht.</>,
+    body: "Die gleiche Studie lässt sich vorziehen: bevor ein neues Sortiment, eine Eigenmarke oder ein Shop-Konzept ausgerollt wird, fragst du die Käufer:innen, ob es trifft. Über einen offenen Studien-Link starten echte Kund:innen selbst ein KI-Interview auf Deutsch; das Screening sorgt dafür, dass du mit deiner Zielgruppe sprichst, nicht mit zufälligen Besucher:innen. Die Markt-Linse trennt, was wirklich zieht, von dem, was nur nett klingt — Preisgefühl, Kaufabsicht und Erwartung ans Sortiment, über mehrere Studien deterministisch gezählt.",
+    payoff: {
+      strong: "Belegt, bevor du in Sortiment oder Eigenmarke investierst.",
+      body: "Statt einen Roll-out im Nachhinein an Warenkorbabbrüchen zu deuten, weißt du vorher, welche Eigenmarke oder welches Konzept die Käufer:innen tatsächlich wollen.",
+    },
+    card: {
+      badge: "Konzept-Test · vor dem Roll-out",
+      rows: [
+        {
+          label: "Frage",
+          value: "Trifft die geplante Eigenmarke den Bedarf der Zielgruppe?",
+        },
+        {
+          label: "Antwort",
+          value:
+            "In 4 von 6 Studien klare Kaufabsicht — der meistgenannte Wunsch war eine größere Gebindeauswahl, jede mit Zitat aus der jeweiligen Studie belegt.",
+        },
+        {
+          label: "Beleg aus einem Interview",
+          quote: true,
+          value:
+            "„Die Eigenmarke würde ich nehmen — aber nur, wenn’s die auch in der Familienpackung gibt, sonst lohnt sich der Wechsel für mich nicht.“",
         },
       ],
     },
