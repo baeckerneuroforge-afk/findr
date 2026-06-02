@@ -16,6 +16,7 @@ import {
   type Proof,
 } from "@/components/marketing/module-template";
 import { CTASection } from "@/components/marketing/CTASection";
+import { IndustryGrid } from "@/components/marketing/industry-template";
 import { JsonLd } from "@/components/marketing/JsonLd";
 import {
   TargetIcon,
@@ -230,6 +231,15 @@ export default function MarketResearchPage() {
       />
 
       <ModuleCrossLinks current="market-research" />
+
+      {/* B2C industry landing pages — the same module, sharpened per industry.
+          White tone slots it between the muted cross-links and the wash CTA, so
+          the page keeps its W-M-W-M-W-M-W-Wash rhythm. No self-link here. */}
+      <IndustryGrid
+        eyebrow="Market Research nach Branche"
+        tone="default"
+        showModuleLink={false}
+      />
 
       <CTASection
         title={

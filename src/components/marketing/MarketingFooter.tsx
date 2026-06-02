@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Container } from "./primitives";
 import { Wordmark } from "./Wordmark";
+import { INDUSTRIES } from "./industry-template";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
@@ -12,6 +13,15 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "Product Discovery", href: "/produkt/product-discovery" },
       { label: "Market Research", href: "/produkt/market-research" },
     ],
+  },
+  {
+    // B2C Market-Research industry pages (/branchen/<slug>) — built from the
+    // single INDUSTRIES registry so footer + cross-links can't drift.
+    title: "Branchen",
+    links: INDUSTRIES.map((i) => ({
+      label: i.name,
+      href: `/branchen/${i.slug}`,
+    })),
   },
   {
     title: "Unternehmen",
@@ -52,7 +62,7 @@ export function MarketingFooter() {
   return (
     <footer className="border-t border-neutral-200 bg-neutral-50">
       <Container className="py-16">
-        <div className="grid gap-12 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+        <div className="grid gap-12 md:grid-cols-[1.3fr_repeat(4,1fr)]">
           <div className="flex flex-col gap-3">
             <Wordmark />
             <p className="max-w-xs text-sm leading-relaxed text-neutral-500">

@@ -24,6 +24,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/produkt/market-research", priority: 0.8 },
     { path: "/preise", priority: 0.8 },
     { path: "/loesungen", priority: 0.7 },
+    { path: "/branchen/konsumgueter", priority: 0.7 },
+    { path: "/branchen/handel", priority: 0.7 },
+    { path: "/branchen/tech", priority: 0.7 },
     { path: "/insights", priority: 0.6 },
     { path: "/demo", priority: 0.5 },
     ...getAllInsightSlugs().map((slug) => ({
