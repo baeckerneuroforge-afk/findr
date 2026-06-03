@@ -1172,7 +1172,14 @@
       "poolNoTarget": "Kein Sample-Ziel gesetzt.",
       "poolNoTargetCount": "{completed, plural, one {# abgeschlossenes Interview} other {# abgeschlossene Interviews}} bisher.",
       "poolCountUnknown": "—",
-      "poolCountUnknownDesc": "Fortschritt momentan nicht verfügbar."
+      "poolCountUnknownDesc": "Fortschritt momentan nicht verfügbar.",
+      "overviewStatStudies": "Studien",
+      "overviewStatActive": "Aktive Studien",
+      "overviewStatCompletes": "Abgeschlossene Interviews",
+      "overviewStatCompletesSub": "über alle Studien",
+      "colProgress": "Fortschritt",
+      "colSynthesis": "Synthese",
+      "synthesisReady": "Bereit"
     },
     "synthesis": {
       "backToPlan": "← Zurück zum Plan",
