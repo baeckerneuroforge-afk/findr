@@ -51,6 +51,10 @@ interface FormState {
   objective: string;
   persona: string;
   sampleTarget: string;
+  // Visual-Intelligence opt-in. Default OFF. Sent as `visualCaptureEnabled`
+  // (exact key) in the create/update body — the backend flag + interview-gate
+  // already exist; this form only fills the value.
+  visualCaptureEnabled: boolean;
   topics: TopicDraft[];
 }
 
@@ -85,6 +89,8 @@ const INITIAL_FORM: FormState = {
   objective: "",
   persona: "",
   sampleTarget: "",
+  // Default OFF — VI is opt-in per study; an untouched form sends false.
+  visualCaptureEnabled: false,
   // Start with one empty topic so the editor isn't blank — encourages the
   // user to fill at least one in. Empty topics are dropped at submit time.
   topics: [emptyTopicDraft()],
@@ -199,6 +205,7 @@ export function ResearchPlanForm({
             topics: [],
             persona: form.persona.trim() === "" ? null : form.persona.trim(),
             sampleTarget: null,
+            visualCaptureEnabled: form.visualCaptureEnabled,
             ...studyTypePayload,
           }),
         });
@@ -308,6 +315,7 @@ export function ResearchPlanForm({
               topics,
               persona: form.persona.trim() === "" ? null : form.persona.trim(),
               sampleTarget,
+              visualCaptureEnabled: form.visualCaptureEnabled,
             }),
           },
         );
@@ -330,6 +338,7 @@ export function ResearchPlanForm({
           topics,
           persona: form.persona.trim() === "" ? null : form.persona.trim(),
           sampleTarget,
+          visualCaptureEnabled: form.visualCaptureEnabled,
           ...studyTypePayload,
         }),
       });
@@ -395,6 +404,54 @@ export function ResearchPlanForm({
               className={FIELD_INPUT_CLASS}
             />
           </Field>
+        </div>
+
+        {/* Visual-Intelligence opt-in (default OFF). Shown for BOTH study
+            types — there's no stimulus field in the data model to gate on, so
+            the hint sets the expectation that it only helps when participants
+            demonstrate on-screen. Writes `visualCaptureEnabled` (exact key) in
+            the submit body; the backend flag + interview-gate already exist. */}
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <span className="block text-body-strong text-neutral-900">
+                {t("fldVisualCapture")}
+              </span>
+              <span className="mt-1 block text-caption text-neutral-500">
+                {t("visualCaptureHint")}
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-caption text-neutral-500">
+                {form.visualCaptureEnabled
+                  ? t("visualCaptureOn")
+                  : t("visualCaptureOff")}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.visualCaptureEnabled}
+                aria-label={t("fldVisualCapture")}
+                onClick={() =>
+                  update("visualCaptureEnabled", !form.visualCaptureEnabled)
+                }
+                disabled={submitting}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                  form.visualCaptureEnabled
+                    ? "bg-primary-600"
+                    : "bg-neutral-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                    form.visualCaptureEnabled
+                      ? "translate-x-5"
+                      : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
