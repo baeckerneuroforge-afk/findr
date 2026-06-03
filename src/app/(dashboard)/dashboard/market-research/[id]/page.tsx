@@ -7,6 +7,7 @@ import {
   researchInterviewUrl,
   researchOpenLinkUrl,
 } from "@/lib/email/research-invite";
+import { getProlificCredentialSummary } from "@/lib/panel/service";
 import {
   countCompletedSessionsForPlan,
   getResearchPlan,
@@ -30,6 +31,7 @@ import { InviteFromPoolForm } from "@/components/dashboard/InviteFromPoolForm";
 import { OpenLinkPanel } from "@/components/dashboard/OpenLinkPanel";
 import { PlanQuotaPanel } from "@/components/dashboard/PlanQuotaPanel";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
+import { ProlificDraftPanel } from "@/components/dashboard/ProlificDraftPanel";
 import { ScreeningQuestionsPanel } from "@/components/dashboard/ScreeningQuestionsPanel";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
 import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
@@ -130,16 +132,26 @@ export default async function MarketCampaignDetailPage({
 
   const invites = await listInvitesForPlan(orgId, planId);
 
-  // Pool + Quoten + offener Link + Ziel-Pool-Fortschritt — alle unabhängig,
-  // parallel. Der completed-Count ist die §7-Messung; null → "—" (fail-open).
-  const [poolMembers, invitedPoolMemberIds, quotas, openLink, completed] =
-    await Promise.all([
-      listPoolMembers(orgId),
-      listInvitedPoolMemberIds(orgId, planId),
-      listQuotaProgress(orgId, planId),
-      getOpenLinkForPlan(orgId, planId),
-      countCompletedSessionsForPlan(orgId, planId),
-    ]);
+  // Pool + Quoten + offener Link + Ziel-Pool-Fortschritt + Prolific-Credential —
+  // alle unabhängig, parallel (kein N+1). Der completed-Count ist die §7-
+  // Messung; null → "—" (fail-open). getProlificCredentialSummary degradiert auf
+  // null, wenn kein Token verbunden ist — das Panel zeigt dann den "erst Prolific
+  // verbinden"-Leerzustand, genau wie auf der Product-Discovery-Detailseite.
+  const [
+    poolMembers,
+    invitedPoolMemberIds,
+    quotas,
+    openLink,
+    completed,
+    prolificCredential,
+  ] = await Promise.all([
+    listPoolMembers(orgId),
+    listInvitedPoolMemberIds(orgId, planId),
+    listQuotaProgress(orgId, planId),
+    getOpenLinkForPlan(orgId, planId),
+    countCompletedSessionsForPlan(orgId, planId),
+    getProlificCredentialSummary(orgId),
+  ]);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
   ].sort();
@@ -156,6 +168,13 @@ export default async function MarketCampaignDetailPage({
     ? researchOpenLinkUrl(openLink.access_token)
     : null;
   const hasScreening = plan.screeningQuestions.length > 0;
+  // Spiegelt die PD-Seite: zeigt im Panel den "Completion wired"-Badge, sobald
+  // ein früherer Draft die Complete-/Screen-out-URLs in den offenen Link
+  // geschrieben hat. Reiner Read aus openLink.panel_completion, kein Backend.
+  const panelCompletionConfigured = Boolean(
+    openLink?.panel_completion?.complete_url ||
+      openLink?.panel_completion?.screenout_url,
+  );
 
   // Ziel-Pool-Fortschritt (§7) — sample_target ist das studienweite Ziel,
   // completed der gemessene Fortschritt (NUR status='completed'). Die drei
@@ -567,6 +586,42 @@ export default async function MarketCampaignDetailPage({
               openLink={openLinkView}
               shareUrl={openLinkShareUrl}
               hasScreening={hasScreening}
+              disabled={plan.status === "archived"}
+            />
+          </CardBody>
+        </Card>
+      </section>
+
+      {/* Prolific Panel-Anbieter — baut NUR einen unveröffentlichten Draft im
+          Kunden-Prolific aus dem AKTIVEN offenen Link und schreibt die erzeugten
+          Completion-URLs additiv in research_open_links.panel_completion. Kein
+          Publish, kein Funding. Identische Verdrahtung wie auf der Product-
+          Discovery-Detailseite — dieselbe Komponente, dieselben Props; nur die
+          Section-Überschrift ist markt-passend (de+en via research.market).
+          Sitzt bewusst direkt unter dem offenen Link (der die Teilnehmer-URL
+          liefert) und vor den Quoten. */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">{tm("prolificTitle")}</h2>
+          <p className="text-small text-neutral-500">{tm("prolificDesc")}</p>
+        </div>
+        <Card>
+          <CardBody>
+            <ProlificDraftPanel
+              planId={plan.id}
+              planTitle={plan.title}
+              planObjective={plan.objective}
+              sampleTarget={plan.sampleTarget}
+              openLink={
+                openLink
+                  ? {
+                      status: openLink.status,
+                      maxSessions: openLink.max_sessions,
+                    }
+                  : null
+              }
+              credentialStatus={prolificCredential?.status ?? "missing"}
+              panelCompletionConfigured={panelCompletionConfigured}
               disabled={plan.status === "archived"}
             />
           </CardBody>

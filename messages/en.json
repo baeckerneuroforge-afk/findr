@@ -1192,7 +1192,9 @@
       "overviewStatCompletesSub": "across all studies",
       "colProgress": "Progress",
       "colSynthesis": "Synthesis",
-      "synthesisReady": "Ready"
+      "synthesisReady": "Ready",
+      "prolificTitle": "Set up a Prolific study",
+      "prolificDesc": "Findr automatically uses the active open link as the participant URL. After creation the draft appears in Prolific — publish it there, set the sample and fund it."
     },
     "synthesis": {
       "backToPlan": "← Back to plan",
