@@ -11,7 +11,7 @@ import type { Database, Json } from "@/types/database";
  *
  *   - the new research_plans / research_invites tables
  *   - the new interview_sessions columns (flow, mode, plan_id, invite_id,
- *     recording_url, transcript_source)
+ *     recording_url, transcript_source, capture_source, visual_capture)
  *
  * Two reliable patterns to avoid: `Database & {...}` intersections (the
  * client's deep generics infer Insert as `never[]`), and `interface` types
@@ -68,6 +68,8 @@ type InterviewSessionsRow = {
   result: Json | null;
   status: Status;
   transcript_source: string | null;
+  capture_source: string | null;
+  visual_capture: Json | null;
 };
 
 type InterviewSessionsInsert = {
@@ -98,6 +100,8 @@ type InterviewSessionsInsert = {
   result?: Json | null;
   status?: Status;
   transcript_source?: string | null;
+  capture_source?: string | null;
+  visual_capture?: Json | null;
 };
 
 type InterviewSessionsUpdate = {
@@ -128,6 +132,8 @@ type InterviewSessionsUpdate = {
   result?: Json | null;
   status?: Status;
   transcript_source?: string | null;
+  capture_source?: string | null;
+  visual_capture?: Json | null;
 };
 
 // ── research_plans ─────────────────────────────────────────────────────────

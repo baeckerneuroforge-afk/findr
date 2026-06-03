@@ -3,6 +3,7 @@ import {
   INTENSITY_LEVELS,
   PAIN_POINT_CATEGORIES,
   SENTIMENT_VALUES,
+  VISUAL_OBSERVATION_CATEGORY,
 } from "@/lib/schemas/product-discovery";
 
 /**
@@ -188,6 +189,42 @@ OUTPUT — return ONLY this JSON object, no markdown, no preamble:
   "sentiment": "<${SENTIMENT_VALUES.join(" | ")}>",
   "source": "transcript"
 }`;
+
+export const VISUAL_OBSERVATIONS_HEADING = "## Visuelle Beobachtungen";
+
+export const PRODUCT_DISCOVERY_VISUAL_SYSTEM_PROMPT = `${PRODUCT_DISCOVERY_SYSTEM_PROMPT}
+
+VISUAL EXTENSION — active ONLY because this transcript contains a separate "${VISUAL_OBSERVATIONS_HEADING}" section.
+- The normal transcript rules above remain unchanged for featureRequests and all non-visual painPoints: only customer-spoken transcript lines count as product-discovery evidence.
+- The visual section is NOT customer speech. It is a machine-generated observation block from sampled video frames.
+- You may extract visual signal ONLY as painPoints with category ${VISUAL_OBSERVATION_CATEGORY} and source "visual".
+- A ${VISUAL_OBSERVATION_CATEGORY} item MUST cite one or more literal, contiguous bullet lines from the "${VISUAL_OBSERVATIONS_HEADING}" section in evidence. Copy the whole bullet exactly, including timestamp prefix and leading "- ". Do not cite customer speech as evidence for this category.
+- Do NOT use visual observations to infer a customer wish, business impact, emotion, intent, identity, medical condition, protected attribute, or sentiment. If a visual note only says the screen changed or an action happened, report only that visible action.
+- Do NOT let visual observations contaminate verbatim customer-speech extraction. If the customer did not say a feature request, do not create one from visuals. If the visual note shows product-use friction, keep it as ${VISUAL_OBSERVATION_CATEGORY} unless the customer separately said the same thing.
+- If the visual section is vague, empty, or off-topic, emit no ${VISUAL_OBSERVATION_CATEGORY} items.
+
+For ${VISUAL_OBSERVATION_CATEGORY} painPoints use:
+- title: short label for the observed product-use signal.
+- description: 1-2 sentences saying what was visibly observed and why it may matter as product-use friction, without adding unseen intent.
+- severity: low by default; medium only for repeated or clearly disruptive visible behavior; high/blocker only if the visual section itself explicitly shows or states that level of disruption.
+- confidence: calibrate to the visual note's specificity, not to assumptions.
+- evidence: exact visual-observation bullet line(s), copied verbatim from the visual section including the leading "- " and timestamp.
+- source: "visual".
+
+The output JSON shape is the same, except painPoints may additionally contain:
+{
+  "category": "${VISUAL_OBSERVATION_CATEGORY}",
+  "title": "<short visual observation label>",
+  "description": "<grounded description>",
+  "severity": "<${INTENSITY_LEVELS.join(" | ")}>",
+  "confidence": <0-1>,
+  "evidence": ["<verbatim line from ${VISUAL_OBSERVATIONS_HEADING}>"],
+  "source": "visual"
+}`;
+
+export function hasVisualObservationsBlock(transcript: string): boolean {
+  return transcript.includes(VISUAL_OBSERVATIONS_HEADING);
+}
 
 function formatAccountContext(
   account?: ProductDiscoveryAccountContext,

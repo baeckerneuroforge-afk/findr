@@ -52,6 +52,7 @@ const PAIN_POINT_LABELS: Record<PainPointCategory, string> = {
   DATA_QUALITY: "Data quality",
   INTEGRATION_GAP: "Integration gap",
   SUPPORT: "Support",
+  VISUAL_OBSERVATION: "Visual observation",
 };
 
 const INTENSITY_BADGE: Record<IntensityLevel, string> = {

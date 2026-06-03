@@ -101,6 +101,8 @@ export interface InterviewSession {
   inviteId: string | null;
   recordingUrl: string | null;
   transcriptSource: string | null;
+  captureSource: string | null;
+  visualCapture: Json | null;
   accessToken: string;
   status: "open" | "completed" | "abandoned";
   language: InterviewLanguage;
@@ -171,6 +173,8 @@ function toSession(row: Row): InterviewSession {
     inviteId: row.invite_id,
     recordingUrl: row.recording_url,
     transcriptSource: row.transcript_source,
+    captureSource: row.capture_source ?? null,
+    visualCapture: row.visual_capture ?? null,
     accessToken: row.access_token,
     status: row.status,
     language: row.language,
@@ -769,6 +773,7 @@ export async function advanceInterview(
           planId: session.planId,
           inviteId: session.inviteId,
           transcript: conversationToTranscript(history),
+          visualCapture: session.visualCapture,
         });
       } catch (err) {
         console.error(

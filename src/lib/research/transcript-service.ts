@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Json } from "@/types/database";
 import { analyzeCallForProductDiscovery } from "@/lib/product-discovery/service";
+import { appendVisualCaptureToTranscript } from "@/lib/visual-intelligence/vision";
 import { createResearchSupabase } from "./db";
 
 /**
@@ -49,9 +50,14 @@ export async function persistResearchTranscriptAndDiscovery(params: {
   planId: string | null;
   inviteId: string | null;
   transcript: string;
+  visualCapture?: Json | null;
 }): Promise<PersistResearchTranscriptResult> {
   const supabase = createResearchSupabase();
   const now = new Date().toISOString();
+  const transcript = appendVisualCaptureToTranscript(
+    params.transcript,
+    params.visualCapture,
+  );
 
   // participants is a free-form JSONB column — we stamp planId/inviteId for
   // traceability so a later analytics view can join research insights back
@@ -64,7 +70,7 @@ export async function persistResearchTranscriptAndDiscovery(params: {
       deal_id: null,
       source: "research",
       call_type: "research_interview",
-      transcript: params.transcript,
+      transcript,
       recorded_at: now,
       participants: {
         source: "research",

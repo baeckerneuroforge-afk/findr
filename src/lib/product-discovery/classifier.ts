@@ -6,12 +6,15 @@ import {
   StructuredOutputError,
 } from "@/lib/anthropic/structured";
 import {
+  ProductDiscoveryWithVisualResultSchema,
   ProductDiscoveryResultSchema,
   type ProductDiscoveryResult,
 } from "@/lib/schemas/product-discovery";
 import {
+  PRODUCT_DISCOVERY_VISUAL_SYSTEM_PROMPT,
   PRODUCT_DISCOVERY_SYSTEM_PROMPT,
   buildProductDiscoveryPrompt,
+  hasVisualObservationsBlock,
   type ProductDiscoveryInput,
 } from "./prompts";
 
@@ -55,20 +58,28 @@ export async function analyzeProductDiscovery(
     DEFAULT_PRODUCT_DISCOVERY_MODEL,
 ): Promise<ProductDiscoveryResult> {
   const userPrompt = buildProductDiscoveryPrompt(input);
+  const hasVisualSignal = hasVisualObservationsBlock(input.transcript);
 
   try {
     return await callClaudeStructured({
-      schema: ProductDiscoveryResultSchema,
-      system: PRODUCT_DISCOVERY_SYSTEM_PROMPT,
+      schema: hasVisualSignal
+        ? ProductDiscoveryWithVisualResultSchema
+        : ProductDiscoveryResultSchema,
+      system: hasVisualSignal
+        ? PRODUCT_DISCOVERY_VISUAL_SYSTEM_PROMPT
+        : PRODUCT_DISCOVERY_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
       model,
-      maxTokens: 2048,
+      maxTokens: hasVisualSignal ? 3072 : 2048,
       // Extraction across three layers over a full transcript runs longer
       // than the shared client's 30s default; mirror the Risk/Health override.
       timeoutMs: 120_000,
-      toolName: "emit_product_discovery",
-      toolDescription:
-        "Return the product-discovery extraction — feature requests, pain points and themes, each grounded in verbatim evidence from the transcript.",
+      toolName: hasVisualSignal
+        ? "emit_product_discovery_with_visual"
+        : "emit_product_discovery",
+      toolDescription: hasVisualSignal
+        ? "Return the product-discovery extraction — feature requests, pain points and themes, each grounded in allowed verbatim evidence from the transcript."
+        : "Return the product-discovery extraction — feature requests, pain points and themes, each grounded in verbatim evidence from the transcript.",
     });
   } catch (err) {
     if (err instanceof StructuredOutputError) {

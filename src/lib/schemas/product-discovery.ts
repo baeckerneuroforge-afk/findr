@@ -52,7 +52,13 @@ export const PAIN_POINT_CATEGORIES = [
   "INTEGRATION_GAP",
   "SUPPORT",
 ] as const;
-export type PainPointCategory = (typeof PAIN_POINT_CATEGORIES)[number];
+export const VISUAL_OBSERVATION_CATEGORY = "VISUAL_OBSERVATION" as const;
+export const PERSISTED_PAIN_POINT_CATEGORIES = [
+  ...PAIN_POINT_CATEGORIES,
+  VISUAL_OBSERVATION_CATEGORY,
+] as const;
+export type PainPointCategory =
+  (typeof PERSISTED_PAIN_POINT_CATEGORIES)[number];
 
 // ── Intensity / Severity ───────────────────────────────────────────────────
 
@@ -96,7 +102,7 @@ const FeatureRequestSchema = z.object({
 });
 export type FeatureRequest = z.infer<typeof FeatureRequestSchema>;
 
-const PainPointSchema = z.object({
+const BasePainPointSchema = z.object({
   category: z.preprocess(toUpperString, z.enum(PAIN_POINT_CATEGORIES)),
   title: z.string().min(3).max(120),
   description: z.string().min(1).max(2000),
@@ -104,7 +110,22 @@ const PainPointSchema = z.object({
   confidence: z.number().min(0).max(1),
   evidence: z.array(z.string()).max(5).default([]),
 });
-export type PainPoint = z.infer<typeof PainPointSchema>;
+
+const PersistedPainPointSchema = BasePainPointSchema.extend({
+  category: z.preprocess(
+    toUpperString,
+    z.enum(PERSISTED_PAIN_POINT_CATEGORIES),
+  ),
+  /** Present only on the visual Stage-1 path. Existing readers can ignore it;
+   *  Stage 2 still receives the field inside the persisted JSONB payload. */
+  source: z.enum(["transcript", "visual"]).optional(),
+});
+export type PainPoint = z.infer<typeof PersistedPainPointSchema>;
+
+const VisualPainPointSchema = PersistedPainPointSchema.extend({
+  category: z.literal(VISUAL_OBSERVATION_CATEGORY),
+  source: z.literal("visual").default("visual"),
+});
 
 // ── Item normalizers ─────────────────────────────────────────────────────────
 
@@ -199,7 +220,12 @@ export function normalizePainPoints(value: unknown): PainPoint[] {
         ? (entry as Record<string, unknown>)
         : {};
     return {
-      category: asEnumMember(pp.category, PAIN_POINT_CATEGORIES, "BUG", "upper"),
+      category: asEnumMember(
+        pp.category,
+        PERSISTED_PAIN_POINT_CATEGORIES,
+        "BUG",
+        "upper",
+      ),
       title: typeof pp.title === "string" ? pp.title : "",
       description: typeof pp.description === "string" ? pp.description : "",
       severity: asEnumMember(pp.severity, INTENSITY_LEVELS, "low", "lower"),
@@ -208,6 +234,10 @@ export function normalizePainPoints(value: unknown): PainPoint[] {
           ? pp.confidence
           : 0,
       evidence: normalizeEvidence(pp.evidence),
+      source:
+        pp.source === "visual" || pp.source === "transcript"
+          ? pp.source
+          : undefined,
     };
   });
 }
@@ -281,7 +311,7 @@ export function normalizeThemes(value: unknown): Theme[] {
 
 export const ProductDiscoveryResultSchema = z.object({
   featureRequests: z.array(FeatureRequestSchema).max(15).default([]),
-  painPoints: z.array(PainPointSchema).max(15).default([]),
+  painPoints: z.array(BasePainPointSchema).max(15).default([]),
   themes: z.array(ThemeSchema).max(8).default([]),
   summary: z.string().min(1).max(3000),
   /** Respondent role — wie sich der Sprecher im Gespräch positioniert
@@ -313,6 +343,28 @@ export const ProductDiscoveryResultSchema = z.object({
   source: z.literal("transcript").default("transcript"),
 });
 
-export type ProductDiscoveryResult = z.infer<
-  typeof ProductDiscoveryResultSchema
->;
+type BaseProductDiscoveryResult = z.infer<typeof ProductDiscoveryResultSchema>;
+export type ProductDiscoveryResult = Omit<
+  BaseProductDiscoveryResult,
+  "painPoints"
+> & {
+  painPoints: PainPoint[];
+};
+
+export const ProductDiscoveryWithVisualResultSchema =
+  ProductDiscoveryResultSchema.extend({
+    /**
+     * Visual Stage-1 lens. This is intentionally NOT part of the default
+     * ProductDiscoveryResultSchema: non-visual classifier calls keep the same
+     * tool schema and the same transcript-only posture. Visual observations are
+     * persisted in the existing pain_points JSONB array under this separate
+     * category so Stage 2 can read them without a storage/schema migration on
+     * product_discovery_insights.
+     */
+    painPoints: z
+      .array(z.union([BasePainPointSchema, VisualPainPointSchema]))
+      .max(20)
+      .default([]),
+  });
+
+export type ProductDiscoveryWithVisualResult = ProductDiscoveryResult;

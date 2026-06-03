@@ -9,7 +9,7 @@ import {
 } from "@/lib/product-discovery/service";
 import {
   FEATURE_REQUEST_CATEGORIES,
-  PAIN_POINT_CATEGORIES,
+  PERSISTED_PAIN_POINT_CATEGORIES,
   type FeatureRequestCategory,
   type PainPointCategory,
 } from "@/lib/schemas/product-discovery";
@@ -46,6 +46,7 @@ const PAIN_POINT_LABELS: Record<PainPointCategory, string> = {
   DATA_QUALITY: "Data quality",
   INTEGRATION_GAP: "Integration gap",
   SUPPORT: "Support",
+  VISUAL_OBSERVATION: "Visual observation",
 };
 
 // ── Aggregation helpers ────────────────────────────────────────────────────
@@ -115,7 +116,7 @@ function rollupPainPointCategories(
   insights: ProductDiscoveryInsightRecord[],
 ): CategoryRollup<PainPointCategory>[] {
   const seed = new Map<PainPointCategory, CategorySeed>(
-    PAIN_POINT_CATEGORIES.map((c) => [c, emptySeed()]),
+    PERSISTED_PAIN_POINT_CATEGORIES.map((c) => [c, emptySeed()]),
   );
 
   for (const insight of insights) {
@@ -132,7 +133,7 @@ function rollupPainPointCategories(
     }
   }
 
-  return PAIN_POINT_CATEGORIES.map((category): CategoryRollup<PainPointCategory> => {
+  return PERSISTED_PAIN_POINT_CATEGORIES.map((category): CategoryRollup<PainPointCategory> => {
     const entry = seed.get(category)!;
     return {
       category,
