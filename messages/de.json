@@ -139,6 +139,9 @@
       "crossStudy": "Studienübergreifend",
       "workspace": "Arbeitsbereich"
     },
+    "section": {
+      "externalResearch": "Externe Forschung"
+    },
     "item": {
       "pipeline": "Pipeline",
       "forecast": "Forecast",

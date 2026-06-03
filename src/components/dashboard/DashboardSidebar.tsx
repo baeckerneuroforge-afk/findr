@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useReducedMotion } from "framer-motion";
 
 /**
  * Primary navigation, grouped by product module. The grouping is the
@@ -172,22 +171,22 @@ function ChevronDownIcon({ className }: { className?: string }) {
 
 /** The list of links for a group. Single source for the active-link markup so
  *  the accordion sections and the flat workspace block can never visually
- *  drift. `id`/`className` let the accordion attach its aria-controls panel id
- *  and the fade-in animation; the flat workspace block passes neither. */
+ *  drift. `id` lets the accordion attach its aria-controls panel id; the flat
+ *  workspace block omits it. Item pills are `rounded-lg` for a softer edge —
+ *  the active treatment (bg-primary-50 / text-primary-700 / font-medium) is
+ *  unchanged from before this polish pass. */
 function NavLinkList({
   items,
   pathname,
   id,
-  className,
 }: {
   items: NavItem[];
   pathname: string;
   id?: string;
-  className?: string;
 }) {
   const t = useTranslations("nav");
   return (
-    <ul id={id} className={`space-y-0.5${className ? ` ${className}` : ""}`}>
+    <ul id={id} className="space-y-0.5">
       {items.map((item) => {
         const active = isActive(item.href, pathname);
         return (
@@ -195,7 +194,7 @@ function NavLinkList({
             <Link
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`block rounded-md px-3 py-1.5 text-body transition-colors ${
+              className={`block rounded-lg px-3 py-1.5 text-body transition-colors ${
                 active
                   ? "bg-primary-50 text-primary-700 font-medium"
                   : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
@@ -210,19 +209,35 @@ function NavLinkList({
   );
 }
 
-/** A collapsible module group: caption-button toggles its link list. */
+/** A collapsible module group: caption-button toggles its link list.
+ *
+ *  The disclosure panel animates its height open/closed via a CSS grid-rows
+ *  1fr⇄0fr transition (the inner row clipped with `overflow-hidden`) — this
+ *  gives an exact content-height slide with no max-height guesswork. The panel
+ *  is ALWAYS rendered (never conditionally unmounted) so the height has both
+ *  ends to animate between; when collapsed it is `inert`, which drops the links
+ *  from tab order and the accessibility tree, preserving the disclosure
+ *  contract even though the markup stays in the DOM.
+ *
+ *  Reduced motion is handled entirely in CSS via Tailwind's `motion-reduce:`
+ *  variant (a compiled `@media (prefers-reduced-motion: reduce)` rule), NOT a
+ *  JS value. That is deliberate: every class here depends only on `expanded`
+ *  (derived from the pathname-seeded open set, identical on server and client),
+ *  so the server HTML and the client's first render are byte-identical — no
+ *  hydration mismatch — and because CSS transitions never fire on the initial
+ *  paint, a group that is open at SSR appears at full height with no entrance
+ *  animation. Open/close only animates on a subsequent state change (user
+ *  toggle or a navigation that reveals the active group). */
 function NavSection({
   group,
   pathname,
   expanded,
   onToggle,
-  animate,
 }: {
   group: NavGroupDef;
   pathname: string;
   expanded: boolean;
   onToggle: () => void;
-  animate: boolean;
 }) {
   const t = useTranslations("nav");
   const id = panelId(group.labelKey);
@@ -233,30 +248,35 @@ function NavSection({
         aria-expanded={expanded}
         aria-controls={id}
         onClick={onToggle}
-        className="mb-1.5 flex w-full items-center justify-between rounded px-3 text-h3 text-neutral-900 transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+        className="mb-1.5 flex w-full items-center justify-between rounded-md px-3 py-1.5 text-h3 text-neutral-900 transition-colors hover:bg-neutral-50 hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
       >
         <span>{t(group.labelKey)}</span>
         <ChevronDownIcon
-          className={`h-3.5 w-3.5 transition-transform duration-150 ${
+          className={`h-3.5 w-3.5 transition-transform duration-200 ease-out motion-reduce:transition-none ${
             expanded ? "rotate-180" : ""
           }`}
         />
       </button>
-      {expanded ? (
-        <NavLinkList
-          items={group.items}
-          pathname={pathname}
-          id={id}
-          className={animate ? "animate-fade-in-panel" : undefined}
-        />
-      ) : null}
+      <div
+        className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div
+          inert={!expanded}
+          className={`overflow-hidden transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+            expanded ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <NavLinkList items={group.items} pathname={pathname} id={id} />
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
-  const reduceMotion = useReducedMotion();
   const t = useTranslations("nav");
 
   // Open accordion sections, keyed by group.labelKey. Seeded with the group
@@ -265,14 +285,6 @@ export default function DashboardSidebar() {
   const [openGroups, setOpenGroups] = useState<Set<string>>(
     () => new Set(activeGroupKeys(pathname)),
   );
-
-  // Groups whose fade-in should play — ONLY those the user toggled open via the
-  // caption button. The seeded-open active group and navigation-opened groups
-  // are deliberately absent, so (a) the `animate-fade-in-panel` class is never
-  // in the server-rendered HTML → no hydration mismatch and no re-fade on every
-  // hard page load (the active group is open at SSR), and (b) the fade is
-  // reserved for a deliberate disclosure gesture. Per-mount only (no localStorage).
-  const [animatedKeys, setAnimatedKeys] = useState<Set<string>>(() => new Set());
 
   // On navigation, ADD the active group to the open set — never remove. We
   // never collapse a group the user opened, and never close the others; the
@@ -302,19 +314,10 @@ export default function DashboardSidebar() {
   }
 
   const toggleGroup = (key: string) => {
-    const opening = !openGroups.has(key);
     setOpenGroups((prev) => {
       const next = new Set(prev);
-      if (opening) next.add(key);
-      else next.delete(key);
-      return next;
-    });
-    // Mark on open (so the fade plays), clear on close (so a later re-open
-    // animates again). Seeding and the pathname effect never touch this set.
-    setAnimatedKeys((prev) => {
-      const next = new Set(prev);
-      if (opening) next.add(key);
-      else next.delete(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
@@ -348,24 +351,30 @@ export default function DashboardSidebar() {
               pathname={pathname}
               expanded={openGroups.has(group.labelKey)}
               onToggle={() => toggleGroup(group.labelKey)}
-              animate={animatedKeys.has(group.labelKey) && !reduceMotion}
             />
           );
-          // Market Research is set apart as its own "department": a full-bleed
-          // band (the `-mx-3` cancels the nav's px-3 so the dividers run the
-          // full sidebar width, exactly like the Workspace divider) with a
-          // border above AND below and a soft brand wash (primary-100). It does
-          // NOT move — it stays in its slot between Product Discovery and
-          // Cross-Study; only its surface changes. The wash is darker than the
-          // active/hover item pills (primary-50 / neutral-50), so those pills
-          // read as lighter highlights on the band — state stays recognizable
-          // (and is carried by the bold violet text + aria-current regardless).
+          // Market Research is set apart as its own "department" — purely
+          // SPATIALLY, with NO surface fill (the earlier primary-100 wash is
+          // gone). A full-bleed band (the `-mx-3` cancels the nav's px-3 so the
+          // rules run the full sidebar width, exactly like the Workspace
+          // divider) is fenced by a thicker 2px rule above AND below and given
+          // generous vertical padding, lifting it clear of the module rhythm; a
+          // small, dezent uppercase eyebrow ("Externe Forschung") names the
+          // department above the group caption. It does NOT move — it stays in
+          // its slot between Product Discovery and Cross-Study. The band is
+          // built to hold MORE products under the same eyebrow later; today it
+          // carries the single Market Research accordion. With no wash, the
+          // active/hover item pills (primary-50 / neutral-50) and the bold
+          // violet active label read exactly as everywhere else in the sidebar.
           if (group.labelKey === "group.marketResearch") {
             return (
               <div
                 key={group.labelKey}
-                className="-mx-3 border-y border-neutral-200 bg-primary-100 px-3 py-4"
+                className="-mx-3 border-y-2 border-neutral-300 px-3 py-5"
               >
+                <p className="mb-2.5 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+                  {t("section.externalResearch")}
+                </p>
                 {section}
               </div>
             );

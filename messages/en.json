@@ -139,6 +139,9 @@
       "crossStudy": "Cross-Study",
       "workspace": "Workspace"
     },
+    "section": {
+      "externalResearch": "External Research"
+    },
     "item": {
       "pipeline": "Pipeline",
       "forecast": "Forecast",
