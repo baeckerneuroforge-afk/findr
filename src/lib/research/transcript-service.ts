@@ -3,6 +3,7 @@ import "server-only";
 import type { Json } from "@/types/database";
 import { analyzeCallForProductDiscovery } from "@/lib/product-discovery/service";
 import { appendVisualCaptureToTranscript } from "@/lib/visual-intelligence/vision";
+import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 import { createResearchSupabase } from "./db";
 
 /**
@@ -22,6 +23,13 @@ import { createResearchSupabase } from "./db";
 export interface PersistResearchTranscriptResult {
   callId: string | null;
   discoveryRan: boolean;
+}
+
+/** Flatten a participant conversation into the canonical transcript string. */
+export function conversationToTranscript(conversation: InterviewTurn[]): string {
+  return conversation
+    .map((t) => `${t.role === "agent" ? "Assistant" : "Customer"}: ${t.text}`)
+    .join("\n");
 }
 
 /**
@@ -47,6 +55,7 @@ export interface PersistResearchTranscriptResult {
  */
 export async function persistResearchTranscriptAndDiscovery(params: {
   orgId: string;
+  sessionId?: string | null;
   planId: string | null;
   inviteId: string | null;
   transcript: string;
@@ -74,6 +83,7 @@ export async function persistResearchTranscriptAndDiscovery(params: {
       recorded_at: now,
       participants: {
         source: "research",
+        ...(params.sessionId ? { session_id: params.sessionId } : {}),
         plan_id: params.planId,
         invite_id: params.inviteId,
         hint: "Plan-driven research interview transcript (text mode).",
@@ -104,4 +114,106 @@ export async function persistResearchTranscriptAndDiscovery(params: {
   });
 
   return { callId: callRow.id, discoveryRan: true };
+}
+
+export interface ApplyVisualCaptureResult {
+  callId: string | null;
+  discoveryRan: boolean;
+  createdCall: boolean;
+}
+
+/**
+ * Add browser-derived visual observation notes to an already completed research
+ * session and rerun the existing Stage-1 Product Discovery entry point.
+ *
+ * Data minimization: `visualCapture` must already be text/metadata-only. This
+ * helper persists no raw video and no base64 frame payloads.
+ */
+export async function applyVisualCaptureToCompletedResearchTranscript(params: {
+  accessToken: string;
+  visualCapture: Json;
+}): Promise<ApplyVisualCaptureResult> {
+  const supabase = createResearchSupabase();
+  const { data: session, error: sessionError } = await supabase
+    .from("interview_sessions")
+    .select(
+      "id, org_id, kind, status, plan_id, invite_id, conversation, capture_source, visual_capture",
+    )
+    .eq("access_token", params.accessToken)
+    .maybeSingle();
+
+  if (sessionError) {
+    throw new Error(`Failed to read interview session: ${sessionError.message}`);
+  }
+  if (!session) {
+    throw new Error("Interview session not found.");
+  }
+  if (session.kind !== "research") {
+    throw new Error("Visual capture is only enabled for research interviews.");
+  }
+  if (session.status !== "completed") {
+    throw new Error("Visual capture can only be attached after completion.");
+  }
+
+  const { error: visualUpdateError } = await supabase
+    .from("interview_sessions")
+    .update({
+      capture_source: "browser_screen",
+      visual_capture: params.visualCapture,
+    })
+    .eq("id", session.id)
+    .eq("org_id", session.org_id);
+  if (visualUpdateError) {
+    throw new Error(
+      `Failed to attach visual capture metadata: ${visualUpdateError.message}`,
+    );
+  }
+
+  const { data: call, error: callError } = await supabase
+    .from("calls")
+    .select("id, transcript")
+    .eq("org_id", session.org_id)
+    .contains("participants", { session_id: session.id })
+    .order("recorded_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (callError) {
+    throw new Error(`Failed to find research call row: ${callError.message}`);
+  }
+
+  if (!call) {
+    const conversation =
+      (session.conversation as unknown as InterviewTurn[] | null) ?? [];
+    const result = await persistResearchTranscriptAndDiscovery({
+      orgId: session.org_id,
+      sessionId: session.id,
+      planId: session.plan_id,
+      inviteId: session.invite_id,
+      transcript: conversationToTranscript(conversation),
+      visualCapture: params.visualCapture,
+    });
+    return { ...result, createdCall: true };
+  }
+
+  const transcript = appendVisualCaptureToTranscript(
+    call.transcript ?? "",
+    params.visualCapture,
+  );
+  const { error: transcriptError } = await supabase
+    .from("calls")
+    .update({ transcript })
+    .eq("id", call.id)
+    .eq("org_id", session.org_id);
+  if (transcriptError) {
+    throw new Error(
+      `Failed to append visual capture to call transcript: ${transcriptError.message}`,
+    );
+  }
+
+  await analyzeCallForProductDiscovery(call.id, {
+    planId: session.plan_id,
+  });
+
+  return { callId: call.id, discoveryRan: true, createdCall: false };
 }

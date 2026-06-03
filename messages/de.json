@@ -19,6 +19,16 @@
       "brandless": "Vertrauliches Research-Interview.",
       "default": "Bereitgestellt von findr. · Ihre Antwort ist vertraulich."
     },
+    "visualCapture": {
+      "title": "Bildschirmaufnahme optional",
+      "body": "Wenn Sie zustimmen, wird nur Ihr geteilter Bildschirm während des Interviews stichprobenartig ausgewertet. Keine Kamera, kein Ton, keine dauerhafte Speicherung von Rohbildern.",
+      "accept": "Bildschirm teilen",
+      "decline": "Ohne Aufnahme fortfahren",
+      "starting": "Freigabe wird geöffnet …",
+      "recording": "Bildschirmaufnahme aktiv · {count} Frames gesammelt",
+      "stopped": "Bildschirmfreigabe beendet · {count} Frames gesammelt",
+      "truncated": "Limit erreicht: Nur der erste Teil wird ausgewertet."
+    },
     "error": {
       "requestFailed": "Anfrage fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."

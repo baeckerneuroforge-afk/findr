@@ -19,6 +19,16 @@
       "brandless": "Confidential research interview.",
       "default": "Powered by findr. · Your response is confidential."
     },
+    "visualCapture": {
+      "title": "Optional screen recording",
+      "body": "If you agree, only your shared screen is sampled during the interview. No camera, no audio, and no permanent storage of raw images.",
+      "accept": "Share screen",
+      "decline": "Continue without recording",
+      "starting": "Opening share prompt …",
+      "recording": "Screen recording active · {count} frames collected",
+      "stopped": "Screen sharing stopped · {count} frames collected",
+      "truncated": "Limit reached: only the first part will be analyzed."
+    },
     "error": {
       "requestFailed": "Request failed. Please try again.",
       "generic": "Something went wrong. Please try again."
