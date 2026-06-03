@@ -35,9 +35,10 @@ interface NavItem {
 }
 
 interface NavGroupDef {
-  /** nav.* catalog key for the small-caps section header. Kept dezent on
-   *  purpose — it structures, it doesn't shout. Also doubles as the accordion
-   *  section's identity (open-set key + aria-controls panel id). */
+  /** nav.* catalog key for the section header. Rendered prominent (text-h3,
+   *  near-black, normal case — not the old dezent uppercase caption) so each
+   *  group reads as a clear heading above its items. Also doubles as the
+   *  accordion section's identity (open-set key + aria-controls panel id). */
   labelKey: string;
   items: NavItem[];
 }
@@ -232,7 +233,7 @@ function NavSection({
         aria-expanded={expanded}
         aria-controls={id}
         onClick={onToggle}
-        className="mb-1.5 flex w-full items-center justify-between rounded px-3 text-caption font-medium uppercase tracking-wider text-neutral-400 transition-colors hover:text-neutral-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+        className="mb-1.5 flex w-full items-center justify-between rounded px-3 text-h3 text-neutral-900 transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
       >
         <span>{t(group.labelKey)}</span>
         <ChevronDownIcon
@@ -339,22 +340,44 @@ export default function DashboardSidebar() {
 
       {/* Primary nav — grouped by product module, each group collapsible */}
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-        {MODULES.map((group) => (
-          <NavSection
-            key={group.labelKey}
-            group={group}
-            pathname={pathname}
-            expanded={openGroups.has(group.labelKey)}
-            onToggle={() => toggleGroup(group.labelKey)}
-            animate={animatedKeys.has(group.labelKey) && !reduceMotion}
-          />
-        ))}
+        {MODULES.map((group) => {
+          const section = (
+            <NavSection
+              key={group.labelKey}
+              group={group}
+              pathname={pathname}
+              expanded={openGroups.has(group.labelKey)}
+              onToggle={() => toggleGroup(group.labelKey)}
+              animate={animatedKeys.has(group.labelKey) && !reduceMotion}
+            />
+          );
+          // Market Research is set apart as its own "department": a full-bleed
+          // band (the `-mx-3` cancels the nav's px-3 so the dividers run the
+          // full sidebar width, exactly like the Workspace divider) with a
+          // border above AND below and a soft brand wash (primary-100). It does
+          // NOT move — it stays in its slot between Product Discovery and
+          // Cross-Study; only its surface changes. The wash is darker than the
+          // active/hover item pills (primary-50 / neutral-50), so those pills
+          // read as lighter highlights on the band — state stays recognizable
+          // (and is carried by the bold violet text + aria-current regardless).
+          if (group.labelKey === "group.marketResearch") {
+            return (
+              <div
+                key={group.labelKey}
+                className="-mx-3 border-y border-neutral-200 bg-primary-100 px-3 py-4"
+              >
+                {section}
+              </div>
+            );
+          }
+          return section;
+        })}
       </nav>
 
       {/* Workspace — cross-cutting tools, divided from the modules above. Flat
           and always expanded (not an accordion): plumbing stays one click away. */}
       <div className="border-t border-neutral-200 px-3 py-4">
-        <div className="mb-1.5 px-3 text-caption font-medium uppercase tracking-wider text-neutral-400">
+        <div className="mb-1.5 px-3 text-h3 text-neutral-900">
           {t(WORKSPACE.labelKey)}
         </div>
         <NavLinkList items={WORKSPACE.items} pathname={pathname} />
