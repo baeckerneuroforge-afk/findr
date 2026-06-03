@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { InterviewChat } from "@/components/interview/InterviewChat";
 import { ScreeningGate } from "@/components/interview/ScreeningGate";
+import { getResearchPlan } from "@/lib/research/plans-service";
 import { resolvePublicEntry } from "@/lib/voice-agent/session-service";
 import { getOrgBranding } from "@/lib/settings/org-settings";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locale";
@@ -126,7 +127,14 @@ export default async function InterviewPage({
 
   // White-label: ONLY the research surface gets the Findr customer's branding.
   // post_loss / checkin keep the Findr chrome (branding null → neutral fallback).
-  const branding = isResearch ? await getOrgBranding(session.orgId) : null;
+  const [branding, plan] = await Promise.all([
+    isResearch ? getOrgBranding(session.orgId) : Promise.resolve(null),
+    isResearch && session.planId
+      ? getResearchPlan(session.orgId, session.planId)
+      : Promise.resolve(null),
+  ]);
+  const visualCaptureEnabled =
+    isResearch && plan?.visualCaptureEnabled === true;
 
   return (
     <NextIntlClientProvider
@@ -150,7 +158,7 @@ export default async function InterviewPage({
         // Panel-Anbieter E2: server-seitig aufgebaute Complete-Return-URL. Nur für
         // Panel-Sessions gesetzt (sonst null → kein Redirect, byte-identisch).
         panelCompleteRedirect={session.panelCompleteRedirect}
-        visualCaptureEnabled={isResearch}
+        visualCaptureEnabled={visualCaptureEnabled}
       />
     </NextIntlClientProvider>
   );

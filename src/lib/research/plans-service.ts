@@ -36,6 +36,10 @@ export interface ResearchPlanRecord {
   persona: string | null;
   sampleTarget: number | null;
   status: "draft" | "active" | "completed" | "archived";
+  /** Per-study Visual-Intelligence capture switch. Defaults false for legacy
+   *  rows and pre-migration reads, so research interviews stay chat-only until
+   *  a study explicitly enables capture. */
+  visualCaptureEnabled: boolean;
   screeningQuestions: ScreeningQuestion[];
   /** Studientyp-Diskriminator (Phase M0). Trägt 'product_discovery' für jeden
    *  Bestandsplan (DB-DEFAULT). In M0 liest KEIN Verhaltenspfad dieses Feld —
@@ -113,6 +117,10 @@ export function coerceStudyType(raw: unknown): ResearchPlanStudyType {
   return raw === "market_research" ? "market_research" : "product_discovery";
 }
 
+function coerceVisualCaptureEnabled(raw: unknown): boolean {
+  return raw === true;
+}
+
 function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
   return {
     id: row.id,
@@ -123,6 +131,9 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     persona: row.persona,
     sampleTarget: row.sample_target,
     status: row.status,
+    visualCaptureEnabled: coerceVisualCaptureEnabled(
+      (row as { visual_capture_enabled?: unknown }).visual_capture_enabled,
+    ),
     screeningQuestions: coerceScreeningQuestions(row.screening_questions),
     studyType: coerceStudyType(row.study_type),
     createdAt: row.created_at,
@@ -272,6 +283,7 @@ export interface CreateResearchPlanInput {
   topics: ResearchTopic[];
   persona?: string | null;
   sampleTarget?: number | null;
+  visualCaptureEnabled?: boolean;
   /**
    * Studientyp-Diskriminator (M3 write-side). OPTIONAL — undefined leaves the
    * insert WITHOUT a study_type key, so the DB DEFAULT ('product_discovery')
@@ -305,6 +317,7 @@ export async function createResearchPlan(
       topic_script: input.topics as unknown as Json,
       persona: input.persona ?? null,
       sample_target: input.sampleTarget ?? null,
+      visual_capture_enabled: input.visualCaptureEnabled ?? false,
       // Market-only insert key: when the caller is the Product-Discovery path
       // (studyType undefined / 'product_discovery'), the column is OMITTED so
       // the DB DEFAULT writes 'product_discovery' — a byte-identical discovery
@@ -332,6 +345,7 @@ export interface UpdateResearchPlanInput {
   persona?: string | null;
   sampleTarget?: number | null;
   status?: ResearchPlanRecord["status"];
+  visualCaptureEnabled?: boolean;
 }
 
 /**
@@ -360,6 +374,7 @@ export async function updateResearchPlan(
     persona?: string | null;
     sample_target?: number | null;
     status?: ResearchPlanRecord["status"];
+    visual_capture_enabled?: boolean;
   } = {};
   if (input.title !== undefined) update.title = input.title;
   if (input.objective !== undefined) update.objective = input.objective;
@@ -371,6 +386,8 @@ export async function updateResearchPlan(
   if (input.sampleTarget !== undefined)
     update.sample_target = input.sampleTarget;
   if (input.status !== undefined) update.status = input.status;
+  if (input.visualCaptureEnabled !== undefined)
+    update.visual_capture_enabled = input.visualCaptureEnabled;
 
   if (Object.keys(update).length === 0) {
     return getResearchPlan(orgId, planId);
