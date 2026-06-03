@@ -188,12 +188,18 @@ async function describeFrames(
     {
       type: "text",
       text: [
-        "You are reviewing sampled frames from a user research recording.",
+        "You are reviewing sampled frames from a user research recording through a usability lens.",
         "Return concise German bullet points only.",
-        "Report only visible, product-relevant observations from screens or product interaction.",
+        "Each bullet must be one standalone evidence line prefixed with the approximate timestamp in [mm:ss].",
+        "After the timestamp, label the line either FLUESSIG or REIBUNG.",
+        "Use FLUESSIG only for visible signals of smooth use: an element is immediately targeted, there is no visible searching, the task progresses quickly, or the UI path is visibly clear.",
+        "Use REIBUNG only for visible friction: searching, back-and-forth scrolling, hesitation before a click, a misclick plus correction, repeated attempts, backtracking, overlooked elements, visible error/bug, or an abandoned step.",
+        "Report only visible, product-relevant usability observations from screens or product interaction.",
+        "For FLUESSIG and REIBUNG alike, ground the note in what the sampled frames actually show; if sampling gaps hide the interaction, do not infer speed or difficulty.",
         "Do not infer emotion, intent, identity, health, protected attributes, or business impact.",
-        "Do not invent UI states that are not visible. If a frame is unclear, say it is unclear.",
-        "Prefix each useful bullet with the approximate timestamp in [mm:ss].",
+        "Do not invent UI states or friction that are not visible. If it is unclear whether something was friction, do not label it REIBUNG.",
+        "If a frame or action is unclear, omit it rather than guessing.",
+        "Format each bullet as: - [mm:ss] FLUESSIG: ... or - [mm:ss] REIBUNG: ...",
       ].join("\n"),
     },
   ];
@@ -214,7 +220,7 @@ async function describeFrames(
       model,
       max_tokens: 1200,
       system:
-        "You produce grounded visual observation notes for a downstream extraction pipeline. Be literal, conservative, and concise.",
+        "You produce grounded visual usability observation notes for a downstream extraction pipeline. Be literal, conservative, concise, and never infer fluency or friction beyond the sampled frames.",
       messages: [{ role: "user", content }],
     },
     { timeout: 120_000, maxRetries: 1 },
@@ -237,12 +243,18 @@ async function describeBrowserFrames(
     {
       type: "text",
       text: [
-        "You are reviewing sampled frames from a browser screen-share in a user research interview.",
+        "You are reviewing sampled frames from a browser screen-share in a user research interview through a usability lens.",
         "Return concise German bullet points only.",
-        "Report only visible, product-relevant observations from screens or product interaction.",
+        "Each bullet must be one standalone evidence line prefixed with the approximate timestamp in [mm:ss].",
+        "After the timestamp, label the line either FLUESSIG or REIBUNG.",
+        "Use FLUESSIG only for visible signals of smooth use: an element is immediately targeted, there is no visible searching, the task progresses quickly, or the UI path is visibly clear.",
+        "Use REIBUNG only for visible friction: searching, back-and-forth scrolling, hesitation before a click, a misclick plus correction, repeated attempts, backtracking, overlooked elements, visible error/bug, or an abandoned step.",
+        "Report only visible, product-relevant usability observations from screens or product interaction.",
+        "For FLUESSIG and REIBUNG alike, ground the note in what the sampled frames actually show; if sampling gaps hide the interaction, do not infer speed or difficulty.",
         "Do not infer emotion, intent, identity, health, protected attributes, or business impact.",
-        "Do not invent UI states that are not visible. If a frame is unclear, say it is unclear.",
-        "Prefix each useful bullet with the approximate timestamp in [mm:ss].",
+        "Do not invent UI states or friction that are not visible. If it is unclear whether something was friction, do not label it REIBUNG.",
+        "If a frame or action is unclear, omit it rather than guessing.",
+        "Format each bullet as: - [mm:ss] FLUESSIG: ... or - [mm:ss] REIBUNG: ...",
       ].join("\n"),
     },
   ];
@@ -263,7 +275,7 @@ async function describeBrowserFrames(
       model,
       max_tokens: 1200,
       system:
-        "You produce grounded visual observation notes for a downstream extraction pipeline. Be literal, conservative, and concise.",
+        "You produce grounded visual usability observation notes for a downstream extraction pipeline. Be literal, conservative, concise, and never infer fluency or friction beyond the sampled frames.",
       messages: [{ role: "user", content }],
     },
     { timeout: 120_000, maxRetries: 1 },
