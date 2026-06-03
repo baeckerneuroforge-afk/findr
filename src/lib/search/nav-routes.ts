@@ -38,10 +38,16 @@ export const PALETTE_ROUTES: PaletteRoute[] = [
   { labelKey: "nav.item.accounts", href: "/dashboard/accounts", groupKey: "nav.group.customer" },
   { labelKey: "nav.item.health", href: "/dashboard/health", groupKey: "nav.group.customer" },
 
-  // Research
-  { labelKey: "nav.item.productDiscovery", href: "/dashboard/product-discovery", groupKey: "nav.group.research" },
-  { labelKey: "nav.item.marketResearch", href: "/dashboard/market-research", groupKey: "nav.group.research" },
-  { labelKey: "nav.item.crossStudy", href: "/dashboard/insights", groupKey: "nav.group.research" },
+  // Product Discovery — retrospective + plan-driven product-discovery research
+  { labelKey: "nav.item.productDiscovery", href: "/dashboard/product-discovery", groupKey: "nav.group.productDiscovery" },
+  { labelKey: "nav.item.researchPlans", href: "/dashboard/research-plans", groupKey: "nav.group.productDiscovery" },
+
+  // Market Research
+  { labelKey: "nav.item.marketResearch", href: "/dashboard/market-research", groupKey: "nav.group.marketResearch" },
+
+  // Cross-study (studienübergreifend) — spans all studies
+  { labelKey: "nav.item.participantPool", href: "/dashboard/research-plans/pool", groupKey: "nav.group.crossStudy" },
+  { labelKey: "nav.item.crossStudy", href: "/dashboard/insights", groupKey: "nav.group.crossStudy" },
 
   // Workspace
   { labelKey: "nav.item.dataSources", href: "/dashboard/data-sources", groupKey: "nav.group.workspace" },
