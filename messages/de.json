@@ -124,7 +124,9 @@
     "group": {
       "salesIntelligence": "Sales Intelligence",
       "customer": "Customer",
-      "research": "Research",
+      "productDiscovery": "Product Discovery",
+      "marketResearch": "Market Research",
+      "crossStudy": "Studienübergreifend",
       "workspace": "Arbeitsbereich"
     },
     "item": {
@@ -134,9 +136,9 @@
       "coaching": "Team-Coaching",
       "accounts": "Accounts",
       "health": "Gesundheitsübersicht",
-      "productDiscovery": "Product Discovery",
+      "productDiscovery": "Aus Gesprächen",
       "researchPlans": "Research-Pläne",
-      "marketResearch": "Market Research",
+      "marketResearch": "Übersicht",
       "participantPool": "Teilnehmer-Pool",
       "crossStudy": "Cross-Study",
       "dataSources": "Datenquellen",
