@@ -12,8 +12,8 @@ import {
  * PATCH /api/research/plans/[id] — partial update on a plan.
  *
  * Accepts any subset of (title, objective, topics, persona, sampleTarget,
- * status, visualCaptureEnabled, voiceEnabled). The route does NOT enforce lifecycle
- * transitions in v1 — the
+ * status, visualCaptureEnabled, voiceEnabled, ttsEnabled). The route does NOT
+ * enforce lifecycle transitions in v1 — the
  * UI only offers the valid Next steps (draft→active, active→completed,
  * any→archived). The DB column CHECK is the backstop that catches an
  * out-of-set value.
@@ -50,6 +50,7 @@ const UpdatePlanBodySchema = z
       .optional(),
     visualCaptureEnabled: z.boolean().optional(),
     voiceEnabled: z.boolean().optional(),
+    ttsEnabled: z.boolean().optional(),
   })
   .refine(
     (data) =>
@@ -60,7 +61,8 @@ const UpdatePlanBodySchema = z
       data.sampleTarget !== undefined ||
       data.status !== undefined ||
       data.visualCaptureEnabled !== undefined ||
-      data.voiceEnabled !== undefined,
+      data.voiceEnabled !== undefined ||
+      data.ttsEnabled !== undefined,
     { message: "At least one field must be present in the update body." },
   );
 
@@ -105,6 +107,7 @@ export async function PATCH(
       status: parsed.data.status,
       visualCaptureEnabled: parsed.data.visualCaptureEnabled,
       voiceEnabled: parsed.data.voiceEnabled,
+      ttsEnabled: parsed.data.ttsEnabled,
     });
     if (!plan) {
       // Defensive: the existence check above passed, so this only fires on

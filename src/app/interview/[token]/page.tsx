@@ -139,6 +139,10 @@ export default async function InterviewPage({
   // backend already loaded it). Mirrors visualCaptureEnabled exactly; for
   // post_loss / checkin (non-research) plan is null → false → byte-identical.
   const voiceEnabled = isResearch && plan?.voiceEnabled === true;
+  // TTS Stage 1: research-only, gated on the plan's tts_enabled flag. This
+  // branch only forwards the inert backend flag; playback UI lands separately.
+  const ttsEnabled = isResearch && plan?.ttsEnabled === true;
+  const ttsProps = { ttsEnabled };
 
   return (
     <NextIntlClientProvider
@@ -164,6 +168,7 @@ export default async function InterviewPage({
         panelCompleteRedirect={session.panelCompleteRedirect}
         visualCaptureEnabled={visualCaptureEnabled}
         voiceEnabled={voiceEnabled}
+        {...ttsProps}
       />
     </NextIntlClientProvider>
   );
