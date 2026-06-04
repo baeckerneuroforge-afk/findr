@@ -10,6 +10,7 @@ import { getHubspotIntegration } from "@/lib/hubspot/service";
 import { getGongIntegration } from "@/lib/gong/service";
 import { getProlificCredentialSummary } from "@/lib/panel/service";
 import { getSlackIntegration } from "@/lib/slack/service";
+import { ENABLED_MODULES } from "@/config/modules";
 
 type SourceStatus = "connected" | "available" | "not_connected";
 
@@ -73,48 +74,87 @@ export default async function DataSourcesPage() {
   const locale = await getLocale();
   const supabase = createAdminSupabaseClient();
   const [hubspot, gong, prolific, slack, manualCountResult] = await Promise.all([
-    getHubspotIntegration(orgId),
-    getGongIntegration(orgId),
-    getProlificCredentialSummary(orgId),
-    getSlackIntegration(orgId),
-    supabase
-      .from("deals")
-      .select("id", { count: "exact", head: true })
-      .eq("org_id", orgId)
-      .eq("source", "manual"),
+    ENABLED_MODULES.salesIntelligence ? getHubspotIntegration(orgId) : null,
+    ENABLED_MODULES.salesIntelligence ? getGongIntegration(orgId) : null,
+    ENABLED_MODULES.marketResearch || ENABLED_MODULES.productDiscovery
+      ? getProlificCredentialSummary(orgId)
+      : null,
+    ENABLED_MODULES.salesIntelligence ? getSlackIntegration(orgId) : null,
+    ENABLED_MODULES.salesIntelligence
+      ? supabase
+          .from("deals")
+          .select("id", { count: "exact", head: true })
+          .eq("org_id", orgId)
+          .eq("source", "manual")
+      : { count: 0 },
   ]);
 
   const manualCount = manualCountResult.count ?? 0;
-  const sources: SourceCard[] = [
-    {
-      title: "Hubspot",
-      category: "CRM",
-      description: "Sync deals, companies, owners, stages, and close dates.",
-      href: "/dashboard/integrations/hubspot",
-      cta: hubspot ? "Manage Hubspot" : "Connect Hubspot",
-      status: hubspot?.enabled ? "connected" : "not_connected",
-      detail: hubspot?.last_synced_at
-        ? `Last sync ${new Date(hubspot.last_synced_at).toLocaleString(toBcp47(locale))}`
-        : undefined,
-      icon: (
-        <InlineIcon path="M8 7h8M8 12h8M8 17h5M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
-      ),
-    },
-    {
-      title: "Gong",
-      category: "Calls",
-      description: "Import call metadata and transcripts from Gong.",
-      href: "/dashboard/integrations/gong",
-      cta: gong ? "Manage Gong" : "Connect Gong",
-      status: gong?.enabled ? "connected" : "not_connected",
-      detail: gong?.last_synced_at
-        ? `Last sync ${new Date(gong.last_synced_at).toLocaleString(toBcp47(locale))}`
-        : undefined,
-      icon: (
-        <InlineIcon path="M7 8v8m5-11v14m5-10v6M4 18h16M4 6h16" />
-      ),
-    },
-    {
+  const intro = ENABLED_MODULES.salesIntelligence
+    ? "Connect CRM and call systems, or import a deal manually when a design partner wants to test Findr before integrations are ready."
+    : "Manage research data sources and panel providers for market campaigns.";
+  const sources: SourceCard[] = [];
+  if (ENABLED_MODULES.salesIntelligence) {
+    sources.push(
+      {
+        title: "Hubspot",
+        category: "CRM",
+        description: "Sync deals, companies, owners, stages, and close dates.",
+        href: "/dashboard/integrations/hubspot",
+        cta: hubspot ? "Manage Hubspot" : "Connect Hubspot",
+        status: hubspot?.enabled ? "connected" : "not_connected",
+        detail: hubspot?.last_synced_at
+          ? `Last sync ${new Date(hubspot.last_synced_at).toLocaleString(toBcp47(locale))}`
+          : undefined,
+        icon: (
+          <InlineIcon path="M8 7h8M8 12h8M8 17h5M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+        ),
+      },
+      {
+        title: "Gong",
+        category: "Calls",
+        description: "Import call metadata and transcripts from Gong.",
+        href: "/dashboard/integrations/gong",
+        cta: gong ? "Manage Gong" : "Connect Gong",
+        status: gong?.enabled ? "connected" : "not_connected",
+        detail: gong?.last_synced_at
+          ? `Last sync ${new Date(gong.last_synced_at).toLocaleString(toBcp47(locale))}`
+          : undefined,
+        icon: (
+          <InlineIcon path="M7 8v8m5-11v14m5-10v6M4 18h16M4 6h16" />
+        ),
+      },
+      {
+        title: "Manual import",
+        category: "Deals + transcripts",
+        description: "Create a deal, paste transcripts, and run live AI analysis.",
+        href: "/dashboard/data-sources/manual",
+        cta: "Start manual import",
+        status: "available",
+        detail:
+          manualCount > 0
+            ? `${manualCount} manual ${manualCount === 1 ? "deal" : "deals"}`
+            : "No setup required",
+        icon: (
+          <InlineIcon path="M12 5v14m7-7H5m3 7h8a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H8a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3Z" />
+        ),
+      },
+      {
+        title: "Slack",
+        category: "Alerts",
+        description: "Send risk spikes and deal alerts to your team channel.",
+        href: "/dashboard/integrations/slack",
+        cta: slack ? "Manage Slack" : "Set up Slack",
+        status: slack?.enabled ? "connected" : "not_connected",
+        detail: slack ? slack.channel_name : undefined,
+        icon: (
+          <InlineIcon path="M7.5 10.5h9m-9 3h5M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-5l-4 3v-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+        ),
+      },
+    );
+  }
+  if (ENABLED_MODULES.marketResearch || ENABLED_MODULES.productDiscovery) {
+    sources.push({
       title: "Prolific",
       category: "Panels",
       description: "Create unpublished Prolific study drafts for open links.",
@@ -123,50 +163,20 @@ export default async function DataSourcesPage() {
       status: prolific?.status === "connected" ? "connected" : "not_connected",
       detail:
         prolific?.status === "connected"
-          ? prolific.providerUserEmail ?? prolific.tokenHint ?? undefined
+          ? (prolific.providerUserEmail ?? prolific.tokenHint ?? undefined)
           : prolific?.status === "invalid"
             ? "Stored token is invalid"
             : undefined,
-      icon: (
-        <InlineIcon path="M4 7h16M4 12h16M4 17h10M7 4v16m10-16v8" />
-      ),
-    },
-    {
-      title: "Manual import",
-      category: "Deals + transcripts",
-      description: "Create a deal, paste transcripts, and run live AI analysis.",
-      href: "/dashboard/data-sources/manual",
-      cta: "Start manual import",
-      status: "available",
-      detail:
-        manualCount > 0
-          ? `${manualCount} manual ${manualCount === 1 ? "deal" : "deals"}`
-          : "No setup required",
-      icon: (
-        <InlineIcon path="M12 5v14m7-7H5m3 7h8a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H8a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3Z" />
-      ),
-    },
-    {
-      title: "Slack",
-      category: "Alerts",
-      description: "Send risk spikes and deal alerts to your team channel.",
-      href: "/dashboard/integrations/slack",
-      cta: slack ? "Manage Slack" : "Set up Slack",
-      status: slack?.enabled ? "connected" : "not_connected",
-      detail: slack ? slack.channel_name : undefined,
-      icon: (
-        <InlineIcon path="M7.5 10.5h9m-9 3h5M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-5l-4 3v-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
-      ),
-    },
-  ];
+      icon: <InlineIcon path="M4 7h16M4 12h16M4 17h10M7 4v16m10-16v8" />,
+    });
+  }
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-display text-neutral-900">Data Sources</h1>
         <p className="mt-1 max-w-2xl text-body text-neutral-500">
-          Connect CRM and call systems, or import a deal manually when a design
-          partner wants to test Findr before integrations are ready.
+          {intro}
         </p>
       </div>
 

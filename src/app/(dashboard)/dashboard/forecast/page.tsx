@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { StatCard } from "@/components/ui/StatCard";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
+import { ENABLED_MODULES } from "@/config/modules";
 
 const STAGE_LABELS: Record<string, string> = {
   qualified: "Qualified",
@@ -59,6 +60,8 @@ function ForecastIcon() {
 }
 
 export default async function ForecastPage() {
+  if (!ENABLED_MODULES.salesIntelligence) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

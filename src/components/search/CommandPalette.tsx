@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 import type { SearchIndex } from "@/lib/search/types";
 import { PALETTE_ROUTES } from "@/lib/search/nav-routes";
+import { ENABLED_MODULES } from "@/config/modules";
 
 /**
  * The cmdk-based palette modal. Lazy-hydrates the org's deals + accounts
@@ -130,8 +131,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     router.push(href);
   }
 
-  const hasDeals = (index?.deals.length ?? 0) > 0;
-  const hasAccounts = (index?.accounts.length ?? 0) > 0;
+  const hasDeals =
+    ENABLED_MODULES.salesIntelligence && (index?.deals.length ?? 0) > 0;
+  const hasAccounts =
+    ENABLED_MODULES.csHealth && (index?.accounts.length ?? 0) > 0;
+  const routeOnlySearch =
+    !ENABLED_MODULES.salesIntelligence && !ENABLED_MODULES.csHealth;
 
   return (
     <Command.Dialog
@@ -143,7 +148,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       contentClassName="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-2xl"
     >
       <Command.Input
-        placeholder={t("command.inputPlaceholder")}
+        placeholder={
+          routeOnlySearch
+            ? t("command.inputPlaceholderPages")
+            : t("command.inputPlaceholder")
+        }
         className="h-12 w-full border-b border-neutral-200 bg-transparent px-4 text-body text-neutral-900 outline-none placeholder:text-neutral-400"
       />
       <Command.List className="max-h-[60vh] overflow-y-auto p-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-caption [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-neutral-400">

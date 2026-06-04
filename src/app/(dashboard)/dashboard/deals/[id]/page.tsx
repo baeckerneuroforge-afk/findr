@@ -20,6 +20,7 @@ import { PostLossInterviewPanel } from "@/components/dashboard/PostLossInterview
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getDealInterview } from "@/lib/voice-agent/session-service";
 import { getOrgSettings } from "@/lib/settings/org-settings";
+import { ENABLED_MODULES } from "@/config/modules";
 
 function PhoneIcon() {
   return (
@@ -45,6 +46,8 @@ export default async function DealDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (!ENABLED_MODULES.salesIntelligence) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

@@ -22,6 +22,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Table, THead, TBody, TH, TR, TD } from "@/components/ui/Table";
 import type { Account, HealthLevel } from "@/lib/accounts/types";
+import { ENABLED_MODULES } from "@/config/modules";
 
 interface AccountRow {
   account: Account;
@@ -150,6 +151,8 @@ async function Section({
 }
 
 export default async function AccountsPage() {
+  if (!ENABLED_MODULES.csHealth) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

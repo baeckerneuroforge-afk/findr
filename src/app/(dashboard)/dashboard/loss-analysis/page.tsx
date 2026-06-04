@@ -10,6 +10,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { generateQuarterlyReport } from "@/lib/loss/reports";
 import { getEarlyWarnings } from "@/lib/loss/early-warning-service";
+import { ENABLED_MODULES } from "@/config/modules";
 
 function formatCurrency(value: number, locale: string): string {
   return new Intl.NumberFormat(toBcp47(locale), {
@@ -20,6 +21,8 @@ function formatCurrency(value: number, locale: string): string {
 }
 
 export default async function LossAnalysisPage() {
+  if (!ENABLED_MODULES.salesIntelligence) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

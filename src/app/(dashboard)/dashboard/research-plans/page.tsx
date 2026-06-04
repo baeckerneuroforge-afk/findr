@@ -10,6 +10,7 @@ import { BridgeSuggestionsPanel } from "@/components/dashboard/BridgeSuggestions
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
+import { ENABLED_MODULES } from "@/config/modules";
 
 /**
  * /dashboard/research-plans — Plan-Index.
@@ -60,6 +61,8 @@ function formatDate(iso: string, locale: string): string {
 }
 
 export default async function ResearchPlansIndexPage() {
+  if (!ENABLED_MODULES.productDiscovery) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

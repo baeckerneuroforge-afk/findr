@@ -177,6 +177,7 @@
     "triggerPlaceholder": "Search…",
     "dialogLabel": "Search the platform",
     "inputPlaceholder": "Search deals, accounts, pages…",
+    "inputPlaceholderPages": "Search pages…",
     "loading": "Loading index…",
     "error": "Couldn’t load search index — {error}.",
     "empty": "No matches.",

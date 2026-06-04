@@ -3,8 +3,11 @@ import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getRepCoachingProfiles } from "@/lib/coaching/service";
 import { CoachingDashboard } from "@/components/dashboard/CoachingDashboard";
+import { ENABLED_MODULES } from "@/config/modules";
 
 export default async function CoachingPage() {
+  if (!ENABLED_MODULES.salesIntelligence) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

@@ -24,6 +24,7 @@ import { HighlightReelPanel } from "@/components/dashboard/HighlightReelPanel";
 import { SynthesisThemeCard } from "@/components/dashboard/SynthesisThemeCard";
 import { UpdateSynthesisButton } from "@/components/dashboard/UpdateSynthesisButton";
 import { SynthesisShareManager } from "@/components/dashboard/SynthesisShareManager";
+import { ENABLED_MODULES } from "@/config/modules";
 
 /**
  * /dashboard/research-plans/[id]/synthesis — Stage-2 cross-call synthesis.
@@ -88,6 +89,14 @@ export default async function ResearchPlanSynthesisPage({
   const { id: planId } = await params;
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) notFound();
+  if (plan.studyType !== "market_research" && !ENABLED_MODULES.productDiscovery) {
+    redirect("/dashboard");
+  }
+
+  const planDetailHref =
+    plan.studyType === "market_research"
+      ? `/dashboard/market-research/${planId}`
+      : `/dashboard/research-plans/${planId}`;
 
   const synthesis = await getStudySynthesis(orgId, planId);
   // "X new insights since the last synthesis". When `synthesized_at` is null
@@ -118,7 +127,7 @@ export default async function ResearchPlanSynthesisPage({
       {/* Breadcrumb */}
       <div>
         <Link
-          href={`/dashboard/research-plans/${planId}`}
+          href={planDetailHref}
           className="text-small text-neutral-500 transition-colors hover:text-neutral-900"
         >
           {t("backToPlan")}

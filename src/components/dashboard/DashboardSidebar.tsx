@@ -4,6 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import {
+  ENABLED_MODULES,
+  type DashboardModuleKey,
+} from "@/config/modules";
 
 /**
  * Primary navigation, grouped by product module. The grouping is the
@@ -50,15 +54,15 @@ interface NavGroupDef {
  *    Market Research   — proactive market campaigns (/market-research,
  *                        study_type='market_research') on the SAME engine; only
  *                        the discriminator + campaign bundling differ.
- *    Cross-study       — surfaces that span ALL studies: the shared participant
- *                        pool (/research-plans/pool) and the org-level
- *                        cross-study chat (/insights, Mission-Control).
+ *    Cross-study       — org-level cross-study chat (/insights,
+ *                        Mission-Control).
  *  All surfaces feed the same product_discovery_insights / study_synthesis
  *  tables; the grouping reflects ways into the same learning loop, separated by
  *  lens (product vs. market vs. cross-study), not by data store. */
-const MODULES: NavGroupDef[] = [
+const MODULES: Array<NavGroupDef & { module: DashboardModuleKey }> = [
   {
     labelKey: "group.salesIntelligence",
+    module: "salesIntelligence",
     items: [
       { href: "/dashboard", labelKey: "item.pipeline" },
       { href: "/dashboard/forecast", labelKey: "item.forecast" },
@@ -68,6 +72,7 @@ const MODULES: NavGroupDef[] = [
   },
   {
     labelKey: "group.customer",
+    module: "csHealth",
     items: [
       { href: "/dashboard/accounts", labelKey: "item.accounts" },
       { href: "/dashboard/health", labelKey: "item.health" },
@@ -75,6 +80,7 @@ const MODULES: NavGroupDef[] = [
   },
   {
     labelKey: "group.productDiscovery",
+    module: "productDiscovery",
     items: [
       { href: "/dashboard/product-discovery", labelKey: "item.productDiscovery" },
       { href: "/dashboard/research-plans", labelKey: "item.researchPlans" },
@@ -82,14 +88,15 @@ const MODULES: NavGroupDef[] = [
   },
   {
     labelKey: "group.marketResearch",
+    module: "marketResearch",
     items: [
       { href: "/dashboard/market-research", labelKey: "item.marketResearch" },
     ],
   },
   {
     labelKey: "group.crossStudy",
+    module: "insights",
     items: [
-      { href: "/dashboard/research-plans/pool", labelKey: "item.participantPool" },
       // Cross-Study (Mission-Control) — org-level chat ACROSS all study
       // syntheses. Lives here because it reads from every study, but it is NOT
       // inside any single study (its own top-level page).
@@ -97,6 +104,10 @@ const MODULES: NavGroupDef[] = [
     ],
   },
 ];
+
+const VISIBLE_MODULES = MODULES.filter(
+  (group) => ENABLED_MODULES[group.module],
+);
 
 /** Cross-cutting workspace tools — not a product module, but the plumbing
  *  + account-level controls. Rendered in a footer block separated by a
@@ -141,7 +152,7 @@ function isActive(href: string, pathname: string): boolean {
  *  to seed/extend the open accordion set so you never land on a page whose nav
  *  entry is hidden inside a collapsed group. */
 function activeGroupKeys(pathname: string): string[] {
-  return MODULES.filter((group) =>
+  return VISIBLE_MODULES.filter((group) =>
     group.items.some((item) => isActive(item.href, pathname)),
   ).map((group) => group.labelKey);
 }
@@ -343,7 +354,7 @@ export default function DashboardSidebar() {
 
       {/* Primary nav — grouped by product module, each group collapsible */}
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-        {MODULES.map((group) => {
+        {VISIBLE_MODULES.map((group) => {
           const section = (
             <NavSection
               key={group.labelKey}

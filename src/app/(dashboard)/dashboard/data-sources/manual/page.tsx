@@ -2,8 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ManualImportFlow } from "@/components/dashboard/ManualImportFlow";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
+import { ENABLED_MODULES } from "@/config/modules";
 
 export default async function ManualImportPage() {
+  if (!ENABLED_MODULES.salesIntelligence) redirect("/dashboard");
+
   try {
     await requireOrgId();
   } catch (err) {

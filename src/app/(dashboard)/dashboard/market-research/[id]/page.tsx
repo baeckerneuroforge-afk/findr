@@ -35,6 +35,7 @@ import { ProlificDraftPanel } from "@/components/dashboard/ProlificDraftPanel";
 import { ScreeningQuestionsPanel } from "@/components/dashboard/ScreeningQuestionsPanel";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
 import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
+import { ENABLED_MODULES } from "@/config/modules";
 
 /**
  * /dashboard/market-research/[id] — Markt-Kampagne (Phase M3).
@@ -127,6 +128,7 @@ export default async function MarketCampaignDetailPage({
   // (stale link / hand-typed URL) belongs on the discovery detail — send it
   // there rather than render the campaign chrome around it.
   if (plan.studyType !== "market_research") {
+    if (!ENABLED_MODULES.productDiscovery) redirect("/dashboard");
     redirect(`/dashboard/research-plans/${planId}`);
   }
 

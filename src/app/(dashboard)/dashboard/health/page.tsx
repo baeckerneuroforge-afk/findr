@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 import { HealthBadge } from "@/components/dashboard/HealthBadge";
 import { HealthLevelBreakdown } from "@/components/dashboard/HealthLevelBreakdown";
+import { ENABLED_MODULES } from "@/config/modules";
 
 /**
  * Customer Health Overview — the CS-side reporting page, parallel to
@@ -106,6 +107,8 @@ function HealthIcon() {
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default async function CustomerHealthOverviewPage() {
+  if (!ENABLED_MODULES.csHealth) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

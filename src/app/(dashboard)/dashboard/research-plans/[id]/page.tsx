@@ -32,6 +32,7 @@ import { ProlificDraftPanel } from "@/components/dashboard/ProlificDraftPanel";
 import { ScreeningQuestionsPanel } from "@/components/dashboard/ScreeningQuestionsPanel";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
 import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
+import { ENABLED_MODULES } from "@/config/modules";
 
 /**
  * /dashboard/research-plans/[id] — Detail-Seite.
@@ -120,6 +121,9 @@ export default async function ResearchPlanDetailPage({
   // render path below stays byte-identical.
   if (plan.studyType === "market_research") {
     redirect(`/dashboard/market-research/${planId}`);
+  }
+  if (!ENABLED_MODULES.productDiscovery) {
+    redirect("/dashboard");
   }
 
   // Etappe B Teil 1 — read invites alongside the plan. Empty list reads as

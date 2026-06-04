@@ -2,12 +2,15 @@ import { redirect } from "next/navigation";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { getGongIntegration, isGongConfigured } from "@/lib/gong/service";
 import { GongSettingsPanel } from "@/components/dashboard/GongSettingsPanel";
+import { ENABLED_MODULES } from "@/config/modules";
 
 export default async function GongIntegrationPage({
   searchParams,
 }: {
   searchParams: Promise<{ connected?: string; error?: string }>;
 }) {
+  if (!ENABLED_MODULES.salesIntelligence) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

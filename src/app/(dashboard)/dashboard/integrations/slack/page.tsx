@@ -7,8 +7,11 @@ import {
 import { getSlackIntegration } from "@/lib/slack/service";
 import { AlertHistoryPanel } from "@/components/dashboard/AlertHistoryPanel";
 import { SlackSettingsForm } from "@/components/dashboard/SlackSettingsForm";
+import { ENABLED_MODULES } from "@/config/modules";
 
 export default async function SlackIntegrationPage() {
+  if (!ENABLED_MODULES.salesIntelligence) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

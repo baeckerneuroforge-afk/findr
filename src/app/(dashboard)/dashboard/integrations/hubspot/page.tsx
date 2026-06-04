@@ -2,12 +2,15 @@ import { redirect } from "next/navigation";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getHubspotIntegration } from "@/lib/hubspot/service";
 import { HubspotSettingsPanel } from "@/components/dashboard/HubspotSettingsPanel";
+import { ENABLED_MODULES } from "@/config/modules";
 
 export default async function HubspotIntegrationPage({
   searchParams,
 }: {
   searchParams: Promise<{ connected?: string; error?: string }>;
 }) {
+  if (!ENABLED_MODULES.salesIntelligence) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

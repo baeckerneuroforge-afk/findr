@@ -12,6 +12,7 @@ import { AnalyzeAllButton } from "@/components/dashboard/AnalyzeAllButton";
 import { DealTableWithFilters } from "@/components/dashboard/DealTableWithFilters";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { ENABLED_MODULES } from "@/config/modules";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { buildForecastSummary } from "@/lib/forecast/service";
 import { getOnboardingStatus } from "@/lib/onboarding/status";
@@ -73,6 +74,94 @@ function PlugIcon() {
   );
 }
 
+interface DashboardEntry {
+  href: string;
+  title: string;
+  description: string;
+  action: string;
+}
+
+function DashboardEntryCard({ entry }: { entry: DashboardEntry }) {
+  return (
+    <Card className="h-full">
+      <CardBody className="flex h-full flex-col justify-between gap-5">
+        <div>
+          <h2 className="text-h3 text-neutral-900">{entry.title}</h2>
+          <p className="mt-2 text-body text-neutral-500">{entry.description}</p>
+        </div>
+        <Link
+          href={entry.href}
+          className="inline-flex h-8 w-fit items-center justify-center rounded-md bg-neutral-900 px-3 text-body-strong font-medium text-white transition-colors hover:bg-neutral-700"
+        >
+          {entry.action}
+        </Link>
+      </CardBody>
+    </Card>
+  );
+}
+
+async function ModuleLandingPage() {
+  const nav = await getTranslations("nav");
+  const market = await getTranslations("research.market");
+  const missionControl = await getTranslations("missionControl");
+  const discovery = await getTranslations("research.discovery");
+  const accounts = await getTranslations("health.accounts");
+
+  const entries: DashboardEntry[] = [
+    ENABLED_MODULES.marketResearch
+      ? {
+          href: "/dashboard/market-research",
+          title: nav("group.marketResearch"),
+          description: market("indexSubtitle"),
+          action: nav("item.marketResearch"),
+        }
+      : null,
+    ENABLED_MODULES.insights
+      ? {
+          href: "/dashboard/insights",
+          title: nav("group.crossStudy"),
+          description: missionControl("pageIntro"),
+          action: nav("item.crossStudy"),
+        }
+      : null,
+    ENABLED_MODULES.productDiscovery
+      ? {
+          href: "/dashboard/product-discovery",
+          title: nav("group.productDiscovery"),
+          description: discovery("subtitleEmpty"),
+          action: nav("item.productDiscovery"),
+        }
+      : null,
+    ENABLED_MODULES.csHealth
+      ? {
+          href: "/dashboard/accounts",
+          title: nav("group.customer"),
+          description: accounts("emptyDesc"),
+          action: nav("item.accounts"),
+        }
+      : null,
+  ].filter((entry): entry is DashboardEntry => entry !== null);
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-display text-neutral-900">
+          {nav("group.marketResearch")}
+        </h1>
+        <p className="mt-1 max-w-3xl text-body text-neutral-500">
+          {market("indexSubtitle")}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {entries.map((entry) => (
+          <DashboardEntryCard key={entry.href} entry={entry} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
   let orgId: string;
   try {
@@ -84,6 +173,10 @@ export default async function DashboardPage() {
       redirect("/sign-in");
     }
     throw err;
+  }
+
+  if (!ENABLED_MODULES.salesIntelligence) {
+    return <ModuleLandingPage />;
   }
 
   const t = await getTranslations("sales.pipeline");

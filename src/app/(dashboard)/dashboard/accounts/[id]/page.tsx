@@ -21,6 +21,7 @@ import { AccountCheckinPanel } from "@/components/dashboard/AccountCheckinPanel"
 import { AccountMasterCard } from "@/components/dashboard/AccountMasterCard";
 import { AccountStatusControl } from "@/components/dashboard/AccountStatusControl";
 import { CallProductDiscoverySection } from "@/components/dashboard/CallProductDiscoverySection";
+import { ENABLED_MODULES } from "@/config/modules";
 
 function formatDate(date: string | null, locale: string): string | null {
   if (!date) return null;
@@ -38,6 +39,8 @@ export default async function AccountDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (!ENABLED_MODULES.csHealth) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

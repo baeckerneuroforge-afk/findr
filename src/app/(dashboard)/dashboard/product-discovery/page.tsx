@@ -18,6 +18,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
+import { ENABLED_MODULES } from "@/config/modules";
 
 // ── Label maps (UI-friendly versions of the SCREAMING_SNAKE_CASE enums) ────
 // Category vocabulary is analysis taxonomy — kept in the source language in
@@ -286,6 +287,8 @@ function DiscoveryIcon() {
 }
 
 export default async function ProductDiscoveryOverviewPage() {
+  if (!ENABLED_MODULES.productDiscovery) redirect("/dashboard");
+
   let orgId: string;
   try {
     orgId = await requireOrgId();

@@ -16,6 +16,11 @@
  * the sidebar's, so both surfaces share one translated label source.
  */
 
+import {
+  ENABLED_MODULES,
+  type DashboardModuleKey,
+} from "@/config/modules";
+
 export interface PaletteRoute {
   /** nav.item.* catalog key for the route label. */
   labelKey: string;
@@ -27,29 +32,36 @@ export interface PaletteRoute {
   groupKey: string;
 }
 
-export const PALETTE_ROUTES: PaletteRoute[] = [
+interface PaletteRouteDef extends PaletteRoute {
+  module?: DashboardModuleKey;
+}
+
+const ALL_PALETTE_ROUTES: PaletteRouteDef[] = [
   // Sales Intelligence
-  { labelKey: "nav.item.pipeline", href: "/dashboard", groupKey: "nav.group.salesIntelligence" },
-  { labelKey: "nav.item.forecast", href: "/dashboard/forecast", groupKey: "nav.group.salesIntelligence" },
-  { labelKey: "nav.item.lossAnalysis", href: "/dashboard/loss-analysis", groupKey: "nav.group.salesIntelligence" },
-  { labelKey: "nav.item.coaching", href: "/dashboard/coaching", groupKey: "nav.group.salesIntelligence" },
+  { module: "salesIntelligence", labelKey: "nav.item.pipeline", href: "/dashboard", groupKey: "nav.group.salesIntelligence" },
+  { module: "salesIntelligence", labelKey: "nav.item.forecast", href: "/dashboard/forecast", groupKey: "nav.group.salesIntelligence" },
+  { module: "salesIntelligence", labelKey: "nav.item.lossAnalysis", href: "/dashboard/loss-analysis", groupKey: "nav.group.salesIntelligence" },
+  { module: "salesIntelligence", labelKey: "nav.item.coaching", href: "/dashboard/coaching", groupKey: "nav.group.salesIntelligence" },
 
   // Customer
-  { labelKey: "nav.item.accounts", href: "/dashboard/accounts", groupKey: "nav.group.customer" },
-  { labelKey: "nav.item.health", href: "/dashboard/health", groupKey: "nav.group.customer" },
+  { module: "csHealth", labelKey: "nav.item.accounts", href: "/dashboard/accounts", groupKey: "nav.group.customer" },
+  { module: "csHealth", labelKey: "nav.item.health", href: "/dashboard/health", groupKey: "nav.group.customer" },
 
   // Product Discovery — retrospective + plan-driven product-discovery research
-  { labelKey: "nav.item.productDiscovery", href: "/dashboard/product-discovery", groupKey: "nav.group.productDiscovery" },
-  { labelKey: "nav.item.researchPlans", href: "/dashboard/research-plans", groupKey: "nav.group.productDiscovery" },
+  { module: "productDiscovery", labelKey: "nav.item.productDiscovery", href: "/dashboard/product-discovery", groupKey: "nav.group.productDiscovery" },
+  { module: "productDiscovery", labelKey: "nav.item.researchPlans", href: "/dashboard/research-plans", groupKey: "nav.group.productDiscovery" },
 
   // Market Research
-  { labelKey: "nav.item.marketResearch", href: "/dashboard/market-research", groupKey: "nav.group.marketResearch" },
+  { module: "marketResearch", labelKey: "nav.item.marketResearch", href: "/dashboard/market-research", groupKey: "nav.group.marketResearch" },
 
-  // Cross-study (studienübergreifend) — spans all studies
-  { labelKey: "nav.item.participantPool", href: "/dashboard/research-plans/pool", groupKey: "nav.group.crossStudy" },
-  { labelKey: "nav.item.crossStudy", href: "/dashboard/insights", groupKey: "nav.group.crossStudy" },
+  // Cross-study (studienübergreifend)
+  { module: "insights", labelKey: "nav.item.crossStudy", href: "/dashboard/insights", groupKey: "nav.group.crossStudy" },
 
   // Workspace
   { labelKey: "nav.item.dataSources", href: "/dashboard/data-sources", groupKey: "nav.group.workspace" },
   { labelKey: "nav.item.settings", href: "/dashboard/settings", groupKey: "nav.group.workspace" },
 ];
+
+export const PALETTE_ROUTES: PaletteRoute[] = ALL_PALETTE_ROUTES.filter(
+  (route) => route.module === undefined || ENABLED_MODULES[route.module],
+).map(({ module: _module, ...route }) => route);

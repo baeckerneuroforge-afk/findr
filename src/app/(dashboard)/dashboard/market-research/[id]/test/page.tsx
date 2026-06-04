@@ -6,6 +6,7 @@ import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { getLatestSyntheticTestRun } from "@/lib/synthetic/service";
 import { SyntheticTestPanel } from "@/components/dashboard/SyntheticTestPanel";
+import { ENABLED_MODULES } from "@/config/modules";
 
 /**
  * /dashboard/market-research/[id]/test — Trockenlauf (synthetic dry-run, Stufe 1).
@@ -47,6 +48,7 @@ export default async function MarketStudyDryRunPage({
   // Symmetric guard to the campaign detail page: this is the Market-Research
   // experience only. A discovery plan reached here belongs on the discovery side.
   if (plan.studyType !== "market_research") {
+    if (!ENABLED_MODULES.productDiscovery) redirect("/dashboard");
     redirect(`/dashboard/research-plans/${planId}`);
   }
 

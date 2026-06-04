@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { ResearchPlanForm } from "@/components/dashboard/ResearchPlanForm";
+import { ENABLED_MODULES } from "@/config/modules";
 
 /**
  * /dashboard/research-plans/new — Plan-Anlage.
@@ -14,6 +15,8 @@ import { ResearchPlanForm } from "@/components/dashboard/ResearchPlanForm";
  */
 
 export default async function NewResearchPlanPage() {
+  if (!ENABLED_MODULES.productDiscovery) redirect("/dashboard");
+
   try {
     await requireOrgId();
   } catch (err) {
