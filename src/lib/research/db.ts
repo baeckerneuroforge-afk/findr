@@ -164,6 +164,10 @@ export type ResearchPlanRow = {
   // Vor angewandter Migration liefert select("*") die Spalte nicht; der
   // Lese-Mapper defaultet undefined→false.
   visual_capture_enabled: boolean;
+  // Voice-Schalter pro Studie. DB: NOT NULL DEFAULT false.
+  // Vor angewandter Migration liefert select("*") die Spalte nicht; der
+  // Lese-Mapper defaultet undefined→false.
+  voice_enabled: boolean;
   // Studientyp (Phase M0, 20260630000000). NOT NULL DEFAULT 'product_discovery'
   // in der DB — nicht-nullbar getypt wie status. Vor angewandter Migration
   // liefert select("*") die Spalte nicht; der Lese-Mapper (plans-service
@@ -184,6 +188,7 @@ type ResearchPlanInsert = {
   sample_target?: number | null;
   status?: ResearchPlanStatus;
   visual_capture_enabled?: boolean;
+  voice_enabled?: boolean;
   // Optional beim Insert — wird heute NIE gesetzt (kein Write-Pfad in M0); der
   // DB-DEFAULT vergibt 'product_discovery'. Verdrahtung kommt in M1/M3.
   study_type?: ResearchPlanStudyType;
@@ -201,6 +206,7 @@ type ResearchPlanUpdate = {
   sample_target?: number | null;
   status?: ResearchPlanStatus;
   visual_capture_enabled?: boolean;
+  voice_enabled?: boolean;
   study_type?: ResearchPlanStudyType;
   created_at?: string;
 };

@@ -40,6 +40,9 @@ export interface ResearchPlanRecord {
    *  rows and pre-migration reads, so research interviews stay chat-only until
    *  a study explicitly enables capture. */
   visualCaptureEnabled: boolean;
+  /** Per-study Voice switch. Defaults false for legacy rows and pre-migration
+   *  reads, so audio transport stays opt-in per study. */
+  voiceEnabled: boolean;
   screeningQuestions: ScreeningQuestion[];
   /** Studientyp-Diskriminator (Phase M0). Trägt 'product_discovery' für jeden
    *  Bestandsplan (DB-DEFAULT). In M0 liest KEIN Verhaltenspfad dieses Feld —
@@ -121,6 +124,10 @@ function coerceVisualCaptureEnabled(raw: unknown): boolean {
   return raw === true;
 }
 
+function coerceVoiceEnabled(raw: unknown): boolean {
+  return raw === true;
+}
+
 function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
   return {
     id: row.id,
@@ -133,6 +140,9 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     status: row.status,
     visualCaptureEnabled: coerceVisualCaptureEnabled(
       (row as { visual_capture_enabled?: unknown }).visual_capture_enabled,
+    ),
+    voiceEnabled: coerceVoiceEnabled(
+      (row as { voice_enabled?: unknown }).voice_enabled,
     ),
     screeningQuestions: coerceScreeningQuestions(row.screening_questions),
     studyType: coerceStudyType(row.study_type),
@@ -284,6 +294,7 @@ export interface CreateResearchPlanInput {
   persona?: string | null;
   sampleTarget?: number | null;
   visualCaptureEnabled?: boolean;
+  voiceEnabled?: boolean;
   /**
    * Studientyp-Diskriminator (M3 write-side). OPTIONAL — undefined leaves the
    * insert WITHOUT a study_type key, so the DB DEFAULT ('product_discovery')
@@ -318,6 +329,7 @@ export async function createResearchPlan(
       persona: input.persona ?? null,
       sample_target: input.sampleTarget ?? null,
       visual_capture_enabled: input.visualCaptureEnabled ?? false,
+      voice_enabled: input.voiceEnabled ?? false,
       // Market-only insert key: when the caller is the Product-Discovery path
       // (studyType undefined / 'product_discovery'), the column is OMITTED so
       // the DB DEFAULT writes 'product_discovery' — a byte-identical discovery
@@ -346,6 +358,7 @@ export interface UpdateResearchPlanInput {
   sampleTarget?: number | null;
   status?: ResearchPlanRecord["status"];
   visualCaptureEnabled?: boolean;
+  voiceEnabled?: boolean;
 }
 
 /**
@@ -375,6 +388,7 @@ export async function updateResearchPlan(
     sample_target?: number | null;
     status?: ResearchPlanRecord["status"];
     visual_capture_enabled?: boolean;
+    voice_enabled?: boolean;
   } = {};
   if (input.title !== undefined) update.title = input.title;
   if (input.objective !== undefined) update.objective = input.objective;
@@ -388,6 +402,7 @@ export async function updateResearchPlan(
   if (input.status !== undefined) update.status = input.status;
   if (input.visualCaptureEnabled !== undefined)
     update.visual_capture_enabled = input.visualCaptureEnabled;
+  if (input.voiceEnabled !== undefined) update.voice_enabled = input.voiceEnabled;
 
   if (Object.keys(update).length === 0) {
     return getResearchPlan(orgId, planId);
