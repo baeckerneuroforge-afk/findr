@@ -34,6 +34,16 @@
       "requestFailed": "Request failed. Please try again.",
       "generic": "Something went wrong. Please try again."
     },
+    "voice": {
+      "aiNotice": "You're speaking with an AI interviewer. Your speech is automatically converted to text. You can type instead at any time.",
+      "start": "Speak your answer",
+      "stop": "Stop & send",
+      "recording": "Recording",
+      "sending": "Sending …",
+      "levelLabel": "Microphone level",
+      "denied": "No microphone access — please type your answer.",
+      "unsupported": "Voice input isn't supported here — please type your answer."
+    },
     "meta": {
       "defaultTitle": "A quick question about your decision — findr.",
       "defaultDescription": "A short, confidential follow-up about a recent decision.",
@@ -955,6 +965,10 @@
       "visualCaptureHint": "When enabled, the participant can share their screen and Findr analyzes where the product flowed smoothly and where it stalled. Useful when participants demonstrate something (app, prototype, feature) — not for pure concept conversations. The participant is asked for consent at the start of the interview, before they can answer. Default: off.",
       "visualCaptureOn": "On",
       "visualCaptureOff": "Off",
+      "fldInteractionMode": "Interaction mode",
+      "interactionModeHint": "In voice mode, participants speak their answers instead of typing — speech is automatically converted to text. Typing stays available at all times, and participants are told they're speaking with an AI interviewer. Default: text.",
+      "modeTextLabel": "Text",
+      "modeVoiceLabel": "Voice",
       "topicsFormTitle": "Topics",
       "topicsFormDesc": "The agent formulates questions on-the-fly from these topics — not a fixed question list. Each topic gets 2–4 turns in the conversation. Hypotheses are private steering, never read out loud.",
       "submitCreate": "Create plan",

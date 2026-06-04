@@ -55,6 +55,10 @@ interface FormState {
   // (exact key) in the create/update body — the backend flag + interview-gate
   // already exist; this form only fills the value.
   visualCaptureEnabled: boolean;
+  // Interaction mode. Default Text (false). Sent as `voiceEnabled` (exact key)
+  // in the create/update body — the backend flag + voice route already exist;
+  // this form only fills the value. Text fallback always stays available.
+  voiceEnabled: boolean;
   topics: TopicDraft[];
 }
 
@@ -91,6 +95,8 @@ const INITIAL_FORM: FormState = {
   sampleTarget: "",
   // Default OFF — VI is opt-in per study; an untouched form sends false.
   visualCaptureEnabled: false,
+  // Default Text — voice is opt-in per study; an untouched form sends false.
+  voiceEnabled: false,
   // Start with one empty topic so the editor isn't blank — encourages the
   // user to fill at least one in. Empty topics are dropped at submit time.
   topics: [emptyTopicDraft()],
@@ -206,6 +212,7 @@ export function ResearchPlanForm({
             persona: form.persona.trim() === "" ? null : form.persona.trim(),
             sampleTarget: null,
             visualCaptureEnabled: form.visualCaptureEnabled,
+            voiceEnabled: form.voiceEnabled,
             ...studyTypePayload,
           }),
         });
@@ -316,6 +323,7 @@ export function ResearchPlanForm({
               persona: form.persona.trim() === "" ? null : form.persona.trim(),
               sampleTarget,
               visualCaptureEnabled: form.visualCaptureEnabled,
+              voiceEnabled: form.voiceEnabled,
             }),
           },
         );
@@ -339,6 +347,7 @@ export function ResearchPlanForm({
           persona: form.persona.trim() === "" ? null : form.persona.trim(),
           sampleTarget,
           visualCaptureEnabled: form.visualCaptureEnabled,
+          voiceEnabled: form.voiceEnabled,
           ...studyTypePayload,
         }),
       });
@@ -449,6 +458,58 @@ export function ResearchPlanForm({
                       : "translate-x-0.5"
                   }`}
                 />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Interaktionsmodus — Text (Default) oder Voice. Sichtbar für BEIDE
+            Studientypen (kein study_type-Gate). Schreibt `voiceEnabled` (exakt
+            dieser Key) in dieselben Submit-Pfade wie visualCaptureEnabled;
+            ein unberührtes Formular sendet false (Text). Der Backend-Flag + die
+            Voice-Route existieren bereits — dieses Formular füllt nur den Wert. */}
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <span className="block text-body-strong text-neutral-900">
+                {t("fldInteractionMode")}
+              </span>
+              <span className="mt-1 block text-caption text-neutral-500">
+                {t("interactionModeHint")}
+              </span>
+            </div>
+            <div
+              role="radiogroup"
+              aria-label={t("fldInteractionMode")}
+              className="flex shrink-0 items-center gap-0.5 rounded-full bg-neutral-100 p-0.5"
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!form.voiceEnabled}
+                onClick={() => update("voiceEnabled", false)}
+                disabled={submitting}
+                className={`rounded-full px-3.5 py-1.5 text-small font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                  !form.voiceEnabled
+                    ? "bg-primary-600 text-white"
+                    : "text-neutral-600 hover:text-neutral-900"
+                }`}
+              >
+                {t("modeTextLabel")}
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={form.voiceEnabled}
+                onClick={() => update("voiceEnabled", true)}
+                disabled={submitting}
+                className={`rounded-full px-3.5 py-1.5 text-small font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                  form.voiceEnabled
+                    ? "bg-primary-600 text-white"
+                    : "text-neutral-600 hover:text-neutral-900"
+                }`}
+              >
+                {t("modeVoiceLabel")}
               </button>
             </div>
           </div>

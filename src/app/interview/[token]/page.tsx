@@ -135,6 +135,10 @@ export default async function InterviewPage({
   ]);
   const visualCaptureEnabled =
     isResearch && plan?.visualCaptureEnabled === true;
+  // Voice Stage 1: research-only, gated on the plan's voice_enabled flag (the
+  // backend already loaded it). Mirrors visualCaptureEnabled exactly; for
+  // post_loss / checkin (non-research) plan is null → false → byte-identical.
+  const voiceEnabled = isResearch && plan?.voiceEnabled === true;
 
   return (
     <NextIntlClientProvider
@@ -159,6 +163,7 @@ export default async function InterviewPage({
         // Panel-Sessions gesetzt (sonst null → kein Redirect, byte-identisch).
         panelCompleteRedirect={session.panelCompleteRedirect}
         visualCaptureEnabled={visualCaptureEnabled}
+        voiceEnabled={voiceEnabled}
       />
     </NextIntlClientProvider>
   );
