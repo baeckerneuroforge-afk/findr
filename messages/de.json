@@ -21,7 +21,8 @@
     },
     "visualCapture": {
       "title": "Bildschirmaufnahme optional",
-      "body": "Wenn Sie zustimmen, wird nur Ihr geteilter Bildschirm während des Interviews stichprobenartig ausgewertet. Keine Kamera, kein Ton, keine dauerhafte Speicherung von Rohbildern.",
+      "body": "Mit Ihrer Zustimmung werden während des Interviews stichprobenartig Standbilder Ihres geteilten Bildschirms erfasst — keine Kamera, kein Ton. Damit wertet Findr aus, wo die Bedienung flüssig lief und wo es hakte, um das Produkt zu verbessern. Die Standbilder werden dazu an Findr übertragen und automatisch von einem KI-Modell analysiert; das Ergebnis sieht der durchführende Anbieter (Forscher bzw. Organisation). Die Standbilder selbst werden nach der Auswertung verworfen — es bleiben nur daraus gewonnene Text-Notizen. Die Teilnahme ist freiwillig: Das Interview läuft auch ohne Aufnahme normal weiter, und Sie können Ihre Einwilligung jederzeit widerrufen, indem Sie die Bildschirmfreigabe beenden.",
+      "privacyLink": "Mehr dazu in der Datenschutzerklärung",
       "accept": "Bildschirm teilen",
       "decline": "Ohne Aufnahme fortfahren",
       "starting": "Freigabe wird geöffnet …",
@@ -951,7 +952,7 @@
       "sampleTargetHint": "Wie viele abgeschlossene Interviews streben wir an? Leer lassen für offenes Ende.",
       "phSampleTarget": "10",
       "fldVisualCapture": "Visual Intelligence – Bildschirmaufnahme",
-      "visualCaptureHint": "Wenn aktiviert, kann der Teilnehmer seinen Bildschirm teilen, und Findr wertet aus, wo es im Produkt flüssig lief und wo es hakte. Sinnvoll, wenn Teilnehmer etwas vorführen (App, Prototyp, Feature) — nicht bei reinen Konzept-Gesprächen. Der Teilnehmer wird vorab um Einwilligung gebeten. Standard: aus.",
+      "visualCaptureHint": "Wenn aktiviert, kann der Teilnehmer seinen Bildschirm teilen, und Findr wertet aus, wo es im Produkt flüssig lief und wo es hakte. Sinnvoll, wenn Teilnehmer etwas vorführen (App, Prototyp, Feature) — nicht bei reinen Konzept-Gesprächen. Der Teilnehmer wird zu Beginn des Interviews um Einwilligung gebeten, bevor er antworten kann. Standard: aus.",
       "visualCaptureOn": "An",
       "visualCaptureOff": "Aus",
       "topicsFormTitle": "Topics",

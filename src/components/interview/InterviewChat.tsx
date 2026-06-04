@@ -153,6 +153,16 @@ function VisualCapturePanel({
         <p className="mt-2 text-[13px] leading-relaxed text-[#6B6680]">
           {t("visualCapture.body")}
         </p>
+        <p className="mt-2 text-[12px] leading-relaxed text-[#8A85A0]">
+          <a
+            href="/datenschutz"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-[#0E0A1F]"
+          >
+            {t("visualCapture.privacyLink")}
+          </a>
+        </p>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"

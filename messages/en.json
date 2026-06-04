@@ -21,7 +21,8 @@
     },
     "visualCapture": {
       "title": "Optional screen recording",
-      "body": "If you agree, only your shared screen is sampled during the interview. No camera, no audio, and no permanent storage of raw images.",
+      "body": "With your consent, still images of your shared screen are sampled during the interview — no camera, no audio. Findr uses them to assess where the product flowed smoothly and where it stalled, in order to improve it. The still images are transmitted to Findr and analyzed automatically by an AI model; the result is seen by the provider conducting the study (researcher or organization). The still images themselves are discarded after the analysis — only the text notes derived from them remain. Taking part is voluntary: the interview continues normally without recording, and you can withdraw your consent at any time by ending the screen share.",
+      "privacyLink": "More in the privacy policy",
       "accept": "Share screen",
       "decline": "Continue without recording",
       "starting": "Opening share prompt …",
@@ -951,7 +952,7 @@
       "sampleTargetHint": "How many completed interviews are we aiming for? Leave empty for open-ended.",
       "phSampleTarget": "10",
       "fldVisualCapture": "Visual Intelligence – screen capture",
-      "visualCaptureHint": "When enabled, the participant can share their screen and Findr analyzes where the product flowed smoothly and where it stalled. Useful when participants demonstrate something (app, prototype, feature) — not for pure concept conversations. The participant is asked for consent beforehand. Default: off.",
+      "visualCaptureHint": "When enabled, the participant can share their screen and Findr analyzes where the product flowed smoothly and where it stalled. Useful when participants demonstrate something (app, prototype, feature) — not for pure concept conversations. The participant is asked for consent at the start of the interview, before they can answer. Default: off.",
       "visualCaptureOn": "On",
       "visualCaptureOff": "Off",
       "topicsFormTitle": "Topics",
