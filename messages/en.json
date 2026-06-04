@@ -37,7 +37,10 @@
     "voice": {
       "aiNotice": "You're speaking with an AI interviewer. Your speech is automatically converted to text. You can type instead at any time.",
       "start": "Speak your answer",
+      "startHint": "Click the mic or press Space",
       "stop": "Stop & send",
+      "stopHint": "Click again or press Space to send",
+      "typeInstead": "Prefer to type? Just write below.",
       "recording": "Recording",
       "sending": "Sending …",
       "levelLabel": "Microphone level",

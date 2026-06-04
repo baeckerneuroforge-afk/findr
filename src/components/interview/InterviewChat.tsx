@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 
@@ -268,11 +268,11 @@ function VisualCapturePanel({
   );
 }
 
-function MicIcon() {
+function MicIcon({ size = 14 }: { size?: number }) {
   return (
     <svg
-      width="14"
-      height="14"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -288,21 +288,60 @@ function MicIcon() {
   );
 }
 
-/** Five bars that rise with the live mic RMS. Driven by real audio rather than a
- *  CSS animation, so it conveys "we hear you" without any second STT path — the
- *  transcription happens exclusively in the /voice route. */
-function VoiceLevelMeter({ level }: { level: number }) {
-  const thresholds = [0.1, 0.28, 0.48, 0.68, 0.88];
+/** Small ring spinner for the short "processing" window while the /voice route
+ *  transcribes. Spin is gated behind motion-safe — under reduced motion it stays
+ *  a calm static ring. */
+function Spinner() {
+  return (
+    <span
+      className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin"
+      aria-hidden="true"
+    />
+  );
+}
+
+/** Live prefers-reduced-motion subscription. SSR-safe (server snapshot = false)
+ *  via useSyncExternalStore — no hydration mismatch. When set, the voice wave
+ *  holds a static silhouette instead of tracking the mic level. */
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
+}
+
+/** Equalizer-style bars whose amplitude is driven by the LIVE mic RMS (`level`,
+ *  0..1) computed in startVoiceLevelMeter from the SAME AnalyserNode that already
+ *  existed — no second audio path, no fake/keyframe animation. The static
+ *  WAVE_PROFILE only shapes the silhouette; `level` scales it, so louder speech =
+ *  taller bars, quieter = shorter. Under prefers-reduced-motion the bars hold a
+ *  fixed half-amplitude shape with no level coupling and no transition. */
+const WAVE_PROFILE = [0.45, 0.7, 0.95, 1, 0.85, 0.6, 0.4];
+const WAVE_MIN_PX = 4;
+const WAVE_RANGE_PX = 18;
+
+function VoiceWave({
+  level,
+  reducedMotion,
+}: {
+  level: number;
+  reducedMotion: boolean;
+}) {
+  const amplitude = reducedMotion ? 0.5 : Math.min(1, Math.max(0, level));
   return (
     <span className="flex items-center gap-[3px]" aria-hidden="true">
-      {thresholds.map((threshold) => (
+      {WAVE_PROFILE.map((profile, i) => (
         <span
-          key={threshold}
-          className="w-[3px] rounded-full bg-[var(--brand-accent)] transition-[height,opacity] duration-100"
-          style={{
-            height: level >= threshold ? "16px" : "6px",
-            opacity: level >= threshold ? 1 : 0.3,
-          }}
+          key={i}
+          className={`w-[3px] rounded-full bg-white ${
+            reducedMotion ? "" : "transition-[height] duration-75 ease-out"
+          }`}
+          style={{ height: `${WAVE_MIN_PX + profile * amplitude * WAVE_RANGE_PX}px` }}
         />
       ))}
     </span>
@@ -329,6 +368,7 @@ function VoiceControls({
   onStop: () => void;
 }) {
   const t = useTranslations("interview");
+  const reducedMotion = usePrefersReducedMotion();
 
   if (state === "init") return null;
 
@@ -345,42 +385,66 @@ function VoiceControls({
       <p className="text-[12px] leading-relaxed text-[#6B6680]">
         {t("voice.aiNotice")}
       </p>
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-3">
         {state === "recording" ? (
-          <>
+          // Recording: the mic has morphed into a level-driven wave pill. One
+          // click (or Space) stops + sends — the same toggle as starting.
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onStop}
-              className="flex h-[40px] shrink-0 items-center gap-2 rounded-lg bg-[var(--brand-accent)] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+              aria-label={t("voice.stop")}
+              className="flex h-[44px] shrink-0 items-center gap-2.5 rounded-full bg-[var(--brand-accent)] pl-3.5 pr-4 text-white transition-opacity hover:opacity-90"
             >
               <span
-                className="h-2.5 w-2.5 rounded-[2px] bg-white"
+                className="h-2 w-2 shrink-0 rounded-full bg-white motion-safe:animate-pulse"
                 aria-hidden="true"
               />
-              {t("voice.stop")}
-            </button>
-            <div className="flex flex-1 items-center gap-2">
-              <span
-                className="h-2 w-2 shrink-0 rounded-full bg-[#E5484D] motion-safe:animate-pulse"
-                aria-hidden="true"
-              />
-              <span className="text-[12px] tabular-nums text-[#6B6680]">
-                {t("voice.recording")} · {formatRecordingTime(seconds)}
+              <VoiceWave level={level} reducedMotion={reducedMotion} />
+              <span className="text-[13px] font-medium tabular-nums">
+                {formatRecordingTime(seconds)}
               </span>
-              <span className="sr-only">{t("voice.levelLabel")}</span>
-              <VoiceLevelMeter level={level} />
-            </div>
-          </>
+            </button>
+            <span className="text-[12px] leading-snug text-[#6B6680]">
+              {t("voice.stopHint")}
+            </span>
+            <span className="sr-only">
+              {t("voice.recording")} · {t("voice.levelLabel")}
+            </span>
+          </div>
+        ) : state === "sending" ? (
+          // Processing: short load state while the /voice route transcribes.
+          <span className="flex h-[44px] w-fit items-center gap-2.5 rounded-full bg-[#F4F1FD] pl-3.5 pr-4 text-[var(--brand-accent)]">
+            <Spinner />
+            <span className="text-[13px] font-medium">{t("voice.sending")}</span>
+          </span>
         ) : (
-          <button
-            type="button"
-            onClick={onStart}
-            disabled={disabled || state === "sending"}
-            className="flex h-[40px] items-center gap-2 rounded-lg bg-[var(--brand-accent)] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            <MicIcon />
-            {state === "sending" ? t("voice.sending") : t("voice.start")}
-          </button>
+          // Idle: round mic. Click it or press Space to start; typing below
+          // always stays available as the fallback.
+          <div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onStart}
+                disabled={disabled}
+                aria-label={t("voice.start")}
+                className="flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-full bg-[var(--brand-accent)] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                <MicIcon size={20} />
+              </button>
+              <div className="leading-tight">
+                <span className="block text-[14px] font-medium text-[#0E0A1F]">
+                  {t("voice.start")}
+                </span>
+                <span className="mt-0.5 block text-[12px] text-[#6B6680]">
+                  {t("voice.startHint")}
+                </span>
+              </div>
+            </div>
+            <p className="mt-2.5 text-[12px] text-[#8A85A0]">
+              {t("voice.typeInstead")}
+            </p>
+          </div>
         )}
       </div>
     </div>
@@ -471,6 +535,11 @@ export function InterviewChat({
   const levelRafRef = useRef<number | null>(null);
   const voiceTimerRef = useRef<number | null>(null);
   const voiceSecondsRef = useRef(0);
+  // Latest-value ref for the Space-bar toggle. The window listener binds once
+  // per open voice session; this ref keeps it pointed at the current state +
+  // handlers without rebinding on every mic-level tick. Returns whether it acted
+  // so the listener only swallows Space (preventDefault) when it actually toggled.
+  const voiceToggleRef = useRef<() => boolean>(() => false);
 
   const isOpen = status === "open";
   const visualConsentPending =
@@ -518,6 +587,63 @@ export function InterviewChat({
       teardownRecording();
     };
   }, []);
+
+  // Keep the Space-bar toggle pointed at the current state + handlers. Runs after
+  // every render (no deps) so the window listener below — bound once — always
+  // sees fresh closures. Acts only when a turn can actually start/stop.
+  useEffect(() => {
+    voiceToggleRef.current = () => {
+      if (voiceState === "recording") {
+        stopRecording();
+        return true;
+      }
+      if (voiceState === "idle") {
+        void startRecording();
+        return true;
+      }
+      return false;
+    };
+  });
+
+  // Space-bar = the SAME start/stop toggle as the mic button — but only when the
+  // participant isn't typing. If the textarea (or any field / button / link)
+  // holds focus, Space behaves natively (types a space, activates the control)
+  // and we never touch it: that's the critical guard against starting a recording
+  // mid-sentence. Mobile has no Space; the mic button's onClick covers tap there.
+  useEffect(() => {
+    if (!voiceEnabled || !isOpen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (
+        e.code !== "Space" ||
+        e.repeat ||
+        e.metaKey ||
+        e.ctrlKey ||
+        e.altKey ||
+        e.shiftKey
+      ) {
+        return;
+      }
+      const el = document.activeElement as HTMLElement | null;
+      if (el) {
+        const tag = el.tagName;
+        if (
+          tag === "TEXTAREA" ||
+          tag === "INPUT" ||
+          tag === "SELECT" ||
+          tag === "BUTTON" ||
+          tag === "A" ||
+          el.isContentEditable
+        ) {
+          return;
+        }
+      }
+      // Not typing → treat Space as the record toggle. preventDefault only when
+      // we actually toggled, so Space still scrolls when voice can't act.
+      if (voiceToggleRef.current()) e.preventDefault();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [voiceEnabled, isOpen]);
 
   function clearVisualTimer() {
     if (visualTimerRef.current !== null) {

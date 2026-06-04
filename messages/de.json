@@ -37,7 +37,10 @@
     "voice": {
       "aiNotice": "Sie sprechen mit einem KI-Interviewer. Ihre Sprache wird automatisch in Text umgewandelt. Sie können jederzeit stattdessen tippen.",
       "start": "Antwort sprechen",
+      "startHint": "Mikrofon klicken oder Leertaste",
       "stop": "Aufnahme beenden & senden",
+      "stopHint": "Nochmal klicken oder Leertaste sendet",
+      "typeInstead": "Lieber tippen? Schreiben Sie einfach unten.",
       "recording": "Aufnahme läuft",
       "sending": "Wird übertragen …",
       "levelLabel": "Mikrofonpegel",
