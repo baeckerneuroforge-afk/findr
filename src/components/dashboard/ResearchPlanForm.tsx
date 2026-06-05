@@ -884,42 +884,125 @@ export function ResearchPlanForm({
                 {t("qualMetaMinutes")}
               </span>
             </div>
-            <p className="text-caption font-medium uppercase tracking-wider text-neutral-500">
-              {t("genPreviewTitle", {
-                count: lastGuide.topics.length,
-                minutes: lastGuide.estimatedMinutes,
-              })}
-            </p>
-            <ul className="space-y-2">
-              {lastGuide.topics.map((topic) => (
-                <li
-                  key={topic.id}
-                  className="rounded-md border border-neutral-200 bg-white p-3"
-                >
-                  <p className="text-small font-medium text-neutral-900">
-                    {topic.label}
-                  </p>
-                  <p className="mt-1 text-small italic text-neutral-700">
-                    „{topic.mainQuestion}"
-                  </p>
-                </li>
-              ))}
-            </ul>
-            {lastGuide.screeningQuestions &&
-              lastGuide.screeningQuestions.length > 0 && (
-                <div>
-                  <p className="text-caption font-medium uppercase tracking-wider text-neutral-500">
-                    {t("genScreeningTitle")}
-                  </p>
-                  <ul className="mt-1 list-disc space-y-1 pl-5">
-                    {lastGuide.screeningQuestions.map((q, i) => (
-                      <li key={i} className="text-small text-neutral-700">
-                        {q}
-                      </li>
-                    ))}
-                  </ul>
+            {/* Split-View: LINKS der generierte Leitfaden, RECHTS eine
+                read-only Live-Vorschau der Teilnehmer-Sicht. Die Quality-Bar
+                oben bleibt unverändert über dem Split. Auf schmalen Screens
+                stapelt die Vorschau unter den Leitfaden (single column). */}
+            <div className="grid items-start gap-4 lg:grid-cols-2">
+              {/* LINKS — der generierte Leitfaden in ruhigen Karten:
+                  Themen-Label + Hauptfrage je Topic. Inhalt unverändert zum
+                  bisherigen Preview, nur in die linke Spalte gesetzt. */}
+              <div className="space-y-3">
+                <p className="text-caption font-medium uppercase tracking-wider text-neutral-500">
+                  {t("genPreviewTitle", {
+                    count: lastGuide.topics.length,
+                    minutes: lastGuide.estimatedMinutes,
+                  })}
+                </p>
+                <ul className="space-y-2">
+                  {lastGuide.topics.map((topic) => (
+                    <li
+                      key={topic.id}
+                      className="rounded-md border border-neutral-200 bg-white p-3"
+                    >
+                      <p className="text-small font-medium text-neutral-900">
+                        {topic.label}
+                      </p>
+                      <p className="mt-1 text-small italic text-neutral-700">
+                        „{topic.mainQuestion}"
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+                {lastGuide.screeningQuestions &&
+                  lastGuide.screeningQuestions.length > 0 && (
+                    <div>
+                      <p className="text-caption font-medium uppercase tracking-wider text-neutral-500">
+                        {t("genScreeningTitle")}
+                      </p>
+                      <ul className="mt-1 list-disc space-y-1 pl-5">
+                        {lastGuide.screeningQuestions.map((q, i) => (
+                          <li key={i} className="text-small text-neutral-700">
+                            {q}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+              </div>
+
+              {/* RECHTS — Teilnehmer-Vorschau. Rein illustrativ & READ-ONLY:
+                  KEIN State-Write, KEINE Interview-Engine. Begrüßungs-Bubble +
+                  die ERSTE echte Frage aus lastGuide.topics[0].mainQuestion
+                  (verbindet die Vorschau mit dem Leitfaden — editiert man den
+                  Leitfaden später, zieht die Vorschau automatisch nach) + eine
+                  STATISCHE Beispiel-Nachfrage (klar als Beispiel markiert,
+                  nicht aus Daten). Sticky auf Desktop. */}
+              <div className="lg:sticky lg:top-4">
+                <p className="mb-2 text-caption font-medium uppercase tracking-wider text-neutral-500">
+                  {t("previewParticipantTitle")}
+                </p>
+                <div className="overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 shadow-sm">
+                  <div className="flex items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2">
+                    <span
+                      className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-600 text-caption font-semibold text-white"
+                      aria-hidden="true"
+                    >
+                      KI
+                    </span>
+                    <span className="text-small font-medium text-neutral-700">
+                      {t("previewAiSender")}
+                    </span>
+                  </div>
+                  <div className="space-y-2.5 px-3 py-4">
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-neutral-200 bg-white px-3 py-2 text-small text-neutral-700">
+                      {t("previewGreeting")}
+                    </div>
+                    {lastGuide.topics[0]?.mainQuestion && (
+                      <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-neutral-200 bg-white px-3 py-2 text-small text-neutral-800">
+                        {lastGuide.topics[0].mainQuestion}
+                      </div>
+                    )}
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-dashed border-neutral-300 bg-neutral-50 px-3 py-2 text-small text-neutral-500">
+                      <span className="mb-1 inline-block rounded-full bg-neutral-200 px-1.5 py-0.5 text-caption font-medium leading-none text-neutral-500">
+                        {t("previewExampleBadge")}
+                      </span>
+                      <span className="block">{t("previewExampleProbe")}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 border-t border-neutral-200 bg-white px-3 py-2">
+                    <span className="flex-1 truncate rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-caption text-neutral-400">
+                      {t("previewAnswerPlaceholder")}
+                    </span>
+                    {form.voiceEnabled && (
+                      <span
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600"
+                        aria-hidden="true"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                          <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+                          <path d="M12 18v3" />
+                        </svg>
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
+                <p className="mt-2 text-caption text-neutral-500">
+                  {form.voiceEnabled
+                    ? t("previewModeTextVoice")
+                    : t("previewModeTextOnly")}
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </section>
