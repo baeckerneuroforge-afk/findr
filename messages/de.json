@@ -969,6 +969,8 @@
       "visualCaptureHint": "Wenn aktiviert, kann der Teilnehmer seinen Bildschirm teilen, und Findr wertet aus, wo es im Produkt flüssig lief und wo es hakte. Sinnvoll, wenn Teilnehmer etwas vorführen (App, Prototyp, Feature) — nicht bei reinen Konzept-Gesprächen. Der Teilnehmer wird zu Beginn des Interviews um Einwilligung gebeten, bevor er antworten kann. Standard: aus.",
       "visualCaptureOn": "An",
       "visualCaptureOff": "Aus",
+      "visualCaptureRecLabel": "Für dieses Modul empfohlen",
+      "visualCaptureRecHint": "Aktivieren Sie die Bildschirmaufnahme, wenn Sie ein visuelles Asset zeigen — Anzeige, Mockup oder Prototyp.",
       "fldInteractionMode": "Interaktionsmodus",
       "interactionModeHint": "Im Voice-Modus spricht der Teilnehmer seine Antworten, statt sie zu tippen — die Sprache wird automatisch in Text umgewandelt. Tippen bleibt jederzeit möglich, und der Teilnehmer wird darauf hingewiesen, dass er mit einem KI-Interviewer spricht. Standard: Text.",
       "modeTextLabel": "Text",

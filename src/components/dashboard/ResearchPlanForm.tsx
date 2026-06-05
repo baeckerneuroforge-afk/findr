@@ -325,6 +325,14 @@ export function ResearchPlanForm({
   // discipline as studyTypePayload above. Recomputed each render so it always
   // reflects the currently-picked card.
   const useCasePayload = isMarket ? { useCase: form.useCase } : {};
+  // Visual-Intelligence-Empfehlung — reaktiver Read derselben `needsStimulus`-
+  // Facette, die die Use-Case-Karten schon tragen (true NUR für creative_test +
+  // concept_test). Rein visuell: ändert den VI-Toggle-Default NICHT (bleibt aus)
+  // und aktiviert nichts automatisch. Wechselt der Nutzer die Karte, ändert sich
+  // form.useCase → der Hinweis erscheint/verschwindet. Auf dem Discovery-Pfad ist
+  // form.useCase fix general_survey (needsStimulus false) → immer false → der
+  // VI-Block bleibt dort byte-identisch.
+  const recommendVisualCapture = USE_CASE_META[form.useCase].needsStimulus;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -730,6 +738,32 @@ export function ResearchPlanForm({
               </button>
             </div>
           </div>
+          {/* Empfehlungs-Hinweis — NUR bei den Stimulus-Modulen (creative_test /
+              concept_test → needsStimulus). Rein visuell/hinweisend: ändert den
+              Toggle-Default NICHT (bleibt aus) und aktiviert nichts automatisch.
+              Reaktiv an form.useCase gekoppelt via recommendVisualCapture. */}
+          {recommendVisualCapture && (
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-primary-200 bg-primary-50/60 px-3 py-2">
+              <svg
+                className="mt-0.5 h-4 w-4 shrink-0 text-primary-600"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+              </svg>
+              <p className="text-caption text-primary-700">
+                <span className="font-medium">
+                  {t("visualCaptureRecLabel")}:
+                </span>{" "}
+                {t("visualCaptureRecHint")}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Interaktionsmodus — Text (Default) oder Voice. Sichtbar für BEIDE
