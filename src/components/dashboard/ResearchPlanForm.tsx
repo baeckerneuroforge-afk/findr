@@ -59,7 +59,186 @@ interface FormState {
   // in the create/update body — the backend flag + voice route already exist;
   // this form only fills the value. Text fallback always stays available.
   voiceEnabled: boolean;
+  // Market-Research use-case subtype. Default general_survey. Sent as `useCase`
+  // (exact key) ONLY on the market-research path — the column + Zod enum +
+  // interviewer focus-block already exist on main; this form only fills the
+  // value and uses it to pick a preset. Discovery never sends it (byte-identical).
+  useCase: UseCase;
   topics: TopicDraft[];
+}
+
+/**
+ * Market-Research use-case subtypes. Mirrors the backend `UseCaseSchema` enum
+ * EXACTLY (general_survey | brand_research | creative_test | concept_test) — the
+ * value is sent under the exact body key `useCase`, so any drift would make Zod
+ * strip it silently. The selector lives only on the market-research path.
+ */
+type UseCase =
+  | "general_survey"
+  | "brand_research"
+  | "creative_test"
+  | "concept_test";
+
+const USE_CASES: readonly UseCase[] = [
+  "general_survey",
+  "brand_research",
+  "creative_test",
+  "concept_test",
+];
+
+/** Static, non-localized facet of each use-case card + preset. The three
+ *  opening questions per use-case are localized — see `presetFor`, which pulls
+ *  `${topicPrefix}T{1..3}{Label|Intent}` from the research.plans namespace so a
+ *  DE user gets DE suggestions and an EN user gets EN ones. Accent classes use
+ *  only verified @theme token families (primary/success/warning/obsidian). */
+interface UseCaseMeta {
+  /** Preset interaction mode → the form's `voiceEnabled` boolean. */
+  voiceEnabled: boolean;
+  /** Preset participant target → the form's `sampleTarget` STRING field. */
+  sampleTarget: string;
+  /** creative_test/concept_test need a stimulus asset (module folgt) → soft
+   *  hint badge. NOT a lock — the study can still be created. */
+  needsStimulus: boolean;
+  /** i18n keys (research.plans namespace). */
+  titleKey: string;
+  subKey: string;
+  /** Prefix for the 3 localized preset topics. */
+  topicPrefix: string;
+  iconBg: string;
+  iconFg: string;
+  icon: React.ReactNode;
+}
+
+const USE_CASE_META: Record<UseCase, UseCaseMeta> = {
+  general_survey: {
+    voiceEnabled: false,
+    sampleTarget: "30",
+    needsStimulus: false,
+    titleKey: "ucGeneralSurveyTitle",
+    subKey: "ucGeneralSurveySub",
+    topicPrefix: "ucGs",
+    iconBg: "bg-primary-50",
+    iconFg: "text-primary-600",
+    icon: (
+      <svg
+        className="h-5 w-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+        <path d="M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2 2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2Z" />
+        <path d="m9 14 2 2 4-4" />
+      </svg>
+    ),
+  },
+  brand_research: {
+    voiceEnabled: false,
+    sampleTarget: "40",
+    needsStimulus: false,
+    titleKey: "ucBrandResearchTitle",
+    subKey: "ucBrandResearchSub",
+    topicPrefix: "ucBr",
+    iconBg: "bg-success-50",
+    iconFg: "text-success-700",
+    icon: (
+      <svg
+        className="h-5 w-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 3 4 7v6c0 5 3.4 7.6 8 9 4.6-1.4 8-4 8-9V7l-8-4Z" />
+        <path d="m9 12 2 2 4-4" />
+      </svg>
+    ),
+  },
+  creative_test: {
+    voiceEnabled: true,
+    sampleTarget: "25",
+    needsStimulus: true,
+    titleKey: "ucCreativeTestTitle",
+    subKey: "ucCreativeTestSub",
+    topicPrefix: "ucCr",
+    iconBg: "bg-warning-50",
+    iconFg: "text-warning-700",
+    icon: (
+      <svg
+        className="h-5 w-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <circle cx="8.5" cy="9.5" r="1.5" />
+        <path d="m4 17 5-5 4 4 3-3 4 4" />
+      </svg>
+    ),
+  },
+  concept_test: {
+    voiceEnabled: false,
+    sampleTarget: "30",
+    needsStimulus: true,
+    titleKey: "ucConceptTestTitle",
+    subKey: "ucConceptTestSub",
+    topicPrefix: "ucCo",
+    iconBg: "bg-obsidian-50",
+    iconFg: "text-obsidian-700",
+    icon: (
+      <svg
+        className="h-5 w-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M9 18h6" />
+        <path d="M10 21h4" />
+        <path d="M12 3a6 6 0 0 0-3.6 10.8c.5.4.9 1 .9 1.7V16h5.4v-.5c0-.7.4-1.3.9-1.7A6 6 0 0 0 12 3Z" />
+      </svg>
+    ),
+  },
+};
+
+/**
+ * Build the preset slice of the form-state for a use-case. Pure: takes the
+ * research.plans translator so the three opening questions are localized. The
+ * returned fields are the ONLY ones a card touches — `useCase` plus the three
+ * already-existing form fields (voiceEnabled / sampleTarget STRING / topics).
+ * Each topic fills BOTH topic + intent so a submit straight after picking a
+ * card passes the server-side Zod min-length checks unchanged.
+ */
+function presetFor(
+  useCase: UseCase,
+  t: (key: string) => string,
+): Pick<FormState, "useCase" | "voiceEnabled" | "sampleTarget" | "topics"> {
+  const meta = USE_CASE_META[useCase];
+  const topics: TopicDraft[] = [1, 2, 3].map((n) => ({
+    topic: t(`${meta.topicPrefix}T${n}Label`),
+    intent: t(`${meta.topicPrefix}T${n}Intent`),
+    hypotheses: [],
+  }));
+  return {
+    useCase,
+    voiceEnabled: meta.voiceEnabled,
+    sampleTarget: meta.sampleTarget,
+    topics,
+  };
 }
 
 /** Optional Generator-Inputs — leer wenn ungenutzt. */
@@ -97,6 +276,10 @@ const INITIAL_FORM: FormState = {
   visualCaptureEnabled: false,
   // Default Text — voice is opt-in per study; an untouched form sends false.
   voiceEnabled: false,
+  // Default general_survey. On the market-research path the matching preset is
+  // applied at mount (see the lazy useState init); on the discovery path this
+  // value is never sent, so the create body stays byte-identical.
+  useCase: "general_survey",
   // Start with one empty topic so the editor isn't blank — encourages the
   // user to fill at least one in. Empty topics are dropped at submit time.
   topics: [emptyTopicDraft()],
@@ -130,7 +313,18 @@ export function ResearchPlanForm({
   const studyTypePayload = isMarket
     ? ({ studyType: "market_research" } as const)
     : ({} as const);
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+  // On the market-research path the form opens already reflecting the default
+  // card (general_survey): text mode, 3 opening questions, sampleTarget 30. The
+  // lazy init runs once, deterministically (same messages on server + client),
+  // so there's no effect and no hydration mismatch. Discovery is untouched.
+  const [form, setForm] = useState<FormState>(() =>
+    isMarket ? { ...INITIAL_FORM, ...presetFor("general_survey", t) } : INITIAL_FORM,
+  );
+  // Market-only create/update-payload key. On the discovery path it stays `{}`
+  // so the POST/PATCH body is byte-identical to pre-selector — exactly the same
+  // discipline as studyTypePayload above. Recomputed each render so it always
+  // reflects the currently-picked card.
+  const useCasePayload = isMarket ? { useCase: form.useCase } : {};
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,6 +340,15 @@ export function ResearchPlanForm({
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  /** Pick a use-case card: stamp `useCase` AND overlay its preset (mode,
+   *  3 opening questions, sampleTarget). Switching cards = a new product, so
+   *  the preset overwrites those fields wholesale — title/objective/persona and
+   *  the VI/TTS toggles are left exactly as the user has them. Everything the
+   *  preset writes stays fully editable afterwards. */
+  function applyUseCase(useCase: UseCase) {
+    setForm((current) => ({ ...current, ...presetFor(useCase, t) }));
   }
 
   function updateGen<K extends keyof GenInputs>(key: K, value: GenInputs[K]) {
@@ -213,6 +416,7 @@ export function ResearchPlanForm({
             sampleTarget: null,
             visualCaptureEnabled: form.visualCaptureEnabled,
             voiceEnabled: form.voiceEnabled,
+            ...useCasePayload,
             ...studyTypePayload,
           }),
         });
@@ -324,6 +528,7 @@ export function ResearchPlanForm({
               sampleTarget,
               visualCaptureEnabled: form.visualCaptureEnabled,
               voiceEnabled: form.voiceEnabled,
+              ...useCasePayload,
             }),
           },
         );
@@ -348,6 +553,7 @@ export function ResearchPlanForm({
           sampleTarget,
           visualCaptureEnabled: form.visualCaptureEnabled,
           voiceEnabled: form.voiceEnabled,
+          ...useCasePayload,
           ...studyTypePayload,
         }),
       });
@@ -369,6 +575,69 @@ export function ResearchPlanForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Use-Case-Selektor — NUR auf dem Market-Research-Pfad (kein Render auf
+          dem Discovery-Pfad → Formular dort byte-identisch). Vier Radio-Cards,
+          genau eine wählbar, Default general_survey. Ein Klick stempelt useCase
+          und überlagert das Preset (Modus / Einstiegsfragen / Stichprobe) —
+          danach bleibt alles editierbar. */}
+      {isMarket && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-h3 text-neutral-900">{t("ucSelectorTitle")}</h2>
+            <p className="mt-0.5 text-small text-neutral-500">
+              {t("ucSelectorDesc")}
+            </p>
+          </div>
+          <div
+            role="radiogroup"
+            aria-label={t("ucSelectorTitle")}
+            className="grid gap-3 sm:grid-cols-2"
+          >
+            {USE_CASES.map((uc) => {
+              const meta = USE_CASE_META[uc];
+              const selected = form.useCase === uc;
+              return (
+                <button
+                  key={uc}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => applyUseCase(uc)}
+                  disabled={submitting}
+                  className={`flex items-start gap-3 rounded-lg border p-4 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                    selected
+                      ? "border-primary-600 bg-primary-50/60 ring-1 ring-primary-600"
+                      : "border-neutral-200 bg-white hover:border-neutral-300"
+                  }`}
+                >
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${meta.iconBg} ${meta.iconFg}`}
+                    aria-hidden="true"
+                  >
+                    {meta.icon}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-body-strong text-neutral-900">
+                        {t(meta.titleKey)}
+                      </span>
+                      {meta.needsStimulus && (
+                        <span className="rounded-full border border-warning-500/30 bg-warning-50 px-2 py-0.5 text-caption font-medium text-warning-700">
+                          {t("ucStimulusBadge")}
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 block text-caption text-neutral-500">
+                      {t(meta.subKey)}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="space-y-4">
         <Field label={t("fldTitle")} required>
           <input
