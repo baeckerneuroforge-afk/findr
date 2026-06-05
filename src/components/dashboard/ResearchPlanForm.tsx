@@ -86,6 +86,22 @@ const USE_CASES: readonly UseCase[] = [
   "concept_test",
 ];
 
+/**
+ * Reactive methodology note per use-case — purely informational. Rendered
+ * read-only under the pill selector; the note explains WHAT the interviewer
+ * does differently for this study type. Switching the pill re-reads
+ * `form.useCase` and swaps the note in render (NO state write). The i18n keys
+ * live in the research.plans namespace, de + en with parity. Market-only —
+ * `form.useCase` is fixed `general_survey` on the discovery path, where the
+ * note isn't rendered at all.
+ */
+const METHOD_NOTE_KEY: Record<UseCase, string> = {
+  general_survey: "methodNoteGeneral",
+  brand_research: "methodNoteBrand",
+  creative_test: "methodNoteCreative",
+  concept_test: "methodNoteConcept",
+};
+
 /** Static, non-localized facet of each use-case card + preset. The three
  *  opening questions per use-case are localized — see `presetFor`, which pulls
  *  `${topicPrefix}T{1..3}{Label|Intent}` from the research.plans namespace so a
@@ -581,69 +597,95 @@ export function ResearchPlanForm({
     }
   }
 
+  // Forschungsziel-Feld als eine Quelle. Auf dem Market-Pfad steht es oben als
+  // intent-first Block, auf dem Discovery-Pfad an seiner ursprünglichen Stelle
+  // in der Felder-Section — beide rendern dasselbe Feld (gleicher State, gleiche
+  // Handler, kein neues Feld), sodass keine Drift entstehen kann.
+  const objectiveField = (
+    <Field label={t("fldObjective")} required hint={t("objectiveHint")}>
+      <textarea
+        value={form.objective}
+        onChange={(e) => update("objective", e.target.value)}
+        placeholder={t("phObjective")}
+        rows={3}
+        disabled={submitting}
+        className={FIELD_TEXTAREA_CLASS}
+      />
+    </Field>
+  );
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Use-Case-Selektor — NUR auf dem Market-Research-Pfad (kein Render auf
-          dem Discovery-Pfad → Formular dort byte-identisch). Vier Radio-Cards,
-          genau eine wählbar, Default general_survey. Ein Klick stempelt useCase
-          und überlagert das Preset (Modus / Einstiegsfragen / Stichprobe) —
-          danach bleibt alles editierbar. */}
+      {/* Intent-first + Studientyp — NUR auf dem Market-Research-Pfad. Discovery
+          rendert nichts hiervon (kein Selektor, kein Hinweis, kein vorgezogenes
+          Ziel) → Formular dort byte-identisch. Auf dem Market-Pfad wird das
+          Forschungsziel als prominenter erster Input nach oben gezogen, danach
+          folgt der entbuntete Pill-Selektor + ein reaktiver Methodik-Hinweis. */}
       {isMarket && (
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-h3 text-neutral-900">{t("ucSelectorTitle")}</h2>
-            <p className="mt-0.5 text-small text-neutral-500">
-              {t("ucSelectorDesc")}
-            </p>
-          </div>
-          <div
-            role="radiogroup"
-            aria-label={t("ucSelectorTitle")}
-            className="grid gap-3 sm:grid-cols-2"
-          >
-            {USE_CASES.map((uc) => {
-              const meta = USE_CASE_META[uc];
-              const selected = form.useCase === uc;
-              return (
-                <button
-                  key={uc}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => applyUseCase(uc)}
-                  disabled={submitting}
-                  className={`flex items-start gap-3 rounded-lg border p-4 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
-                    selected
-                      ? "border-primary-600 bg-primary-50/60 ring-1 ring-primary-600"
-                      : "border-neutral-200 bg-white hover:border-neutral-300"
-                  }`}
-                >
-                  <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${meta.iconBg} ${meta.iconFg}`}
-                    aria-hidden="true"
+        <>
+          {/* 1. Intent-first: das Forschungsziel als prominenter erster Input,
+              gerahmt von einer ruhigen Leitfrage. Reiner Re-Use von
+              objectiveField — gleiches Feld, gleicher State, kein neues Feld. */}
+          <section className="space-y-3">
+            <h2 className="text-h2 text-neutral-900">
+              {t("marketGoalHeadline")}
+            </h2>
+            {objectiveField}
+          </section>
+
+          {/* 2. Studientyp: aus den vier bunten Kacheln wird eine dezente
+              Pill-Zeile. GLEICHE applyUseCase-Logik wie zuvor (steuert
+              form.useCase + Preset) — nur die Optik ist ruhiger. */}
+          <section className="space-y-3">
+            <div>
+              <h2 className="text-h3 text-neutral-900">
+                {t("ucSelectorTitle")}
+              </h2>
+              <p className="mt-0.5 text-small text-neutral-500">
+                {t("ucSelectorDesc")}
+              </p>
+            </div>
+            <div
+              role="radiogroup"
+              aria-label={t("ucSelectorTitle")}
+              className="flex flex-wrap gap-2"
+            >
+              {USE_CASES.map((uc) => {
+                const meta = USE_CASE_META[uc];
+                const selected = form.useCase === uc;
+                return (
+                  <button
+                    key={uc}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => applyUseCase(uc)}
+                    disabled={submitting}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-small outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                      selected
+                        ? "border-primary-200 bg-primary-50 font-medium text-primary-700"
+                        : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
+                    }`}
                   >
-                    {meta.icon}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-body-strong text-neutral-900">
-                        {t(meta.titleKey)}
+                    {t(meta.titleKey)}
+                    {meta.needsStimulus && (
+                      <span className="rounded-full bg-warning-50 px-1.5 py-0.5 text-caption font-medium leading-none text-warning-700">
+                        {t("ucStimulusBadge")}
                       </span>
-                      {meta.needsStimulus && (
-                        <span className="rounded-full border border-warning-500/30 bg-warning-50 px-2 py-0.5 text-caption font-medium text-warning-700">
-                          {t("ucStimulusBadge")}
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-0.5 block text-caption text-neutral-500">
-                      {t(meta.subKey)}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Methodik-Hinweis — additiv & reaktiv. Reiner Read von
+                form.useCase über METHOD_NOTE_KEY (KEIN State-Write); wechselt
+                beim Pill-Wechsel. Erklärt, was der Interviewer bei diesem
+                Studientyp methodisch anders macht. */}
+            <p className="rounded-r-md border-l-2 border-primary-600 bg-neutral-50 px-3 py-2 text-caption text-neutral-600">
+              {t(METHOD_NOTE_KEY[form.useCase])}
+            </p>
+          </section>
+        </>
       )}
 
       <section className="space-y-4">
@@ -657,16 +699,11 @@ export function ResearchPlanForm({
           />
         </Field>
 
-        <Field label={t("fldObjective")} required hint={t("objectiveHint")}>
-          <textarea
-            value={form.objective}
-            onChange={(e) => update("objective", e.target.value)}
-            placeholder={t("phObjective")}
-            rows={3}
-            disabled={submitting}
-            className={FIELD_TEXTAREA_CLASS}
-          />
-        </Field>
+        {/* Forschungsziel — auf dem Discovery-Pfad hier an unveränderter Stelle
+            (byte-identisch). Auf dem Market-Pfad steht es bereits oben als
+            intent-first Block, daher hier nur, wenn NICHT Market. Gleiche
+            objectiveField-Quelle → keine Drift. */}
+        {!isMarket && objectiveField}
 
         <div className="grid gap-4 md:grid-cols-2">
           <Field label={t("fldTargetPersona")} hint={t("personaHint")}>
