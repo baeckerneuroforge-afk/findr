@@ -102,11 +102,10 @@ const METHOD_NOTE_KEY: Record<UseCase, string> = {
   concept_test: "methodNoteConcept",
 };
 
-/** Static, non-localized facet of each use-case card + preset. The three
- *  opening questions per use-case are localized — see `presetFor`, which pulls
+/** Static, non-localized facet of each use-case preset. The three opening
+ *  questions per use-case are localized — see `presetFor`, which pulls
  *  `${topicPrefix}T{1..3}{Label|Intent}` from the research.plans namespace so a
- *  DE user gets DE suggestions and an EN user gets EN ones. Accent classes use
- *  only verified @theme token families (primary/success/warning/obsidian). */
+ *  DE user gets DE suggestions and an EN user gets EN ones. */
 interface UseCaseMeta {
   /** Preset interaction mode → the form's `voiceEnabled` boolean. */
   voiceEnabled: boolean;
@@ -115,14 +114,10 @@ interface UseCaseMeta {
   /** creative_test/concept_test need a stimulus asset (module folgt) → soft
    *  hint badge. NOT a lock — the study can still be created. */
   needsStimulus: boolean;
-  /** i18n keys (research.plans namespace). */
+  /** i18n key for the pill label (research.plans namespace). */
   titleKey: string;
-  subKey: string;
   /** Prefix for the 3 localized preset topics. */
   topicPrefix: string;
-  iconBg: string;
-  iconFg: string;
-  icon: React.ReactNode;
 }
 
 const USE_CASE_META: Record<UseCase, UseCaseMeta> = {
@@ -131,103 +126,28 @@ const USE_CASE_META: Record<UseCase, UseCaseMeta> = {
     sampleTarget: "30",
     needsStimulus: false,
     titleKey: "ucGeneralSurveyTitle",
-    subKey: "ucGeneralSurveySub",
     topicPrefix: "ucGs",
-    iconBg: "bg-primary-50",
-    iconFg: "text-primary-600",
-    icon: (
-      <svg
-        className="h-5 w-5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-        <path d="M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2 2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2Z" />
-        <path d="m9 14 2 2 4-4" />
-      </svg>
-    ),
   },
   brand_research: {
     voiceEnabled: false,
     sampleTarget: "40",
     needsStimulus: false,
     titleKey: "ucBrandResearchTitle",
-    subKey: "ucBrandResearchSub",
     topicPrefix: "ucBr",
-    iconBg: "bg-success-50",
-    iconFg: "text-success-700",
-    icon: (
-      <svg
-        className="h-5 w-5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M12 3 4 7v6c0 5 3.4 7.6 8 9 4.6-1.4 8-4 8-9V7l-8-4Z" />
-        <path d="m9 12 2 2 4-4" />
-      </svg>
-    ),
   },
   creative_test: {
     voiceEnabled: true,
     sampleTarget: "25",
     needsStimulus: true,
     titleKey: "ucCreativeTestTitle",
-    subKey: "ucCreativeTestSub",
     topicPrefix: "ucCr",
-    iconBg: "bg-warning-50",
-    iconFg: "text-warning-700",
-    icon: (
-      <svg
-        className="h-5 w-5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <rect x="3" y="4" width="18" height="16" rx="2" />
-        <circle cx="8.5" cy="9.5" r="1.5" />
-        <path d="m4 17 5-5 4 4 3-3 4 4" />
-      </svg>
-    ),
   },
   concept_test: {
     voiceEnabled: false,
     sampleTarget: "30",
     needsStimulus: true,
     titleKey: "ucConceptTestTitle",
-    subKey: "ucConceptTestSub",
     topicPrefix: "ucCo",
-    iconBg: "bg-obsidian-50",
-    iconFg: "text-obsidian-700",
-    icon: (
-      <svg
-        className="h-5 w-5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M9 18h6" />
-        <path d="M10 21h4" />
-        <path d="M12 3a6 6 0 0 0-3.6 10.8c.5.4.9 1 .9 1.7V16h5.4v-.5c0-.7.4-1.3.9-1.7A6 6 0 0 0 12 3Z" />
-      </svg>
-    ),
   },
 };
 
@@ -929,6 +849,41 @@ export function ResearchPlanForm({
             generator. Read-only block, purely informational. */}
         {lastGuide && (
           <div className="space-y-3 border-t border-primary-200/60 pt-3">
+            {/* Quality-Bar — ruhiges Trust-Element ÜBER der Leitfaden-Anzeige.
+                Statische Aussage über die Interview-Disziplin der Engine (gilt
+                für ALLE Studientypen), KEIN Live-Validator des konkreten
+                Leitfadens. Die Zeitangabe ist ein reiner Read der Fragenanzahl
+                (lastGuide.topics.length = Haupt-/Themenfragen, je 1 pro Topic):
+                lo = round(n·1.3), hi = round(n·1.8). Kein State-Write. */}
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 rounded-md border border-success-500/30 bg-success-50 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-success-700">
+                {["qualNoLeading", "qualOneQuestion", "qualProbesVague"].map(
+                  (key) => (
+                    <span key={key} className="inline-flex items-center gap-1.5">
+                      <svg
+                        className="h-3.5 w-3.5 shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="m5 12 5 5L20 7" />
+                      </svg>
+                      {t(key)}
+                    </span>
+                  ),
+                )}
+              </div>
+              <span className="text-caption font-medium text-success-700">
+                {lastGuide.topics.length} {t("qualMetaQuestions")} · ~
+                {Math.round(lastGuide.topics.length * 1.3)}–
+                {Math.round(lastGuide.topics.length * 1.8)}{" "}
+                {t("qualMetaMinutes")}
+              </span>
+            </div>
             <p className="text-caption font-medium uppercase tracking-wider text-neutral-500">
               {t("genPreviewTitle", {
                 count: lastGuide.topics.length,
