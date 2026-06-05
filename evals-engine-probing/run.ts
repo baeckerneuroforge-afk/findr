@@ -6,16 +6,25 @@
  *
  *   1. deterministic hard checks where the failure is obvious
  *      (no leading Warum/Why, no closed yes/no probe, one short probe, etc.)
- *   2. an Opus LLM judge for the actual research-method judgement
+ *   2. a Claude LLM judge for the actual research-method judgement
  *      (grounded, open, non-leading, use-case-appropriate, expected behavior).
+ *
+ * Cost note: Judge default = Sonnet (günstig). Agent = Opus (Produktionsverhalten).
+ * Beim Iterieren NUR fokussierte Läufe mit caseIds; Voll-Lauf höchstens 1x am Ende.
  *
  * Foreground:
  *
  *   env -u ANTHROPIC_API_KEY \
  *     pnpm exec tsx --conditions=react-server evals-engine-probing/run.ts
  *
+ * Focused run:
+ *
+ *   env -u ANTHROPIC_API_KEY \
+ *     pnpm exec tsx --conditions=react-server evals-engine-probing/run.ts ep_01_vague_needs_example,ep_02_surface_laddering,ep_17_saturation_close_after_covered
+ *
  * Optional:
  *   ENGINE_PROBING_AGENT_MODEL=claude-sonnet-4-6 ...
+ *   EVAL_JUDGE_MODEL=claude-opus-4-7 ...
  *   ENGINE_PROBING_JUDGE_MODEL=claude-opus-4-7 ...
  *   ENGINE_PROBING_CASES=ep_01_vague_needs_example,ep_06_general_survey_hypothesis_trap ...
  */
@@ -44,7 +53,9 @@ const AGENT_MODEL =
   process.env.VOICE_MODEL ??
   DEFAULT_VOICE_MODEL;
 const JUDGE_MODEL =
-  process.env.ENGINE_PROBING_JUDGE_MODEL ?? CLAUDE_MODELS.opus;
+  process.env.EVAL_JUDGE_MODEL ??
+  process.env.ENGINE_PROBING_JUDGE_MODEL ??
+  CLAUDE_MODELS.sonnet;
 
 const C = {
   reset: "\x1b[0m",
