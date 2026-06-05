@@ -142,7 +142,9 @@ export default async function InterviewPage({
   // TTS Stage 1: research-only, gated on the plan's tts_enabled flag. This
   // branch only forwards the inert backend flag; playback UI lands separately.
   const ttsEnabled = isResearch && plan?.ttsEnabled === true;
+  const useCase = isResearch ? (plan?.useCase ?? null) : null;
   const ttsProps = { ttsEnabled };
+  const useCaseProps = { useCase };
 
   return (
     <NextIntlClientProvider
@@ -169,6 +171,7 @@ export default async function InterviewPage({
         visualCaptureEnabled={visualCaptureEnabled}
         voiceEnabled={voiceEnabled}
         {...ttsProps}
+        {...useCaseProps}
       />
     </NextIntlClientProvider>
   );

@@ -32,6 +32,13 @@ const TopicSchema = z.object({
     .optional(),
 });
 
+const UseCaseSchema = z.enum([
+  "general_survey",
+  "brand_research",
+  "creative_test",
+  "concept_test",
+]);
+
 const UpdatePlanBodySchema = z
   .object({
     title: z.string().trim().min(3).max(200).optional(),
@@ -51,6 +58,7 @@ const UpdatePlanBodySchema = z
     visualCaptureEnabled: z.boolean().optional(),
     voiceEnabled: z.boolean().optional(),
     ttsEnabled: z.boolean().optional(),
+    useCase: UseCaseSchema.nullable().optional(),
   })
   .refine(
     (data) =>
@@ -62,7 +70,8 @@ const UpdatePlanBodySchema = z
       data.status !== undefined ||
       data.visualCaptureEnabled !== undefined ||
       data.voiceEnabled !== undefined ||
-      data.ttsEnabled !== undefined,
+      data.ttsEnabled !== undefined ||
+      data.useCase !== undefined,
     { message: "At least one field must be present in the update body." },
   );
 
@@ -108,6 +117,7 @@ export async function PATCH(
       visualCaptureEnabled: parsed.data.visualCaptureEnabled,
       voiceEnabled: parsed.data.voiceEnabled,
       ttsEnabled: parsed.data.ttsEnabled,
+      useCase: parsed.data.useCase,
     });
     if (!plan) {
       // Defensive: the existence check above passed, so this only fires on

@@ -9,6 +9,7 @@ import {
   createResearchSupabase,
   type ResearchPlanRow,
   type ResearchPlanStudyType,
+  type ResearchPlanUseCase,
 } from "./db";
 import {
   ScreeningQuestionSchema,
@@ -46,6 +47,9 @@ export interface ResearchPlanRecord {
   /** Per-study TTS switch. Defaults false for legacy rows and pre-migration
    *  reads, so generated audio playback stays opt-in per study. */
   ttsEnabled: boolean;
+  /** Lightweight Market-Research use-case. Null means no use-case focus block
+   *  and therefore unchanged interviewer behavior. */
+  useCase: ResearchPlanUseCase | null;
   screeningQuestions: ScreeningQuestion[];
   /** Studientyp-Diskriminator (Phase M0). Trägt 'product_discovery' für jeden
    *  Bestandsplan (DB-DEFAULT). In M0 liest KEIN Verhaltenspfad dieses Feld —
@@ -123,6 +127,18 @@ export function coerceStudyType(raw: unknown): ResearchPlanStudyType {
   return raw === "market_research" ? "market_research" : "product_discovery";
 }
 
+export function coerceUseCase(raw: unknown): ResearchPlanUseCase | null {
+  if (
+    raw === "general_survey" ||
+    raw === "brand_research" ||
+    raw === "creative_test" ||
+    raw === "concept_test"
+  ) {
+    return raw;
+  }
+  return null;
+}
+
 function coerceVisualCaptureEnabled(raw: unknown): boolean {
   return raw === true;
 }
@@ -154,6 +170,7 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     ttsEnabled: coerceTtsEnabled(
       (row as { tts_enabled?: unknown }).tts_enabled,
     ),
+    useCase: coerceUseCase((row as { use_case?: unknown }).use_case),
     screeningQuestions: coerceScreeningQuestions(row.screening_questions),
     studyType: coerceStudyType(row.study_type),
     createdAt: row.created_at,
@@ -192,6 +209,9 @@ export function planToAgentContext(plan: ResearchPlanRecord): ResearchPlanContex
     objective: plan.objective,
     topics: plan.topics,
     persona: plan.persona,
+    ...(plan.studyType === "market_research" && plan.useCase
+      ? { useCase: plan.useCase }
+      : {}),
   };
 }
 
@@ -306,6 +326,7 @@ export interface CreateResearchPlanInput {
   visualCaptureEnabled?: boolean;
   voiceEnabled?: boolean;
   ttsEnabled?: boolean;
+  useCase?: ResearchPlanUseCase | null;
   /**
    * Studientyp-Diskriminator (M3 write-side). OPTIONAL — undefined leaves the
    * insert WITHOUT a study_type key, so the DB DEFAULT ('product_discovery')
@@ -342,6 +363,7 @@ export async function createResearchPlan(
       visual_capture_enabled: input.visualCaptureEnabled ?? false,
       voice_enabled: input.voiceEnabled ?? false,
       tts_enabled: input.ttsEnabled ?? false,
+      use_case: input.useCase ?? null,
       // Market-only insert key: when the caller is the Product-Discovery path
       // (studyType undefined / 'product_discovery'), the column is OMITTED so
       // the DB DEFAULT writes 'product_discovery' — a byte-identical discovery
@@ -372,6 +394,7 @@ export interface UpdateResearchPlanInput {
   visualCaptureEnabled?: boolean;
   voiceEnabled?: boolean;
   ttsEnabled?: boolean;
+  useCase?: ResearchPlanUseCase | null;
 }
 
 /**
@@ -403,6 +426,7 @@ export async function updateResearchPlan(
     visual_capture_enabled?: boolean;
     voice_enabled?: boolean;
     tts_enabled?: boolean;
+    use_case?: ResearchPlanUseCase | null;
   } = {};
   if (input.title !== undefined) update.title = input.title;
   if (input.objective !== undefined) update.objective = input.objective;
@@ -418,6 +442,7 @@ export async function updateResearchPlan(
     update.visual_capture_enabled = input.visualCaptureEnabled;
   if (input.voiceEnabled !== undefined) update.voice_enabled = input.voiceEnabled;
   if (input.ttsEnabled !== undefined) update.tts_enabled = input.ttsEnabled;
+  if (input.useCase !== undefined) update.use_case = input.useCase;
 
   if (Object.keys(update).length === 0) {
     return getResearchPlan(orgId, planId);

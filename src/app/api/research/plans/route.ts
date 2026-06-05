@@ -24,6 +24,13 @@ const TopicSchema = z.object({
     .optional(),
 });
 
+const UseCaseSchema = z.enum([
+  "general_survey",
+  "brand_research",
+  "creative_test",
+  "concept_test",
+]);
+
 const CreatePlanBodySchema = z.object({
   title: z.string().trim().min(3).max(200),
   objective: z.string().trim().min(3).max(3000),
@@ -39,6 +46,7 @@ const CreatePlanBodySchema = z.object({
   visualCaptureEnabled: z.boolean().optional().default(false),
   voiceEnabled: z.boolean().optional().default(false),
   ttsEnabled: z.boolean().optional().default(false),
+  useCase: UseCaseSchema.nullable().optional(),
   // M3 — Studientyp-Diskriminator. Optional; fehlt er (Product-Discovery-
   // Create, byte-identisch zu pre-M3), defaultet er auf 'product_discovery' und
   // createResearchPlan lässt die Spalte weg → DB-DEFAULT. Nur der Market-
@@ -74,6 +82,7 @@ export async function POST(req: NextRequest) {
       visualCaptureEnabled: parsed.data.visualCaptureEnabled,
       voiceEnabled: parsed.data.voiceEnabled,
       ttsEnabled: parsed.data.ttsEnabled,
+      useCase: parsed.data.useCase ?? null,
       studyType: parsed.data.studyType,
     });
     return NextResponse.json({ success: true, planId: plan.id, plan });

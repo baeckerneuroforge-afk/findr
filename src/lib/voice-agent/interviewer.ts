@@ -7,6 +7,7 @@ import {
   callClaudeStructured,
   StructuredOutputError,
 } from "@/lib/anthropic/structured";
+import type { ResearchPlanUseCase } from "@/lib/research/db";
 import type { LossReasonType } from "@/lib/loss/extractor";
 import type { RiskAnalysisResult } from "@/lib/schemas/risk";
 
@@ -450,6 +451,8 @@ export interface ResearchPlanContext {
   topics: ResearchTopic[];
   /** Free-text target-persona description (role, industry, maturity). */
   persona?: string | null;
+  /** Optional Market-Research subtype. Missing/null means no extra focus block. */
+  useCase?: ResearchPlanUseCase | null;
 }
 
 /** Vendor / brand context — null for independent / external research. */
@@ -518,6 +521,27 @@ OUTPUT — return ONLY this JSON object, no markdown, no preamble:
   "message": "<your next message to the participant, or a short warm closing if done>"
 }
 Set "done": false while you still want to ask another question; set "done": true when wrapping up.`;
+
+export const USE_CASE_FOCUS: Record<ResearchPlanUseCase, string> = {
+  general_survey:
+    "Fokus: konkreter Bedarf, Pain Points, Verhalten, Entscheidungskriterien. Frag nach echten Situationen ('erzählen Sie vom letzten Mal…') und Workarounds statt nach Hypothesen.",
+  brand_research:
+    "Fokus: Assoziationen, Wahrnehmung, emotionale Bindung, Differenzierung. Frag nach spontanen Bildern/Gefühlen und Vergleichen mit Alternativen. Erfasse WIE die Marke wahrgenommen wird.",
+  creative_test:
+    "Fokus: erster spontaner Eindruck, visuelle/emotionale Reaktion, Klarheit der Botschaft, Markenfit. Frag WARUM ein Element wirkt. (Asset-Anzeige folgt später.)",
+  concept_test:
+    "Fokus: erst Verständnis prüfen (in eigenen Worten), dann Relevanz, wahrgenommener Nutzen, Kaufbereitschaft, Präferenz bei Varianten. (Asset-Anzeige folgt später.)",
+};
+
+function buildResearchSystemPrompt(useCase: unknown): string {
+  if (typeof useCase !== "string") return RESEARCH_INTERVIEWER_SYSTEM_PROMPT;
+  const focus = USE_CASE_FOCUS[useCase as ResearchPlanUseCase];
+  if (!focus) return RESEARCH_INTERVIEWER_SYSTEM_PROMPT;
+  return `${RESEARCH_INTERVIEWER_SYSTEM_PROMPT}
+
+USE-CASE FOCUS:
+${focus}`;
+}
 
 function formatTopics(topics: ResearchTopic[]): string {
   if (topics.length === 0) {
@@ -611,7 +635,7 @@ export async function nextResearchMessage(
   model: string = process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL,
 ): Promise<NextMessage> {
   return callJson(
-    RESEARCH_INTERVIEWER_SYSTEM_PROMPT,
+    buildResearchSystemPrompt(input.plan.useCase),
     buildResearchPrompt(input, history, language),
     model,
     NextMessageSchema,

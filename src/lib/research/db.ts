@@ -148,6 +148,12 @@ type ResearchPlanStatus = "draft" | "active" | "completed" | "archived";
 // liest KEIN Verhaltenspfad diese Spalte scharf.
 export type ResearchPlanStudyType = "product_discovery" | "market_research";
 
+export type ResearchPlanUseCase =
+  | "general_survey"
+  | "brand_research"
+  | "creative_test"
+  | "concept_test";
+
 export type ResearchPlanRow = {
   id: string;
   org_id: string | null;
@@ -172,6 +178,10 @@ export type ResearchPlanRow = {
   // Vor angewandter Migration liefert select("*") die Spalte nicht; der
   // Lese-Mapper defaultet undefined→false.
   tts_enabled: boolean;
+  // Market-Research-Use-Case. Nullable, no DB default/backfill. Before the
+  // migration lands select("*") omits it; plans-service coerceUseCase maps that
+  // to null so existing behavior stays unchanged.
+  use_case: ResearchPlanUseCase | null;
   // Studientyp (Phase M0, 20260630000000). NOT NULL DEFAULT 'product_discovery'
   // in der DB — nicht-nullbar getypt wie status. Vor angewandter Migration
   // liefert select("*") die Spalte nicht; der Lese-Mapper (plans-service
@@ -194,6 +204,7 @@ type ResearchPlanInsert = {
   visual_capture_enabled?: boolean;
   voice_enabled?: boolean;
   tts_enabled?: boolean;
+  use_case?: ResearchPlanUseCase | null;
   // Optional beim Insert — wird heute NIE gesetzt (kein Write-Pfad in M0); der
   // DB-DEFAULT vergibt 'product_discovery'. Verdrahtung kommt in M1/M3.
   study_type?: ResearchPlanStudyType;
@@ -213,6 +224,7 @@ type ResearchPlanUpdate = {
   visual_capture_enabled?: boolean;
   voice_enabled?: boolean;
   tts_enabled?: boolean;
+  use_case?: ResearchPlanUseCase | null;
   study_type?: ResearchPlanStudyType;
   created_at?: string;
 };
