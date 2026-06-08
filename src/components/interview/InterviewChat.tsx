@@ -63,6 +63,14 @@ interface InterviewChatProps {
    *  it's interviewer-prompt-only and must never be shown to the participant. */
   stimulusUrl?: string | null;
   stimulusType?: string | null;
+  /** TTS Stage 1: when true, every new agent turn (incl. the opening question)
+   *  is spoken via POST /api/interview/[token]/speak and played through a
+   *  DEDICATED HTMLAudioElement — fully decoupled from the level-meter
+   *  AudioContext. Browser autoplay rules mean the first play needs a user
+   *  gesture: the mic-start path primes playback, and a visible "enable sound"
+   *  toggle is the always-available fallback (incl. pure text mode). Defaults
+   *  false → byte-identical silent chat (no audio, no /speak calls). */
+  ttsEnabled?: boolean;
 }
 
 /** Default Findr accent — fallback when no org accent color is set. */
@@ -71,6 +79,14 @@ const DEFAULT_ACCENT = "#4A51A8";
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 
 const FONT = "var(--font-inter), Inter, system-ui, -apple-system, sans-serif";
+
+// A 44-byte silent WAV, used ONLY to "unlock" the TTS <audio> element from
+// inside the mic-start user gesture. Playing a real (if silent, ~0-length) clip
+// during a gesture marks the element as user-activated, so later programmatic
+// playback of the agent's answer is permitted — especially on iOS. It's
+// genuinely silent, so priming it is inaudible.
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
 
 const VISUAL_SAMPLE_EVERY_SECONDS = 8;
 const VISUAL_SAMPLE_EVERY_MS = VISUAL_SAMPLE_EVERY_SECONDS * 1000;
@@ -163,7 +179,109 @@ function formatRecordingTime(totalSeconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-function Bubble({ role, text }: { role: InterviewTurn["role"]; text: string }) {
+/** Latest agent turn with non-empty text in `list`, or -1. Single source for
+ *  both the autoplay seam and the per-bubble "can this turn still reach the
+ *  /speak route" check — the route only ever speaks the conversation's latest
+ *  turn, so older uncached turns can be replayed from cache but never re-synth'd. */
+function latestAgentIndex(list: InterviewTurn[]): number {
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const turn = list[i];
+    if (turn?.role === "agent" && turn.text.trim() !== "") return i;
+  }
+  return -1;
+}
+
+function PlayGlyph({ size = 12 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M8 5v14l11-7z" />
+    </svg>
+  );
+}
+
+function PauseGlyph({ size = 12 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <rect x="6" y="5" width="4" height="14" rx="1" />
+      <rect x="14" y="5" width="4" height="14" rx="1" />
+    </svg>
+  );
+}
+
+/** Per-bubble read-aloud control. Only mounted on agent bubbles when ttsEnabled
+ *  (so non-TTS interviews render byte-identical bubbles). One element switches
+ *  play → generating-spinner → pause; an older turn the route can no longer
+ *  reach (not cached AND not the latest turn) renders as a disabled control. */
+interface BubbleTts {
+  state: "idle" | "loading" | "playing";
+  available: boolean;
+  onToggle: () => void;
+  labelPlay: string;
+  labelPause: string;
+  labelLoading: string;
+  labelUnavailable: string;
+}
+
+function BubbleTtsControl({
+  state,
+  available,
+  onToggle,
+  labelPlay,
+  labelPause,
+  labelLoading,
+  labelUnavailable,
+}: BubbleTts) {
+  const label =
+    state === "loading"
+      ? labelLoading
+      : state === "playing"
+        ? labelPause
+        : available
+          ? labelPlay
+          : labelUnavailable;
+  return (
+    <div className="mt-1.5 flex">
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={!available && state === "idle"}
+        aria-label={label}
+        title={label}
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[#6B6680] outline-none transition-colors hover:bg-white/70 hover:text-[#0E0A1F] focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]/40 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#6B6680]"
+      >
+        {state === "loading" ? (
+          <Spinner />
+        ) : state === "playing" ? (
+          <PauseGlyph />
+        ) : (
+          <PlayGlyph />
+        )}
+      </button>
+    </div>
+  );
+}
+
+function Bubble({
+  role,
+  text,
+  tts,
+}: {
+  role: InterviewTurn["role"];
+  text: string;
+  tts?: BubbleTts;
+}) {
   const isAgent = role === "agent";
   return (
     <div className={`flex ${isAgent ? "justify-start" : "justify-end"}`}>
@@ -175,6 +293,7 @@ function Bubble({ role, text }: { role: InterviewTurn["role"]; text: string }) {
         }`}
       >
         {text}
+        {tts && <BubbleTtsControl {...tts} />}
       </div>
     </div>
   );
@@ -338,6 +457,37 @@ function MicIcon({ size = 14 }: { size?: number }) {
       <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
       <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
       <line x1="12" y1="19" x2="12" y2="22" />
+    </svg>
+  );
+}
+
+/** Speaker glyph for the TTS sound toggle. `muted` swaps the sound waves for an
+ *  ✕ so the control reads at a glance whether read-aloud is on. */
+function SpeakerIcon({ muted, size = 15 }: { muted: boolean; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M11 5 6 9H2v6h4l5 4z" />
+      {muted ? (
+        <>
+          <line x1="22" y1="9" x2="16" y2="15" />
+          <line x1="16" y1="9" x2="22" y2="15" />
+        </>
+      ) : (
+        <>
+          <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+          <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+        </>
+      )}
     </svg>
   );
 }
@@ -548,6 +698,7 @@ export function InterviewChat({
   voiceEnabled = false,
   stimulusUrl = null,
   stimulusType = null,
+  ttsEnabled = false,
 }: InterviewChatProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
@@ -601,17 +752,84 @@ export function InterviewChat({
   const levelRafRef = useRef<number | null>(null);
   const voiceTimerRef = useRef<number | null>(null);
   const voiceSecondsRef = useRef(0);
+  // Set synchronously the moment a mic-start gesture begins (before the
+  // getUserMedia await), cleared when that turn ends. Lets TTS bail even during
+  // the permission window — closes the "enable sound → mic" barge-in race so the
+  // mic never captures the AI's own voice.
+  const recordingArmedRef = useRef(false);
   // Latest-value ref for the Space-bar toggle. The window listener binds once
   // per open voice session; this ref keeps it pointed at the current state +
   // handlers without rebinding on every mic-level tick. Returns whether it acted
   // so the listener only swallows Space (preventDefault) when it actually toggled.
   const voiceToggleRef = useRef<() => boolean>(() => false);
 
+  // TTS read-aloud (additive; all inert unless ttsEnabled). The <audio> element
+  // and bookkeeping live in refs so they survive re-renders; only the two
+  // display flags are React state. ttsBlocked seeds true when there's an agent
+  // turn to speak — a cold load has no user gesture yet, so the participant
+  // sees the "enable sound" toggle from the first paint (SSR-stable: derived
+  // only from props, no window access → no hydration mismatch).
+  const [ttsMuted, setTtsMuted] = useState(false);
+  const [ttsBlocked, setTtsBlocked] = useState(
+    () =>
+      ttsEnabled &&
+      initialConversation.some(
+        (m) => m.role === "agent" && m.text.trim() !== "",
+      ),
+  );
+  // Which agent-turn index is currently audible / being synthesized — drive the
+  // per-bubble play/pause icon + spinner. Display-only state (null = none).
+  const [ttsPlayingIndex, setTtsPlayingIndex] = useState<number | null>(null);
+  const [ttsLoadingIndex, setTtsLoadingIndex] = useState<number | null>(null);
+  // Render-safe mirror of the cache's KEYS, so a bubble's "available" flag is
+  // derived during render WITHOUT reading a ref (refs aren't render-safe). The
+  // URLs themselves live in ttsCacheRef for the async playback path.
+  const [ttsCachedKeys, setTtsCachedKeys] = useState<ReadonlySet<number>>(
+    () => new Set(),
+  );
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Per-message MP3 cache: agent-turn index → object URL. The /speak route only
+  // ever speaks the conversation's LATEST turn, so each turn is synthesized at
+  // most ONCE (while it is the latest) and every later replay — including of
+  // older turns — is served from here, never the route. The conversation is
+  // append-only (the server returns the growing transcript), so an agent turn's
+  // array index is stable and a sound cache key.
+  const ttsCacheRef = useRef<Map<number, string>>(new Map());
+  // Indices with a /speak fetch in flight, so a second trigger for the SAME turn
+  // (autoplay racing a manual tap, or a double-click) never fires a duplicate
+  // synth — keeps the "generated exactly once" guarantee.
+  const ttsFetchingRef = useRef<Set<number>>(new Set());
+  // Synchronous mirror of ttsMuted so the async playback path reads a fresh value
+  // (state updates are async). The toggle handlers set it eagerly.
+  const ttsMutedRef = useRef(false);
+  // Whether playback has been unlocked by a user gesture. Once true, new agent
+  // turns auto-play; until then the effect skips the (costly) synth and shows
+  // the manual toggle instead of firing a /speak call the browser would block.
+  const ttsUnlockedRef = useRef(false);
+  // Highest agent-turn index already auto-handled, so a re-render never
+  // re-autoplays the same turn (manual replay is separate, via the bubble).
+  const ttsSpokenIndexRef = useRef(-1);
+  // Monotonic token: each play attempt claims the next value and bails after its
+  // await if a newer attempt (or a stop) has superseded it — so two interleaved
+  // playbacks can't double-play, and a stop cancels an in-flight one.
+  const ttsPlayGenRef = useRef(0);
+  // Always-fresh mirror of `messages` for the async synth path. The /speak route
+  // always speaks the server's CURRENT latest agent turn (it echoes no turn id),
+  // so before caching a fetched clip we must confirm — against up-to-date state,
+  // NOT the stale closure captured when the fetch started — that the turn hasn't
+  // been superseded; otherwise a synth that resolves after the conversation
+  // advanced would be cached under the wrong bubble.
+  const messagesRef = useRef(messages);
+
   const isOpen = status === "open";
   const visualConsentPending =
     isOpen &&
     visualCaptureEnabled &&
     (visualCaptureState === "prompt" || visualCaptureState === "starting");
+  // Computed once per render: the only turn whose audio the /speak route can
+  // still synthesize. A per-bubble control is offered when its turn is cached
+  // OR is this latest turn; older uncached turns render the disabled state.
+  const ttsLatestAgentIndex = ttsEnabled ? latestAgentIndex(messages) : -1;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -651,6 +869,60 @@ export function InterviewChat({
   useEffect(() => {
     return () => {
       teardownRecording();
+    };
+  }, []);
+
+  // Keep the synchronous muted mirror in step with the state.
+  useEffect(() => {
+    ttsMutedRef.current = ttsMuted;
+  }, [ttsMuted]);
+
+  // Keep the messages mirror fresh for the async synth path (see messagesRef).
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // TTS: speak each new agent turn. Watching `messages` is the ONE seam that
+  // covers all three entry points — the opening question lands in the initial
+  // state (R6), and both send() and sendAudio() replace `messages` with the
+  // server's conversation. We mark the turn handled BEFORE playing so a
+  // re-render can't re-speak it. Until a user gesture has unlocked playback we
+  // skip the costly synth and just surface the "enable sound" toggle (a cold
+  // load would have its autoplay blocked anyway). Fully inert unless ttsEnabled.
+  useEffect(() => {
+    if (!ttsEnabled) return;
+    const latest = latestAgentIndex(messages);
+    if (latest === -1 || latest === ttsSpokenIndexRef.current) return;
+    ttsSpokenIndexRef.current = latest;
+    if (ttsMuted) return;
+    if (!ttsUnlockedRef.current) {
+      setTtsBlocked(true);
+      return;
+    }
+    void playTtsForIndex(latest);
+  }, [messages, ttsEnabled, ttsMuted]);
+
+  // Release the audio element + EVERY cached blob URL on unmount (not just the
+  // current one) — the whole per-message cache is freed so nothing leaks and no
+  // clip keeps playing after the participant navigates away. The cache Map is
+  // captured here (its identity is stable for the component's life) so the
+  // cleanup frees exactly the object we accumulated, not a moving ref target.
+  useEffect(() => {
+    const cache = ttsCacheRef.current;
+    return () => {
+      const audio = ttsAudioRef.current;
+      if (audio) {
+        try {
+          audio.pause();
+        } catch {
+          // ignore
+        }
+        audio.onended = null;
+      }
+      for (const url of cache.values()) {
+        URL.revokeObjectURL(url);
+      }
+      cache.clear();
     };
   }, []);
 
@@ -925,6 +1197,7 @@ export function InterviewChat({
    *  detaches the handlers first so onstop can't fire a request after the
    *  component is gone, then stops the recorder and releases the mic. */
   function teardownRecording() {
+    recordingArmedRef.current = false;
     clearVoiceTimer();
     stopVoiceLevelMeter();
     const recorder = mediaRecorderRef.current;
@@ -943,6 +1216,216 @@ export function InterviewChat({
     audioChunksRef.current = [];
   }
 
+  // ── TTS read-aloud ────────────────────────────────────────────────────────
+  // A dedicated HTMLAudioElement, created lazily on the client. It is fully
+  // separate from the level-meter's AudioContext (audioContextRef), so
+  // stopVoiceLevelMeter() closing that context never touches TTS playback, and
+  // TTS playback never feeds the mic analyser — Voice STT, VI and TTS coexist.
+  function ensureTtsAudio(): HTMLAudioElement {
+    let audio = ttsAudioRef.current;
+    if (!audio) {
+      audio = new Audio();
+      audio.preload = "auto";
+      ttsAudioRef.current = audio;
+    }
+    return audio;
+  }
+
+  /** Pauses the audio element and clears the "playing" badge — WITHOUT touching
+   *  the cache (URLs are kept for replay) or the gen token. Internal helper used
+   *  at the top of a fresh playback to silence whatever was playing. */
+  function haltTtsAudio() {
+    const audio = ttsAudioRef.current;
+    if (audio) {
+      try {
+        audio.pause();
+      } catch {
+        // ignore
+      }
+    }
+    setTtsPlayingIndex(null);
+  }
+
+  /** Stops playback AND invalidates any in-flight play/fetch by bumping the gen
+   *  token (a synth that resolves later still caches its result, but won't start
+   *  playing). Cached URLs are deliberately kept — freed only on unmount — so a
+   *  stopped turn can still be replayed from cache. Safe to call repeatedly. */
+  function stopTtsPlayback() {
+    ttsPlayGenRef.current += 1;
+    haltTtsAudio();
+  }
+
+  /** Best-effort autoplay unlock, called SYNCHRONOUSLY inside the mic-start user
+   *  gesture (before any await). Playing a silent clip within the gesture marks
+   *  the element user-activated so the agent's next answer can play without a
+   *  tap. Harmless on failure — the visible toggle is the fallback. */
+  function unlockTtsPlayback() {
+    if (!ttsEnabled || ttsUnlockedRef.current) return;
+    const audio = ensureTtsAudio();
+    try {
+      audio.onended = null;
+      audio.src = SILENT_WAV;
+      const played = audio.play();
+      if (played && typeof played.then === "function") {
+        played
+          .then(() => {
+            ttsUnlockedRef.current = true;
+          })
+          .catch(() => {
+            // Gesture too short / blocked — manual toggle still works.
+          });
+      } else {
+        ttsUnlockedRef.current = true;
+      }
+    } catch {
+      // ignore — unlock is best-effort
+    }
+  }
+
+  /** Binds a cached / just-synth'd object URL to the audio element and plays it,
+   *  tracking the playing index. `gen` is the caller's claim token: every state
+   *  write re-checks it so a superseded attempt goes silent. A blocked play()
+   *  (no user gesture yet) flips ttsBlocked so the manual toggle appears. */
+  async function playTtsUrl(url: string, index: number, gen: number) {
+    const audio = ensureTtsAudio();
+    audio.src = url;
+    audio.onended = () => {
+      if (gen === ttsPlayGenRef.current) {
+        setTtsPlayingIndex((cur) => (cur === index ? null : cur));
+      }
+    };
+    try {
+      await audio.play();
+      if (gen !== ttsPlayGenRef.current) return;
+      ttsUnlockedRef.current = true;
+      setTtsBlocked(false);
+      setTtsPlayingIndex(index);
+    } catch {
+      // Autoplay blocked (no gesture yet) — surface the manual enable toggle.
+      if (gen === ttsPlayGenRef.current) setTtsBlocked(true);
+    }
+  }
+
+  /** Plays a single agent turn — autoplay of the newest, or a manual replay of
+   *  any bubble. Replay is CACHE-FIRST: an already-synth'd turn never hits the
+   *  route again. A cache MISS may only fetch when this turn is still the latest
+   *  (the /speak route can't reach older turns); the blob is cached exactly once
+   *  and then played unless a newer turn / mute / mic gesture superseded it.
+   *  Muted or unreachable → no-op. Best-effort: fetch errors stay silent so the
+   *  interview continues text-only. Never talks over a live recording (R5). */
+  async function playTtsForIndex(index: number) {
+    if (!ttsEnabled || ttsMutedRef.current) return;
+    const turn = messages[index];
+    if (!turn || turn.role !== "agent" || turn.text.trim() === "") return;
+
+    // Cache hit → replay locally, never the route. Claim the slot + silence the
+    // previous clip first.
+    const cached = ttsCacheRef.current.get(index);
+    if (cached) {
+      const gen = ++ttsPlayGenRef.current;
+      haltTtsAudio();
+      await playTtsUrl(cached, index, gen);
+      return;
+    }
+
+    // Cache miss. The route only ever speaks the conversation's latest turn, so
+    // an older uncached turn is unreachable — its bubble is disabled and we never
+    // call the route for it.
+    if (index !== latestAgentIndex(messages)) return;
+    // Dedup: a synth for this turn is already in flight (autoplay racing a tap) →
+    // let it finish; it will play. Keeps the "generated exactly once" guarantee.
+    if (ttsFetchingRef.current.has(index)) return;
+
+    const gen = ++ttsPlayGenRef.current;
+    haltTtsAudio();
+    ttsFetchingRef.current.add(index);
+    setTtsLoadingIndex(index);
+    let blob: Blob | null = null;
+    try {
+      const res = await fetch(`/api/interview/${token}/speak`, {
+        method: "POST",
+      });
+      if (res.ok) blob = await res.blob();
+    } catch {
+      // network hiccup — TTS is non-critical; fall through to clear + bail
+    } finally {
+      ttsFetchingRef.current.delete(index);
+    }
+    setTtsLoadingIndex((cur) => (cur === index ? null : cur));
+    if (!blob || blob.size === 0) return;
+    // STALE-INDEX GUARD: the /speak route always synthesizes the server's CURRENT
+    // latest agent turn and echoes no turn id, so this clip is provably `index`'s
+    // audio ONLY if `index` is STILL the latest agent turn now. The conversation
+    // is append-only, so "still latest" ⟺ no newer turn was appended while the
+    // synth was in flight ⟺ the server read `index` as latest. If it advanced
+    // mid-fetch, the clip may belong to the newer turn — DISCARD it rather than
+    // cache the wrong audio under this bubble (the newer turn's own autoplay
+    // fetches + caches its clip correctly). messagesRef is fresh; the closure's
+    // `messages` is stale across the await.
+    if (index !== latestAgentIndex(messagesRef.current)) return;
+    // Cache exactly once (we held the only in-flight fetch for this index), even
+    // if we no longer play it — so the spend isn't wasted and replay stays local.
+    const url = URL.createObjectURL(blob);
+    ttsCacheRef.current.set(index, url);
+    setTtsCachedKeys((prev) => {
+      if (prev.has(index)) return prev;
+      const next = new Set(prev);
+      next.add(index);
+      return next;
+    });
+    // Re-check after the await: superseded by a newer turn, muted, or a mic-start
+    // gesture is in progress (incl. its getUserMedia window, before the recorder
+    // exists) → keep it cached but don't talk over the mic.
+    if (gen !== ttsPlayGenRef.current || ttsMutedRef.current) return;
+    if (
+      recordingArmedRef.current ||
+      mediaRecorderRef.current?.state === "recording"
+    ) {
+      return;
+    }
+    await playTtsUrl(url, index, gen);
+  }
+
+  /** Global "enable sound" toggle: unmute, unlock playback inside this gesture
+   *  (a SYNCHRONOUS silent play blesses the element for user activation — needed
+   *  on iOS / in pure text mode where no mic gesture ever unlocked it), and play
+   *  the current question. Sets the muted mirror eagerly so the in-flight fetch
+   *  isn't skipped by a stale ref. */
+  function enableTtsSound() {
+    setTtsMuted(false);
+    ttsMutedRef.current = false;
+    setTtsBlocked(false);
+    unlockTtsPlayback();
+    const latest = latestAgentIndex(messages);
+    if (latest !== -1) void playTtsForIndex(latest);
+  }
+
+  /** Global "mute" toggle: mute + stop the current clip (cache kept for replay). */
+  function muteTtsSound() {
+    setTtsMuted(true);
+    ttsMutedRef.current = true;
+    stopTtsPlayback();
+  }
+
+  /** Per-bubble play/pause. Tapping the active turn (playing OR generating) stops
+   *  it; tapping any other reachable turn plays it (from cache, or — if it's the
+   *  latest — synth'd once). A manual tap is intent to hear, so it unlocks the
+   *  element in-gesture and lifts a global mute. */
+  function toggleBubbleTts(index: number) {
+    unlockTtsPlayback();
+    if (ttsPlayingIndex === index || ttsLoadingIndex === index) {
+      stopTtsPlayback();
+      setTtsLoadingIndex((cur) => (cur === index ? null : cur));
+      return;
+    }
+    if (ttsMutedRef.current) {
+      setTtsMuted(false);
+      ttsMutedRef.current = false;
+    }
+    setTtsBlocked(false);
+    void playTtsForIndex(index);
+  }
+
   async function startRecording() {
     if (
       !canRecordAudio() ||
@@ -954,13 +1437,25 @@ export function InterviewChat({
     ) {
       return;
     }
+    // R5 (race): arm synchronously, before the getUserMedia await, so an in-flight
+    // /speak that resolves DURING the permission window bails instead of speaking
+    // into the about-to-open mic. Cleared on every exit path below.
+    recordingArmedRef.current = true;
     setError(null);
+    // R2: prime TTS autoplay inside this user gesture (synchronous, before the
+    // getUserMedia await consumes the activation) so the agent's next answer can
+    // speak without a tap. R5: silence any TTS that's currently playing so the
+    // mic doesn't capture the AI's own voice (manual barge-in). Both no-op when
+    // ttsEnabled is false.
+    unlockTtsPlayback();
+    stopTtsPlayback();
 
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
       // Permission denied or no microphone — fall back to typing.
+      recordingArmedRef.current = false;
       setVoiceState("denied");
       return;
     }
@@ -977,6 +1472,7 @@ export function InterviewChat({
       if (event.data.size > 0) audioChunksRef.current.push(event.data);
     };
     recorder.onstop = () => {
+      recordingArmedRef.current = false;
       clearVoiceTimer();
       stopVoiceLevelMeter();
       const chunks = audioChunksRef.current;
@@ -1014,10 +1510,11 @@ export function InterviewChat({
     const recorder = mediaRecorderRef.current;
     mediaRecorderRef.current = null;
     if (!recorder || recorder.state === "inactive") {
+      recordingArmedRef.current = false;
       clearVoiceTimer();
       return;
     }
-    recorder.stop(); // → onstop builds the blob and calls sendAudio
+    recorder.stop(); // → onstop builds the blob and calls sendAudio (clears armed)
   }
 
   /** Mirrors send()'s session-replacement seam, but posts the recorded audio to
@@ -1138,7 +1635,30 @@ export function InterviewChat({
           onDecline={declineVisualCapture}
         />
         {messages.map((m, i) => (
-          <Bubble key={i} role={m.role} text={m.text} />
+          <Bubble
+            key={i}
+            role={m.role}
+            text={m.text}
+            tts={
+              ttsEnabled && m.role === "agent" && m.text.trim() !== ""
+                ? {
+                    state:
+                      ttsLoadingIndex === i
+                        ? "loading"
+                        : ttsPlayingIndex === i
+                          ? "playing"
+                          : "idle",
+                    available:
+                      ttsCachedKeys.has(i) || i === ttsLatestAgentIndex,
+                    onToggle: () => toggleBubbleTts(i),
+                    labelPlay: t("tts.play"),
+                    labelPause: t("tts.pause"),
+                    labelLoading: t("tts.loading"),
+                    labelUnavailable: t("tts.unavailable"),
+                  }
+                : undefined
+            }
+          />
         ))}
         {loading && <TypingBubble />}
         <div ref={endRef} />
@@ -1152,6 +1672,33 @@ export function InterviewChat({
 
       {isOpen ? (
         <div className="sticky bottom-0 mt-6 bg-white pb-6 pt-2">
+          {ttsEnabled && (
+            // Read-aloud sound toggle + autoplay safety net (R2/R7/R12). Shows
+            // "enable sound" while muted OR while autoplay is blocked (no
+            // gesture yet / iOS) — one tap unmutes, unlocks and plays the
+            // current question; otherwise it's a mute control. Works in pure
+            // text mode too, where there is no mic gesture to rely on.
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={
+                  ttsMuted || ttsBlocked ? enableTtsSound : muteTtsSound
+                }
+                aria-pressed={!ttsMuted && !ttsBlocked}
+                className="inline-flex h-[36px] shrink-0 items-center gap-2 rounded-full border border-[#E8E4F2] bg-[#FAFAFE] px-3.5 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:bg-[#F4F1FD]"
+              >
+                <SpeakerIcon muted={ttsMuted || ttsBlocked} />
+                {ttsMuted || ttsBlocked ? t("tts.enable") : t("tts.mute")}
+              </button>
+              <span className="text-[11px] leading-snug text-[#8A85A0]">
+                {ttsMuted
+                  ? t("tts.mutedHint")
+                  : ttsBlocked
+                    ? t("tts.blockedHint")
+                    : t("tts.onHint")}
+              </span>
+            </div>
+          )}
           {voiceEnabled && (
             <VoiceControls
               state={voiceState}

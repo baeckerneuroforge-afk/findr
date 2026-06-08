@@ -55,6 +55,17 @@
       "denied": "Kein Mikrofonzugriff — bitte tippen Sie Ihre Antwort.",
       "unsupported": "Spracheingabe wird hier nicht unterstützt — bitte tippen Sie Ihre Antwort."
     },
+    "tts": {
+      "enable": "Ton aktivieren",
+      "mute": "Ton aus",
+      "onHint": "Die KI liest ihre Fragen vor.",
+      "mutedHint": "Sprachausgabe stumm.",
+      "blockedHint": "Tippen Sie auf „Ton aktivieren“, um die Frage zu hören.",
+      "play": "Frage vorlesen",
+      "pause": "Wiedergabe anhalten",
+      "loading": "Audio wird erzeugt",
+      "unavailable": "Audio nicht verfügbar"
+    },
     "meta": {
       "defaultTitle": "Eine kurze Frage zu Ihrer Entscheidung — findr.",
       "defaultDescription": "Eine kurze, vertrauliche Rückfrage zu einer kürzlichen Entscheidung.",
@@ -1019,6 +1030,11 @@
       "ucCoT2Intent": "Was gefällt Ihnen, was weniger?",
       "ucCoT3Label": "Varianten-Präferenz",
       "ucCoT3Intent": "Welche Variante spricht Sie am meisten an, und warum?",
+      "fldTts": "Sprachausgabe der KI",
+      "ttsHint": "Wenn aktiviert, liest der KI-Interviewer seine Fragen im Sprachmodus laut vor (deutsche Stimme) — inklusive der Eröffnungsfrage. Der Teilnehmer kann den Ton jederzeit selbst stummschalten. Standard: aus.",
+      "ttsRequiresVoice": "Nur im Sprachmodus sinnvoll — aktivieren Sie zuerst Voice.",
+      "ttsOn": "An",
+      "ttsOff": "Aus",
       "topicsFormTitle": "Topics",
       "topicsFormDesc": "Der Agent formuliert Fragen on-the-fly aus diesen Topics — keine feste Fragenliste. Jedes Topic bekommt 2–4 Turns im Gespräch. Hypothesen sind private Steuerung, werden nie vorgelesen.",
       "submitCreate": "Plan erstellen",

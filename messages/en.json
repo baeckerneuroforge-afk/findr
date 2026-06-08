@@ -55,6 +55,17 @@
       "denied": "No microphone access — please type your answer.",
       "unsupported": "Voice input isn't supported here — please type your answer."
     },
+    "tts": {
+      "enable": "Enable sound",
+      "mute": "Mute",
+      "onHint": "The AI reads its questions aloud.",
+      "mutedHint": "Voice output muted.",
+      "blockedHint": "Tap “Enable sound” to hear the question.",
+      "play": "Read question aloud",
+      "pause": "Pause playback",
+      "loading": "Generating audio",
+      "unavailable": "Audio unavailable"
+    },
     "meta": {
       "defaultTitle": "A quick question about your decision — findr.",
       "defaultDescription": "A short, confidential follow-up about a recent decision.",
@@ -1019,6 +1030,11 @@
       "ucCoT2Intent": "What do you like, and what less so?",
       "ucCoT3Label": "Variant preference",
       "ucCoT3Intent": "Which variant appeals to you most, and why?",
+      "fldTts": "AI voice output",
+      "ttsHint": "When enabled, the AI interviewer reads its questions aloud in voice mode (German voice) — including the opening question. Participants can mute the sound themselves at any time. Default: off.",
+      "ttsRequiresVoice": "Only makes sense in voice mode — switch on Voice first.",
+      "ttsOn": "On",
+      "ttsOff": "Off",
       "topicsFormTitle": "Topics",
       "topicsFormDesc": "The agent formulates questions on-the-fly from these topics — not a fixed question list. Each topic gets 2–4 turns in the conversation. Hypotheses are private steering, never read out loud.",
       "submitCreate": "Create plan",

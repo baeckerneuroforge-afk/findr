@@ -80,6 +80,13 @@ interface FormState {
   stimulusUrl: string | null;
   stimulusType: string | null;
   stimulusDescription: string;
+  // TTS read-aloud opt-in. Default OFF. Sent as `ttsEnabled` (exact key) in the
+  // create/update body — the backend flag + /speak route already exist; this
+  // form only fills the value. It's its OWN field, but the UI couples it to
+  // voiceEnabled (a read-aloud agent only makes sense once the participant has
+  // the mic gesture that unlocks browser autoplay): the switch is disabled in
+  // Text mode and switching back to Text clears it.
+  ttsEnabled: boolean;
   topics: TopicDraft[];
 }
 
@@ -237,6 +244,8 @@ const INITIAL_FORM: FormState = {
   stimulusUrl: null,
   stimulusType: null,
   stimulusDescription: "",
+  // Default OFF — read-aloud is opt-in and only enabled while voice is on.
+  ttsEnabled: false,
   // Start with one empty topic so the editor isn't blank — encourages the
   // user to fill at least one in. Empty topics are dropped at submit time.
   topics: [emptyTopicDraft()],
@@ -364,6 +373,18 @@ export function ResearchPlanForm({
     setGenInputs((current) => ({ ...current, [key]: value }));
   }
 
+  /** Voice/Text mode switch. Coupled to TTS: read-aloud only makes sense in
+   *  voice mode (where the mic gesture unlocks autoplay), so switching to Text
+   *  clears ttsEnabled in the same update. ttsEnabled stays its own field —
+   *  this is pure UI coupling, not a field merge. */
+  function setVoiceMode(enabled: boolean) {
+    setForm((current) => ({
+      ...current,
+      voiceEnabled: enabled,
+      ttsEnabled: enabled ? current.ttsEnabled : false,
+    }));
+  }
+
   /** Translates the rich InterviewGuide.topics into TopicDraft[] the existing
    *  editor knows how to render. Lossy on mainQuestion (kept in lastGuide for
    *  the preview block); the agent reads label/goalLink/probes via the
@@ -405,6 +426,7 @@ export function ResearchPlanForm({
           sampleTarget: null,
           visualCaptureEnabled: form.visualCaptureEnabled,
           voiceEnabled: form.voiceEnabled,
+          ttsEnabled: form.ttsEnabled,
           ...useCasePayload,
           ...studyTypePayload,
         }),
@@ -726,6 +748,7 @@ export function ResearchPlanForm({
               sampleTarget,
               visualCaptureEnabled: form.visualCaptureEnabled,
               voiceEnabled: form.voiceEnabled,
+              ttsEnabled: form.ttsEnabled,
               ...useCasePayload,
               ...stimulusDescriptionPayload,
             }),
@@ -752,6 +775,7 @@ export function ResearchPlanForm({
           sampleTarget,
           visualCaptureEnabled: form.visualCaptureEnabled,
           voiceEnabled: form.voiceEnabled,
+          ttsEnabled: form.ttsEnabled,
           ...useCasePayload,
           ...studyTypePayload,
           ...stimulusDescriptionPayload,
@@ -1194,7 +1218,7 @@ export function ResearchPlanForm({
                 type="button"
                 role="radio"
                 aria-checked={!form.voiceEnabled}
-                onClick={() => update("voiceEnabled", false)}
+                onClick={() => setVoiceMode(false)}
                 disabled={submitting}
                 className={`rounded-full px-3.5 py-1.5 text-small font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
                   !form.voiceEnabled
@@ -1208,7 +1232,7 @@ export function ResearchPlanForm({
                 type="button"
                 role="radio"
                 aria-checked={form.voiceEnabled}
-                onClick={() => update("voiceEnabled", true)}
+                onClick={() => setVoiceMode(true)}
                 disabled={submitting}
                 className={`rounded-full px-3.5 py-1.5 text-small font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
                   form.voiceEnabled
@@ -1217,6 +1241,48 @@ export function ResearchPlanForm({
                 }`}
               >
                 {t("modeVoiceLabel")}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Sprachausgabe der KI (TTS) — eigenes Feld `ttsEnabled` (exakt dieser
+            Key) in denselben Submit-Pfaden wie voiceEnabled. Produktregel: nur
+            im Voice-Modus aktiv (dort gibt es die Mic-Geste, die das Autoplay
+            der Browser entsperrt). Im Text-Modus ist der Schalter deaktiviert
+            und ein Wechsel auf Text setzt das Feld zurück (siehe setVoiceMode).
+            Ein unberührtes Formular sendet false. Der Backend-Flag + die
+            /speak-Route existieren bereits — dieses Formular füllt nur den Wert. */}
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <span className="block text-body-strong text-neutral-900">
+                {t("fldTts")}
+              </span>
+              <span className="mt-1 block text-caption text-neutral-500">
+                {form.voiceEnabled ? t("ttsHint") : t("ttsRequiresVoice")}
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-caption text-neutral-500">
+                {form.ttsEnabled ? t("ttsOn") : t("ttsOff")}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.ttsEnabled}
+                aria-label={t("fldTts")}
+                onClick={() => update("ttsEnabled", !form.ttsEnabled)}
+                disabled={submitting || !form.voiceEnabled}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                  form.ttsEnabled ? "bg-primary-600" : "bg-neutral-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                    form.ttsEnabled ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
               </button>
             </div>
           </div>
