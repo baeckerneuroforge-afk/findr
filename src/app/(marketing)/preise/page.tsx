@@ -151,6 +151,16 @@ const FAQPAGE_JSONLD = {
 
 const faqItems: FaqItem[] = FAQ_ITEMS;
 
+/**
+ * PricingMatrix vorübergehend ausgeblendet (Etappe-2-Nachzug): Ihre Zeilen/Zellen
+ * sind noch auf die alten Module (Sales/CS/PD) verdrahtet und passen nicht zur
+ * MR-Methoden-Positionierung. Die Komponente bleibt erhalten und kommt mit
+ * MR-Daten zurück.
+ * REAKTIVIERUNG: dieses Flag auf `true` setzen — die Matrix-Sektion (inkl. ihrer
+ * eigenen Überschrift) rendert dann wieder. KEIN weiterer Schritt nötig.
+ */
+const SHOW_PRICING_MATRIX = false;
+
 export default function PreisePage() {
   return (
     <>
@@ -219,21 +229,24 @@ export default function PreisePage() {
         lead="Vier Methoden auf einer gemeinsamen KI-Engine. Du musst nicht alles auf einmal nehmen — wähl, was heute zählt, und erweitere, wenn dein Team so weit ist."
       />
 
-      {/* 4 ── FEATURE-/MODUL-MATRIX ────────────────────────────────────────── */}
-      <Section tone="muted">
-        <Container>
-          <Reveal>
-            <SectionHeading
-              eyebrow="Was in welcher Methode steckt"
-              title="Die Plattform im Überblick."
-              lead="Zeilen sind Fähigkeiten, Spalten sind die vier Methoden. So siehst du auf einen Blick, was jede Methode liefert — und woraus sich dein Baukasten zusammensetzt."
-            />
-          </Reveal>
-          <Reveal>
-            <PricingMatrix />
-          </Reveal>
-        </Container>
-      </Section>
+      {/* 4 ── FEATURE-/MODUL-MATRIX (vorübergehend ausgeblendet, s. SHOW_PRICING_MATRIX
+            oben — Heading gehört zur Matrix und wird mit ausgeblendet) ───────── */}
+      {SHOW_PRICING_MATRIX && (
+        <Section tone="muted">
+          <Container>
+            <Reveal>
+              <SectionHeading
+                eyebrow="Was in welcher Methode steckt"
+                title="Die Plattform im Überblick."
+                lead="Zeilen sind Fähigkeiten, Spalten sind die vier Methoden. So siehst du auf einen Blick, was jede Methode liefert — und woraus sich dein Baukasten zusammensetzt."
+              />
+            </Reveal>
+            <Reveal>
+              <PricingMatrix />
+            </Reveal>
+          </Container>
+        </Section>
+      )}
 
       {/* 5 ── WAS IMMER DABEI IST ───────────────────────────────────────────── */}
       <Section>
