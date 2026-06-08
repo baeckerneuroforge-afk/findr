@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { isAdminRole } from "@/lib/settings/roles";
 
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
-const DEFAULT_ACCENT = "#5B2FD4";
+const DEFAULT_ACCENT = "#4A51A8";
 const MAX_BYTES = 1_048_576; // 1 MB
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 

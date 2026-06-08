@@ -7,7 +7,7 @@
  */
 
 /** Default Findr accent — fallback when no org accent color is set. */
-export const DEFAULT_ACCENT = "#5B2FD4";
+export const DEFAULT_ACCENT = "#4A51A8";
 
 /** Only ever apply a caller-supplied accent if it's a strict #RRGGBB hex. */
 export const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;

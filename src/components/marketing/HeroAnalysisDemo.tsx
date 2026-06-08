@@ -4,19 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 
 /**
- * Homepage centerpiece — a clearly-labelled EXAMPLE analysis. Click "Diesen
- * Call analysieren" and findr.'s read plays back as pure client-side state
- * animation: the flagged phrases light up in the transcript (rot = stark,
- * orange = mittel, gelb = leicht), the three risk signals reveal in sequence,
- * and the deal-risk score counts 0 → 72. NO API call, no login, no real
- * customer data — every value below is hardcoded. Reduced-motion users get the
- * final state instantly (no count-up, no stagger).
+ * Homepage centerpiece — a clearly-labelled EXAMPLE analysis of a findr.-
+ * moderated depth interview ("Bedarf & Verhalten"). Click "Dieses Gespräch
+ * analysieren" and findr.'s read plays back as pure client-side state
+ * animation: the flagged phrases light up in the transcript by signal strength
+ * (rot = stark, orange = mittel, gelb = leicht), the three signals reveal in
+ * sequence, and the insight counter ticks 0 → 3. NO API call, no login, no real
+ * participant data — every value below is hardcoded. Reduced-motion users get
+ * the final state instantly (no count-up, no stagger).
  *
- * Sibling of SalesLiveDemo (the Sales-Intelligence module page); this homepage
- * variant carries the full red/orange/yellow severity scale and the "Beispiel"
- * framing. The two are intentionally independent components.
+ * The module-page demo is a separate, intentionally independent component; this
+ * homepage variant carries the full red/orange/yellow strength scale and the
+ * "Beispiel" framing.
  *
- * Severity colours come straight from existing tokens — no new colours:
+ * Strength colours come straight from existing tokens — no new colours:
  *   stark  → danger-500  (#ef4444, rot)
  *   mittel → risk-high   (#f97316, orange)
  *   leicht → warning-500 (#f59e0b, gelb/amber)
@@ -56,55 +57,64 @@ type Line =
   | { rep?: false; before: string; phrase: string; sev: Sev; after?: string };
 
 const TRANSCRIPT: Line[] = [
-  { rep: true, text: "Wie steht es um das Renewal im Q2?" },
   {
-    before: "Ehrlich gesagt … ",
-    phrase: "Sarah hat letzte Woche gekündigt.",
-    sev: "stark",
-    after: " Sie hat das Projekt bei uns getragen.",
+    rep: true,
+    text: "Erzähl mal von letzter Woche — wie hast du entschieden, was du kochst?",
   },
-  { rep: true, text: "Das tut mir leid. Wer übernimmt jetzt?" },
   {
-    before: "Noch unklar. ",
-    phrase: "Der CFO will gerade alle Tool-Budgets durchgehen.",
+    before: "Ehrlich? ",
+    phrase: "Ich stand jeden Abend planlos vor dem Kühlschrank.",
+    sev: "stark",
+    after: " Das nervt mich schon länger.",
+  },
+  { rep: true, text: "Und wenn dir nichts einfällt — was machst du dann?" },
+  {
+    before: "Meistens ",
+    phrase: "bestelle ich einfach was, obwohl ich's mir anders vorgenommen hatte.",
     sev: "mittel",
   },
-  { rep: true, text: "Verstehe. Und wie lief das Pricing-Gespräch?" },
+  { rep: true, text: "Hast du schon mal etwas ausprobiert, um das zu lösen?" },
   {
-    before: "Passt soweit — ",
-    phrase: "ein Wettbewerber lag zuletzt etwas günstiger.",
+    before: "Eine App kurz getestet — ",
+    phrase: "aber das ewige Eintippen war mir zu mühsam.",
     sev: "leicht",
   },
-  { rep: true, text: "Danke für die Offenheit. Wir bleiben dran." },
+  {
+    rep: true,
+    text: "Danke, das ist sehr aufschlussreich. Eine letzte Frage noch …",
+  },
 ];
 
 const SIGNALS: { name: string; sev: Sev; quote: string; why: string }[] = [
   {
-    name: "Champion-Verlust",
+    name: "Bedürfnis erkannt",
     sev: "stark",
-    quote: "„Sarah hat letzte Woche gekündigt.“",
-    why: "Die treibende Kraft auf Kundenseite ist weg.",
+    quote: "„Ich stand jeden Abend planlos vor dem Kühlschrank.“",
+    why: "Wiederkehrender Schmerzpunkt — bislang ohne feste Lösung.",
   },
   {
-    name: "Budget-Review",
+    name: "Workaround",
     sev: "mittel",
-    quote: "„Der CFO will alle Tool-Budgets durchgehen.“",
-    why: "Neuer, später Entscheider mit Spar-Mandat.",
+    quote: "„… bestelle ich einfach was, obwohl ich's mir anders vorgenommen hatte.“",
+    why: "Behilft sich impulsiv — ein ungedeckter Bedarf.",
   },
   {
-    name: "Wettbewerber-Preis",
+    name: "Reibungspunkt",
     sev: "leicht",
-    quote: "„Ein Wettbewerber lag etwas günstiger.“",
-    why: "Preisdruck — aber noch kein Dealbreaker.",
+    quote: "„… das ewige Eintippen war mir zu mühsam.“",
+    why: "Bestehende Lösung scheitert an der Bedienung.",
   },
 ];
 
-const TARGET = 72;
+// Honest counter: the number of belegte Erkenntnisse findr. surfaces from this
+// one interview (matches SIGNALS.length) — NOT a 0–100 score. The ring fills
+// proportionally to `max` so the same count-up mechanic reads as "3 of 3 found".
+const TARGET = 3;
 
-function ScoreRing({ score }: { score: number }) {
+function ScoreRing({ score, max }: { score: number; max: number }) {
   const r = 42;
   const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - score / 100);
+  const offset = circ * (1 - score / max);
   return (
     <div className="relative h-[104px] w-[104px] shrink-0">
       <svg width="104" height="104" className="-rotate-90" aria-hidden>
@@ -210,7 +220,7 @@ export function HeroAnalysisDemo() {
   );
 
   return (
-    <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-[0_1px_0_rgba(24,24,27,0.04),0_24px_60px_-32px_rgba(91,47,212,0.28)]">
+    <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-[0_1px_0_rgba(24,24,27,0.04),0_24px_60px_-32px_rgba(74,81,168,0.28)]">
       {/* Window chrome — honest "example" framing, deliberately NOT a live badge */}
       <div className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-neutral-50 px-4 py-2.5 sm:px-5">
         <div className="flex items-center gap-2">
@@ -222,7 +232,7 @@ export function HeroAnalysisDemo() {
           </span>
         </div>
         <span className="rounded bg-neutral-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-neutral-500">
-          Sales Intelligence
+          Market Research
         </span>
       </div>
 
@@ -230,7 +240,7 @@ export function HeroAnalysisDemo() {
         {/* ── Transcript pane ─────────────────────────────────────── */}
         <div className="border-b border-neutral-200 p-5 sm:p-6 lg:border-b-0 lg:border-r">
           <div className="flex items-center justify-between border-b border-neutral-200 pb-3 text-[11px] text-neutral-500">
-            <span>Transkript · Acme Corp × Northwind · 34:12</span>
+            <span>Transkript · Tiefeninterview · 08:42</span>
             <span>Vorgefertigtes Beispiel</span>
           </div>
 
@@ -247,7 +257,7 @@ export function HeroAnalysisDemo() {
                         : "bg-primary-50 text-primary-700"
                     }`}
                   >
-                    {rep ? "Rep" : "Kunde"}
+                    {rep ? "Findr" : "Person"}
                   </span>
                   <p className="text-[13.5px] leading-relaxed text-neutral-700">
                     {rep ? (
@@ -284,7 +294,7 @@ export function HeroAnalysisDemo() {
               className="inline-flex h-10 items-center justify-center gap-2 rounded bg-primary-600 px-4 text-sm font-medium text-white transition-colors hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 disabled:cursor-default disabled:opacity-40"
             >
               {!analyzed
-                ? "Diesen Call analysieren"
+                ? "Dieses Gespräch analysieren"
                 : done
                   ? "Analyse abgeschlossen"
                   : "Analysiere …"}
@@ -312,32 +322,32 @@ export function HeroAnalysisDemo() {
               <p className="max-w-[34ch] text-sm text-neutral-500">
                 Klick auf{" "}
                 <span className="font-medium text-neutral-700">Analysieren</span>{" "}
-                — findr. fängt die Signale, die ein menschlicher Reviewer
-                übersehen hat.
+                — findr. liest das Gespräch und verdichtet es zu belegten
+                Erkenntnissen.
               </p>
             </div>
           ) : (
             <div aria-live="polite">
               {/* Score */}
               <div className="mt-4 flex flex-col items-start gap-4 border-b border-neutral-200 pb-5 sm:flex-row sm:items-center sm:gap-5">
-                <ScoreRing score={score} />
+                <ScoreRing score={score} max={TARGET} />
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.1em] text-neutral-500">
-                    Deal-Risiko
+                    Erkenntnisse
                   </div>
-                  <div className="mt-1.5 inline-flex items-center gap-1.5 rounded bg-danger-500/12 px-2.5 py-1 text-sm font-semibold text-danger-700">
-                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-danger-500" />
-                    Hoch
+                  <div className="mt-1.5 inline-flex items-center gap-1.5 rounded bg-primary-500/12 px-2.5 py-1 text-sm font-semibold text-primary-700">
+                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary-500" />
+                    Stark
                   </div>
                   <p className="mt-2 max-w-[24ch] text-[11px] leading-snug text-neutral-500">
-                    Score {TARGET}/100 — drei Risiko-Signale im Transkript belegt.
+                    Drei belegte Erkenntnisse — Stärke je Aussage farblich codiert.
                   </p>
                 </div>
               </div>
 
               {/* Signals build-up */}
               <div className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-500">
-                Erkannte Risiko-Signale
+                Erkannte Signale
               </div>
               <div className="mt-3 flex flex-col gap-2.5">
                 {SIGNALS.map((s, i) => (
@@ -369,7 +379,7 @@ export function HeroAnalysisDemo() {
                 ))}
               </div>
 
-              {/* CRM vs. reality — the "belegt, nicht geraten" payoff */}
+              {/* Annahme vs. reality — the "belegt, nicht geraten" payoff */}
               <div
                 className={`mt-5 rounded border border-primary-200 bg-primary-50/60 p-4 transition-opacity duration-500 ${
                   done || reduce ? "opacity-100" : "opacity-0"
@@ -377,18 +387,18 @@ export function HeroAnalysisDemo() {
                 style={reduce ? undefined : { transitionDelay: "1900ms" }}
               >
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-primary-700">
-                  CRM vs. Realität
+                  Annahme vs. Realität
                 </div>
                 <div className="mt-2 flex items-baseline justify-between gap-3 text-sm">
-                  <span className="text-neutral-500">CRM-Notiz</span>
+                  <span className="text-neutral-500">Annahme</span>
                   <span className="text-neutral-500 line-through">
-                    Verloren wegen Preis
+                    Mehr Rezepte gewünscht
                   </span>
                 </div>
                 <div className="mt-1 flex items-baseline justify-between gap-3 text-sm">
                   <span className="text-neutral-500">findr.</span>
                   <span className="font-medium text-neutral-900">
-                    Champion weg, CFO nie eingebunden
+                    Entscheidungslast, nicht Rezeptmangel
                   </span>
                 </div>
               </div>

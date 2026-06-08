@@ -14,7 +14,7 @@ import { getOrgBranding } from "./org-settings";
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 
 /** The default Findr accent used across the interview / export / mail surfaces. */
-export const DEFAULT_ACCENT = "#5B2FD4";
+export const DEFAULT_ACCENT = "#4A51A8";
 
 /**
  * Return `value` only if it is a valid #RRGGBB hex string, else `fallback`.

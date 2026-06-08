@@ -5,7 +5,7 @@ import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { ogDefaults, twitterDefaults } from "@/lib/marketing/seo";
 
 const DEFAULT_TITLE =
-  "findr. — Conversation-Intelligence-Plattform für B2B-SaaS";
+  "findr. — Qualitative Marktforschung mit KI, DSGVO-nativ & auf Deutsch";
 
 /**
  * Marketing-scoped metadata defaults. Living on THIS nested layout (not the
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fdfbf7",
+  themeColor: "#faf8f4",
 };
 
 /**

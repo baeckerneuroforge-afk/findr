@@ -92,7 +92,7 @@ export interface ResearchInviteParams {
   locale?: Locale;
   /**
    * White-label branding for the Findr customer. When unset (or fields null)
-   * the mail falls back to today's behavior: org-name text header, #5B2FD4 CTA.
+   * the mail falls back to today's behavior: org-name text header, #4A51A8 CTA.
    * accentColor is re-validated inside the builder before use; logoUrl is an
    * absolute Supabase public URL (required for email clients).
    */
@@ -116,12 +116,12 @@ export function buildResearchInvite(params: ResearchInviteParams): BuiltEmail {
   const url = params.url;
 
   // Validate the accent inline (never import the server-only branding-assets
-  // module here). Fall back to today's #5B2FD4 when unset / malformed.
+  // module here). Fall back to today's #4A51A8 when unset / malformed.
   const accent =
     params.branding?.accentColor &&
     /^#[0-9A-Fa-f]{6}$/.test(params.branding.accentColor)
       ? params.branding.accentColor
-      : "#5B2FD4";
+      : "#4A51A8";
   // Header: logo > brand name > org name (today's behavior).
   const brandName = params.branding?.brandName?.trim();
   const logoUrl = params.branding?.logoUrl;
@@ -176,8 +176,8 @@ export function buildResearchInvite(params: ResearchInviteParams): BuiltEmail {
   <body style="margin:0;padding:0;background:#f5f4f8;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
-        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e8e4f2;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0e0a1f;">
-          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${headerHtml}</td></tr>
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #dcdeef;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#221f2a;">
+          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#221f2a;padding-bottom:20px;">${headerHtml}</td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
             <p style="margin:0 0 14px;">${greetingHtml}</p>
             <p style="margin:0 0 14px;">${th("email.research.invite.intro")}</p>
@@ -226,12 +226,12 @@ export function buildResearchReminder(
   const url = params.url;
 
   // Validate the accent inline (never import the server-only branding-assets
-  // module here). Fall back to today's #5B2FD4 when unset / malformed.
+  // module here). Fall back to today's #4A51A8 when unset / malformed.
   const accent =
     params.branding?.accentColor &&
     /^#[0-9A-Fa-f]{6}$/.test(params.branding.accentColor)
       ? params.branding.accentColor
-      : "#5B2FD4";
+      : "#4A51A8";
   // Header: logo > brand name > org name (today's behavior).
   const brandName = params.branding?.brandName?.trim();
   const logoUrl = params.branding?.logoUrl;
@@ -289,8 +289,8 @@ export function buildResearchReminder(
   <body style="margin:0;padding:0;background:#f5f4f8;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
-        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e8e4f2;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0e0a1f;">
-          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${headerHtml}</td></tr>
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #dcdeef;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#221f2a;">
+          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#221f2a;padding-bottom:20px;">${headerHtml}</td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
             <p style="margin:0 0 14px;">${greetingHtml}</p>
             <p style="margin:0 0 14px;">${th(leadKey)}</p>

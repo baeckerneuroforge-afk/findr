@@ -36,7 +36,7 @@ interface InterviewChatProps {
    *  and the accent color overrides the default violet. All null → byte-
    *  identical neutral fallback (today's behavior). */
   brandName?: string | null;
-  /** #RRGGBB accent; null → default Findr violet (#5B2FD4). */
+  /** #RRGGBB accent; null → default Findr violet (#4A51A8). */
   accentColor?: string | null;
   /** Public logo URL; null → fall back to the text brand name (or nothing). */
   logoUrl?: string | null;
@@ -66,7 +66,7 @@ interface InterviewChatProps {
 }
 
 /** Default Findr accent — fallback when no org accent color is set. */
-const DEFAULT_ACCENT = "#5B2FD4";
+const DEFAULT_ACCENT = "#4A51A8";
 /** Only ever apply a caller-supplied accent if it's a strict #RRGGBB hex. */
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 

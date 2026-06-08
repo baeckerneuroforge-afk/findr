@@ -95,7 +95,7 @@ export function ScreeningForm({
         <h1 className="text-[18px] font-semibold">
           {planTitle || t("screening.title")}
         </h1>
-        <p className="mt-1 text-[14px] leading-relaxed text-[#6B6680]">
+        <p className="mt-1 text-[14px] leading-relaxed text-[#6B6678]">
           {t("screening.intro")}
         </p>
       </div>
@@ -103,7 +103,7 @@ export function ScreeningForm({
       <div className="space-y-6">
         {questions.map((q) => (
           <fieldset key={q.id} className="space-y-2 border-0 p-0">
-            <legend className="mb-1 text-[15px] font-medium text-[#0E0A1F]">
+            <legend className="mb-1 text-[15px] font-medium text-[#221F2A]">
               {q.prompt}
               {q.required && (
                 <span className="ml-1 text-[#C9442F]" aria-hidden>
@@ -116,7 +116,7 @@ export function ScreeningForm({
               q.options.map((opt) => (
                 <label
                   key={opt}
-                  className="flex items-center gap-2 text-[14px] text-[#0E0A1F]"
+                  className="flex items-center gap-2 text-[14px] text-[#221F2A]"
                 >
                   <input
                     type="radio"
@@ -139,7 +139,7 @@ export function ScreeningForm({
                 return (
                   <label
                     key={opt}
-                    className="flex items-center gap-2 text-[14px] text-[#0E0A1F]"
+                    className="flex items-center gap-2 text-[14px] text-[#221F2A]"
                   >
                     <input
                       type="checkbox"
@@ -163,7 +163,7 @@ export function ScreeningForm({
                 onChange={(e) => setAnswer(q.id, e.target.value)}
                 disabled={submitting}
                 placeholder={`${q.min} – ${q.max}`}
-                className="w-40 rounded-xl border border-[#E8E4F2] px-4 py-3 text-[15px] outline-none transition-colors focus:border-[var(--brand-accent)] disabled:opacity-60"
+                className="w-40 rounded-xl border border-[#DCDEEF] px-4 py-3 text-[15px] outline-none transition-colors focus:border-[var(--brand-accent)] disabled:opacity-60"
               />
             )}
           </fieldset>

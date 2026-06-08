@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="120" height="32" viewBox="0 0 120 32" fill="none">
   <!-- Symbol -->
-  <rect width="32" height="32" rx="8" fill="#6D28D9"/>
+  <rect width="32" height="32" rx="8" fill="#4A51A8"/>
   <path d="M 9 24 L 9 10 Q 9 8 11 8 L 22 8" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" fill="none"/>
   <line x1="9" y1="16" x2="19" y2="16" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round"/>
   <circle cx="25" cy="8" r="3" fill="#EF4444"/>

@@ -9,7 +9,7 @@ import { toBcp47, type Locale } from "@/i18n/locale";
 /**
  * "Post-Loss Interview Report" PDF — a clean, forwardable loss record built from
  * a completed post-loss interview. Same Findr style as the solution report:
- * white, calm typography, violet #5B2FD4 used sparingly as an accent.
+ * white, calm typography, violet #4A51A8 used sparingly as an accent.
  *
  * Typeface: Geist (brand font) is embedded as TrueType so German umlauts
  * (ü ö ä ß …) render reliably and on-brand. Falls back to Helvetica (which also
@@ -19,8 +19,8 @@ import { toBcp47, type Locale } from "@/i18n/locale";
  */
 
 const COLORS = {
-  violet: "#5B2FD4", // Findr accent — used sparingly
-  violetSoft: "#efeafe", // light violet for small chips
+  violet: "#4A51A8", // Findr accent — used sparingly
+  violetSoft: "#ededf6", // light violet for small chips
   ink: "#18181b", // headings + key content
   body: "#3f3f46", // softer paragraph text
   muted: "#71717a", // captions, labels

@@ -11,6 +11,12 @@ type RevealProps = {
   y?: number;
   /** Initial horizontal offset in px (slide from left when positive). */
   x?: number;
+  /**
+   * Initial scale for a subtle "pop-in" (e.g. 0.92 → 1). Omit (default) for no
+   * scale at all — every existing call site stays byte-identical because the
+   * scale key is only added to the variants when this prop is set.
+   */
+  scale?: number;
   className?: string;
 };
 
@@ -34,9 +40,15 @@ export function Reveal({
   delay = 0,
   y = 16,
   x = 0,
+  scale,
   className,
 }: RevealProps) {
   const reduceMotion = useReducedMotion();
+
+  // Only fold `scale` into the variants when a value was passed, so the default
+  // (undefined) leaves every existing Reveal animating exactly as before.
+  const scaleInitial = scale !== undefined ? { scale } : {};
+  const scaleTarget = scale !== undefined ? { scale: 1 } : {};
 
   // Always render a motion.div (never swap element type) so reduced-motion
   // users can't get stuck with framer's initial opacity:0 left on a reused
@@ -44,8 +56,8 @@ export function Reveal({
   return (
     <motion.div
       className={className}
-      initial={reduceMotion ? false : { opacity: 0, y, x }}
-      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0, x: 0 }}
+      initial={reduceMotion ? false : { opacity: 0, y, x, ...scaleInitial }}
+      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0, x: 0, ...scaleTarget }}
       viewport={{ once: true, margin: "-80px" }}
       transition={reduceMotion ? undefined : { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
     >

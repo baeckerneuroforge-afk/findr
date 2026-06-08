@@ -197,23 +197,23 @@ function ConsentStep({
 
   return (
     <div className="mb-10 mt-2">
-      <h1 className="text-[18px] font-semibold text-[#0E0A1F]">
+      <h1 className="text-[18px] font-semibold text-[#221F2A]">
         {planTitle || t("open.consent.title")}
       </h1>
-      <p className="mt-2 text-[14px] leading-relaxed text-[#6B6680]">
+      <p className="mt-2 text-[14px] leading-relaxed text-[#6B6678]">
         {t("open.consent.intro")}
       </p>
 
-      <div className="mt-6 rounded-2xl border border-[#E8E4F2] bg-[#FAFAFE] px-5 py-5">
-        <h2 className="text-[14px] font-semibold text-[#0E0A1F]">
+      <div className="mt-6 rounded-2xl border border-[#DCDEEF] bg-[#FAFAFE] px-5 py-5">
+        <h2 className="text-[14px] font-semibold text-[#221F2A]">
           {t("open.consent.privacyTitle")}
         </h2>
-        <p className="mt-2 text-[13px] leading-relaxed text-[#6B6680]">
+        <p className="mt-2 text-[13px] leading-relaxed text-[#6B6678]">
           {t("open.consent.privacyBody")}
         </p>
       </div>
 
-      <label className="mt-6 flex items-start gap-3 text-[14px] leading-relaxed text-[#0E0A1F]">
+      <label className="mt-6 flex items-start gap-3 text-[14px] leading-relaxed text-[#221F2A]">
         <input
           type="checkbox"
           checked={agreed}
@@ -246,11 +246,11 @@ function TerminalNotice({ variant }: { variant: "unavailable" | "full" }) {
   const t = useTranslations("interview");
   const base = variant === "full" ? "open.full" : "open.unavailable";
   return (
-    <div className="mb-10 mt-8 rounded-2xl border border-[#E8E4F2] bg-[#FAFAFE] px-6 py-10 text-center">
-      <h1 className="text-[18px] font-semibold text-[#0E0A1F]">
+    <div className="mb-10 mt-8 rounded-2xl border border-[#DCDEEF] bg-[#FAFAFE] px-6 py-10 text-center">
+      <h1 className="text-[18px] font-semibold text-[#221F2A]">
         {t(`${base}.title`)}
       </h1>
-      <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6680]">
+      <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6678]">
         {t(`${base}.body`)}
       </p>
     </div>

@@ -7,13 +7,13 @@
  */
 export const findrAuthAppearance = {
   variables: {
-    colorPrimary: "#6D28D9",          // violet-600
+    colorPrimary: "#4A51A8",          // violet-600
     colorBackground: "#16101E",       // obsidian
     colorText: "#FFFFFF",
     colorInputBackground: "#1F1731",  // obsidian-light
     colorInputText: "#FFFFFF",
-    colorTextSecondary: "#C4B5FD",    // mist
-    colorNeutral: "#C4B5FD",
+    colorTextSecondary: "#B8BBDD",    // mist
+    colorNeutral: "#B8BBDD",
     borderRadius: "0.5rem",           // rounded-lg
   },
   elements: {

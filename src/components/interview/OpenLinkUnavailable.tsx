@@ -51,11 +51,11 @@ export function OpenLinkUnavailable({
       accentColor={accentColor}
       logoUrl={logoUrl}
     >
-      <div className="mb-10 mt-8 rounded-2xl border border-[#E8E4F2] bg-[#FAFAFE] px-6 py-10 text-center">
-        <h1 className="text-[18px] font-semibold text-[#0E0A1F]">
+      <div className="mb-10 mt-8 rounded-2xl border border-[#DCDEEF] bg-[#FAFAFE] px-6 py-10 text-center">
+        <h1 className="text-[18px] font-semibold text-[#221F2A]">
           {t(`${base}.title`)}
         </h1>
-        <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6680]">
+        <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6678]">
           {t(`${base}.body`)}
         </p>
       </div>

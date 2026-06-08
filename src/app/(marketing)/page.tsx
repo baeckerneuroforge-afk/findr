@@ -7,15 +7,16 @@ import { TrustBar } from "@/components/marketing/TrustBar";
 import { HomeFeatures } from "@/components/marketing/HomeFeatures";
 import { HomeWorkflow } from "@/components/marketing/HomeWorkflow";
 import { PlatformModules } from "@/components/marketing/PlatformModules";
+import { HomeSynthesis } from "@/components/marketing/HomeSynthesis";
 import { StatBand } from "@/components/marketing/StatBand";
 import { CTASection } from "@/components/marketing/CTASection";
 import { HeroAtmosphere } from "@/components/marketing/HeroAtmosphere";
 import { JsonLd } from "@/components/marketing/JsonLd";
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
-const TITLE = "findr. — Conversation-Intelligence-Plattform für B2B-SaaS";
+const TITLE = "findr. — Qualitative Marktforschung mit KI, DSGVO-nativ & auf Deutsch";
 const DESCRIPTION =
-  "Ein KI-Gehirn, vier Produkte: Sales Intelligence, Customer Success Health, Product Discovery und Market Research. findr. liest jedes Kundengespräch und macht es über alle Produkte hinweg nutzbar — DSGVO-nativ, in Frankfurt gehostet.";
+  "findr. führt hunderte qualitative Tiefeninterviews mit deiner Zielgruppe — KI-geführt, auf Deutsch und DSGVO-nativ in Frankfurt gehostet. Vier Methoden, eine Engine: Bedarf & Verhalten, Markenwahrnehmung, Konzept- und Creative-Test, verdichtet zu belegten Insights.";
 
 export const metadata: Metadata = {
   // absolute → skip the "%s — findr." template for the homepage title.
@@ -52,7 +53,7 @@ export default function HomePage() {
         <Container>
           <Reveal>
             <div className="flex max-w-4xl flex-col items-start gap-6 sm:gap-7">
-              <Eyebrow>Conversation-Intelligence-Plattform für B2B-SaaS</Eyebrow>
+              <Eyebrow>Qualitative Marktforschung mit KI</Eyebrow>
               {/* Single-colour ink headline — the contrast comes from size +
                   whitespace + the product window below, not from a two-tone
                   split (kept consistent with the marketing font-semibold scale). */}
@@ -67,10 +68,10 @@ export default function HomePage() {
                 Belegte Entscheidungen.
               </h1>
               <p className="max-w-xl text-[18px] leading-relaxed text-neutral-500">
-                Ein KI-Gehirn, vier Produkte, keine Datensilos. findr. liest
-                jedes Kundengespräch — Sales-Calls, Success-Reviews,
-                Nutzer-Interviews — und macht es über alle Produkte hinweg
-                nutzbar. DSGVO-nativ und in der EU gehostet.
+                Hunderte qualitative Tiefeninterviews mit deiner Zielgruppe —
+                KI-geführt, die nachbohrt wie ein erfahrener Researcher.
+                DSGVO-nativ, auf Deutsch und in der EU gehostet, verdichtet zu
+                klaren, belegten Insights.
               </p>
               <div className="mt-1 flex flex-col gap-3 sm:flex-row">
                 <CtaLink href="/demo" variant="primary" size="lg">
@@ -112,10 +113,16 @@ export default function HomePage() {
           `title` is passed explicitly (single ink colour) to drop the shared
           default's two-tone <Accent> split on the homepage only — /produkt keeps
           the component default unchanged. */}
-      <PlatformModules accent title="Ein KI-Gehirn. Vier Produkte." />
+      <PlatformModules accent title="Vier Methoden, eine Engine." />
+
+      {/* The synthesis payoff — placed right after the four methods (which gather
+          the conversations) and before the proof band: methods → what they're
+          condensed INTO → stats → CTA. On the canvas tone, so it breaks cleanly
+          into the warm-cream StatBand below. */}
+      <HomeSynthesis />
 
       {/* Section rhythm: the band sits on the warm cream so it reads as its own
-          step between the module grid and the closing CTA. */}
+          step between the synthesis grid and the closing CTA. */}
       <div className="bg-warm">
         <StatBand />
       </div>
@@ -125,7 +132,7 @@ export default function HomePage() {
           (single ink colour) to drop the shared default's two-tone <Accent>
           split on the homepage only — other pages keep their own titles. */}
       <CTASection
-        title="Ein Gehirn für jedes Kundengespräch."
+        title="Frag deine Zielgruppe — bau auf echten Stimmen."
         secondary={{ label: "Plattform ansehen", href: "/produkt" }}
       />
     </>

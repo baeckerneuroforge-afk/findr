@@ -4,8 +4,8 @@ import { CpuIcon, NetworkIcon, RadarIcon } from "./icons";
 import type { ComponentType, SVGProps } from "react";
 
 /**
- * Platform architecture diagram (§2.2 / §4.2): the four modules feed a shared
- * Conversation-Intelligence-Core, which in turn draws from the data sources.
+ * Platform architecture diagram (§2.2 / §4.2): the four research methods feed a
+ * shared KI-Marktforschungs-Engine, which in turn draws from the data sources.
  * Array-driven. The STRUCTURE (phases → core(coreCards) → inputs with static SVG
  * connectors) is lifted from the dead `landing-comic/PlatformArchitecture.tsx`,
  * but re-authored: light surface, brand tokens (no obsidian/comic/rotate),
@@ -20,15 +20,15 @@ type CoreCard = {
 };
 type Input = { title: string; sources: string };
 
-// The four modules, given equal weight (same card) — top row.
+// The four research methods, given equal weight (same card) — top row.
 const PHASES: Phase[] = [
-  { phase: "Modul 01", name: "Sales Intelligence" },
-  { phase: "Modul 02", name: "Customer Success Health" },
-  { phase: "Modul 03", name: "Product Discovery" },
-  { phase: "Modul 04", name: "Market Research" },
+  { phase: "Methode 01", name: "Bedarf & Verhalten" },
+  { phase: "Methode 02", name: "Markenwahrnehmung" },
+  { phase: "Methode 03", name: "Konzept-Test" },
+  { phase: "Methode 04", name: "Creative-Test" },
 ];
 
-// The shared brain — three capabilities that every module draws on.
+// The shared brain — three capabilities that every method draws on.
 const CORE_CARDS: CoreCard[] = [
   {
     Icon: CpuIcon,
@@ -38,20 +38,20 @@ const CORE_CARDS: CoreCard[] = [
   {
     Icon: NetworkIcon,
     title: "Wissensgraph",
-    body: "Kunden- & Deal-Gedächtnis — modulübergreifender Kontext.",
+    body: "Themen- & Zielgruppen-Gedächtnis — studienübergreifender Kontext.",
   },
   {
     Icon: RadarIcon,
     title: "Muster-Engine",
-    body: "Signale über alle Quellen — Risiko + Insights, automatisch erkannt.",
+    body: "Muster über alle Interviews — Themen und Insights, automatisch verdichtet.",
   },
 ];
 
 // The data sources that flow into the brain.
 const INPUTS: Input[] = [
-  { title: "CRM-Aktivität", sources: "HubSpot · Salesforce" },
-  { title: "Gespräche & Calls", sources: "Gong · Slack · Zoom" },
-  { title: "KI-Interviews", sources: "Voice · Text · Video" },
+  { title: "KI-Tiefeninterviews", sources: "Voice · Text · Video" },
+  { title: "Offene Teilnahme-Links", sources: "Web · QR-Code · E-Mail" },
+  { title: "Stimulus & Bildschirm", sources: "Screen-Sharing · Vision" },
 ];
 
 /** Dashed connector band — purely decorative, hidden on small screens. */
@@ -86,8 +86,8 @@ export function PlatformDiagram() {
         <Reveal>
           <SectionHeading
             eyebrow="Architektur"
-            title="Ein gemeinsames Gehirn. Keine Datensilos."
-            lead="Vier Module ziehen aus demselben Conversation-Intelligence-Core. Die Daten kumulieren über Module hinweg, statt in vier getrennten Tools zu verschwinden."
+            title="Eine Engine. Vier Methoden."
+            lead="Vier Methoden nutzen dieselbe KI-Engine. Jedes Interview zahlt auf dasselbe Gehirn ein — Insights kumulieren über Methoden hinweg, statt in getrennten Einzelstudien zu verschwinden."
           />
         </Reveal>
 
@@ -123,7 +123,7 @@ export function PlatformDiagram() {
             <div className="relative mx-auto max-w-[920px] rounded border border-primary-200 bg-white px-5 py-7 text-center sm:px-7">
               <CornerBrackets className="border-primary-300" />
               <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary-600">
-                Conversation-Intelligence-Core
+                KI-Marktforschungs-Engine
               </div>
               <h3 className="mt-1.5 font-marketing text-2xl font-semibold text-neutral-900">
                 Ein gemeinsames KI-Gehirn

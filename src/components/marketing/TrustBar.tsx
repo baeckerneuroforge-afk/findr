@@ -41,12 +41,15 @@ export function TrustBar() {
             Souverän aus Europa — keine Plattform-Lock-ins, keine US-Cloud
           </p>
         </Reveal>
-        {/* Staggered anchors: each fades + lifts in on its own ~60ms delay. */}
+        {/* Staggered anchors: each pops in (fade + slight lift + subtle scale)
+            one after the other on its own ~60ms delay — never all at once.
+            Reduced motion → all four appear instantly (Reveal's hard off-switch). */}
         <div className="mt-7 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-7 lg:grid-cols-4">
           {ANCHORS.map((a, i) => (
             <Reveal
               key={a.label}
               y={10}
+              scale={0.92}
               delay={i * 0.06}
               className="flex items-start gap-3"
             >
