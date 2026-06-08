@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import {
@@ -15,6 +15,14 @@ import {
   topicDraftsToResearchTopics,
   type TopicDraft,
 } from "./TopicEditor";
+
+/** Client mirror of the server's stimulus-route limits (bucket
+ *  research-stimuli). Kept in sync with
+ *  app/api/research/plans/[id]/stimulus/route.ts — the route re-validates type,
+ *  size and magic-byte signature; this only buys a fast, precise message before
+ *  the upload round-trip. */
+const STIMULUS_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const STIMULUS_ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 /**
  * Form for creating a new research plan. Spirit-spiegelt ManualDealForm:
@@ -64,6 +72,14 @@ interface FormState {
   // interviewer focus-block already exist on main; this form only fills the
   // value and uses it to pick a preset. Discovery never sends it (byte-identical).
   useCase: UseCase;
+  // Single stimulus per study (creative_test / concept_test). The asset itself
+  // (url + type "image" | "link") is owned by the dedicated stimulus route and
+  // mirrored here from its response for the preview; the description is a plain
+  // field persisted via the normal create/update body (the Zod schema already
+  // accepts it). Defaults: no asset, empty description.
+  stimulusUrl: string | null;
+  stimulusType: string | null;
+  stimulusDescription: string;
   topics: TopicDraft[];
 }
 
@@ -216,6 +232,11 @@ const INITIAL_FORM: FormState = {
   // applied at mount (see the lazy useState init); on the discovery path this
   // value is never sent, so the create body stays byte-identical.
   useCase: "general_survey",
+  // No stimulus by default. Set via the stimulus route (asset) + this form's
+  // description field; only ever touched on the needsStimulus use-cases.
+  stimulusUrl: null,
+  stimulusType: null,
+  stimulusDescription: "",
   // Start with one empty topic so the editor isn't blank — encourages the
   // user to fill at least one in. Empty topics are dropped at submit time.
   topics: [emptyTopicDraft()],
@@ -261,6 +282,23 @@ export function ResearchPlanForm({
   // discipline as studyTypePayload above. Recomputed each render so it always
   // reflects the currently-picked card.
   const useCasePayload = isMarket ? { useCase: form.useCase } : {};
+  // Single source for the stimulus-driven UI: true ONLY for creative_test +
+  // concept_test. Drives both the VI recommendation hint (below) and the
+  // stimulus block. Always false on the discovery path (form.useCase is fixed
+  // general_survey there), so everything gated on it stays byte-identical.
+  const needsStimulus = USE_CASE_META[form.useCase].needsStimulus;
+  // Market-only create/update-payload key for the stimulus description. The
+  // asset (url/type) is owned by the stimulus route; only the description rides
+  // the normal body — and only on the needsStimulus use-cases, so the discovery
+  // (and non-stimulus market) bodies stay byte-identical.
+  const stimulusDescriptionPayload = needsStimulus
+    ? {
+        stimulusDescription:
+          form.stimulusDescription.trim() === ""
+            ? null
+            : form.stimulusDescription.trim(),
+      }
+    : {};
   // Visual-Intelligence-Empfehlung — reaktiver Read derselben `needsStimulus`-
   // Facette, die die Use-Case-Karten schon tragen (true NUR für creative_test +
   // concept_test). Rein visuell: ändert den VI-Toggle-Default NICHT (bleibt aus)
@@ -268,9 +306,27 @@ export function ResearchPlanForm({
   // form.useCase → der Hinweis erscheint/verschwindet. Auf dem Discovery-Pfad ist
   // form.useCase fix general_survey (needsStimulus false) → immer false → der
   // VI-Block bleibt dort byte-identisch.
-  const recommendVisualCapture = USE_CASE_META[form.useCase].needsStimulus;
+  const recommendVisualCapture = needsStimulus;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Stimulus block UI-state (transient, not part of the persisted form):
+  // `stimulusMode` picks which input is shown, `linkDraft` is the URL field
+  // before it's committed, `stimulusBusy` covers the route round-trips, and
+  // `stimulusFileRef` lets us clear the file input after each pick (mirrors
+  // BrandingSettingsForm).
+  const [stimulusMode, setStimulusMode] = useState<"image" | "link">("image");
+  const [linkDraft, setLinkDraft] = useState("");
+  const [stimulusBusy, setStimulusBusy] = useState(false);
+  const [stimulusError, setStimulusError] = useState<string | null>(null);
+  const stimulusFileRef = useRef<HTMLInputElement>(null);
+  // Guards ensureDraftPlanId against a concurrency race: the `planId` STATE
+  // guard only blocks a second create AFTER setPlanId has flushed, so two
+  // callers entering while planId is still null would both POST a draft. This
+  // ref holds the in-flight create promise so overlapping callers await the
+  // SAME create instead of issuing a second one — independent of React's
+  // state-flush timing.
+  const draftCreatePromiseRef = useRef<Promise<string> | null>(null);
 
   // KI-Generator state. `planId` flips the form into edit-mode (PATCH) once
   // a draft has been created via the generator. `lastGuide` is shown as a
@@ -293,6 +349,15 @@ export function ResearchPlanForm({
    *  preset writes stays fully editable afterwards. */
   function applyUseCase(useCase: UseCase) {
     setForm((current) => ({ ...current, ...presetFor(useCase, t) }));
+    // The stimulus block is gated on needsStimulus, so switching to a use-case
+    // that doesn't need one would hide the block — and its Remove control —
+    // while an uploaded asset still lingers on the draft plan (orphan). Switch
+    // = new product (same discipline as the preset overwrite above): clear the
+    // asset too. DELETE if it reached the server; the typed description is kept
+    // (it's decoupled from the asset and not sent for non-stimulus use-cases).
+    if (!USE_CASE_META[useCase].needsStimulus && form.stimulusUrl) {
+      void handleStimulusRemove();
+    }
   }
 
   function updateGen<K extends keyof GenInputs>(key: K, value: GenInputs[K]) {
@@ -309,6 +374,60 @@ export function ResearchPlanForm({
       intent: t.goalLink,
       hypotheses: t.probes,
     }));
+  }
+
+  /**
+   * Ensure a draft plan exists and return its id. The create form has no planId
+   * until submit, but two features need one earlier: the AI guide generator and
+   * the stimulus upload. Both call this — the FIRST one to run creates the draft
+   * (status 'draft' by DB default) and stores its id; later calls reuse it. Once
+   * a draft exists, handleSubmit PATCHes it instead of creating a second plan,
+   * so there are no orphaned uploads. The create body is byte-identical to the
+   * generator's previous inline draft-create (topics:[], sampleTarget:null);
+   * needs title + objective ≥ 3 chars (callers validate that first).
+   */
+  async function ensureDraftPlanId(): Promise<string> {
+    if (planId) return planId;
+    // Already creating (concurrent caller)? Await the same create, don't POST a
+    // second draft. The ref is set/awaited synchronously within this tick, so
+    // it closes the window the `planId` state guard leaves open.
+    if (draftCreatePromiseRef.current) return draftCreatePromiseRef.current;
+
+    const create = (async () => {
+      const createRes = await fetch("/api/research/plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title.trim(),
+          objective: form.objective.trim(),
+          topics: [],
+          persona: form.persona.trim() === "" ? null : form.persona.trim(),
+          sampleTarget: null,
+          visualCaptureEnabled: form.visualCaptureEnabled,
+          voiceEnabled: form.voiceEnabled,
+          ...useCasePayload,
+          ...studyTypePayload,
+        }),
+      });
+      const createData = (await createRes.json().catch(() => ({}))) as {
+        error?: string;
+        planId?: string;
+      };
+      if (!createRes.ok || !createData.planId) {
+        throw new Error(createData.error ?? t("errCreateDraft"));
+      }
+      setPlanId(createData.planId);
+      return createData.planId;
+    })();
+
+    draftCreatePromiseRef.current = create;
+    try {
+      return await create;
+    } catch (err) {
+      // Let a later attempt retry instead of caching a rejected promise.
+      draftCreatePromiseRef.current = null;
+      throw err;
+    }
   }
 
   /**
@@ -346,34 +465,8 @@ export function ResearchPlanForm({
 
     setGenerating(true);
     try {
-      // Stage 1: ensure a draft plan exists.
-      let currentPlanId = planId;
-      if (!currentPlanId) {
-        const createRes = await fetch("/api/research/plans", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title,
-            objective,
-            topics: [],
-            persona: form.persona.trim() === "" ? null : form.persona.trim(),
-            sampleTarget: null,
-            visualCaptureEnabled: form.visualCaptureEnabled,
-            voiceEnabled: form.voiceEnabled,
-            ...useCasePayload,
-            ...studyTypePayload,
-          }),
-        });
-        const createData = (await createRes.json().catch(() => ({}))) as {
-          error?: string;
-          planId?: string;
-        };
-        if (!createRes.ok || !createData.planId) {
-          throw new Error(createData.error ?? t("errCreateDraft"));
-        }
-        currentPlanId = createData.planId;
-        setPlanId(currentPlanId);
-      }
+      // Stage 1: ensure a draft plan exists (shared with the stimulus upload).
+      const currentPlanId = await ensureDraftPlanId();
 
       // Stage 2: generate the guide on that plan.
       const res = await fetch(
@@ -419,6 +512,167 @@ export function ResearchPlanForm({
       setGenError(err instanceof Error ? err.message : t("errGuideGen"));
     } finally {
       setGenerating(false);
+    }
+  }
+
+  /** True once title + objective are long enough to create the draft the
+   *  stimulus upload needs. Used for a precise message instead of a server 400. */
+  function hasStimulusBasics(): boolean {
+    return form.title.trim().length >= 3 && form.objective.trim().length >= 3;
+  }
+
+  /** Image branch: validate type + size locally (mirrors the route), ensure a
+   *  draft plan exists, then POST the file to /[id]/stimulus. The route returns
+   *  { stimulus_url, stimulus_type }; we mirror them into form-state for the
+   *  preview. The description is NOT sent here — it rides the normal submit. */
+  async function handleStimulusFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setStimulusError(null);
+
+    const clearInput = () => {
+      if (stimulusFileRef.current) stimulusFileRef.current.value = "";
+    };
+
+    if (!STIMULUS_ACCEPTED_TYPES.includes(file.type)) {
+      setStimulusError(t("errStimulusType"));
+      clearInput();
+      return;
+    }
+    if (file.size > STIMULUS_MAX_BYTES) {
+      setStimulusError(t("errStimulusSize"));
+      clearInput();
+      return;
+    }
+    if (!hasStimulusBasics()) {
+      setStimulusError(t("errStimulusNeedsBasics"));
+      clearInput();
+      return;
+    }
+
+    setStimulusBusy(true);
+    try {
+      const id = await ensureDraftPlanId();
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch(
+        `/api/research/plans/${encodeURIComponent(id)}/stimulus`,
+        { method: "POST", body },
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        stimulus_url?: string;
+        stimulus_type?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.stimulus_url) {
+        throw new Error(data.error ?? t("errStimulusUpload"));
+      }
+      setForm((current) => ({
+        ...current,
+        stimulusUrl: data.stimulus_url ?? null,
+        stimulusType: data.stimulus_type ?? null,
+      }));
+    } catch (err) {
+      setStimulusError(
+        err instanceof Error ? err.message : t("errStimulusUpload"),
+      );
+    } finally {
+      setStimulusBusy(false);
+      clearInput();
+    }
+  }
+
+  /** Link branch: validate http(s) locally (mirrors the route's parseHttpUrl),
+   *  ensure a draft, then POST the url as JSON. Same response handling as the
+   *  image branch. */
+  async function handleStimulusLink() {
+    setStimulusError(null);
+    let normalized: string;
+    try {
+      const url = new URL(linkDraft.trim());
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        throw new Error("scheme");
+      }
+      normalized = url.toString();
+    } catch {
+      setStimulusError(t("errStimulusUrl"));
+      return;
+    }
+    if (!hasStimulusBasics()) {
+      setStimulusError(t("errStimulusNeedsBasics"));
+      return;
+    }
+
+    setStimulusBusy(true);
+    try {
+      const id = await ensureDraftPlanId();
+      const res = await fetch(
+        `/api/research/plans/${encodeURIComponent(id)}/stimulus`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: normalized }),
+        },
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        stimulus_url?: string;
+        stimulus_type?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.stimulus_url) {
+        throw new Error(data.error ?? t("errStimulusUpload"));
+      }
+      setForm((current) => ({
+        ...current,
+        stimulusUrl: data.stimulus_url ?? null,
+        stimulusType: data.stimulus_type ?? null,
+      }));
+      setLinkDraft("");
+    } catch (err) {
+      setStimulusError(
+        err instanceof Error ? err.message : t("errStimulusUpload"),
+      );
+    } finally {
+      setStimulusBusy(false);
+    }
+  }
+
+  /** Remove the current ASSET via DELETE. The typed description is intentionally
+   *  kept: it's decoupled from the asset (asset = route, description = normal
+   *  submit body) and never reaches the server before the final submit, so
+   *  there's no server description to "mirror" here — clearing it would only
+   *  destroy text the user may want to keep when swapping assets. Falls back to
+   *  a local-only clear if no draft exists yet. */
+  async function handleStimulusRemove() {
+    setStimulusError(null);
+    if (!planId) {
+      setForm((current) => ({
+        ...current,
+        stimulusUrl: null,
+        stimulusType: null,
+      }));
+      setLinkDraft("");
+      return;
+    }
+    setStimulusBusy(true);
+    try {
+      const res = await fetch(
+        `/api/research/plans/${encodeURIComponent(planId)}/stimulus`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error(t("errStimulusRemove"));
+      setForm((current) => ({
+        ...current,
+        stimulusUrl: null,
+        stimulusType: null,
+      }));
+      setLinkDraft("");
+    } catch (err) {
+      setStimulusError(
+        err instanceof Error ? err.message : t("errStimulusRemove"),
+      );
+    } finally {
+      setStimulusBusy(false);
     }
   }
 
@@ -473,6 +727,7 @@ export function ResearchPlanForm({
               visualCaptureEnabled: form.visualCaptureEnabled,
               voiceEnabled: form.voiceEnabled,
               ...useCasePayload,
+              ...stimulusDescriptionPayload,
             }),
           },
         );
@@ -499,6 +754,7 @@ export function ResearchPlanForm({
           voiceEnabled: form.voiceEnabled,
           ...useCasePayload,
           ...studyTypePayload,
+          ...stimulusDescriptionPayload,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -580,7 +836,7 @@ export function ResearchPlanForm({
                     role="radio"
                     aria-checked={selected}
                     onClick={() => applyUseCase(uc)}
-                    disabled={submitting}
+                    disabled={submitting || stimulusBusy || generating}
                     className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-small outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
                       selected
                         ? "border-primary-200 bg-primary-50 font-medium text-primary-700"
@@ -589,7 +845,7 @@ export function ResearchPlanForm({
                   >
                     {t(meta.titleKey)}
                     {meta.needsStimulus && (
-                      <span className="rounded-full bg-warning-50 px-1.5 py-0.5 text-caption font-medium leading-none text-warning-700">
+                      <span className="rounded-full bg-primary-50 px-1.5 py-0.5 text-caption font-medium leading-none text-primary-700">
                         {t("ucStimulusBadge")}
                       </span>
                     )}
@@ -723,6 +979,197 @@ export function ResearchPlanForm({
           )}
         </div>
 
+        {/* Stimulus — NUR bei needsStimulus (creative_test / concept_test).
+            Das Asset (Bild/Link) wird über die dedizierte Route an einen
+            Draft-Plan gehängt: ist noch keine planId da, legt ensureDraftPlanId
+            zuerst die Studie an (braucht Titel + Ziel), dann lädt das Asset
+            hoch → keine verwaisten Uploads. Die Beschreibung ist ein normales
+            Feld und reist beim Speichern im Body mit. Auf dem Discovery-Pfad
+            ist needsStimulus immer false → der Block rendert dort nie. */}
+        {needsStimulus && (
+          <div className="rounded-lg border border-neutral-200 bg-white p-4">
+            <div className="min-w-0">
+              <span className="block text-body-strong text-neutral-900">
+                {t("stimulusSectionTitle")}
+              </span>
+              <span className="mt-1 block text-caption text-neutral-500">
+                {t("stimulusSectionDesc")}
+              </span>
+            </div>
+
+            {/* Aktueller Stimulus — Bild-Thumbnail bzw. Link-Chip + Entfernen.
+                Nur sichtbar, wenn ein Asset gesetzt ist (nach Upload bzw. im
+                Draft). Ersetzen = einfach erneut hochladen/Link setzen unten. */}
+            {form.stimulusUrl && (
+              <div className="mt-3 flex items-center gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-2">
+                {form.stimulusType === "image" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={form.stimulusUrl}
+                    alt={t("stimulusThumbAlt")}
+                    className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
+                  />
+                ) : (
+                  <a
+                    href={form.stimulusUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="min-w-0 flex-1 truncate text-small text-primary-700 underline underline-offset-2 hover:text-primary-800"
+                  >
+                    {form.stimulusUrl}
+                  </a>
+                )}
+                <span className="shrink-0 rounded-full bg-neutral-200 px-2 py-0.5 text-caption font-medium leading-none text-neutral-600">
+                  {form.stimulusType === "image"
+                    ? t("stimulusModeImage")
+                    : t("stimulusModeLink")}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleStimulusRemove}
+                  disabled={stimulusBusy || submitting || generating}
+                  className="ml-auto shrink-0 rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-50"
+                >
+                  {stimulusBusy ? t("stimulusRemoving") : t("stimulusRemove")}
+                </button>
+              </div>
+            )}
+
+            {/* Umschalter Bild | Link — gleicher Segmented-Control-Stil wie der
+                Interaktionsmodus unten. */}
+            <div
+              role="radiogroup"
+              aria-label={t("stimulusSectionTitle")}
+              className="mt-3 inline-flex items-center gap-0.5 rounded-full bg-neutral-100 p-0.5"
+            >
+              {(["image", "link"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={stimulusMode === mode}
+                  onClick={() => {
+                    setStimulusMode(mode);
+                    setStimulusError(null);
+                  }}
+                  disabled={stimulusBusy || submitting || generating}
+                  className={`rounded-full px-3.5 py-1.5 text-small font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                    stimulusMode === mode
+                      ? "bg-primary-600 text-white"
+                      : "text-neutral-600 hover:text-neutral-900"
+                  }`}
+                >
+                  {mode === "image"
+                    ? t("stimulusModeImage")
+                    : t("stimulusModeLink")}
+                </button>
+              ))}
+            </div>
+
+            {/* Eingabe je Modus. Bild: verstecktes File-Input in einem Label
+                (spiegelt BrandingSettingsForm) mit lokaler Vorvalidierung.
+                Link: URL-Feld + Setzen-Button. */}
+            {stimulusMode === "image" ? (
+              <div className="mt-3">
+                <label
+                  className={`inline-flex items-center rounded-md border border-neutral-200 px-3 py-2 text-body-strong text-neutral-700 ${
+                    stimulusBusy || submitting || generating
+                      ? "cursor-not-allowed opacity-50"
+                      : "cursor-pointer"
+                  }`}
+                >
+                  {stimulusBusy
+                    ? t("stimulusImageUploading")
+                    : form.stimulusType === "image" && form.stimulusUrl
+                      ? t("stimulusReplace")
+                      : t("stimulusImageUpload")}
+                  <input
+                    ref={stimulusFileRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={stimulusBusy || submitting || generating}
+                    onChange={handleStimulusFile}
+                    className="sr-only"
+                  />
+                </label>
+                <p className="mt-1.5 text-caption text-neutral-500">
+                  {t("stimulusImageHint")}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <input
+                      type="url"
+                      value={linkDraft}
+                      onChange={(e) => setLinkDraft(e.target.value)}
+                      placeholder={t("phStimulusLink")}
+                      aria-label={t("stimulusLinkLabel")}
+                      disabled={stimulusBusy || submitting || generating}
+                      className={FIELD_INPUT_CLASS}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleStimulusLink}
+                    disabled={
+                      stimulusBusy ||
+                      submitting ||
+                      generating ||
+                      linkDraft.trim() === ""
+                    }
+                  >
+                    {stimulusBusy
+                      ? t("stimulusLinkSetting")
+                      : form.stimulusType === "link" && form.stimulusUrl
+                        ? t("stimulusReplace")
+                        : t("stimulusLinkSet")}
+                  </Button>
+                </div>
+                <p className="mt-1.5 text-caption text-neutral-500">
+                  {t("stimulusLinkHint")}
+                </p>
+              </div>
+            )}
+
+            {/* Beschreibung — fließt in die Fragen des KI-Interviewers. Normales
+                Feld; wird beim Speichern über stimulusDescriptionPayload
+                mitgesendet (NICHT über die Asset-Route). */}
+            <div className="mt-4">
+              <Field
+                label={t("stimulusDescLabel")}
+                hint={t("stimulusDescHint")}
+              >
+                <textarea
+                  value={form.stimulusDescription}
+                  onChange={(e) =>
+                    update("stimulusDescription", e.target.value)
+                  }
+                  placeholder={t("phStimulusDesc")}
+                  rows={2}
+                  disabled={submitting}
+                  className={FIELD_TEXTAREA_CLASS}
+                />
+              </Field>
+            </div>
+
+            {/* Pflicht-Hinweis — KEIN hartes Submit-Blocken (kollidiert mit dem
+                planId-Timing): die Studie ist nur erst startklar, wenn ein Asset
+                gesetzt ist. */}
+            {!form.stimulusUrl && (
+              <p className="mt-3 rounded-md border border-warning-500/30 bg-warning-50 px-3 py-2 text-caption text-warning-700">
+                {t("stimulusRequiredHint")}
+              </p>
+            )}
+
+            {stimulusError && (
+              <p className="mt-2 text-small text-danger-700">{stimulusError}</p>
+            )}
+          </div>
+        )}
+
         {/* Interaktionsmodus — Text (Default) oder Voice. Sichtbar für BEIDE
             Studientypen (kein study_type-Gate). Schreibt `voiceEnabled` (exakt
             dieser Key) in dieselben Submit-Pfade wie visualCaptureEnabled;
@@ -834,7 +1281,7 @@ export function ResearchPlanForm({
             type="button"
             variant="secondary"
             onClick={handleGenerate}
-            disabled={generating || submitting}
+            disabled={generating || submitting || stimulusBusy}
           >
             {generating
               ? t("genBtnGenerating")
@@ -1028,7 +1475,7 @@ export function ResearchPlanForm({
       )}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={submitting || generating}>
+        <Button type="submit" disabled={submitting || generating || stimulusBusy}>
           {submitting
             ? planId
               ? t("submitSaving")
