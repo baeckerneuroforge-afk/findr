@@ -210,7 +210,7 @@ export function HeroAnalysisDemo() {
   );
 
   return (
-    <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-[0_1px_0_rgba(24,24,27,0.04),0_24px_60px_-32px_rgba(91,47,212,0.28)]">
+    <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-[0_1px_0_rgba(24,24,27,0.04),0_24px_60px_-32px_rgba(74,81,168,0.28)]">
       {/* Window chrome — honest "example" framing, deliberately NOT a live badge */}
       <div className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-neutral-50 px-4 py-2.5 sm:px-5">
         <div className="flex items-center gap-2">

@@ -104,19 +104,19 @@ export function buildInterviewInvite(params: InterviewInviteParams): BuiltEmail 
   <body style="margin:0;padding:0;background:#f5f4f8;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
-        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e8e4f2;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0e0a1f;">
-          <tr><td style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#0e0a1f;padding-bottom:20px;">findr<span style="color:#b00;">.</span></td></tr>
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #dcdeef;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#221f2a;">
+          <tr><td style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#221f2a;padding-bottom:20px;">findr<span style="color:#b00;">.</span></td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
             <p style="margin:0 0 14px;">${greetingHtml}</p>
             <p style="margin:0 0 14px;">${introHtml}</p>
             <p style="margin:0 0 22px;">${th("email.postLoss.body")}</p>
           </td></tr>
           <tr><td style="padding-bottom:24px;">
-            <a href="${hvars.url}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.postLoss.cta")}</a>
+            <a href="${hvars.url}" style="display:inline-block;background:#4A51A8;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.postLoss.cta")}</a>
           </td></tr>
           <tr><td style="font-size:13px;line-height:1.6;color:#71717a;">
             <p style="margin:0 0 4px;">${th("email.common.linkFallback")}</p>
-            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:#5B2FD4;">${hvars.url}</a></p>
+            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:#4A51A8;">${hvars.url}</a></p>
             <p style="margin:0;">${th("email.common.thanks")}<br/>${th("email.postLoss.signature")}</p>
           </td></tr>
         </table>
@@ -195,19 +195,19 @@ export function buildCheckinInvite(params: CheckinInviteParams): BuiltEmail {
   <body style="margin:0;padding:0;background:#f5f4f8;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
-        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e8e4f2;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0e0a1f;">
-          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#0e0a1f;padding-bottom:20px;">${hvars.org}</td></tr>
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #dcdeef;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#221f2a;">
+          <tr><td style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#221f2a;padding-bottom:20px;">${hvars.org}</td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
             <p style="margin:0 0 14px;">${greetingHtml}</p>
             <p style="margin:0 0 14px;">${th("email.checkin.intro")}</p>
             <p style="margin:0 0 22px;">${th("email.checkin.body")}</p>
           </td></tr>
           <tr><td style="padding-bottom:24px;">
-            <a href="${hvars.url}" style="display:inline-block;background:#5B2FD4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.checkin.cta")}</a>
+            <a href="${hvars.url}" style="display:inline-block;background:#4A51A8;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">${th("email.checkin.cta")}</a>
           </td></tr>
           <tr><td style="font-size:13px;line-height:1.6;color:#71717a;">
             <p style="margin:0 0 4px;">${th("email.common.linkFallback")}</p>
-            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:#5B2FD4;">${hvars.url}</a></p>
+            <p style="margin:0 0 18px;word-break:break-all;"><a href="${hvars.url}" style="color:#4A51A8;">${hvars.url}</a></p>
             <p style="margin:0;">${th("email.common.thanks")}<br/>${th("email.common.signatureOrg")}</p>
           </td></tr>
         </table>

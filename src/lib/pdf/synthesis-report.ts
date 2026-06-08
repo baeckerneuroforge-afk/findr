@@ -16,7 +16,7 @@ import { type Locale, toBcp47 } from "@/i18n/locale";
 /**
  * "Research Synthesis" PDF — a forwardable read-out of a Stage-2 study
  * synthesis. Same Findr style as the Post-Loss Interview Report: white,
- * calm typography, violet #5B2FD4 used sparingly as an accent.
+ * calm typography, violet #4A51A8 used sparingly as an accent.
  *
  * Typeface: Geist (brand font) is embedded as TrueType so German umlauts
  * (ü ö ä ß …) render reliably and on-brand. Falls back to Helvetica
@@ -30,8 +30,8 @@ import { type Locale, toBcp47 } from "@/i18n/locale";
  */
 
 const COLORS = {
-  violet: "#5B2FD4", // Findr accent — used sparingly
-  violetSoft: "#efeafe", // light violet for small chips
+  violet: "#4A51A8", // Findr accent — used sparingly
+  violetSoft: "#ededf6", // light violet for small chips
   ink: "#18181b", // headings + key content
   body: "#3f3f46", // softer paragraph text
   muted: "#71717a", // captions, labels
@@ -69,7 +69,7 @@ export interface SynthesisPdfInput {
    *  Drives every chrome string + date formatting. */
   locale: Locale;
   /** Optional white-label branding (brand name / accent / embedded logo).
-   *  When unset, falls back to today's exact "Findr" + violet #5B2FD4. */
+   *  When unset, falls back to today's exact "Findr" + violet #4A51A8. */
   branding?: ExportBranding;
 }
 
@@ -257,7 +257,7 @@ export async function buildSynthesisPdf(
   const { plan, synthesis, orgName, locale } = input;
 
   // White-label brand mark + accent — fall back to today's exact "Findr" +
-  // violet #5B2FD4 when branding is unset.
+  // violet #4A51A8 when branding is unset.
   const brandName = input.branding?.brandName || "Findr";
   const accent = input.branding?.accentColorHex || COLORS.violet;
 

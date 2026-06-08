@@ -286,7 +286,7 @@ export default function PreisePage() {
         tone="muted"
       />
 
-      {/* 7 ── ABSCHLUSS-CTA (dunkler Anker #2E1065) ────────────────────────── */}
+      {/* 7 ── ABSCHLUSS-CTA (dunkler Anker #1C1F45) ────────────────────────── */}
       <section className="bg-anchor">
         <Container className="py-20 sm:py-28">
           <Reveal>

@@ -2,17 +2,17 @@
 
 @theme {
   /* Findr Brand Colors */
-  --color-violet-50: #f5f3ff;
-  --color-violet-100: #ede9fe;
-  --color-violet-200: #ddd6fe;
-  --color-violet-300: #c4b5fd;
-  --color-violet-400: #a78bfa;
-  --color-violet-500: #8b5cf6;
-  --color-violet-600: #6d28d9;
-  --color-violet-700: #5b21b6;
-  --color-violet-800: #4c1d95;
-  --color-violet-900: #3b1675;
-  --color-violet-950: #2a0f57;
+  --color-violet-50: #eeeff8;
+  --color-violet-100: #ededf6;
+  --color-violet-200: #dcdeef;
+  --color-violet-300: #b8bbdd;
+  --color-violet-400: #9398cc;
+  --color-violet-500: #6f74ba;
+  --color-violet-600: #4a51a8;
+  --color-violet-700: #353c8a;
+  --color-violet-800: #2a306d;
+  --color-violet-900: #1f2350;
+  --color-violet-950: #141734;
 
   --color-alert-50: #fef2f2;
   --color-alert-100: #fee2e2;
@@ -38,12 +38,12 @@
   --color-obsidian-950: #16101e;
 
   /* Top-level brand tokens (no scale) */
-  --color-mist: #c4b5fd;            /* Secondary text */
+  --color-mist: #b8bbdd;            /* Secondary text */
   --color-obsidian: #16101e;        /* Background */
   --color-obsidian-light: #1f1731;  /* Cards */
 
-  /* Semantic tokens. NOTE: the bare --color-primary (#6d28d9) was a legacy dead
-     duplicate of the canonical brand ramp (--color-primary-600 #5b2fd4, below);
+  /* Semantic tokens. NOTE: the bare --color-primary (#4a51a8) was a legacy dead
+     duplicate of the canonical brand ramp (--color-primary-600 #4a51a8, below);
      removed in Etappe D after grep verified 0 users. */
   --color-primary-foreground: #ffffff;
   --color-accent: #ef4444;
@@ -53,7 +53,7 @@
   --color-muted: #2d2638;
   --color-muted-foreground: #aea2bc;
   --color-border: #2d2638;
-  --color-ring: #6d28d9;
+  --color-ring: #4a51a8;
 
   --font-sans: var(--font-inter);
   --font-geist: var(--font-geist-sans);
@@ -98,7 +98,7 @@
      spacing and @keyframes elsewhere in this file are deliberately untouched.
      These four feed the (marketing) layout base, the Section primitive tones,
      the dark footer anchor and the single yellow highlight (TrustBar, home).
-     The brand violet #5b2fd4 (--color-primary-600) stays the INTERACTION accent
+     The brand violet #4a51a8 (--color-primary-600) stays the INTERACTION accent
      on every surface; --color-anchor is only that same violet pulled dark.
      Real WCAG (4.5:1 normal text / 3:1 large + UI), measured on these hexes:
        • neutral-500 body  4.68:1 on canvas · 4.56:1 on warm
@@ -106,11 +106,11 @@
        • ink heading 12.9:1 + neutral-700 body 7.6:1 on accent-warm
      The failing combos (white/violet text on yellow, any dark text on anchor)
      are never used — see TrustBar / MarketingFooter. */
-  --color-canvas: #fdfbf7;            /* warm off-white — marketing page base */
+  --color-canvas: #faf8f4;            /* warm off-white — marketing page base */
   --color-warm: #fbf8f1;              /* warm cream — the muted "rest" band */
-  --color-anchor: #2e1065;            /* dark-violet anchor (footer) */
+  --color-anchor: #1c1f45;            /* dark-violet anchor (footer) */
   --color-anchor-foreground: #f6f4f8; /* light body text on the anchor */
-  --color-accent-warm: #fcda4b;       /* yellow highlight surface — ink text only */
+  --color-accent-warm: #f0c24b;       /* yellow highlight surface — ink text only */
 
   /* ────────────────────────────────────────────────────────────────
      Platform Design System v2 — light-mode tokens for /dashboard
@@ -127,7 +127,7 @@
   --color-neutral-700: #3f3f46;
   --color-neutral-900: #18181b;
 
-  /* Primary accent — Findr brand violet #5B2FD4 (monochrome shell).
+  /* Primary accent — Findr brand violet #4A51A8 (monochrome shell).
      The dashboard/onboarding base is already monochrome (neutral grays);
      this is the ONE chromatic accent, used SPARINGLY by the components
      that consume primary-*: primary button background, focused-input
@@ -137,19 +137,19 @@
      violet; 500 = lighter (rings/borders), 700 = darker (hover/active).
      NOTE: the full 50–900 ramp is now defined. 200/300/400/800/900 were
      referenced by components but previously UNDEFINED (dead classes); filling
-     them in (interpolated/extrapolated smoothly in the #5B2FD4 hue) makes those
+     them in (interpolated/extrapolated smoothly in the #4A51A8 hue) makes those
      subtle violet card/quote borders (border-primary-200/300/400) and the
      darker-violet hover text (text-primary-800/900) render for the first time. */
-  --color-primary-50: #f5f2fe;
-  --color-primary-100: #e9e2fd;
-  --color-primary-200: #cab9f6;
-  --color-primary-300: #ab91ef;
-  --color-primary-400: #8c68e7;
-  --color-primary-500: #6d3fe0;
-  --color-primary-600: #5b2fd4;
-  --color-primary-700: #4a25ab;
-  --color-primary-800: #391b82;
-  --color-primary-900: #281159;
+  --color-primary-50: #eeeff8;
+  --color-primary-100: #ededf6;
+  --color-primary-200: #dcdeef;
+  --color-primary-300: #b8bbdd;
+  --color-primary-400: #9398cc;
+  --color-primary-500: #6f74ba;
+  --color-primary-600: #4a51a8;
+  --color-primary-700: #353c8a;
+  --color-primary-800: #2a306d;
+  --color-primary-900: #1f2350;
 
   /* Status colors */
   --color-success-50: #f0fdf4;

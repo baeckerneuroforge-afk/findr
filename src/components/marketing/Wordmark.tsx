@@ -21,7 +21,7 @@ export function Wordmark({
   const light = tone === "light";
   const color = light ? "text-white" : "text-neutral-900";
   // On the dark anchor footer the brand red is brightened so the dot stays
-  // perceptible (#bb0000 ≈ 2.3:1 on #2e1065; #ff5a5a ≈ 5:1) and the focus
+  // perceptible (#bb0000 ≈ 2.3:1 on #1c1f45; #ff5a5a ≈ 5:1) and the focus
   // ring-offset matches the anchor surface instead of flashing white.
   const ringOffset = light ? "focus-visible:ring-offset-anchor" : "";
   const dot = light ? "bg-[#ff5a5a]" : "bg-[#bb0000]";

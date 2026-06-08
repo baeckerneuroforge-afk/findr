@@ -39,16 +39,16 @@ export function ParticipantShell({
       style={
         { fontFamily: FONT, "--brand-accent": accent } as React.CSSProperties
       }
-      className="flex min-h-screen w-full flex-col bg-white text-[#0E0A1F]"
+      className="flex min-h-screen w-full flex-col bg-white text-[#221F2A]"
     >
-      <header className="border-b border-[#E8E4F2] px-5 py-4">
+      <header className="border-b border-[#DCDEEF] px-5 py-4">
         <div
           className={`mx-auto flex max-w-2xl items-center ${
             brandless && !hasBrand ? "justify-center" : "justify-between"
           }`}
         >
           {!brandless && (
-            <span className="flex items-center text-[20px] font-extrabold tracking-[-0.02em] text-[#0E0A1F]">
+            <span className="flex items-center text-[20px] font-extrabold tracking-[-0.02em] text-[#221F2A]">
               findr
               <span className="mb-[10px] ml-[1px] inline-block h-[4px] w-[4px] rounded-full bg-[#B00]" />
             </span>
@@ -62,11 +62,11 @@ export function ParticipantShell({
                 className="h-7 w-auto max-w-[180px] object-contain"
               />
             ) : (
-              <span className="text-[20px] font-extrabold tracking-[-0.02em] text-[#0E0A1F]">
+              <span className="text-[20px] font-extrabold tracking-[-0.02em] text-[#221F2A]">
                 {brandName}
               </span>
             ))}
-          <span className="text-[12px] text-[#6B6680]">
+          <span className="text-[12px] text-[#6B6678]">
             {t("header.confidential")}
           </span>
         </div>

@@ -8,7 +8,7 @@ import { toBcp47, type Locale } from "@/i18n/locale";
 
 /**
  * "Deal Solution Report" PDF — a considered internal deal-review document, not a
- * data dump. Findr style: white, calm typography, violet #5B2FD4 used sparingly
+ * data dump. Findr style: white, calm typography, violet #4A51A8 used sparingly
  * as an accent (heading rules, the risk ring, small labels).
  *
  * Typeface: Geist (the product's brand font) is embedded as a TrueType so German
@@ -21,8 +21,8 @@ import { toBcp47, type Locale } from "@/i18n/locale";
  */
 
 const COLORS = {
-  violet: "#5B2FD4", // Findr accent — used sparingly
-  violetSoft: "#efeafe", // light violet for small chips
+  violet: "#4A51A8", // Findr accent — used sparingly
+  violetSoft: "#ededf6", // light violet for small chips
   ink: "#18181b", // headings + key content
   body: "#3f3f46", // softer paragraph text
   muted: "#71717a", // captions, labels

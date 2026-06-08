@@ -26,7 +26,7 @@ const COMPLIANCE = [
 export function MarketingFooter() {
   const year = new Date().getFullYear();
   return (
-    // Farbsystem: the dark-violet anchor (#2E1065) that grounds every page.
+    // Farbsystem: the dark-violet anchor (#1C1F45) that grounds every page.
     // Light text only — neutral-500 fails on the anchor (3.2:1), so body uses
     // neutral-300 (10.3:1), labels neutral-400 (6.1:1), links neutral-300→white.
     // Hairlines are white at 10 %; the wordmark switches to its light tone.

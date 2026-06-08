@@ -89,13 +89,13 @@ function ScoreRing({ score }: { score: number }) {
   return (
     <div className="relative h-24 w-24 shrink-0">
       <svg width="96" height="96" className="-rotate-90" aria-hidden>
-        <circle cx="48" cy="48" r={r} fill="none" stroke="#e8e4f2" strokeWidth="5" />
+        <circle cx="48" cy="48" r={r} fill="none" stroke="#dcdeef" strokeWidth="5" />
         <circle
           cx="48"
           cy="48"
           r={r}
           fill="none"
-          stroke="#5b2fd4"
+          stroke="#4a51a8"
           strokeWidth="5"
           strokeLinecap="round"
           strokeDasharray={circ}

@@ -112,7 +112,7 @@ export type OrgBrandingInput = z.input<typeof OrgBrandingSchema>;
 export interface OrgBranding {
   /** Customer brand name shown instead of the "findr" wordmark. Null = unset. */
   brandName: string | null;
-  /** #RRGGBB accent. Null = use the default Findr accent (#5B2FD4). */
+  /** #RRGGBB accent. Null = use the default Findr accent (#4A51A8). */
   accentColor: string | null;
   /** Public URL of the customer logo in the `org-branding` bucket. Null = none. */
   logoUrl: string | null;

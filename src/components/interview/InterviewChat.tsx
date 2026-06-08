@@ -36,7 +36,7 @@ interface InterviewChatProps {
    *  and the accent color overrides the default violet. All null → byte-
    *  identical neutral fallback (today's behavior). */
   brandName?: string | null;
-  /** #RRGGBB accent; null → default Findr violet (#5B2FD4). */
+  /** #RRGGBB accent; null → default Findr violet (#4A51A8). */
   accentColor?: string | null;
   /** Public logo URL; null → fall back to the text brand name (or nothing). */
   logoUrl?: string | null;
@@ -58,7 +58,7 @@ interface InterviewChatProps {
 }
 
 /** Default Findr accent — fallback when no org accent color is set. */
-const DEFAULT_ACCENT = "#5B2FD4";
+const DEFAULT_ACCENT = "#4A51A8";
 /** Only ever apply a caller-supplied accent if it's a strict #RRGGBB hex. */
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 
@@ -162,7 +162,7 @@ function Bubble({ role, text }: { role: InterviewTurn["role"]; text: string }) {
       <div
         className={`max-w-[82%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${
           isAgent
-            ? "rounded-tl-sm bg-[#F4F1FD] text-[#0E0A1F]"
+            ? "rounded-tl-sm bg-[#EDEDF6] text-[#221F2A]"
             : "rounded-tr-sm bg-[var(--brand-accent)] text-white"
         }`}
       >
@@ -175,7 +175,7 @@ function Bubble({ role, text }: { role: InterviewTurn["role"]; text: string }) {
 function TypingBubble() {
   return (
     <div className="flex justify-start">
-      <div className="rounded-2xl rounded-tl-sm bg-[#F4F1FD] px-4 py-3">
+      <div className="rounded-2xl rounded-tl-sm bg-[#EDEDF6] px-4 py-3">
         <span className="flex items-center gap-1">
           {["0ms", "150ms", "300ms"].map((d) => (
             <span
@@ -208,19 +208,19 @@ function VisualCapturePanel({
 
   if (state === "prompt" || state === "starting") {
     return (
-      <div className="mb-5 rounded-lg border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-4">
-        <h2 className="text-[14px] font-semibold text-[#0E0A1F]">
+      <div className="mb-5 rounded-lg border border-[#DCDEEF] bg-[#FAFAFE] px-4 py-4">
+        <h2 className="text-[14px] font-semibold text-[#221F2A]">
           {t("visualCapture.title")}
         </h2>
-        <p className="mt-2 text-[13px] leading-relaxed text-[#6B6680]">
+        <p className="mt-2 text-[13px] leading-relaxed text-[#6B6678]">
           {t("visualCapture.body")}
         </p>
-        <p className="mt-2 text-[12px] leading-relaxed text-[#8A85A0]">
+        <p className="mt-2 text-[12px] leading-relaxed text-[#8A8598]">
           <a
             href="/datenschutz"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline underline-offset-2 hover:text-[#0E0A1F]"
+            className="underline underline-offset-2 hover:text-[#221F2A]"
           >
             {t("visualCapture.privacyLink")}
           </a>
@@ -240,7 +240,7 @@ function VisualCapturePanel({
             type="button"
             onClick={onDecline}
             disabled={state === "starting"}
-            className="h-[40px] rounded-lg border border-[#D9D4E8] bg-white px-4 text-[13px] font-medium text-[#0E0A1F] transition-colors hover:bg-[#F4F1FD] disabled:opacity-50"
+            className="h-[40px] rounded-lg border border-[#D9D4E4] bg-white px-4 text-[13px] font-medium text-[#221F2A] transition-colors hover:bg-[#EDEDF6] disabled:opacity-50"
           >
             {t("visualCapture.decline")}
           </button>
@@ -250,10 +250,10 @@ function VisualCapturePanel({
   }
 
   return (
-    <div className="mb-5 flex items-start gap-3 rounded-lg border border-[#E8E4F2] bg-white px-4 py-3 text-[13px] leading-relaxed text-[#6B6680]">
+    <div className="mb-5 flex items-start gap-3 rounded-lg border border-[#DCDEEF] bg-white px-4 py-3 text-[13px] leading-relaxed text-[#6B6678]">
       <span
         className={`mt-[6px] h-2 w-2 shrink-0 rounded-full ${
-          state === "recording" ? "bg-[#2E9E6B]" : "bg-[#B7B0CC]"
+          state === "recording" ? "bg-[#2E9E6B]" : "bg-[#B7B0C6]"
         }`}
         aria-hidden="true"
       />
@@ -374,15 +374,15 @@ function VoiceControls({
 
   if (state === "unsupported" || state === "denied") {
     return (
-      <p className="mb-3 rounded-lg border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-2.5 text-[12px] leading-relaxed text-[#6B6680]">
+      <p className="mb-3 rounded-lg border border-[#DCDEEF] bg-[#FAFAFE] px-4 py-2.5 text-[12px] leading-relaxed text-[#6B6678]">
         {state === "unsupported" ? t("voice.unsupported") : t("voice.denied")}
       </p>
     );
   }
 
   return (
-    <div className="mb-3 rounded-lg border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-3">
-      <p className="text-[12px] leading-relaxed text-[#6B6680]">
+    <div className="mb-3 rounded-lg border border-[#DCDEEF] bg-[#FAFAFE] px-4 py-3">
+      <p className="text-[12px] leading-relaxed text-[#6B6678]">
         {t("voice.aiNotice")}
       </p>
       <div className="mt-3">
@@ -405,7 +405,7 @@ function VoiceControls({
                 {formatRecordingTime(seconds)}
               </span>
             </button>
-            <span className="text-[12px] leading-snug text-[#6B6680]">
+            <span className="text-[12px] leading-snug text-[#6B6678]">
               {t("voice.stopHint")}
             </span>
             <span className="sr-only">
@@ -414,7 +414,7 @@ function VoiceControls({
           </div>
         ) : state === "sending" ? (
           // Processing: short load state while the /voice route transcribes.
-          <span className="flex h-[44px] w-fit items-center gap-2.5 rounded-full bg-[#F4F1FD] pl-3.5 pr-4 text-[var(--brand-accent)]">
+          <span className="flex h-[44px] w-fit items-center gap-2.5 rounded-full bg-[#EDEDF6] pl-3.5 pr-4 text-[var(--brand-accent)]">
             <Spinner />
             <span className="text-[13px] font-medium">{t("voice.sending")}</span>
           </span>
@@ -433,15 +433,15 @@ function VoiceControls({
                 <MicIcon size={20} />
               </button>
               <div className="leading-tight">
-                <span className="block text-[14px] font-medium text-[#0E0A1F]">
+                <span className="block text-[14px] font-medium text-[#221F2A]">
                   {t("voice.start")}
                 </span>
-                <span className="mt-0.5 block text-[12px] text-[#6B6680]">
+                <span className="mt-0.5 block text-[12px] text-[#6B6678]">
                   {t("voice.startHint")}
                 </span>
               </div>
             </div>
-            <p className="mt-2.5 text-[12px] text-[#8A85A0]">
+            <p className="mt-2.5 text-[12px] text-[#8A8598]">
               {t("voice.typeInstead")}
             </p>
           </div>
@@ -465,14 +465,14 @@ function CompletedPanel({
     if (redirectUrl) window.location.href = redirectUrl;
   }, [redirectUrl]);
   return (
-    <div className="mb-10 mt-8 rounded-2xl border border-[#E8E4F2] bg-[#FAFAFE] px-6 py-8 text-center">
+    <div className="mb-10 mt-8 rounded-2xl border border-[#DCDEEF] bg-[#FAFAFE] px-6 py-8 text-center">
       <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#2E9E6B] text-[18px] text-white">
         ✓
       </div>
-      <h2 className="text-[18px] font-semibold text-[#0E0A1F]">
+      <h2 className="text-[18px] font-semibold text-[#221F2A]">
         {t("completed.title")}
       </h2>
-      <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6680]">
+      <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6678]">
         {t("completed.body")}
       </p>
     </div>
@@ -1046,16 +1046,16 @@ export function InterviewChat({
     <div
       lang={locale}
       style={{ fontFamily: FONT, "--brand-accent": accent } as React.CSSProperties}
-      className="flex min-h-screen w-full flex-col bg-white text-[#0E0A1F]"
+      className="flex min-h-screen w-full flex-col bg-white text-[#221F2A]"
     >
-      <header className="border-b border-[#E8E4F2] px-5 py-4">
+      <header className="border-b border-[#DCDEEF] px-5 py-4">
         <div
           className={`mx-auto flex max-w-2xl items-center ${
             brandless && !hasBrand ? "justify-center" : "justify-between"
           }`}
         >
           {!brandless && (
-            <span className="flex items-center text-[20px] font-extrabold tracking-[-0.02em] text-[#0E0A1F]">
+            <span className="flex items-center text-[20px] font-extrabold tracking-[-0.02em] text-[#221F2A]">
               findr
               <span className="mb-[10px] ml-[1px] inline-block h-[4px] w-[4px] rounded-full bg-[#B00]" />
             </span>
@@ -1069,11 +1069,11 @@ export function InterviewChat({
                 className="h-7 w-auto max-w-[180px] object-contain"
               />
             ) : (
-              <span className="text-[20px] font-extrabold tracking-[-0.02em] text-[#0E0A1F]">
+              <span className="text-[20px] font-extrabold tracking-[-0.02em] text-[#221F2A]">
                 {brandName}
               </span>
             ))}
-          <span className="text-[12px] text-[#6B6680]">
+          <span className="text-[12px] text-[#6B6678]">
             {t("header.confidential")}
           </span>
         </div>
@@ -1090,7 +1090,7 @@ export function InterviewChat({
                   ? t("header.titleWithCompany", { company })
                   : t("header.title")}
           </h1>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#6B6680]">
+          <p className="mt-1 text-[14px] leading-relaxed text-[#6B6678]">
             {t("header.subtitle")}
           </p>
         </div>
@@ -1136,7 +1136,7 @@ export function InterviewChat({
                 disabled={loading || visualConsentPending}
                 rows={1}
                 placeholder={t("input.placeholder")}
-                className="max-h-40 min-h-[46px] flex-1 resize-none rounded-xl border border-[#E8E4F2] px-4 py-3 text-[15px] outline-none transition-colors focus:border-[var(--brand-accent)] disabled:opacity-60"
+                className="max-h-40 min-h-[46px] flex-1 resize-none rounded-xl border border-[#DCDEEF] px-4 py-3 text-[15px] outline-none transition-colors focus:border-[var(--brand-accent)] disabled:opacity-60"
               />
               <button
                 type="button"
@@ -1150,7 +1150,7 @@ export function InterviewChat({
                 }
                 className={`h-[46px] shrink-0 rounded-xl bg-[var(--brand-accent)] px-5 text-[14px] font-medium text-white disabled:opacity-50 ${
                   accent === DEFAULT_ACCENT
-                    ? "transition-colors hover:bg-[#4A22B0]"
+                    ? "transition-colors hover:bg-[#353C8A]"
                     : "transition-opacity hover:opacity-90"
                 }`}
               >

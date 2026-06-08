@@ -177,7 +177,7 @@ export function RiskHistoryChart({
         <path
           d={chartData.pathD}
           fill="none"
-          stroke="#5b2fd4"
+          stroke="#4a51a8"
           strokeWidth="2"
         />
 
