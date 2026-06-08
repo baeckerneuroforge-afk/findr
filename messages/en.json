@@ -30,6 +30,14 @@
       "stopped": "Screen sharing stopped · {count} frames collected",
       "truncated": "Limit reached: only the first part will be analyzed."
     },
+    "stimulus": {
+      "label": "Material for this conversation",
+      "imageAlt": "The material discussed in this interview",
+      "linkTitle": "View the prototype",
+      "linkBody": "Open the prototype in a new tab and refer to it as you answer.",
+      "openLink": "Open prototype",
+      "newTab": "Opens in a new tab"
+    },
     "error": {
       "requestFailed": "Request failed. Please try again.",
       "generic": "Something went wrong. Please try again."

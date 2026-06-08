@@ -55,6 +55,14 @@ interface InterviewChatProps {
    *  typed path. Defaults false → byte-identical text-only chat. Typing always
    *  stays available as the fallback. */
   voiceEnabled?: boolean;
+  /** Stimulus E4: the single asset the participant reacts to, shown in a
+   *  split-view beside the chat. `stimulusUrl` is a public image URL (our
+   *  bucket) when `stimulusType` is "image", or an external prototype URL when
+   *  "link". Both null (non-research / no stimulus) → the existing single-column
+   *  layout renders unchanged. `stimulus_description` is deliberately NOT passed:
+   *  it's interviewer-prompt-only and must never be shown to the participant. */
+  stimulusUrl?: string | null;
+  stimulusType?: string | null;
 }
 
 /** Default Findr accent — fallback when no org accent color is set. */
@@ -264,6 +272,52 @@ function VisualCapturePanel({
             ? t("visualCapture.truncated")
             : t("visualCapture.stopped", { count: frameCount })}
       </span>
+    </div>
+  );
+}
+
+/**
+ * The stimulus asset shown beside the chat (split-view). Image → a contained
+ * <img> (bucket URL, scaled, framed); link → a card with an outbound "open
+ * prototype" button (NO iframe — foreign prototypes routinely block framing and
+ * it's a security risk; a clean new-tab link is safer). The `stimulus_description`
+ * is interviewer-only and never rendered here.
+ */
+function StimulusPanel({ url, kind }: { url: string; kind: "image" | "link" }) {
+  const t = useTranslations("interview");
+  return (
+    <div>
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
+        {t("stimulus.label")}
+      </p>
+      {kind === "image" ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={url}
+          alt={t("stimulus.imageAlt")}
+          className="max-h-[32vh] w-full rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] object-contain lg:max-h-[80vh]"
+        />
+      ) : (
+        <div className="rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-4">
+          <h2 className="text-[14px] font-semibold text-[#0E0A1F]">
+            {t("stimulus.linkTitle")}
+          </h2>
+          <p className="mt-2 text-[13px] leading-relaxed text-[#6B6680]">
+            {t("stimulus.linkBody")}
+          </p>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex h-[40px] items-center rounded-lg bg-[var(--brand-accent)] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+          >
+            {t("stimulus.openLink")}
+          </a>
+          <p className="mt-2 text-[12px] text-[#8A85A0]">
+            {t("stimulus.newTab")}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -492,9 +546,21 @@ export function InterviewChat({
   panelCompleteRedirect = null,
   visualCaptureEnabled = false,
   voiceEnabled = false,
+  stimulusUrl = null,
+  stimulusType = null,
 }: InterviewChatProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
+
+  // Stimulus E4: narrow the two loose props into one typed value. Non-null ONLY
+  // when there's a URL AND a recognized type — drives the split-view. Null (the
+  // common case) → the existing single-column layout renders byte-identically.
+  const stimulusKind: "image" | "link" | null =
+    stimulusType === "image" || stimulusType === "link" ? stimulusType : null;
+  const stimulus =
+    stimulusUrl && stimulusKind
+      ? { url: stimulusUrl, kind: stimulusKind }
+      : null;
 
   // Accent flows down as a CSS custom property on the root wrapper; the inline
   // bg-[var(--brand-accent)] utilities (incl. the module-level Bubble /
@@ -1042,6 +1108,99 @@ export function InterviewChat({
     }
   }
 
+  // Chat column — today's single-column content (heading → chat area → error →
+  // sticky input / completed). A Fragment renders NO DOM node, so the
+  // no-stimulus branch below (`<main>{chatColumn}</main>`) is byte-identical to
+  // the previous markup; with a stimulus it becomes the split-view's right col.
+  const chatColumn = (
+    <>
+      <div className="mb-6">
+        <h1 className="text-[18px] font-semibold">
+          {headingOverride
+            ? headingOverride
+            : brandless
+              ? t("header.titleResearch")
+              : company
+                ? t("header.titleWithCompany", { company })
+                : t("header.title")}
+        </h1>
+        <p className="mt-1 text-[14px] leading-relaxed text-[#6B6680]">
+          {t("header.subtitle")}
+        </p>
+      </div>
+
+      <div className="flex-1 space-y-4">
+        <VisualCapturePanel
+          state={visualCaptureState}
+          frameCount={visualFrameCount}
+          truncated={visualTruncated}
+          onAccept={() => void startVisualCapture()}
+          onDecline={declineVisualCapture}
+        />
+        {messages.map((m, i) => (
+          <Bubble key={i} role={m.role} text={m.text} />
+        ))}
+        {loading && <TypingBubble />}
+        <div ref={endRef} />
+      </div>
+
+      {error && (
+        <div className="mt-4 rounded-lg border border-[#FFD7D0] bg-[#FFF3F1] px-4 py-2 text-[13px] text-[#C9442F]">
+          {error}
+        </div>
+      )}
+
+      {isOpen ? (
+        <div className="sticky bottom-0 mt-6 bg-white pb-6 pt-2">
+          {voiceEnabled && (
+            <VoiceControls
+              state={voiceState}
+              level={voiceLevel}
+              seconds={voiceSeconds}
+              disabled={loading || visualConsentPending}
+              onStart={() => void startRecording()}
+              onStop={stopRecording}
+            />
+          )}
+          <div className="flex items-end gap-2">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={onKeyDown}
+              disabled={loading || visualConsentPending}
+              rows={1}
+              placeholder={t("input.placeholder")}
+              className="max-h-40 min-h-[46px] flex-1 resize-none rounded-xl border border-[#E8E4F2] px-4 py-3 text-[15px] outline-none transition-colors focus:border-[var(--brand-accent)] disabled:opacity-60"
+            />
+            <button
+              type="button"
+              onClick={() => void send()}
+              disabled={
+                loading ||
+                visualConsentPending ||
+                voiceState === "recording" ||
+                voiceState === "sending" ||
+                !input.trim()
+              }
+              className={`h-[46px] shrink-0 rounded-xl bg-[var(--brand-accent)] px-5 text-[14px] font-medium text-white disabled:opacity-50 ${
+                accent === DEFAULT_ACCENT
+                  ? "transition-colors hover:bg-[#4A22B0]"
+                  : "transition-opacity hover:opacity-90"
+              }`}
+            >
+              {loading ? "…" : t("input.send")}
+            </button>
+          </div>
+          <p className="mt-3 text-center text-[11px] text-[#9B9BA3]">
+            {brandless ? t("footer.brandless") : t("footer.default")}
+          </p>
+        </div>
+      ) : (
+        <CompletedPanel redirectUrl={panelCompleteRedirect} />
+      )}
+    </>
+  );
+
   return (
     <div
       lang={locale}
@@ -1079,92 +1238,25 @@ export function InterviewChat({
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 py-6">
-        <div className="mb-6">
-          <h1 className="text-[18px] font-semibold">
-            {headingOverride
-              ? headingOverride
-              : brandless
-                ? t("header.titleResearch")
-                : company
-                  ? t("header.titleWithCompany", { company })
-                  : t("header.title")}
-          </h1>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#6B6680]">
-            {t("header.subtitle")}
-          </p>
-        </div>
-
-        <div className="flex-1 space-y-4">
-          <VisualCapturePanel
-            state={visualCaptureState}
-            frameCount={visualFrameCount}
-            truncated={visualTruncated}
-            onAccept={() => void startVisualCapture()}
-            onDecline={declineVisualCapture}
-          />
-          {messages.map((m, i) => (
-            <Bubble key={i} role={m.role} text={m.text} />
-          ))}
-          {loading && <TypingBubble />}
-          <div ref={endRef} />
-        </div>
-
-        {error && (
-          <div className="mt-4 rounded-lg border border-[#FFD7D0] bg-[#FFF3F1] px-4 py-2 text-[13px] text-[#C9442F]">
-            {error}
+      {stimulus ? (
+        // Split-View — Asset + Chat. Mobil: Asset oben (sticky, full-width,
+        // höhenbegrenzt), Chat darunter. Desktop (lg+): Asset linke Spalte
+        // (sticky top), Chat rechts. `lg:items-start` lässt das Asset oben
+        // andocken; die Chat-Spalte zieht sich per `lg:self-stretch` auf volle
+        // Höhe, damit ihr sticky-bottom-Input weiterhin am Viewport-Rand klebt.
+        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-5 py-6 lg:flex-row lg:items-start">
+          <aside className="sticky top-0 z-20 self-stretch border-b border-[#E8E4F2] bg-white py-3 lg:top-6 lg:z-0 lg:w-2/5 lg:max-w-sm lg:shrink-0 lg:self-auto lg:border-b-0 lg:py-0">
+            <StimulusPanel url={stimulus.url} kind={stimulus.kind} />
+          </aside>
+          <div className="flex w-full flex-1 flex-col lg:max-w-2xl lg:self-stretch">
+            {chatColumn}
           </div>
-        )}
-
-        {isOpen ? (
-          <div className="sticky bottom-0 mt-6 bg-white pb-6 pt-2">
-            {voiceEnabled && (
-              <VoiceControls
-                state={voiceState}
-                level={voiceLevel}
-                seconds={voiceSeconds}
-                disabled={loading || visualConsentPending}
-                onStart={() => void startRecording()}
-                onStop={stopRecording}
-              />
-            )}
-            <div className="flex items-end gap-2">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                disabled={loading || visualConsentPending}
-                rows={1}
-                placeholder={t("input.placeholder")}
-                className="max-h-40 min-h-[46px] flex-1 resize-none rounded-xl border border-[#E8E4F2] px-4 py-3 text-[15px] outline-none transition-colors focus:border-[var(--brand-accent)] disabled:opacity-60"
-              />
-              <button
-                type="button"
-                onClick={() => void send()}
-                disabled={
-                  loading ||
-                  visualConsentPending ||
-                  voiceState === "recording" ||
-                  voiceState === "sending" ||
-                  !input.trim()
-                }
-                className={`h-[46px] shrink-0 rounded-xl bg-[var(--brand-accent)] px-5 text-[14px] font-medium text-white disabled:opacity-50 ${
-                  accent === DEFAULT_ACCENT
-                    ? "transition-colors hover:bg-[#4A22B0]"
-                    : "transition-opacity hover:opacity-90"
-                }`}
-              >
-                {loading ? "…" : t("input.send")}
-              </button>
-            </div>
-            <p className="mt-3 text-center text-[11px] text-[#9B9BA3]">
-              {brandless ? t("footer.brandless") : t("footer.default")}
-            </p>
-          </div>
-        ) : (
-          <CompletedPanel redirectUrl={panelCompleteRedirect} />
-        )}
-      </main>
+        </main>
+      ) : (
+        <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 py-6">
+          {chatColumn}
+        </main>
+      )}
     </div>
   );
 }

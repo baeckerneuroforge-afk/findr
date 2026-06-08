@@ -30,6 +30,14 @@
       "stopped": "Bildschirmfreigabe beendet · {count} Frames gesammelt",
       "truncated": "Limit erreicht: Nur der erste Teil wird ausgewertet."
     },
+    "stimulus": {
+      "label": "Material zum Gespräch",
+      "imageAlt": "Das in diesem Interview besprochene Material",
+      "linkTitle": "Prototyp ansehen",
+      "linkBody": "Öffnen Sie den Prototyp in einem neuen Tab und beziehen Sie sich beim Antworten darauf.",
+      "openLink": "Prototyp öffnen",
+      "newTab": "Öffnet in einem neuen Tab"
+    },
     "error": {
       "requestFailed": "Anfrage fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."

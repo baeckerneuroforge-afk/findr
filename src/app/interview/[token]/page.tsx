@@ -143,6 +143,12 @@ export default async function InterviewPage({
   // branch only forwards the inert backend flag; playback UI lands separately.
   const ttsEnabled = isResearch && plan?.ttsEnabled === true;
   const useCase = isResearch ? (plan?.useCase ?? null) : null;
+  // Stimulus E4: the single asset shown beside the chat (split-view). Research-
+  // only, defensive (?? null), and the plan record already carries both fields
+  // (Etappe 1). For post_loss / checkin (non-research) both stay null → the
+  // chat renders its existing single-column layout, byte-identical.
+  const stimulusUrl = isResearch ? (plan?.stimulusUrl ?? null) : null;
+  const stimulusType = isResearch ? (plan?.stimulusType ?? null) : null;
   const ttsProps = { ttsEnabled };
   const useCaseProps = { useCase };
 
@@ -170,6 +176,10 @@ export default async function InterviewPage({
         panelCompleteRedirect={session.panelCompleteRedirect}
         visualCaptureEnabled={visualCaptureEnabled}
         voiceEnabled={voiceEnabled}
+        // Stimulus E4 — drives the participant split-view (asset beside the
+        // chat). Both null for non-research / no-stimulus studies → unchanged.
+        stimulusUrl={stimulusUrl}
+        stimulusType={stimulusType}
         {...ttsProps}
         {...useCaseProps}
       />
