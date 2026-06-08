@@ -182,6 +182,12 @@ export type ResearchPlanRow = {
   // migration lands select("*") omits it; plans-service coerceUseCase maps that
   // to null so existing behavior stays unchanged.
   use_case: ResearchPlanUseCase | null;
+  // Optional single stimulus per study. All columns stay nullable and
+  // stimulus_type intentionally remains free text so later asset types do not
+  // require a DB enum migration.
+  stimulus_url: string | null;
+  stimulus_type: string | null;
+  stimulus_description: string | null;
   // Studientyp (Phase M0, 20260630000000). NOT NULL DEFAULT 'product_discovery'
   // in der DB — nicht-nullbar getypt wie status. Vor angewandter Migration
   // liefert select("*") die Spalte nicht; der Lese-Mapper (plans-service
@@ -205,6 +211,9 @@ type ResearchPlanInsert = {
   voice_enabled?: boolean;
   tts_enabled?: boolean;
   use_case?: ResearchPlanUseCase | null;
+  stimulus_url?: string | null;
+  stimulus_type?: string | null;
+  stimulus_description?: string | null;
   // Optional beim Insert — wird heute NIE gesetzt (kein Write-Pfad in M0); der
   // DB-DEFAULT vergibt 'product_discovery'. Verdrahtung kommt in M1/M3.
   study_type?: ResearchPlanStudyType;
@@ -225,6 +234,9 @@ type ResearchPlanUpdate = {
   voice_enabled?: boolean;
   tts_enabled?: boolean;
   use_case?: ResearchPlanUseCase | null;
+  stimulus_url?: string | null;
+  stimulus_type?: string | null;
+  stimulus_description?: string | null;
   study_type?: ResearchPlanStudyType;
   created_at?: string;
 };

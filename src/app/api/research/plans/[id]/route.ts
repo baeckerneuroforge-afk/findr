@@ -59,6 +59,27 @@ const UpdatePlanBodySchema = z
     voiceEnabled: z.boolean().optional(),
     ttsEnabled: z.boolean().optional(),
     useCase: UseCaseSchema.nullable().optional(),
+    stimulusUrl: z
+      .string()
+      .trim()
+      .max(2048)
+      .nullable()
+      .optional()
+      .transform((v) => (v === "" ? null : v)),
+    stimulusType: z
+      .string()
+      .trim()
+      .max(100)
+      .nullable()
+      .optional()
+      .transform((v) => (v === "" ? null : v)),
+    stimulusDescription: z
+      .string()
+      .trim()
+      .max(3000)
+      .nullable()
+      .optional()
+      .transform((v) => (v === "" ? null : v)),
   })
   .refine(
     (data) =>
@@ -71,7 +92,10 @@ const UpdatePlanBodySchema = z
       data.visualCaptureEnabled !== undefined ||
       data.voiceEnabled !== undefined ||
       data.ttsEnabled !== undefined ||
-      data.useCase !== undefined,
+      data.useCase !== undefined ||
+      data.stimulusUrl !== undefined ||
+      data.stimulusType !== undefined ||
+      data.stimulusDescription !== undefined,
     { message: "At least one field must be present in the update body." },
   );
 
@@ -118,6 +142,9 @@ export async function PATCH(
       voiceEnabled: parsed.data.voiceEnabled,
       ttsEnabled: parsed.data.ttsEnabled,
       useCase: parsed.data.useCase,
+      stimulusUrl: parsed.data.stimulusUrl,
+      stimulusType: parsed.data.stimulusType,
+      stimulusDescription: parsed.data.stimulusDescription,
     });
     if (!plan) {
       // Defensive: the existence check above passed, so this only fires on

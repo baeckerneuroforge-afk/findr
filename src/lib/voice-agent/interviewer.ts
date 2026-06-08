@@ -453,6 +453,11 @@ export interface ResearchPlanContext {
   persona?: string | null;
   /** Optional Market-Research subtype. Missing/null means no extra focus block. */
   useCase?: ResearchPlanUseCase | null;
+  /** Optional single-stimulus metadata. Only stimulusDescription plus a safe
+   *  type label are rendered into the prompt; URL stays out of model context. */
+  stimulusUrl?: string | null;
+  stimulusType?: string | null;
+  stimulusDescription?: string | null;
 }
 
 /** Vendor / brand context — null for independent / external research. */
@@ -544,14 +549,31 @@ export const USE_CASE_FOCUS: Record<ResearchPlanUseCase, string> = {
   brand_research:
     "Fokus: Marke/Wahrnehmung, nicht Vergangenheitsverhalten: spontane Assoziationen, Bilder, Gefühle und Worte zur Marke. Frag nach Vergleichen mit Alternativen, Differenzierung und dem Eindruck, der hängen bleibt; keine 'letztes Mal'- oder konkrete-Situation-Probes, wenn es um Markenassoziation geht. Tiefe: Flach lassen. Markenassoziationen sind schnell erschöpft; nach 1-2 spontanen Eindrücken oder Vergleichen weitergehen, nicht überbohren. Die Basis-Obergrenzen bleiben bindend.",
   creative_test:
-    "Fokus: erster spontaner Eindruck, emotionale Reaktion, Klarheit der Botschaft und Markenfit bezogen auf das gezeigte Asset. Frag, was auffällt, was übersehen wird und welches Element welche Wirkung auslöst. Tiefe: Flach bis mittel. Der erste Eindruck ist schnell da; höchstens EIN gezieltes Nachhaken zu Botschaftsklarheit oder Wirkung, dann weiter oder schließen. Die Basis-Obergrenzen bleiben bindend. (Asset-Anzeige folgt später.)",
+    "Fokus: Erwartungen an kreative Gestaltung, emotionale Reaktionen, Klarheit möglicher Botschaften und Markenfit. Frag nach den wichtigsten Eindrücken und danach, welche Gestaltungselemente aus Sicht des Teilnehmers welche Wirkung hätten. Tiefe: Flach bis mittel; höchstens EIN gezieltes Nachhaken zu Botschaftsklarheit oder Wirkung, dann weiter oder schließen. Die Basis-Obergrenzen bleiben bindend.",
   concept_test:
-    "Fokus: zuerst Verständnis prüfen (Konzept in eigenen Worten), dann Relevanz und wahrgenommenen Nutzen. Wenn der Teilnehmer unsicher paraphrasiert, frage direkt, was unklar ist oder wie er das Konzept in eigenen Worten beschreiben würde; nicht nach der Ursache der Unsicherheit. Bei Kaufabsicht vorsichtig sein: statt hypothetischer Zusagen nach aktuellem Verhalten oder Commitment fragen; bei Varianten Präferenz plus Begründung klären. Tiefe: Tiefer als Brand/Creative. Covered erst, wenn das Verständnis wirklich geprüft ist (Teilnehmer paraphrasiert in eigenen Worten); danach genau eine Stufe zu Relevanz oder wahrgenommenem Nutzen. Die Basis-Obergrenzen bleiben bindend: keine dritte Nachfrage zum selben Punkt, Stop-Ceiling gewinnt. (Asset-Anzeige folgt später.)",
+    "Fokus: zuerst das Verständnis des untersuchten Konzepts prüfen, dann Relevanz und wahrgenommenen Nutzen. Wenn der Teilnehmer unsicher paraphrasiert, frage direkt, was unklar ist oder wie er das Konzept in eigenen Worten beschreiben würde; nicht nach der Ursache der Unsicherheit. Bei Kaufabsicht vorsichtig sein: statt hypothetischer Zusagen nach aktuellem Verhalten oder Commitment fragen; bei Varianten Präferenz plus Begründung klären. Tiefe: Tiefer als Brand/Creative. Covered erst, wenn das Verständnis wirklich geprüft ist; danach genau eine Stufe zu Relevanz oder wahrgenommenem Nutzen. Die Basis-Obergrenzen bleiben bindend: keine dritte Nachfrage zum selben Punkt, Stop-Ceiling gewinnt.",
 };
 
-function buildResearchSystemPrompt(useCase: unknown): string {
+const STIMULUS_USE_CASE_FOCUS: Partial<Record<ResearchPlanUseCase, string>> = {
+  creative_test:
+    "Fokus: erster spontaner Eindruck, emotionale Reaktion, Klarheit der Botschaft und Markenfit bezogen auf den gezeigten Stimulus. Frag, was auffällt, was übersehen wird und welches Element welche Wirkung auslöst. Tiefe: Flach bis mittel. Der erste Eindruck ist schnell da; höchstens EIN gezieltes Nachhaken zu Botschaftsklarheit oder Wirkung, dann weiter oder schließen. Die Basis-Obergrenzen bleiben bindend.",
+  concept_test:
+    "Fokus: zuerst das Verständnis des gezeigten Stimulus prüfen (Konzept in eigenen Worten), dann Relevanz und wahrgenommenen Nutzen. Wenn der Teilnehmer unsicher paraphrasiert, frage direkt, was unklar ist oder wie er das Konzept in eigenen Worten beschreiben würde; nicht nach der Ursache der Unsicherheit. Bei Kaufabsicht vorsichtig sein: statt hypothetischer Zusagen nach aktuellem Verhalten oder Commitment fragen; bei Varianten Präferenz plus Begründung klären. Tiefe: Tiefer als Brand/Creative. Covered erst, wenn das Verständnis wirklich geprüft ist; danach genau eine Stufe zu Relevanz oder wahrgenommenem Nutzen. Die Basis-Obergrenzen bleiben bindend: keine dritte Nachfrage zum selben Punkt, Stop-Ceiling gewinnt.",
+};
+
+function hasResearchStimulus(plan: ResearchPlanContext): boolean {
+  return Boolean(plan.stimulusDescription?.trim());
+}
+
+export function buildResearchSystemPrompt(
+  useCase: unknown,
+  hasStimulus = false,
+): string {
   if (typeof useCase !== "string") return RESEARCH_INTERVIEWER_SYSTEM_PROMPT;
-  const focus = USE_CASE_FOCUS[useCase as ResearchPlanUseCase];
+  const typedUseCase = useCase as ResearchPlanUseCase;
+  const focus =
+    (hasStimulus ? STIMULUS_USE_CASE_FOCUS[typedUseCase] : undefined) ??
+    USE_CASE_FOCUS[typedUseCase];
   if (!focus) return RESEARCH_INTERVIEWER_SYSTEM_PROMPT;
   return `${RESEARCH_INTERVIEWER_SYSTEM_PROMPT}
 
@@ -586,6 +608,22 @@ function formatBrand(brand: ResearchBrand | null): string {
     : `Research on behalf of ${brand.orgName}. Use this ONLY to ground questions; never sell.`;
 }
 
+function formatStimulus(plan: ResearchPlanContext): string | null {
+  const description = plan.stimulusDescription?.trim();
+  if (!description) return null;
+
+  const type = plan.stimulusType?.trim();
+  const typeLabel =
+    type === "image"
+      ? "Bild"
+      : type === "link"
+        ? "Prototyp-Link"
+        : type || null;
+
+  return `STIMULUS:
+Dem Teilnehmer wird gerade gezeigt: ${description}${typeLabel ? ` (Typ: ${typeLabel})` : ""}. Beziehe deine Fragen darauf.`;
+}
+
 /**
  * Build the research interviewer's user prompt. Signature is unchanged
  * (input, history, language) — counters are computed inside so the
@@ -604,12 +642,13 @@ function formatBrand(brand: ResearchBrand | null): string {
  * the system prompt's "From N agent questions onward" thresholds bind
  * to a fact, not the model's own arithmetic.
  */
-function buildResearchPrompt(
+export function buildResearchPrompt(
   input: ResearchInput,
   history: InterviewTurn[],
   language: InterviewLanguage,
 ): string {
   const persona = input.plan.persona?.trim();
+  const stimulus = formatStimulus(input.plan);
   const agentQuestionCount = history.filter((t) => t.role === "agent").length;
   const topicsTotal = input.plan.topics.length;
 
@@ -624,6 +663,7 @@ COUNTERS (calculated facts — trust these, do NOT estimate from history):
 RESEARCH PLAN
 Title:     ${input.plan.title}
 Objective: ${input.plan.objective}${persona ? `\nPersona:   ${persona}` : ""}
+${stimulus ? `\n\n${stimulus}` : ""}
 
 TOPICS (cover naturally, 2–4 turns each, start with the lightest):
 ${formatTopics(input.plan.topics)}
@@ -651,7 +691,10 @@ export async function nextResearchMessage(
   model: string = process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL,
 ): Promise<NextMessage> {
   return callJson(
-    buildResearchSystemPrompt(input.plan.useCase),
+    buildResearchSystemPrompt(
+      input.plan.useCase,
+      hasResearchStimulus(input.plan),
+    ),
     buildResearchPrompt(input, history, language),
     model,
     NextMessageSchema,

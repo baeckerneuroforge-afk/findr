@@ -47,6 +47,27 @@ const CreatePlanBodySchema = z.object({
   voiceEnabled: z.boolean().optional().default(false),
   ttsEnabled: z.boolean().optional().default(false),
   useCase: UseCaseSchema.nullable().optional(),
+  stimulusUrl: z
+    .string()
+    .trim()
+    .max(2048)
+    .nullable()
+    .optional()
+    .transform((v) => (v === "" ? null : v)),
+  stimulusType: z
+    .string()
+    .trim()
+    .max(100)
+    .nullable()
+    .optional()
+    .transform((v) => (v === "" ? null : v)),
+  stimulusDescription: z
+    .string()
+    .trim()
+    .max(3000)
+    .nullable()
+    .optional()
+    .transform((v) => (v === "" ? null : v)),
   // M3 — Studientyp-Diskriminator. Optional; fehlt er (Product-Discovery-
   // Create, byte-identisch zu pre-M3), defaultet er auf 'product_discovery' und
   // createResearchPlan lässt die Spalte weg → DB-DEFAULT. Nur der Market-
@@ -83,6 +104,9 @@ export async function POST(req: NextRequest) {
       voiceEnabled: parsed.data.voiceEnabled,
       ttsEnabled: parsed.data.ttsEnabled,
       useCase: parsed.data.useCase ?? null,
+      stimulusUrl: parsed.data.stimulusUrl ?? null,
+      stimulusType: parsed.data.stimulusType ?? null,
+      stimulusDescription: parsed.data.stimulusDescription ?? null,
       studyType: parsed.data.studyType,
     });
     return NextResponse.json({ success: true, planId: plan.id, plan });

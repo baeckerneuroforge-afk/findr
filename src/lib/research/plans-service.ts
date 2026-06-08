@@ -50,6 +50,11 @@ export interface ResearchPlanRecord {
   /** Lightweight Market-Research use-case. Null means no use-case focus block
    *  and therefore unchanged interviewer behavior. */
   useCase: ResearchPlanUseCase | null;
+  /** Optional single stimulus metadata. The interviewer consumes the text
+   *  description plus a safe type label; the URL stays presentation-only. */
+  stimulusUrl: string | null;
+  stimulusType: string | null;
+  stimulusDescription: string | null;
   screeningQuestions: ScreeningQuestion[];
   /** Studientyp-Diskriminator (Phase M0). Trägt 'product_discovery' für jeden
    *  Bestandsplan (DB-DEFAULT). In M0 liest KEIN Verhaltenspfad dieses Feld —
@@ -151,6 +156,10 @@ function coerceTtsEnabled(raw: unknown): boolean {
   return raw === true;
 }
 
+function coerceNullableString(raw: unknown): string | null {
+  return typeof raw === "string" ? raw : null;
+}
+
 function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
   return {
     id: row.id,
@@ -171,6 +180,15 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
       (row as { tts_enabled?: unknown }).tts_enabled,
     ),
     useCase: coerceUseCase((row as { use_case?: unknown }).use_case),
+    stimulusUrl: coerceNullableString(
+      (row as { stimulus_url?: unknown }).stimulus_url,
+    ),
+    stimulusType: coerceNullableString(
+      (row as { stimulus_type?: unknown }).stimulus_type,
+    ),
+    stimulusDescription: coerceNullableString(
+      (row as { stimulus_description?: unknown }).stimulus_description,
+    ),
     screeningQuestions: coerceScreeningQuestions(row.screening_questions),
     studyType: coerceStudyType(row.study_type),
     createdAt: row.created_at,
@@ -211,6 +229,13 @@ export function planToAgentContext(plan: ResearchPlanRecord): ResearchPlanContex
     persona: plan.persona,
     ...(plan.studyType === "market_research" && plan.useCase
       ? { useCase: plan.useCase }
+      : {}),
+    ...(plan.studyType === "market_research"
+      ? {
+          stimulusUrl: plan.stimulusUrl,
+          stimulusType: plan.stimulusType,
+          stimulusDescription: plan.stimulusDescription,
+        }
       : {}),
   };
 }
@@ -327,6 +352,9 @@ export interface CreateResearchPlanInput {
   voiceEnabled?: boolean;
   ttsEnabled?: boolean;
   useCase?: ResearchPlanUseCase | null;
+  stimulusUrl?: string | null;
+  stimulusType?: string | null;
+  stimulusDescription?: string | null;
   /**
    * Studientyp-Diskriminator (M3 write-side). OPTIONAL — undefined leaves the
    * insert WITHOUT a study_type key, so the DB DEFAULT ('product_discovery')
@@ -364,6 +392,9 @@ export async function createResearchPlan(
       voice_enabled: input.voiceEnabled ?? false,
       tts_enabled: input.ttsEnabled ?? false,
       use_case: input.useCase ?? null,
+      stimulus_url: input.stimulusUrl ?? null,
+      stimulus_type: input.stimulusType ?? null,
+      stimulus_description: input.stimulusDescription ?? null,
       // Market-only insert key: when the caller is the Product-Discovery path
       // (studyType undefined / 'product_discovery'), the column is OMITTED so
       // the DB DEFAULT writes 'product_discovery' — a byte-identical discovery
@@ -395,6 +426,9 @@ export interface UpdateResearchPlanInput {
   voiceEnabled?: boolean;
   ttsEnabled?: boolean;
   useCase?: ResearchPlanUseCase | null;
+  stimulusUrl?: string | null;
+  stimulusType?: string | null;
+  stimulusDescription?: string | null;
 }
 
 /**
@@ -427,6 +461,9 @@ export async function updateResearchPlan(
     voice_enabled?: boolean;
     tts_enabled?: boolean;
     use_case?: ResearchPlanUseCase | null;
+    stimulus_url?: string | null;
+    stimulus_type?: string | null;
+    stimulus_description?: string | null;
   } = {};
   if (input.title !== undefined) update.title = input.title;
   if (input.objective !== undefined) update.objective = input.objective;
@@ -443,6 +480,10 @@ export async function updateResearchPlan(
   if (input.voiceEnabled !== undefined) update.voice_enabled = input.voiceEnabled;
   if (input.ttsEnabled !== undefined) update.tts_enabled = input.ttsEnabled;
   if (input.useCase !== undefined) update.use_case = input.useCase;
+  if (input.stimulusUrl !== undefined) update.stimulus_url = input.stimulusUrl;
+  if (input.stimulusType !== undefined) update.stimulus_type = input.stimulusType;
+  if (input.stimulusDescription !== undefined)
+    update.stimulus_description = input.stimulusDescription;
 
   if (Object.keys(update).length === 0) {
     return getResearchPlan(orgId, planId);
