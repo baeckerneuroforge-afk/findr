@@ -169,8 +169,9 @@ export type SitemapRoute = { path: string; priority: number };
 export const SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/", priority: 1.0 },
   { path: "/produkt", priority: 0.8 },
-  // The four methods have no dedicated pages yet (their hrefs are the homepage
-  // `#module` anchor), so they are intentionally NOT emitted as sitemap URLs.
+  // The four method pages (/methoden/<slug>), derived from the same MODULES
+  // leaves the mega-menu + footer use — so each route is declared exactly once.
+  ...moduleLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   { path: "/preise", priority: 0.8 },
   ...industryLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   { path: "/insights", priority: 0.6 },

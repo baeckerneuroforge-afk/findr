@@ -25,16 +25,15 @@ export type ModuleEntry = {
  * file), the header's "Plattform" mega-menu panel (via nav-data) AND the footer
  * read it, so label + copy + icon can never drift between them.
  *
- * `href`: the dedicated /methoden/<…> pages don't exist yet (own Etappe). To
- * avoid 404s, every card points at the in-page `#module` anchor (the grid is its
- * own target on `/`; from any subpage the mega-menu lands on the homepage grid).
- * Swap to the real route per method once those pages ship.
+ * `href`: each method links to its dedicated /methoden/<slug> page. Because the
+ * mega-menu and footer derive their links from this same array (via nav-data),
+ * the route lives in exactly one place per method.
  */
 export const MODULES: ModuleEntry[] = [
   {
     idx: "01",
     name: "Bedarf & Verhalten",
-    href: "/#module",
+    href: "/methoden/bedarf-verhalten",
     blurb:
       "Konkrete Situationen, echte Workarounds und unerfüllte Bedürfnisse — belegt am Gespräch, statt aus Hypothesen abgeleitet.",
     status: "Live",
@@ -43,7 +42,7 @@ export const MODULES: ModuleEntry[] = [
   {
     idx: "02",
     name: "Markenwahrnehmung",
-    href: "/#module",
+    href: "/methoden/markenwahrnehmung",
     blurb:
       "Welche Assoziationen, Bilder und Gefühle deine Marke auslöst — in den eigenen Worten deiner Zielgruppe.",
     status: "Live",
@@ -52,7 +51,7 @@ export const MODULES: ModuleEntry[] = [
   {
     idx: "03",
     name: "Konzept-Test",
-    href: "/#module",
+    href: "/methoden/konzept-test",
     blurb:
       "Erst Verständnis, dann Relevanz: ob ein Konzept trägt — und woran genau es das tut oder scheitert.",
     status: "Bald",
@@ -61,7 +60,7 @@ export const MODULES: ModuleEntry[] = [
   {
     idx: "04",
     name: "Creative-Test",
-    href: "/#module",
+    href: "/methoden/creative-test",
     blurb:
       "Erster Eindruck und emotionale Wirkung einer Kreation — bevor du Media-Budget dahinter legst.",
     status: "Bald",
