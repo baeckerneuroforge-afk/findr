@@ -7,6 +7,7 @@ import { TrustBar } from "@/components/marketing/TrustBar";
 import { HomeFeatures } from "@/components/marketing/HomeFeatures";
 import { HomeWorkflow } from "@/components/marketing/HomeWorkflow";
 import { PlatformModules } from "@/components/marketing/PlatformModules";
+import { HomeSynthesis } from "@/components/marketing/HomeSynthesis";
 import { StatBand } from "@/components/marketing/StatBand";
 import { CTASection } from "@/components/marketing/CTASection";
 import { HeroAtmosphere } from "@/components/marketing/HeroAtmosphere";
@@ -114,8 +115,14 @@ export default function HomePage() {
           the component default unchanged. */}
       <PlatformModules accent title="Vier Methoden, eine Engine." />
 
+      {/* The synthesis payoff — placed right after the four methods (which gather
+          the conversations) and before the proof band: methods → what they're
+          condensed INTO → stats → CTA. On the canvas tone, so it breaks cleanly
+          into the warm-cream StatBand below. */}
+      <HomeSynthesis />
+
       {/* Section rhythm: the band sits on the warm cream so it reads as its own
-          step between the module grid and the closing CTA. */}
+          step between the synthesis grid and the closing CTA. */}
       <div className="bg-warm">
         <StatBand />
       </div>
