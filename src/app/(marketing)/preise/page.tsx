@@ -29,7 +29,7 @@ import type { ComponentType, SVGProps } from "react";
 const PATH = "/preise";
 const OG_TITLE = "Preise — findr.";
 const DESCRIPTION =
-  "Custom-based Pricing für findr.: Du zahlst für die Module, den Umfang und die Begleitung, die zu deinem Team passen — den konkreten Preis legen wir gemeinsam im Demo-Call fest. In Frankfurt gehostet, DSGVO-konform.";
+  "Custom-based Pricing für findr.: Du zahlst für die Methoden, den Umfang und die Begleitung, die zu deinem Team passen — den konkreten Preis legen wir gemeinsam im Demo-Call fest. In Frankfurt gehostet, DSGVO-konform.";
 
 export const metadata: Metadata = {
   title: "Preise",
@@ -46,8 +46,8 @@ type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 const FACTORS: { Icon: IconType; title: string; body: string }[] = [
   {
     Icon: LayersIcon,
-    title: "Module",
-    body: "Du startest mit dem Modul, das heute den größten Hebel hat, und buchst die anderen drei dazu, wenn dein Team so weit ist. Bezahlt wird, was du wirklich einsetzt — nicht das Voll-Paket auf Verdacht.",
+    title: "Methoden",
+    body: "Du startest mit der Methode, die heute den größten Hebel hat, und nimmst die anderen drei dazu, wenn dein Team so weit ist. Bezahlt wird, was du wirklich einsetzt — nicht das Voll-Paket auf Verdacht.",
   },
   {
     Icon: TrendingUpIcon,
@@ -115,11 +115,11 @@ const ALWAYS_INCLUDED: { Icon: IconType; label: string; sub: string }[] = [
 const FAQ_ITEMS: { q: string; a: string }[] = [
   {
     q: "Warum nennt ihr keine festen Preise?",
-    a: "Weil der passende Preis von den Modulen, dem Umfang und der Begleitung abhängt, die dein Team wirklich braucht. Ein Schubladen-Tarif würde die meisten Teams entweder über- oder unterversorgen. Im Demo-Call schnüren wir stattdessen genau das, was zu deiner Situation passt — transparent und nachvollziehbar.",
+    a: "Weil der passende Preis von den Methoden, dem Umfang und der Begleitung abhängt, die dein Team wirklich braucht. Ein Schubladen-Tarif würde die meisten Teams entweder über- oder unterversorgen. Im Demo-Call schnüren wir stattdessen genau das, was zu deiner Situation passt — transparent und nachvollziehbar.",
   },
   {
-    q: "Kann ich mit einem einzigen Modul starten?",
-    a: "Ja. Du beginnst mit dem Modul, das heute den größten Hebel hat, und buchst die anderen dazu, sobald dein Team so weit ist. Alle vier Module teilen sich dieselbe Conversation-Intelligence-Engine — bereits erfasste Gespräche zählen weiter, nichts geht beim Erweitern verloren.",
+    q: "Kann ich mit einer einzigen Methode starten?",
+    a: "Ja. Du beginnst mit der Methode, die heute den größten Hebel hat, und nimmst die anderen dazu, sobald dein Team so weit ist. Alle vier Methoden teilen sich dieselbe KI-Engine — bereits geführte Interviews zählen weiter, nichts geht beim Erweitern verloren.",
   },
   {
     q: "Wonach richtet sich der Umfang, und wie wird abgerechnet?",
@@ -131,7 +131,7 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
   },
   {
     q: "Ist das DSGVO-konform?",
-    a: "findr. ist in Deutschland gebaut, in Frankfurt gehostet und DSGVO-nativ, ausgerichtet auf den EU AI Act. Datenschutz ist die Grundlage der Plattform, nicht der Nachgedanke — das gilt für jedes Modul und jeden Account.",
+    a: "findr. ist in Deutschland gebaut, in Frankfurt gehostet und DSGVO-nativ, ausgerichtet auf den EU AI Act. Datenschutz ist die Grundlage der Plattform, nicht der Nachgedanke — das gilt für jede Methode und jeden Account.",
   },
   {
     q: "Gibt es einen Piloten oder Einstieg?",
@@ -165,7 +165,7 @@ export default function PreisePage() {
               as="h1"
               eyebrow="Preise"
               title="Du zahlst für das, was du nutzt — nicht für ein Paket, das nicht passt."
-              lead="findr. passt sich an dein Team, die Module und den Umfang an. Den konkreten Preis legen wir gemeinsam im Gespräch fest — transparent, ohne Schubladen-Tarif."
+              lead="findr. passt sich an dein Team, die Methoden und den Umfang an. Den konkreten Preis legen wir gemeinsam im Gespräch fest — transparent, ohne Schubladen-Tarif."
             />
           </Reveal>
           <Reveal>
@@ -173,8 +173,8 @@ export default function PreisePage() {
               <CtaLink href="/demo" variant="primary" size="lg">
                 Demo buchen →
               </CtaLink>
-              <CtaLink href="/loesungen" variant="secondary" size="lg">
-                Lösungen ansehen
+              <CtaLink href="/produkt" variant="secondary" size="lg">
+                Plattform ansehen
               </CtaLink>
             </div>
           </Reveal>
@@ -212,11 +212,11 @@ export default function PreisePage() {
         </Container>
       </Section>
 
-      {/* 3 ── MODUL-BAUKASTEN (kanonische PlatformModules, einfarbige Headline) */}
+      {/* 3 ── METHODEN-BAUKASTEN (kanonische PlatformModules, einfarbige Headline) */}
       <PlatformModules
         eyebrow="Der Baukasten"
-        title="Starte mit einem Modul. Buch die anderen dazu."
-        lead="Vier gleichwertige Produkte auf einer gemeinsamen Conversation-Intelligence-Engine. Du musst nicht alles auf einmal nehmen — wähl, was heute zählt, und erweitere, wenn dein Team so weit ist. Jedes Modul führt zu seiner eigenen Seite."
+        title="Starte mit einer Methode. Nimm die anderen dazu."
+        lead="Vier Methoden auf einer gemeinsamen KI-Engine. Du musst nicht alles auf einmal nehmen — wähl, was heute zählt, und erweitere, wenn dein Team so weit ist."
       />
 
       {/* 4 ── FEATURE-/MODUL-MATRIX ────────────────────────────────────────── */}
@@ -224,9 +224,9 @@ export default function PreisePage() {
         <Container>
           <Reveal>
             <SectionHeading
-              eyebrow="Was in welchem Modul steckt"
+              eyebrow="Was in welcher Methode steckt"
               title="Die Plattform im Überblick."
-              lead="Zeilen sind Fähigkeiten, Spalten sind die vier Module. So siehst du auf einen Blick, was jedes Modul liefert — und woraus sich dein Baukasten zusammensetzt."
+              lead="Zeilen sind Fähigkeiten, Spalten sind die vier Methoden. So siehst du auf einen Blick, was jede Methode liefert — und woraus sich dein Baukasten zusammensetzt."
             />
           </Reveal>
           <Reveal>
@@ -242,7 +242,7 @@ export default function PreisePage() {
             <SectionHeading
               eyebrow="In jedem Konto"
               title="Was bei jedem findr.-Konto dabei ist."
-              lead="Unabhängig davon, welche Module du wählst: Diese Grundlagen gelten für jeden Account — die DACH-Souveränität, auf die es in Europa ankommt, und das Beleg-Versprechen, das durch jedes Modul läuft."
+              lead="Unabhängig davon, welche Methoden du wählst: Diese Grundlagen gelten für jeden Account — die DACH-Souveränität, auf die es in Europa ankommt, und das Beleg-Versprechen, das durch jede Methode läuft."
             />
           </Reveal>
           <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-3">
@@ -299,7 +299,7 @@ export default function PreisePage() {
                 Sprich mit uns über deinen Umfang.
               </h2>
               <p className="max-w-xl text-[17px] leading-relaxed text-neutral-300">
-                In einem kurzen Gespräch klären wir, welche Module, welcher Umfang
+                In einem kurzen Gespräch klären wir, welche Methoden, welcher Umfang
                 und welche Begleitung zu deinem Team passen — und du siehst, was
                 findr. an deinen echten Gesprächen leistet.
               </p>

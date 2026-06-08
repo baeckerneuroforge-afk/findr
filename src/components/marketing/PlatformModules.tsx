@@ -16,49 +16,55 @@ export type ModuleEntry = {
 };
 
 /**
- * The four products, given EQUAL weight (same card, same depth) — this is the
- * core rebalancing away from the old ~70%-Sales homepage. Blurbs are verbatim
- * from landing.html:1459/1466/1473/1480. Each card links to its module page.
+ * The four market-research METHODS, given EQUAL weight (same card, same depth) —
+ * facets of ONE qualitative-research engine, not four separate products. The
+ * first two run today (Live); Konzept- und Creative-Test sind in Vorbereitung
+ * ("Bald").
  *
- * Exported as the single source for the four-module set: the homepage grid (this
- * file) AND the header's "Plattform" mega-menu panel (via nav-data) read it, so
- * route + copy + icon can never drift between them.
+ * Exported as the single source for the four-method set: the homepage grid (this
+ * file), the header's "Plattform" mega-menu panel (via nav-data) AND the footer
+ * read it, so label + copy + icon can never drift between them.
+ *
+ * `href`: the dedicated /methoden/<…> pages don't exist yet (own Etappe). To
+ * avoid 404s, every card points at the in-page `#module` anchor (the grid is its
+ * own target on `/`; from any subpage the mega-menu lands on the homepage grid).
+ * Swap to the real route per method once those pages ship.
  */
 export const MODULES: ModuleEntry[] = [
   {
     idx: "01",
-    name: "Sales Intelligence",
-    href: "/produkt/sales-intelligence",
+    name: "Bedarf & Verhalten",
+    href: "/#module",
     blurb:
-      "Deal-Risiko aus echten Gesprächen: Echtzeit-Risiko-Score, automatische Verlustgrund-Erkennung und risiko-adjustierte Pipeline-Prognose.",
-    status: "Live",
-    icon: "TrendingUpIcon",
-  },
-  {
-    idx: "02",
-    name: "Customer Success Health",
-    href: "/produkt/customer-health",
-    blurb:
-      "Churn-Früherkennung aus jedem Kunden-Call: Health-Score pro Account, Risiko-Signale und Expansions-Chancen, bevor es zu spät ist.",
+      "Konkrete Situationen, echte Workarounds und unerfüllte Bedürfnisse — belegt am Gespräch, statt aus Hypothesen abgeleitet.",
     status: "Live",
     icon: "RadarIcon",
   },
   {
-    idx: "03",
-    name: "Product Discovery",
-    href: "/produkt/product-discovery",
+    idx: "02",
+    name: "Markenwahrnehmung",
+    href: "/#module",
     blurb:
-      "KI-geführte Nutzer-Interviews und automatische Studien-Synthese — was Kunden wirklich brauchen, verankert im Transkript statt im Bauchgefühl.",
+      "Welche Assoziationen, Bilder und Gefühle deine Marke auslöst — in den eigenen Worten deiner Zielgruppe.",
     status: "Live",
     icon: "NetworkIcon",
   },
   {
-    idx: "04",
-    name: "Market Research",
-    href: "/produkt/market-research",
+    idx: "03",
+    name: "Konzept-Test",
+    href: "/#module",
     blurb:
-      "Studienübergreifende Insights: frag über alle Interviews und Studien hinweg, exakt gezählt und je Studie belegt.",
-    status: "Live",
+      "Erst Verständnis, dann Relevanz: ob ein Konzept trägt — und woran genau es das tut oder scheitert.",
+    status: "Bald",
+    icon: "FileCheckIcon",
+  },
+  {
+    idx: "04",
+    name: "Creative-Test",
+    href: "/#module",
+    blurb:
+      "Erster Eindruck und emotionale Wirkung einer Kreation — bevor du Media-Budget dahinter legst.",
+    status: "Bald",
     icon: "TargetIcon",
   },
 ];
@@ -68,11 +74,11 @@ export function PlatformModules({
   eyebrow = "Die Plattform",
   title = (
     <>
-      Ein KI-Gehirn. <Accent>Vier Produkte.</Accent>
+      Vier Methoden. <Accent>Eine Engine.</Accent>
     </>
   ),
-  // Platform thesis, verbatim from landing.html:1452.
-  lead = "Vier gleichwertige Produkte auf einer gemeinsamen Conversation-Intelligence-Engine. Die Module reden miteinander: Ein Churn-Signal wird zur Research-Frage, ein gewonnener Deal startet das CS-Onboarding, ein Research-Insight schärft das Risiko-Modell. Daten kumulieren statt in Silos zu verschwinden.",
+  // MR thesis: four research methods, one qualitative engine.
+  lead = "Vier qualitative Marktforschungs-Methoden auf einer gemeinsamen KI-Engine. Dieselbe Tiefe, dasselbe Nachbohren und dieselbe Beleg-Disziplin in jeder Methode — egal ob es um Bedarf, Marke, Konzept oder Creative geht. Jedes Interview zahlt auf dasselbe Gehirn ein.",
   accent = false,
 }: {
   /** Set false when a page provides its own section heading above the grid. */

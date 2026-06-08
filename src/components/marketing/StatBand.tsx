@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 
-/** Stats verbatim from landing.html:1538–1553. */
+/** Honest positioning anchors — NO invented volume/customer numbers. The values
+ *  are factual ratios (100 % EU-hosting, 0 US-cloud, 100 % German, 14-day trial),
+ *  not made-up metrics. */
 const STATS = [
-  { target: 4, suffix: "", label: "Produkte auf einer Plattform" },
   { target: 100, suffix: "%", label: "In der EU gehostet · DSGVO-konform" },
+  { target: 100, suffix: "%", label: "Auf Deutsch geführt · DACH-Kontext" },
+  { target: 0, suffix: "", label: "US-Cloud · kein Datentransfer in die USA" },
   { target: 14, suffix: "d", label: "Gratis testen · ohne Kreditkarte" },
-  { target: 1, suffix: "", label: "Gemeinsames KI-Gehirn über alle Produkte" },
 ];
 
 /**

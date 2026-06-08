@@ -1,5 +1,4 @@
 import { MODULES } from "./PlatformModules";
-import { ROLES } from "./role-template";
 import { INDUSTRIES } from "./industry-template";
 import type { IconName } from "./icons";
 
@@ -11,7 +10,7 @@ import type { IconName } from "./icons";
  * (the header's NAV_LINKS, the footer's COLUMNS, the sitemap's routes array),
  * which could silently drift. Now every one of those is DERIVED from here, and
  * here itself composes the already-canonical per-surface registries
- * (`MODULES` / `ROLES` / `INDUSTRIES`) so a route, label, blurb or icon is
+ * (`MODULES` / `INDUSTRIES`) so a route, label, blurb or icon is
  * declared exactly once.
  *
  * Everything here is PURE DATA (strings + icon NAME strings — no JSX, no
@@ -34,7 +33,7 @@ export type NavLeaf = {
 };
 
 /** A column within a panel. The "Plattform" panel is one unheaded group; the
- *  "Lösungen" panel is two headed groups (roles / industries). `overview` is the
+ *  "Branchen" panel is one headed group (industries). `overview` is the
  *  group's optional "see all" foot-link. */
 export type NavGroup = {
   heading?: string;
@@ -66,13 +65,6 @@ const moduleLeaves: NavLeaf[] = MODULES.map((m) => ({
   status: m.status,
 }));
 
-const roleLeaves: NavLeaf[] = ROLES.map((r) => ({
-  label: r.name,
-  href: `/loesungen/${r.slug}`,
-  desc: r.painTeaser,
-  icon: r.icon,
-}));
-
 const industryLeaves: NavLeaf[] = INDUSTRIES.map((i) => ({
   label: i.name,
   href: `/branchen/${i.slug}`,
@@ -97,15 +89,14 @@ export const PRIMARY_NAV: NavEntry[] = [
   },
   {
     kind: "panel",
-    label: "Lösungen",
-    href: "/loesungen",
-    id: "loesungen",
+    label: "Branchen",
+    // No /branchen index page exists; the panel's destinations are the
+    // per-industry pages below. `href` is the section's semantic home — NOT
+    // rendered as a link by MegaMenu/MobileNav (the trigger is a <button>), so
+    // it points at the Market-Research product page as the closest hub.
+    href: "/produkt/market-research",
+    id: "branchen",
     groups: [
-      {
-        heading: "Für SaaS-Teams",
-        items: roleLeaves,
-        overview: { label: "Alle Lösungen", href: "/loesungen" },
-      },
       {
         heading: "Für Marken & Marktforschung",
         items: industryLeaves,
@@ -129,10 +120,6 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
   {
     title: "Produkt",
     links: [{ label: "Plattform", href: "/produkt" }, ...toLinks(moduleLeaves)],
-  },
-  {
-    title: "Lösungen",
-    links: [{ label: "Übersicht", href: "/loesungen" }, ...toLinks(roleLeaves)],
   },
   {
     title: "Branchen",
@@ -182,10 +169,9 @@ export type SitemapRoute = { path: string; priority: number };
 export const SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/", priority: 1.0 },
   { path: "/produkt", priority: 0.8 },
-  ...moduleLeaves.map((l) => ({ path: l.href, priority: 0.8 })),
+  // The four methods have no dedicated pages yet (their hrefs are the homepage
+  // `#module` anchor), so they are intentionally NOT emitted as sitemap URLs.
   { path: "/preise", priority: 0.8 },
-  { path: "/loesungen", priority: 0.7 },
-  ...roleLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   ...industryLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   { path: "/insights", priority: 0.6 },
   { path: "/demo", priority: 0.5 },

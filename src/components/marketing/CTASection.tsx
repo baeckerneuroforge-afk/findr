@@ -13,10 +13,10 @@ export function CTASection({
   eyebrow = "Bereit?",
   title = (
     <>
-      Ein Gehirn für <Accent>jedes</Accent> Kundengespräch.
+      Frag die <Accent>echten</Accent> Stimmen an deinem Markt.
     </>
   ),
-  lead = "Sieh, was findr. in deinen eigenen Gesprächen findet — über alle vier Produkte hinweg.",
+  lead = "Sieh, was findr. in echten Tiefeninterviews mit deiner Zielgruppe findet — KI-geführt, auf Deutsch und DSGVO-nativ.",
   primary = { label: "Demo buchen →", href: "/demo" },
   secondary = { label: "Preise ansehen", href: "/preise" },
 }: {

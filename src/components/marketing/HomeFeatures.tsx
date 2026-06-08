@@ -1,13 +1,13 @@
 import type { ComponentType, SVGProps } from "react";
 import { Container, Section, SectionHeading } from "./primitives";
 import { Reveal } from "./Reveal";
-import { FileCheckIcon, CpuIcon, ShieldCheckIcon, LayersIcon } from "./icons";
+import { LayersIcon, ShieldCheckIcon, MapPinIcon, FileCheckIcon } from "./icons";
 
 /**
- * Four key features, one sentence each — the "why findr." in a glance. Each
- * claim is anchored to something the product actually does (evidence-anchored
- * extraction, one shared engine across modules, EU-native data handling,
- * deterministic cross-study synthesis). No numbers invented.
+ * Four key strengths, one sentence each — the "why findr." in a glance. Each
+ * claim is anchored to something the product actually does (real probing depth,
+ * EU-native data handling, native-German interviews for the DACH market, and
+ * fraud/quality screening for reliable answers). No numbers invented.
  */
 const FEATURES: {
   Icon: ComponentType<SVGProps<SVGSVGElement>>;
@@ -15,24 +15,24 @@ const FEATURES: {
   body: string;
 }[] = [
   {
-    Icon: FileCheckIcon,
-    title: "Belegt, nicht geraten",
-    body: "Jede Aussage hängt am exakten Transkript-Moment — kein KI-Bauchgefühl, keine erfundenen Zahlen.",
-  },
-  {
-    Icon: CpuIcon,
-    title: "Vier Module, eine Engine",
-    body: "Sales, Customer Success, Product Discovery und Market Research teilen sich ein Gehirn statt vier Datensilos.",
+    Icon: LayersIcon,
+    title: "Echtes Nachbohren",
+    body: "Die KI fragt nach wie ein erfahrener Researcher — bis hinter die erste Antwort, statt bei der Hypothese stehenzubleiben.",
   },
   {
     Icon: ShieldCheckIcon,
     title: "DSGVO-nativ",
-    body: "In Deutschland gebaut, in der EU gehostet — Datenschutz ist die Grundlage, nicht das Add-on.",
+    body: "In Deutschland gebaut, in der EU gehostet (Frankfurt) — Datenschutz ist die Grundlage, nicht das Add-on.",
   },
   {
-    Icon: LayersIcon,
-    title: "Cross-Study-Synthese",
-    body: "Frag über alle Gespräche und Studien hinweg — exakt gezählt und je Quelle mit Zitat belegt.",
+    Icon: MapPinIcon,
+    title: "Auf Deutsch, für die DACH-Region",
+    body: "Tiefeninterviews in echtem Deutsch — Tonalität und Kontext, die US-Tools schlicht nicht treffen.",
+  },
+  {
+    Icon: FileCheckIcon,
+    title: "Verlässliche Antworten",
+    body: "Fraud- und Qualitätsprüfung filtern Durchklicker und Unsinn heraus — du baust auf echten Stimmen auf, belegt am Transkript.",
   },
 ];
 
@@ -46,7 +46,7 @@ export function HomeFeatures() {
             // Single-ink heading — emphasis comes from size + whitespace, not a
             // two-tone colour split (the violet stays on the eyebrow + icons).
             title="Tiefe aus echten Gesprächen — mit Beleg."
-            lead="Qualitative Tiefe und nachprüfbare Schärfe in einem Werkzeug. Vier Prinzipien ziehen sich durch jedes Modul."
+            lead="Qualitative Tiefe und nachprüfbare Schärfe in einem Werkzeug. Vier Prinzipien ziehen sich durch jede Methode."
           />
         </Reveal>
 

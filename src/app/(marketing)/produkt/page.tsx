@@ -18,7 +18,7 @@ import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 const PATH = "/produkt";
 const OG_TITLE = "Plattform — findr.";
 const DESCRIPTION =
-  "Vier gleichwertige Produkte auf einem gemeinsamen KI-Gehirn: Sales Intelligence, Customer Success Health, Product Discovery und Market Research. Die Module reden miteinander, Daten kumulieren statt in Silos zu verschwinden — DSGVO-nativ.";
+  "Eine qualitative Marktforschungs-Engine mit vier Methoden: Bedarf & Verhalten, Markenwahrnehmung, Konzept- und Creative-Test. Jedes Interview zahlt auf dasselbe KI-Gehirn ein — DSGVO-nativ und auf Deutsch.";
 
 export const metadata: Metadata = {
   title: "Plattform",
@@ -36,10 +36,10 @@ const SOFTWARE_JSONLD = {
   url: `${SITE_URL}${PATH}`,
   description: DESCRIPTION,
   featureList: [
-    "Sales Intelligence",
-    "Customer Success Health",
-    "Product Discovery",
-    "Market Research",
+    "Bedarf & Verhalten",
+    "Markenwahrnehmung",
+    "Konzept-Test",
+    "Creative-Test",
   ],
 };
 
@@ -71,10 +71,10 @@ export default function ProduktPage() {
         eyebrow="Die Plattform"
         title={
           <>
-            Ein KI-Gehirn. Vier Produkte. Ein System.
+            Eine Engine. Vier Methoden. Ein System.
           </>
         }
-        subhead="findr. ist keine Sammlung von Tools, sondern eine Conversation-Intelligence-Engine mit vier gleichwertigen Produkten. Jedes Gespräch fließt in ein gemeinsames Gehirn — DSGVO-nativ und in der EU gehostet."
+        subhead="findr. ist keine Sammlung von Tools, sondern eine qualitative Marktforschungs-Engine mit vier Methoden. Jedes Interview fließt in ein gemeinsames Gehirn — DSGVO-nativ und in der EU gehostet."
         primary={{ label: "Demo buchen →", href: "/demo" }}
         secondary={{ label: "Module ansehen", href: "#module" }}
         trust={["DSGVO-nativ", "EU-gehostet · Frankfurt", "EU AI Act"]}
@@ -84,7 +84,7 @@ export default function ProduktPage() {
 
       {/* `title` passed explicitly (single ink colour) to drop the component
           default's two-tone <Accent> split — matches the homepage pattern. */}
-      <PlatformModules title="Ein KI-Gehirn. Vier Produkte." />
+      <PlatformModules title="Vier Methoden, eine Engine." />
 
       <Integrations tone="muted" />
 
@@ -135,10 +135,10 @@ export default function ProduktPage() {
       <CTASection
         title={
           <>
-            Vier Produkte. Ein gemeinsames Gehirn.
+            Vier Methoden. Ein gemeinsames Gehirn.
           </>
         }
-        lead="Sieh, was findr. in deinen Gesprächen findet — über alle vier Produkte hinweg, auf einer Plattform."
+        lead="Sieh, was findr. in echten Tiefeninterviews mit deiner Zielgruppe findet — über alle vier Methoden hinweg, auf einer Engine."
       />
     </>
   );

@@ -36,8 +36,8 @@ export function MarketingFooter() {
           <div className="flex flex-col gap-3">
             <Wordmark tone="light" />
             <p className="max-w-xs text-sm leading-relaxed text-anchor-foreground">
-              Ein KI-Gehirn für jedes Kundengespräch — vier Produkte auf einer
-              Conversation-Intelligence-Plattform.
+              Qualitative Marktforschung mit KI — hunderte Tiefeninterviews,
+              DSGVO-nativ und auf Deutsch, verdichtet zu belegten Insights.
             </p>
           </div>
 
