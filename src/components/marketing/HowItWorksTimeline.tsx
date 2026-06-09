@@ -95,7 +95,7 @@ export function HowItWorksTimeline({ steps }: { steps: HowStep[] }) {
                 the prior HowItWorks behaviour. */}
             <Reveal delay={delayMs / 1000} className="flex flex-col gap-1.5">
               {s.phase ? (
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+                <div className="font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-neutral-500">
                   {s.phase}
                 </div>
               ) : null}

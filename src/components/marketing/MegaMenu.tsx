@@ -120,7 +120,7 @@ export function MegaMenu({ nav }: { nav: NavEntry[] }) {
             <Link
               key={entry.href}
               href={entry.href}
-              className="rounded text-sm text-neutral-700 transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
+              className="rounded font-mono text-[11.5px] uppercase tracking-[0.14em] text-neutral-500 transition-colors hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
             >
               {entry.label}
             </Link>
@@ -160,8 +160,8 @@ export function MegaMenu({ nav }: { nav: NavEntry[] }) {
               aria-expanded={isOpen}
               aria-controls={panelId}
               onClick={() => toggle(entry.id)}
-              className={`inline-flex items-center gap-1 rounded text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 ${
-                isOpen ? "text-primary-700" : "text-neutral-700 hover:text-primary-700"
+              className={`inline-flex items-center gap-1 rounded font-mono text-[11.5px] uppercase tracking-[0.14em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 ${
+                isOpen ? "text-neutral-900" : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
               {entry.label}
@@ -175,7 +175,7 @@ export function MegaMenu({ nav }: { nav: NavEntry[] }) {
             {isOpen ? (
               <div
                 id={panelId}
-                className={`fixed inset-x-0 top-16 z-40 border-b border-neutral-200 bg-white shadow-[0_14px_28px_-20px_rgba(17,17,17,0.22)] ${
+                className={`fixed inset-x-0 top-16 z-40 border-b border-neutral-200 bg-neutral-0 shadow-[0_40px_80px_-40px_rgba(60,45,25,0.4)] ${
                   reduceMotion ? "" : "animate-fade-in-panel"
                 }`}
               >
@@ -206,7 +206,7 @@ function MegaPanel({
       {groups.map((group, gi) => (
         <div key={group.heading ?? gi} className="flex min-w-0 flex-col gap-4">
           {group.heading ? (
-            <h2 className="text-[11px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+            <h2 className="font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-neutral-500">
               {group.heading}
             </h2>
           ) : null}

@@ -1,0 +1,28 @@
+"use client";
+
+import { useEffect, useRef, type ReactNode } from "react";
+
+/**
+ * Header-Hülle der Studio-Bühne: oben transparent über dem Hero, ab ein paar
+ * Pixeln Scroll Papier-Blur + Hairline (Klasse `solid`, CSS in studio.css).
+ * Client-Insel nur für den Scroll-Zustand — der Header-INHALT (Logo, Nav,
+ * CTAs) kommt server-gerendert als children rein.
+ */
+export function StudioHeaderBar({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onScroll = () => el.classList.toggle("solid", window.scrollY > 12);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <header ref={ref} className="st-top">
+      {children}
+    </header>
+  );
+}

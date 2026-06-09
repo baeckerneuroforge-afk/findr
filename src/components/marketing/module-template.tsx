@@ -49,7 +49,7 @@ export function ModuleHero({
         <Reveal>
           <div className="flex max-w-3xl flex-col items-start gap-6">
             <Eyebrow>{eyebrow}</Eyebrow>
-            <h1 className="font-marketing text-[clamp(34px,5.5vw,58px)] font-semibold leading-[1.05] tracking-[-0.03em] text-neutral-900">
+            <h1 className="font-marketing text-[clamp(36px,5.8vw,66px)] font-bold leading-[1.02] tracking-[-0.03em] text-neutral-900">
               {title}
             </h1>
             <p className="max-w-xl text-[18px] leading-relaxed text-neutral-500">
@@ -57,7 +57,9 @@ export function ModuleHero({
             </p>
             {audience ? (
               <p className="text-sm text-neutral-700">
-                <span className="font-medium text-neutral-900">Passt zu:</span>{" "}
+                <span className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-neutral-500">
+                  Passt zu:
+                </span>{" "}
                 {audience}
               </p>
             ) : null}
@@ -172,23 +174,22 @@ export function ExampleCard({
 }: {
   badge?: string;
   rows: ExampleRow[];
-  /** Badge colour: "risk" = red (loss/churn signals), "neutral" = violet
-   * (positive findings). Default "risk" keeps the Etappe-A pages unchanged. */
+  /** Badge-Stempel: "risk" = REC-Rot (blinder Fleck / Verlust-Signale),
+   * "neutral" = Tinte (belegte, positive Befunde). Gleiche API wie zuvor. */
   tone?: "risk" | "neutral";
   className?: string;
 }) {
-  const badgeTone =
+  const stampTone =
     tone === "neutral"
-      ? "bg-primary-50 text-primary-700"
-      : "bg-danger-50 text-danger-700";
+      ? "border-neutral-700 text-neutral-700"
+      : "border-[var(--st-rec)] text-[var(--st-rec-deep)]";
   return (
     <div
-      className={`relative rounded border border-neutral-200 bg-white p-6 sm:p-7 ${className}`}
+      className={`relative rounded-[10px] bg-neutral-0 p-6 shadow-[0_1px_0_rgba(25,21,18,0.05),0_40px_90px_-45px_rgba(60,45,25,0.4),0_0_0_1px_rgba(25,21,18,0.08)] sm:p-7 ${className}`}
     >
-      <CornerBrackets className="border-primary-200" />
       {badge ? (
         <span
-          className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.06em] ${badgeTone}`}
+          className={`inline-block -rotate-2 rounded border-2 px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.18em] ${stampTone}`}
         >
           {badge}
         </span>
@@ -196,13 +197,13 @@ export function ExampleCard({
       <div className="mt-5 flex flex-col gap-5">
         {rows.map((r) => (
           <div key={r.label}>
-            <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-primary-600">
+            <div className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-neutral-500">
               {r.label}
             </div>
             <div
               className={
                 r.quote
-                  ? "mt-1.5 border-l-2 border-primary-300 pl-3 text-[15px] italic leading-relaxed text-neutral-700"
+                  ? "st-quote mt-1.5 border-l-2 border-[var(--st-rec)] pl-3 text-[16px] leading-relaxed text-neutral-700"
                   : "mt-1.5 text-[15px] leading-relaxed text-neutral-700"
               }
             >

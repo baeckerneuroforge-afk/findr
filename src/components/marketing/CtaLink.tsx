@@ -5,21 +5,24 @@ type CtaVariant = "primary" | "secondary" | "ghost";
 type CtaSize = "md" | "lg";
 
 const VARIANT: Record<CtaVariant, string> = {
-  primary:
-    "bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-700",
-  secondary:
-    "bg-white text-neutral-900 border border-neutral-300 hover:border-neutral-400 hover:bg-neutral-50",
-  ghost: "text-neutral-700 hover:text-primary-700",
+  // REC-roter Pill-Button (st-btn-rec, studio.css) — der eine laute Akzent.
+  primary: "st-btn st-btn-rec",
+  // Tinten-Outline-Pill; auf dunklen Flächen (st-on-dark) automatisch Creme.
+  secondary: "st-btn st-btn-ghost",
+  ghost:
+    "font-mono text-[11.5px] uppercase tracking-[0.14em] text-neutral-500 hover:text-neutral-900 transition-colors",
 };
 
 const SIZE: Record<CtaSize, string> = {
-  md: "h-11 px-5 text-sm",
-  lg: "h-12 px-6 text-[15px]",
+  md: "h-11 px-6 text-sm",
+  lg: "h-14 px-8 text-[16px]",
 };
 
 /**
- * Marketing CTA. Renders next/link for internal routes; falls back to a plain
- * <a target="_blank"> for external (http…) URLs. 4px radius, on-brand violet.
+ * Marketing CTA — Studio-Pills. Renders next/link for internal routes; falls
+ * back to a plain <a target="_blank"> for external (http…) URLs. Füge die
+ * Klasse `magnetic` hinzu, damit der Button dem Pointer leicht folgt
+ * (StudioFx-Delegation, nur fine-pointer + motion).
  */
 export function CtaLink({
   href,
@@ -34,7 +37,8 @@ export function CtaLink({
   size?: CtaSize;
   className?: string;
 }) {
-  const cls = `inline-flex items-center justify-center gap-2 rounded font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 ${VARIANT[variant]} ${SIZE[size]} ${className}`;
+  const sizing = variant === "ghost" ? "" : SIZE[size];
+  const cls = `inline-flex items-center justify-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 ${VARIANT[variant]} ${sizing} ${className}`;
 
   if (/^https?:\/\//.test(href)) {
     return (

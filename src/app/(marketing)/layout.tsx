@@ -1,8 +1,48 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import {
+  Bricolage_Grotesque,
+  Instrument_Serif,
+  Archivo,
+  Spline_Sans_Mono,
+} from "next/font/google";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { StudioFx } from "@/components/marketing/studio/StudioFx";
 import { ogDefaults, twitterDefaults } from "@/lib/marketing/seo";
+import "@/components/marketing/studio/studio.css";
+
+// ── Studio-Session-Schriftstimmen ────────────────────────────────────────────
+// Self-hosted via next/font (Build-Time-Download, ausgeliefert vom eigenen
+// Origin — kein Google-Request zur Laufzeit, keine DSGVO-Regression). Bewusst
+// HIER geladen statt im Root-Layout: die Variablen hängen am .studio-Wrapper
+// unten, damit Dashboard/Interview/Auth keine zusätzlichen Fonts preloaden
+// (deckt sich mit dem Perf-Cleanup, der ungenutzte Fonts aus dem Root entfernte).
+//   Bricolage Grotesque → Display/Headlines (--font-marketing via studio.css)
+//   Instrument Serif    → kursiver Serif-Akzent in Headlines + Zitate
+//   Archivo             → Fließtext (--font-body im .studio-Scope)
+//   Spline Sans Mono    → Tape-Labels, Timecodes, Kapitelmarken
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument",
+  subsets: ["latin"],
+  weight: "400",
+  style: "italic",
+});
+
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+});
+
+const splineSansMono = Spline_Sans_Mono({
+  variable: "--font-spline-mono",
+  subsets: ["latin"],
+});
 
 const DEFAULT_TITLE =
   "findr. — Qualitative Marktforschung mit KI, DSGVO-nativ & auf Deutsch";
@@ -24,22 +64,28 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#faf8f4",
+  themeColor: "#f4eee0",
 };
 
 /**
- * Marketing route-group shell. NESTED under the root layout — it does NOT render
- * <html>/<body> (those come from app/layout.tsx; a second pair would be a bug,
- * §8). It only reclaims the light surface: the global <body> is `bg-obsidian
- * text-white` with Inter; this wrapper paints `bg-canvas text-neutral-900` (the
- * warm off-white marketing base — Farbsystem), sets the Hanken body face
- * (`font-body`), and fills the viewport so the dark dashboard background never
- * shows through. Header + <main> + Footer wrap every
- * marketing page. Server component (no interactivity at this level).
+ * Marketing route-group shell — die „Studio-Session“-Bühne. NESTED under the
+ * root layout (kein <html>/<body>, §8). Der .studio-Wrapper:
+ *   • remappt die Marketing-Design-Tokens (studio.css) — warmes Papier,
+ *     Tinten-Neutrals, REC-Rot als Akzent — ohne globals.css anzufassen,
+ *   • trägt die next/font-Variablen der vier Studio-Schriften,
+ *   • legt das Filmkorn (st-grain) und die Cursor-FX über alle Seiten.
+ *
+ * Die Reveal-Choreografie (Rv) armiert ihren versteckten Ausgangszustand
+ * selbst erst nach dem Mount — no-JS/Bots sehen alles sofort, und es gibt
+ * keinen Hydration-Mismatch durch fremde className-Mutationen.
  */
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased">
+    <div
+      className={`studio ${bricolage.variable} ${instrumentSerif.variable} ${archivo.variable} ${splineSansMono.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
+    >
+      <div className="st-grain" aria-hidden />
+      <StudioFx />
       <MarketingHeader />
       <main className="flex-1">{children}</main>
       <MarketingFooter />

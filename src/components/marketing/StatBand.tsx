@@ -55,29 +55,19 @@ export function StatBand() {
   }, [reduce]);
 
   return (
-    <section className="py-20 sm:py-28">
-      <div className="mx-auto w-full max-w-[1180px] px-6 sm:px-8">
-        <div
-          ref={ref}
-          className="grid grid-cols-2 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 lg:grid-cols-4"
-        >
-          {STATS.map((s, i) => (
-            <div
-              key={s.label}
-              className="flex flex-col items-center gap-2 bg-white px-6 py-10 text-center"
-            >
-              {/* Whole stat reads in one ink colour — no violet number/suffix
-                  accent (the suffix inherits neutral-900 from the parent). */}
-              <div className="font-marketing text-[clamp(40px,6vw,60px)] font-semibold leading-none tracking-[-0.02em] text-neutral-900 tabular-nums">
-                {counts[i]}
-                {s.suffix}
-              </div>
-              <div className="max-w-[18ch] text-sm leading-snug text-neutral-500">
-                {s.label}
-              </div>
+    // Studio-Zahlenband: riesige Bricolage-Ziffern zwischen Tinten-Hairlines
+    // (st-numbers, studio.css) — gleiche Mechanik (Count-up, SSR = Endwerte).
+    <section className="st-numbers">
+      <div ref={ref} className="st-numbers-grid">
+        {STATS.map((s, i) => (
+          <div key={s.label} className="st-num">
+            <div className="st-v">
+              {counts[i]}
+              {s.suffix ? <small>{s.suffix}</small> : null}
             </div>
-          ))}
-        </div>
+            <div className="st-l">{s.label}</div>
+          </div>
+        ))}
       </div>
     </section>
   );

@@ -14,7 +14,7 @@ export function InsightTeaser({ article }: { article: InsightArticle }) {
       className="group relative flex h-full flex-col gap-3 rounded border border-neutral-200 bg-white p-7 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
     >
       <CornerBrackets className="border-primary-200" />
-      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-primary-600">
+      <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-primary-600">
         {article.category}
       </span>
       <h3 className="font-marketing text-xl font-semibold leading-snug text-neutral-900">

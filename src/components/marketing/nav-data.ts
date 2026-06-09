@@ -1,5 +1,6 @@
 import { MODULES } from "./PlatformModules";
 import { INDUSTRIES } from "./industry-template";
+import { ROLES } from "./role-template";
 import type { IconName } from "./icons";
 
 /**
@@ -72,18 +73,40 @@ const industryLeaves: NavLeaf[] = INDUSTRIES.map((i) => ({
   icon: i.icon,
 }));
 
+const roleLeaves: NavLeaf[] = ROLES.map((r) => ({
+  label: r.name,
+  href: `/loesungen/${r.slug}`,
+  desc: r.painTeaser,
+  icon: r.icon,
+}));
+
 // ── 1) The header navigation (mega-menu + mobile accordion) ───────────────────
 
 export const PRIMARY_NAV: NavEntry[] = [
   {
     kind: "panel",
-    label: "Plattform",
+    label: "Produkt",
     href: "/produkt",
-    id: "plattform",
+    id: "produkt",
     groups: [
       {
         items: moduleLeaves,
         overview: { label: "Plattform-Überblick", href: "/produkt" },
+      },
+    ],
+  },
+  {
+    kind: "panel",
+    label: "Anwendungsfälle",
+    // Semantic home of the section is the role hub (/loesungen); the trigger
+    // itself is a <button>, the hub is reachable via the overview foot-link.
+    href: "/loesungen",
+    id: "anwendungsfaelle",
+    groups: [
+      {
+        heading: "Nach Rolle",
+        items: roleLeaves,
+        overview: { label: "Alle Anwendungsfälle", href: "/loesungen" },
       },
     ],
   },
@@ -120,6 +143,13 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
   {
     title: "Produkt",
     links: [{ label: "Plattform", href: "/produkt" }, ...toLinks(moduleLeaves)],
+  },
+  {
+    title: "Anwendungsfälle",
+    links: [
+      { label: "Alle Anwendungsfälle", href: "/loesungen" },
+      ...toLinks(roleLeaves),
+    ],
   },
   {
     title: "Branchen",
@@ -173,6 +203,8 @@ export const SITEMAP_ROUTES: SitemapRoute[] = [
   // leaves the mega-menu + footer use — so each route is declared exactly once.
   ...moduleLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   { path: "/preise", priority: 0.8 },
+  { path: "/loesungen", priority: 0.7 },
+  ...roleLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   ...industryLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   { path: "/insights", priority: 0.6 },
   { path: "/demo", priority: 0.5 },

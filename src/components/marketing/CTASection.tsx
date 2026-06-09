@@ -1,21 +1,19 @@
 import type { ReactNode } from "react";
-import { Container, Section, Eyebrow, Accent, CornerBrackets } from "./primitives";
+import { Container } from "./primitives";
 import { CtaLink } from "./CtaLink";
+import { Reveal } from "./Reveal";
 
 type Cta = { label: string; href: string };
 
 /**
  * Reusable closing CTA block — rendered at the foot of every marketing page.
- * Defaults reproduce the source's final-CTA copy (landing.html:1561–1567);
- * pages override `title`/`lead`/CTAs as needed.
+ * Studio-Fassung: der dunkle Anker (Studio-Dunkel, st-on-dark), der direkt in
+ * den dunklen Footer fließt — große Bricolage-Headline, REC-roter Pill-CTA,
+ * Mono-Notiz. Pages override `title`/`lead`/CTAs as needed (gleiche API).
  */
 export function CTASection({
   eyebrow = "Bereit?",
-  title = (
-    <>
-      Frag die <Accent>echten</Accent> Stimmen an deinem Markt.
-    </>
-  ),
+  title = <>Frag die echten Stimmen an deinem Markt.</>,
   lead = "Sieh, was findr. in echten Tiefeninterviews mit deiner Zielgruppe findet — KI-geführt, auf Deutsch und DSGVO-nativ.",
   primary = { label: "Demo buchen →", href: "/demo" },
   secondary = { label: "Preise ansehen", href: "/preise" },
@@ -27,33 +25,37 @@ export function CTASection({
   secondary?: Cta | null;
 }) {
   return (
-    // Farbsystem: the closing CTA stays a calm, light block on the warm canvas
-    // (was a violet wash). The white card + violet brackets define it; the
-    // primary CtaLink keeps violet as the interaction accent. The dark anchor
-    // is the footer right below.
-    <Section tone="default">
+    <section className="st-on-dark relative overflow-hidden bg-anchor py-[clamp(90px,13vh,160px)]">
       <Container>
-        <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-5 rounded border border-neutral-200 bg-white px-6 py-16 text-center sm:px-12">
-          <CornerBrackets className="border-primary-300" />
-          <Eyebrow>{eyebrow}</Eyebrow>
-          <h2 className="font-marketing text-[clamp(26px,3.5vw,42px)] font-semibold leading-[1.1] tracking-[-0.02em] text-neutral-900">
-            {title}
-          </h2>
-          <p className="max-w-xl text-[17px] leading-relaxed text-neutral-500">
-            {lead}
-          </p>
-          <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
-            <CtaLink href={primary.href} variant="primary" size="lg">
-              {primary.label}
-            </CtaLink>
-            {secondary ? (
-              <CtaLink href={secondary.href} variant="secondary" size="lg">
-                {secondary.label}
+        <Reveal>
+          <div className="flex flex-col items-start gap-6">
+            <span className="inline-flex items-center gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-[#ff8a75]">
+              {eyebrow}
+              <span aria-hidden className="h-px w-10 bg-white/15" />
+            </span>
+            <h2 className="font-marketing max-w-[18ch] text-[clamp(32px,5.5vw,76px)] font-bold leading-[1.02] tracking-[-0.025em] text-anchor-foreground">
+              {title}
+            </h2>
+            <p className="max-w-xl text-[17px] leading-relaxed text-anchor-foreground/65">
+              {lead}
+            </p>
+            <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <CtaLink href={primary.href} variant="primary" size="lg" className="magnetic">
+                <span className="st-dot" aria-hidden />
+                {primary.label.replace(/\s*→\s*$/, "")}
               </CtaLink>
-            ) : null}
+              {secondary ? (
+                <CtaLink href={secondary.href} variant="secondary" size="lg" className="magnetic">
+                  {secondary.label}
+                </CtaLink>
+              ) : null}
+              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-anchor-foreground/50">
+                14 Tage gratis · ohne Kreditkarte
+              </span>
+            </div>
           </div>
-        </div>
+        </Reveal>
       </Container>
-    </Section>
+    </section>
   );
 }

@@ -42,7 +42,7 @@ export function Hero({
           <Reveal>
             <div className="flex flex-col items-start gap-6">
               {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-              <h1 className="font-marketing text-[clamp(36px,6vw,64px)] font-semibold leading-[1.04] tracking-[-0.03em] text-neutral-900">
+              <h1 className="font-marketing text-[clamp(38px,6.4vw,72px)] font-bold leading-[1.02] tracking-[-0.03em] text-neutral-900">
                 {title}
               </h1>
               <p className="max-w-xl text-[18px] leading-relaxed text-neutral-500">
@@ -59,10 +59,10 @@ export function Hero({
                 ) : null}
               </div>
               {trust?.length ? (
-                <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-[12px] font-medium uppercase tracking-[0.04em] text-neutral-500">
+                <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-neutral-500">
                   {trust.map((t) => (
                     <li key={t} className="inline-flex items-center gap-2">
-                      <span aria-hidden className="h-1 w-1 rounded-full bg-primary-400" />
+                      <span aria-hidden className="h-1 w-1 rounded-full bg-[var(--st-rec)]" />
                       {t}
                     </li>
                   ))}

@@ -1,14 +1,12 @@
 import type { ElementType, ReactNode } from "react";
 
 /**
- * Marketing layout primitives. Editorial restraint: generous whitespace,
- * hairline rules, 4px radius, corner-bracket accents. Light surface only
- * (bg-white / neutral-50). All server components — no interactivity here.
- *
- * Palette note: the app's custom neutral ramp defines 0/50/100/200/300/400/500/
- * 700/900 (zinc values) but NOT 600/800 — those are intentionally avoided so the
- * scale stays internally consistent. Ink = neutral-900, muted = neutral-500,
- * strong-secondary = neutral-700, hairlines = neutral-200, accent = primary-600.
+ * Marketing layout primitives — Studio-Session-Fassung. Warmes Papier,
+ * Tinten-Hairlines, Mono-Etiketten (Kapitelmarken), Bricolage-Headlines mit
+ * kursivem Instrument-Serif-Akzent in REC-Rot. Alle Farben laufen über die
+ * in studio.css remappten Tokens (canvas/warm/neutral/primary), sodass jede
+ * Seite, die diese Primitives nutzt, automatisch auf der Studio-Bühne steht.
+ * All server components — no interactivity here.
  */
 
 /** Centered, max-width content column with responsive gutters. */
@@ -20,7 +18,7 @@ export function Container({
   className?: string;
 }) {
   return (
-    <div className={`mx-auto w-full max-w-[1180px] px-6 sm:px-8 ${className}`}>
+    <div className={`mx-auto w-full max-w-[1280px] px-[clamp(20px,4vw,56px)] ${className}`}>
       {children}
     </div>
   );
@@ -28,10 +26,8 @@ export function Container({
 
 type SectionTone = "default" | "wash" | "muted";
 
-// Farbsystem: the section rhythm is now warm + calm. `muted` is the warm-cream
-// "rest" band (was cool neutral-50); `wash` is de-violetted to the same warm
-// cream (the old violet glass wash is gone — violet stays an accent, never a
-// flat surface). `default` inherits the warm off-white canvas from the layout.
+// Studio-Rhythmus: `muted`/`wash` ist das warme „Rest“-Band eine Stufe unter
+// dem Papier-Canvas; `default` erbt den Canvas vom Layout.
 const TONE_BG: Record<SectionTone, string> = {
   default: "",
   wash: "bg-warm",
@@ -60,7 +56,10 @@ export function Section({
   );
 }
 
-/** Small uppercase label with a leading hairline — the section "eyebrow". */
+/**
+ * Kapitelmarke — das Mono-Tape-Label der Studio-Bühne: REC-rotes Mono-Etikett
+ * mit auslaufender Hairline (ersetzt die alte violette Eyebrow, gleiche API).
+ */
 export function Eyebrow({
   children,
   className = "",
@@ -70,10 +69,10 @@ export function Eyebrow({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-primary-600 ${className}`}
+      className={`inline-flex items-center gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-primary-600 ${className}`}
     >
-      <span aria-hidden className="h-px w-6 bg-primary-300" />
       {children}
+      <span aria-hidden className="h-px w-10 bg-[var(--st-line)]" />
     </span>
   );
 }
@@ -122,7 +121,7 @@ export function SectionHeading({
   return (
     <div className={`flex flex-col gap-4 ${alignment} ${className}`}>
       {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-      <Heading className="font-marketing text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.02em] text-neutral-900">
+      <Heading className="font-marketing text-[clamp(28px,4vw,46px)] font-bold leading-[1.04] tracking-[-0.02em] text-neutral-900">
         {title}
       </Heading>
       {lead ? (
@@ -133,29 +132,22 @@ export function SectionHeading({
 }
 
 /**
- * Inline accent for headlines (the violet emphasis the source copy uses for the
- * key phrase in each H1/H2).
+ * Inline accent for headlines — der kursive Instrument-Serif-Akzent in
+ * REC-Rot (st-serif), die Studio-Stimme für DAS Schlüsselwort der Headline.
  */
 export function Accent({ children }: { children: ReactNode }) {
-  return <span className="text-primary-600">{children}</span>;
+  return <span className="st-serif">{children}</span>;
 }
 
 /**
- * Live / Bald status pill — the honest "Live vs. soon" labelling that runs
- * through the copy. Green = shipped, neutral = roadmap.
+ * Live / Bald status — die Studio-Lampe: grün leuchtend = läuft heute,
+ * gedimmt = Roadmap. Ehrliches Labelling, gleiche API wie zuvor.
  */
 export function StatusTag({ status }: { status: "Live" | "Bald" }) {
   const live = status === "Live";
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.06em] ${
-        live ? "bg-success-50 text-success-700" : "bg-neutral-100 text-neutral-500"
-      }`}
-    >
-      <span
-        aria-hidden
-        className={`h-1.5 w-1.5 rounded-full ${live ? "bg-success-500" : "bg-neutral-400"}`}
-      />
+    <span className={`st-lamp ${live ? "st-lamp--light" : "st-lamp--soon"}`}>
+      <b aria-hidden />
       {status}
     </span>
   );
