@@ -1,0 +1,138 @@
+import { NextResponse, type NextRequest } from "next/server";
+
+import {
+  buildResearchSystemPrompt,
+  type ResearchInput,
+} from "@/lib/voice-agent/interviewer";
+import { requireVoiceAgentAuth } from "@/lib/voice-interview/agent-auth";
+import { loadVoiceBridgeSession } from "@/lib/voice-interview/bridge-service";
+import { sessionIdFromRoomName } from "@/lib/voice-interview/room";
+
+/**
+ * GET /api/voice/session-context?room=voice-<sessionId> — Phase 1 (AGENT-seitig).
+ *
+ * Der LiveKit-Voice-Agent wird per Agent-Dispatch in den Raum geholt und kennt
+ * zunächst NUR den Raum-Namen. Diese Route löst ihn zur Session auf und liefert
+ * den vollständigen Interview-Kontext:
+ *
+ *   - systemPrompt über die BESTEHENDE buildResearchSystemPrompt-Logik
+ *     (inkl. use_case- bzw. Stimulus-Fokusblock) — gefüttert aus dem
+ *     deal_context-Snapshot der Session (ResearchInput = { plan, brand }),
+ *     also EXAKT derselben Quelle, die der Text-Interviewer in
+ *     advanceInterview auf jedem Turn nutzt. Plan-Edits nach Session-Start
+ *     wirken sich damit in beiden Modalitäten gleich (nicht) aus.
+ *   - Studien-Titel, Objective, Persona, Sprache, Leitfaden (topics inkl.
+ *     intent + private hypotheses), Stimulus-Metadaten, Brand-Grounding.
+ *   - conversation + nextTurnIndex: conversation[0] ist die beim
+ *     Session-Create generierte Opening-Message — der Agent SPRICHT diese als
+ *     Begrüßung und indiziert seine eigenen Turns ab nextTurnIndex (Kontrakt
+ *     von /api/voice/transcript). Bei Reconnect enthält conversation bereits
+ *     gelieferte Voice-Turns → nahtloses Fortsetzen.
+ *
+ * Auth: Authorization: Bearer <VOICE_AGENT_SHARED_SECRET>. Der Secret-Inhaber
+ * ist vertrauenswürdige Infrastruktur (Threat-Model in agent-auth.ts); eine
+ * voice_enabled-Re-Prüfung passiert hier bewusst NICHT — das Gating sitzt an
+ * der Teilnehmer-Token-Ausgabe (/api/voice/token), und ein mid-Interview
+ * umgelegter Plan-Schalter darf ein laufendes Gespräch nicht abreißen.
+ *
+ * Surface:
+ *   503 — Bridge nicht konfiguriert (Secret fehlt)
+ *   401 — fehlendes/falsches Secret
+ *   400 — room-Parameter fehlt / kein voice-<uuid>-Format
+ *   404 — Raum gehört zu keiner Session
+ *   403 — Session ist kein research-Interview
+ *   409 — Session nicht mehr offen ODER ohne research-Kontext
+ *   500 — DB warf
+ *   200 — Kontext-Payload (siehe unten)
+ */
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const auth = requireVoiceAgentAuth(request);
+  if ("error" in auth) return auth.error;
+
+  const room = request.nextUrl.searchParams.get("room") ?? "";
+  const sessionId = sessionIdFromRoomName(room);
+  if (!sessionId) {
+    return NextResponse.json(
+      { error: "Invalid room parameter — expected voice-<sessionId>." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const session = await loadVoiceBridgeSession(sessionId);
+    if (!session) {
+      return NextResponse.json(
+        { error: "Interview session not found." },
+        { status: 404 },
+      );
+    }
+    if (session.kind !== "research") {
+      return NextResponse.json(
+        { error: "Voice is only available for research interviews." },
+        { status: 403 },
+      );
+    }
+    if (session.status !== "open") {
+      return NextResponse.json(
+        {
+          error: "Interview session is no longer open.",
+          code: "not_open",
+          status: session.status,
+        },
+        { status: 409 },
+      );
+    }
+
+    // Narrow NACH dem kind-Guard — exakt wie advanceInterview
+    // (session.dealContext as unknown as ResearchInput).
+    const input = session.dealContext as unknown as ResearchInput | null;
+    if (!input?.plan) {
+      return NextResponse.json(
+        { error: "Session has no research context.", code: "no_context" },
+        { status: 409 },
+      );
+    }
+
+    // Spiegel der modul-privaten hasResearchStimulus-Logik in interviewer.ts:
+    // der Stimulus-Fokusblock greift nur bei nicht-leerer Beschreibung.
+    const hasStimulus = Boolean(input.plan.stimulusDescription?.trim());
+    const systemPrompt = buildResearchSystemPrompt(
+      input.plan.useCase,
+      hasStimulus,
+    );
+
+    const stimulus =
+      input.plan.stimulusUrl ||
+      input.plan.stimulusType ||
+      input.plan.stimulusDescription
+        ? {
+            url: input.plan.stimulusUrl ?? null,
+            type: input.plan.stimulusType ?? null,
+            description: input.plan.stimulusDescription ?? null,
+          }
+        : null;
+
+    return NextResponse.json({
+      sessionId: session.id,
+      roomName: room,
+      language: session.language,
+      studyTitle: input.plan.title,
+      objective: input.plan.objective,
+      persona: input.plan.persona ?? null,
+      useCase: input.plan.useCase ?? null,
+      topics: input.plan.topics,
+      stimulus,
+      brand: input.brand ?? null,
+      systemPrompt,
+      conversation: session.conversation,
+      nextTurnIndex: session.conversation.length,
+    });
+  } catch (err) {
+    console.error(
+      "[GET /api/voice/session-context] failed:",
+      err instanceof Error ? err.message : err,
+    );
+    return NextResponse.json({ error: "Unexpected error." }, { status: 500 });
+  }
+}
