@@ -16,8 +16,14 @@ import {
   type Tension,
   type TensionSide,
 } from "@/lib/schemas/synthesis";
-import { coerceStudyType } from "@/lib/research/plans-service";
-import type { ResearchPlanStudyType } from "@/lib/research/db";
+import {
+  coerceStudyType,
+  coerceUseCase,
+} from "@/lib/research/plans-service";
+import type {
+  ResearchPlanStudyType,
+  ResearchPlanUseCase,
+} from "@/lib/research/db";
 import {
   selectSynthesisSystemPrompt,
   buildSynthesisUserPrompt,
@@ -135,6 +141,7 @@ type ResearchPlanRow = {
   // select the synthesis persona (M2). Coerced defensively via coerceStudyType
   // on read — pre-migration select("*") omits the column (undefined → default).
   study_type: ResearchPlanStudyType;
+  use_case?: ResearchPlanUseCase | null;
   created_at: string;
 };
 
@@ -374,11 +381,13 @@ export async function synthesizeFromInputs(
   try {
     raw = await callClaudeStructured({
       schema: StudySynthesisResultSchema,
-      // M2: persona by study_type. 'market_research' → market lens; anything
-      // else (incl. undefined) → the byte-identical product-discovery prompt.
-      // Everything else about this call — schema, user prompt, tool name,
-      // maxTokens, anchored-filter — is shared and unchanged for both personas.
-      system: selectSynthesisSystemPrompt(input.plan.studyType),
+      // Persona by study_type; market studies optionally add the Stage-2
+      // use-case focus. Everything else about this call — schema, user prompt,
+      // tool name, maxTokens, anchored-filter — stays shared and unchanged.
+      system: selectSynthesisSystemPrompt(
+        input.plan.studyType,
+        input.plan.useCase,
+      ),
       messages: [{ role: "user", content: userPrompt }],
       model,
       maxTokens: 4096,
@@ -459,6 +468,7 @@ export async function synthesizeStudy(
     // synthesizes byte-identically and only a market_research plan flips to the
     // market lens. Reuses plans-service.coerceStudyType (single source of truth).
     studyType: coerceStudyType(planRow.study_type),
+    useCase: coerceUseCase((planRow as { use_case?: unknown }).use_case),
   };
 
   // Insights — `select("*")` for the same type-narrowing reason as the plan

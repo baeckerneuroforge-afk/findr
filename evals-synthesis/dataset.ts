@@ -38,6 +38,25 @@
  *              price theme and ONE price tension with disjoint sides — NOT
  *              feature/pain themes. Proves the persona branch.
  *
+ *   synth_06 — GENERAL SURVEY lens. Shared household-planning need plus
+ *              opposing paid-adoption positions. Expect SEGMENT_NEED,
+ *              PRICE_SENSITIVITY and PURCHASE_INTENT to lead.
+ *
+ *   synth_07 — BRAND RESEARCH lens. Respondents split between a warm,
+ *              approachable brand image and a cold, interchangeable one.
+ *              Expect BRAND_PERCEPTION / COMPETITIVE_PERCEPTION, not pain.
+ *
+ *   synth_08 — CONCEPT TEST lens. Two respondents understand the concept
+ *              and see a relevant benefit; two reduce it to a dashboard and
+ *              reject adoption. Expect understanding before relevance/intent.
+ *
+ *   synth_09 — CREATIVE TEST lens. The same creative is read as either clear
+ *              and brand-fitting or generic and unclear. Expect a shallow
+ *              message-effect / brand-fit synthesis.
+ *
+ *   synth_10 — BRAND leakage guard. Pure, consensual BRAND_PERCEPTION input
+ *              with no price or pain signal. Expect ZERO tensions.
+ *
  * Each insight cites quotes that exist verbatim inside its own evidence
  * arrays — so the engine's anchored-filter has a haystack to validate
  * against. The fake IDs (insight_01_a … insight_04_d) are arbitrary
@@ -500,10 +519,503 @@ const synth05: SynthesisEvalCase = {
   expected: { minThemes: 1, maxThemes: 4, tensions: 1, maxThemeFrequency: 6 },
 };
 
+// ── synth_06 — GENERAL SURVEY use-case focus ───────────────────────────────
+
+const synth06: SynthesisEvalCase = {
+  id: "synth_06",
+  description:
+    "General survey: shared planning need with paid-adoption split",
+  rationale:
+    "The general-survey lens should prioritize the recurring SEGMENT_NEED, then separate concrete PRICE_SENSITIVITY and PURCHASE_INTENT signals. Two respondents show paid commitment; two stay with free workarounds, creating a real adoption tension.",
+  input: {
+    plan: {
+      title: "Familienorganisation im Alltag",
+      objective:
+        "Bedarf, Zahlungsbereitschaft und Kaufabsicht für einen digitalen Familienplaner verstehen.",
+      persona: "Eltern mit Kindern im Schulalter",
+      studyType: "market_research",
+      useCase: "general_survey",
+    },
+    insights: [
+      insight("call_06_a", "Berufstätige Mutter", "Hoher Koordinationsaufwand.", {
+        feature: [
+          {
+            category: "SEGMENT_NEED",
+            title: "Familientermine an einem Ort",
+            description:
+              "Koordiniert Schule, Betreuung und Arbeit heute über mehrere Kanäle.",
+            intensity: "high",
+            confidence: 0.95,
+            evidence: [
+              "Ich gleiche jeden Abend drei Chats und zwei Kalender ab, damit niemand einen Termin verpasst.",
+            ],
+          },
+          {
+            category: "PURCHASE_INTENT",
+            title: "Konkrete Testbereitschaft",
+            description:
+              "Würde den Dienst bei Kalender-Synchronisierung direkt testen.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Wenn alle Kalender automatisch zusammenlaufen, würde ich das sofort einen Monat testen.",
+            ],
+          },
+        ],
+      }),
+      insight("call_06_b", "Vater, zwei Kinder", "Planung kostet täglich Zeit.", {
+        feature: [
+          {
+            category: "SEGMENT_NEED",
+            title: "Weniger täglicher Abstimmungsaufwand",
+            description:
+              "Die manuelle Familienplanung bindet jeden Tag Zeit.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Für die Abstimmung in der Familie gehen bei uns jeden Tag bestimmt zwanzig Minuten drauf.",
+            ],
+          },
+          {
+            category: "PRICE_SENSITIVITY",
+            title: "Zahlungsbereits bis 15 Euro",
+            description:
+              "Ein nachweislich zeitsparender Familienplaner wäre ein bezahltes Abo wert.",
+            intensity: "medium",
+            confidence: 0.85,
+            evidence: [
+              "Wenn es uns wirklich Zeit spart, wären bis zu 15 Euro im Monat in Ordnung.",
+            ],
+          },
+        ],
+      }),
+      insight("call_06_c", "Alleinerziehend", "Braucht Übersicht, aber kostenlos.", {
+        feature: [
+          {
+            category: "SEGMENT_NEED",
+            title: "Zentrale Übersicht fehlt",
+            description:
+              "Termine und Aufgaben liegen verteilt in Kalendern und Notizen.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Mir fehlt eine einzige Übersicht für Schule, Arzttermine und meine Arbeit.",
+            ],
+          },
+          {
+            category: "PRICE_SENSITIVITY",
+            title: "Nur kostenlose Lösung",
+            description:
+              "Das Haushaltsbudget schließt ein weiteres Abo aus.",
+            intensity: "blocker",
+            confidence: 0.95,
+            evidence: [
+              "Ein weiteres Abo kommt für mich nicht infrage, dafür muss die kostenlose Kalender-App reichen.",
+            ],
+          },
+        ],
+      }),
+      insight("call_06_d", "Vater im Schichtdienst", "Bleibt beim Workaround.", {
+        feature: [
+          {
+            category: "SEGMENT_NEED",
+            title: "Schichtplan mit Familie abstimmen",
+            description:
+              "Unregelmäßige Arbeitszeiten erschweren die Familienkoordination.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Bei wechselnden Schichten verlieren wir ständig den Überblick, wer wann die Kinder übernimmt.",
+            ],
+          },
+          {
+            category: "PURCHASE_INTENT",
+            title: "Keine Wechselabsicht",
+            description:
+              "Der bestehende kostenlose Workaround ist trotz Aufwand ausreichend.",
+            intensity: "low",
+            confidence: 0.85,
+            evidence: [
+              "So nervig die Tabelle ist, für einen neuen Dienst würde ich nicht wechseln oder bezahlen.",
+            ],
+          },
+        ],
+      }),
+    ],
+  },
+  expected: { minThemes: 1, maxThemes: 4, tensions: 1, maxThemeFrequency: 4 },
+};
+
+// ── synth_07 — BRAND RESEARCH use-case focus ───────────────────────────────
+
+const synth07: SynthesisEvalCase = {
+  id: "synth_07",
+  description:
+    "Brand research: approachable specialist vs cold interchangeable provider",
+  rationale:
+    "The brand lens should synthesize spontaneous associations and competitive differentiation. The inputs support a real brand-image tension, but contain no need, price or purchase-intent evidence.",
+  input: {
+    plan: {
+      title: "Markenbild Nordlicht Energie",
+      objective:
+        "Spontane Markenassoziationen und Differenzierung im Vergleich zu Energieanbietern verstehen.",
+      persona: "Private Stromkundinnen und Stromkunden",
+      studyType: "market_research",
+      useCase: "brand_research",
+    },
+    insights: [
+      insight("call_07_a", "Bestandskundin", "Warm und nahbar.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Nahbare norddeutsche Marke",
+            description:
+              "Die Marke wirkt persönlich, ruhig und regional verwurzelt.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Nordlicht wirkt auf mich nahbar und norddeutsch, nicht wie ein anonymer Konzern.",
+            ],
+          },
+        ],
+      }),
+      insight("call_07_b", "Interessent", "Sympathischer Spezialist.", {
+        feature: [
+          {
+            category: "COMPETITIVE_PERCEPTION",
+            title: "Persönlicher als große Versorger",
+            description:
+              "Im Wettbewerbsvergleich erscheint die Marke kleiner und zugänglicher.",
+            intensity: "medium",
+            confidence: 0.85,
+            evidence: [
+              "Im Vergleich zu den großen Versorgern fühlt sich die Marke persönlicher und zugänglicher an.",
+            ],
+          },
+        ],
+      }),
+      insight("call_07_c", "Wechselkundin", "Kühl und technisch.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Kühle Technikmarke",
+            description:
+              "Name und Auftritt lösen Distanz statt Nähe aus.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Für mich klingt Nordlicht kühl und technisch, da entsteht überhaupt keine Nähe.",
+            ],
+          },
+        ],
+      }),
+      insight("call_07_d", "Nichtkunde", "Nicht unterscheidbar.", {
+        feature: [
+          {
+            category: "COMPETITIVE_PERCEPTION",
+            title: "Austauschbar im Wettbewerbsfeld",
+            description:
+              "Die Marke bleibt gegenüber anderen grünen Anbietern ohne klares Profil.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Neben anderen Ökostromanbietern wirkt das komplett austauschbar, ich sehe keinen eigenen Charakter.",
+            ],
+          },
+        ],
+      }),
+    ],
+  },
+  expected: { minThemes: 1, maxThemes: 4, tensions: 1, maxThemeFrequency: 4 },
+};
+
+// ── synth_08 — CONCEPT TEST use-case focus ─────────────────────────────────
+
+const synth08: SynthesisEvalCase = {
+  id: "synth_08",
+  description:
+    "Concept test: automation concept understood and relevant vs reduced to dashboard",
+  rationale:
+    "The concept-test lens should lead with the split in concept understanding, then connect it to relevance and adoption. Positive intent is grounded in concrete trial commitment; rejection follows the misunderstood low-benefit reading.",
+  input: {
+    plan: {
+      title: "Konzepttest Ausgaben-Autopilot",
+      objective:
+        "Verständnis, Relevanz, Nutzen und Adoptionsbereitschaft für einen automatischen Ausgaben-Optimierer prüfen.",
+      persona: "Digital-affine Bankkundinnen und Bankkunden",
+      studyType: "market_research",
+      useCase: "concept_test",
+    },
+    insights: [
+      insight("call_08_a", "Onlinebanking-Power-User", "Automatik klar verstanden.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Versteht automatische Optimierung",
+            description:
+              "Das Konzept wird als laufende Erkennung und Optimierung unnötiger Ausgaben verstanden.",
+            intensity: "high",
+            confidence: 0.95,
+            evidence: [
+              "Ich verstehe es so, dass der Autopilot laufend unnötige Ausgaben erkennt und mir direkt bessere Optionen anbietet.",
+            ],
+          },
+          {
+            category: "PURCHASE_INTENT",
+            title: "Verbindliche Testbereitschaft",
+            description:
+              "Würde für einen echten Test Bankdaten anbinden.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Für einen Test würde ich mein Konto anbinden, wenn ich die Vorschläge vorher freigeben kann.",
+            ],
+          },
+        ],
+      }),
+      insight("call_08_b", "Junger Berufstätiger", "Nutzen sofort relevant.", {
+        feature: [
+          {
+            category: "SEGMENT_NEED",
+            title: "Automatische Sparpotenziale",
+            description:
+              "Der wahrgenommene Nutzen ist das Erkennen übersehener Sparmöglichkeiten.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Dass das automatisch Sparpotenziale findet, die ich selbst übersehe, wäre für mich wirklich relevant.",
+            ],
+          },
+          {
+            category: "PURCHASE_INTENT",
+            title: "Würde Beta aktiv nutzen",
+            description:
+              "Nennt eine konkrete Bereitschaft zur mehrwöchigen Nutzung.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Ich würde die Beta vier Wochen mit meinen echten Umsätzen ausprobieren.",
+            ],
+          },
+        ],
+      }),
+      insight("call_08_c", "Gelegenheitsnutzerin", "Nur als Dashboard verstanden.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Reduziert Konzept auf Ausgabenanzeige",
+            description:
+              "Die automatische Optimierung kommt im Konzeptverständnis nicht an.",
+            intensity: "high",
+            confidence: 0.95,
+            evidence: [
+              "Für mich ist das einfach noch ein Dashboard, das meine Ausgaben in Kategorien zeigt.",
+            ],
+          },
+          {
+            category: "PURCHASE_INTENT",
+            title: "Keine Adoptionsbereitschaft",
+            description:
+              "Sieht gegenüber dem bestehenden Banking keinen Wechselgrund.",
+            intensity: "low",
+            confidence: 0.9,
+            evidence: [
+              "Dafür würde ich weder meine Bankdaten freigeben noch eine neue App installieren.",
+            ],
+          },
+        ],
+      }),
+      insight("call_08_d", "Sicherheitsorientierter Kunde", "Mehrwert bleibt unklar.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Optimierungsfunktion nicht verstanden",
+            description:
+              "Der Befragte erkennt keinen Unterschied zu einer normalen Finanzübersicht.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Was daran mehr sein soll als eine normale Finanzübersicht, habe ich nicht verstanden.",
+            ],
+          },
+          {
+            category: "SEGMENT_NEED",
+            title: "Kein relevanter Zusatznutzen",
+            description:
+              "Ohne verstandene Automatik entsteht kein Bedarf.",
+            intensity: "low",
+            confidence: 0.85,
+            evidence: [
+              "Meine Banking-App zeigt mir die Ausgaben schon, einen zusätzlichen Nutzen sehe ich hier nicht.",
+            ],
+          },
+        ],
+      }),
+    ],
+  },
+  expected: { minThemes: 1, maxThemes: 4, tensions: 1, maxThemeFrequency: 4 },
+};
+
+// ── synth_09 — CREATIVE TEST use-case focus ────────────────────────────────
+
+const synth09: SynthesisEvalCase = {
+  id: "synth_09",
+  description:
+    "Creative test: clear confident message vs generic unclear comparison ad",
+  rationale:
+    "The creative-test lens should stay shallow and synthesize first impression, message clarity, effect and brand fit. The only supported tension is how the creative is interpreted, not pain or purchase intent.",
+  input: {
+    plan: {
+      title: "Creative-Test Kampagne Sicher investieren",
+      objective:
+        "Erste Wirkung, Botschaftsklarheit und Markenfit eines Kampagnenmotivs prüfen.",
+      persona: "Private Anlegerinnen und Anleger",
+      studyType: "market_research",
+      useCase: "creative_test",
+    },
+    insights: [
+      insight("call_09_a", "ETF-Anlegerin", "Klar und vertrauenswürdig.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Klare Sicherheitsbotschaft",
+            description:
+              "Das Motiv vermittelt auf Anhieb ruhiges, kontrolliertes Investieren.",
+            intensity: "high",
+            confidence: 0.95,
+            evidence: [
+              "Mein erster Eindruck ist ruhig und vertrauenswürdig, die Botschaft Sicher investieren kommt sofort an.",
+            ],
+          },
+        ],
+      }),
+      insight("call_09_b", "Sparplan-Nutzer", "Passt zur seriösen Marke.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Starker Markenfit",
+            description:
+              "Die reduzierte Gestaltung wird als glaubwürdig und markenkonsistent gelesen.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Die reduzierte Gestaltung passt zu einer seriösen Finanzmarke und wirkt nicht aufdringlich.",
+            ],
+          },
+        ],
+      }),
+      insight("call_09_c", "Aktiver Trader", "Botschaft bleibt unklar.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Unklare Aussage",
+            description:
+              "Das zentrale Versprechen wird nicht verstanden.",
+            intensity: "high",
+            confidence: 0.95,
+            evidence: [
+              "Ich sehe Berge und eine Zahl, aber ich weiß nach dem ersten Blick nicht, was mir die Anzeige sagen will.",
+            ],
+          },
+        ],
+      }),
+      insight("call_09_d", "Neuanlegerin", "Wirkt wie Vergleichsportal.", {
+        feature: [
+          {
+            category: "COMPETITIVE_PERCEPTION",
+            title: "Generische Vergleichsportal-Optik",
+            description:
+              "Das Motiv wird einer austauschbaren Wettbewerber-Kategorie zugeordnet.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: [
+              "Das sieht aus wie Werbung von irgendeinem Vergleichsportal, einen eigenen Markencharakter erkenne ich nicht.",
+            ],
+          },
+        ],
+      }),
+    ],
+  },
+  expected: { minThemes: 1, maxThemes: 4, tensions: 1, maxThemeFrequency: 4 },
+};
+
+// ── synth_10 — BRAND RESEARCH leakage guard ────────────────────────────────
+
+const synth10: SynthesisEvalCase = {
+  id: "synth_10",
+  description:
+    "Brand leakage guard: pure shared perception with no price or pain signal",
+  rationale:
+    "All inputs contain only consistent BRAND_PERCEPTION evidence. The brand lens must surface the shared competent-but-distant image without inventing an opposing group or importing a price/pain tension from the generic market persona.",
+  input: {
+    plan: {
+      title: "Markenwahrnehmung Kanzlei Klar & Partner",
+      objective:
+        "Spontane Assoziationen und den bleibenden Eindruck der Marke verstehen.",
+      persona: "Geschäftsführende im Mittelstand",
+      studyType: "market_research",
+      useCase: "brand_research",
+    },
+    insights: [
+      insight("call_10_a", "Geschäftsführerin", "Kompetent, aber distanziert.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Fachlich stark und distanziert",
+            description:
+              "Die Marke vermittelt Expertise, bleibt emotional aber auf Abstand.",
+            intensity: "medium",
+            confidence: 0.95,
+            evidence: [
+              "Klar und Partner wirkt sehr kompetent, aber auch ziemlich distanziert.",
+            ],
+          },
+        ],
+      }),
+      insight("call_10_b", "CFO", "Seriös ohne persönliche Wärme.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Seriös und unpersönlich",
+            description:
+              "Der professionelle Eindruck geht nicht mit menschlicher Nähe einher.",
+            intensity: "medium",
+            confidence: 0.9,
+            evidence: [
+              "Mein Eindruck ist seriös und fachlich, nur persönlich oder nahbar wirkt die Marke nicht.",
+            ],
+          },
+        ],
+      }),
+      insight("call_10_c", "Inhaber", "Expertise bleibt kühl.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Expertise mit kühler Wirkung",
+            description:
+              "Die Marke wird als erfahren, zugleich aber emotional kühl wahrgenommen.",
+            intensity: "medium",
+            confidence: 0.9,
+            evidence: [
+              "Da steckt sichtbar Expertise dahinter, trotzdem bleibt der Auftritt für mich kühl.",
+            ],
+          },
+        ],
+      }),
+    ],
+  },
+  expected: { minThemes: 1, maxThemes: 2, tensions: 0, maxThemeFrequency: 3 },
+};
+
 export const SYNTHESIS_EVAL_CASES: SynthesisEvalCase[] = [
   synth01,
   synth02,
   synth03,
   synth04,
   synth05,
+  synth06,
+  synth07,
+  synth08,
+  synth09,
+  synth10,
 ];

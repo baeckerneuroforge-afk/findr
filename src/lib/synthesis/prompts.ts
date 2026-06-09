@@ -15,7 +15,10 @@
 // research/db.ts's `server-only` runtime side-effect, so this stays a pure
 // string-building module the eval harness can import). Reuses the canonical
 // study_type union rather than redeclaring it.
-import type { ResearchPlanStudyType } from "@/lib/research/db";
+import type {
+  ResearchPlanStudyType,
+  ResearchPlanUseCase,
+} from "@/lib/research/db";
 
 /** Input row for the synthesizer — one per Stage-1 insight that belongs
  *  to the study being synthesized. The engine assembles these from
@@ -62,6 +65,10 @@ export interface SynthesisPlanContext {
    *  literally unchanged: the user prompt never references it, only
    *  selectSynthesisSystemPrompt does. */
   studyType?: ResearchPlanStudyType;
+  /** Optional method lens for market-research synthesis. It affects only the
+   *  additive Stage-2 system-prompt focus; the user prompt and Stage-1 inputs
+   *  stay unchanged. */
+  useCase?: ResearchPlanUseCase | null;
 }
 
 export interface SynthesisInput {
@@ -210,20 +217,37 @@ OUTPUT — return ONLY this JSON object, no markdown, no preamble:
   ]
 }`;
 
+export const MARKET_SYNTHESIS_USE_CASE_FOCUS: Record<
+  ResearchPlanUseCase,
+  string
+> = {
+  general_survey:
+    "Fokus: Bedarf und Pain Points als wiederkehrendes Marktproblem verdichten, ergänzt um Preis-Lager und belastbare Kaufabsicht. Betone SEGMENT_NEED, PRICE_SENSITIVITY und PURCHASE_INTENT; Komplimente oder hypothetische Zustimmung zählen nicht als Kaufsignal, konkrete aktuelle Lösungen, Aufwand und Commitment schon. Realistische Tensions liegen zwischen klar getrennten Bedarfs-, Preis- oder Kaufbereitschaftspositionen; ohne opponierende Gruppen keine Tension.",
+  brand_research:
+    "Fokus: spontane Assoziationen, Bilder, Gefühle und Worte zur Marke verdichten, plus Vergleiche, Differenzierung und Wettbewerbsbild. Betone BRAND_PERCEPTION und COMPETITIVE_PERCEPTION und halte die Synthese flach: wiederkehrende Wahrnehmungsmuster und klar gegensätzliche Markenbilder statt Verhaltensdeutung. Eine Preis- oder Pain-Tension ist hier untypisch; erfinde sie nicht, wenn die Inputs kein entsprechendes Signal tragen.",
+  creative_test:
+    "Fokus: Botschaftsklarheit, erster spontaner Eindruck, emotionale Wirkung und Markenfit verdichten; ordne Gestaltungselemente nur dann einer Wirkung zu, wenn die Inputs das tragen. Betone BRAND_PERCEPTION und, wo tatsächlich verglichen wird, COMPETITIVE_PERCEPTION. Halte die Synthese flach: realistische Tensions betreffen unterschiedliche Deutungen oder Wirkungen der Botschaft, nicht erzwungene Kaufabsicht oder Pain.",
+  concept_test:
+    "Fokus: zuerst gemeinsames und abweichendes Verständnis des Konzepts verdichten, danach Relevanz, wahrgenommenen Nutzen und belastbare Kaufabsicht. Betone SEGMENT_NEED, PURCHASE_INTENT und BRAND_PERCEPTION; hypothetische Zustimmung zählt schwächer als aktuelles Verhalten, Commitment oder begründete Präferenz. Realistische Tensions liegen zwischen unterschiedlichen Konzeptverständnissen, Relevanzurteilen oder Adoptionspositionen; Verständnis kommt vor Nutzen.",
+};
+
 /**
- * Select the Stage-2 synthesis persona by study_type. Market lens for
- * 'market_research'; the byte-identical product-discovery lens for everything
- * else — INCLUDING `undefined` (the existing eval cases + any pre-M2 caller).
- * Both personas share the same anchoring contract AND the same output schema;
- * only the persona text differs. This is the entire M2 synthesis change: one
- * branch, no structural divergence (separation plan §5, M2).
+ * Select the Stage-2 synthesis persona by study_type and, for market studies,
+ * append the method focus selected by use_case. The product-discovery lens
+ * remains byte-identical for every use_case; market_research without use_case
+ * also returns the byte-identical market base prompt. All variants share the
+ * same anchoring contract and output schema.
  */
 export function selectSynthesisSystemPrompt(
   studyType?: ResearchPlanStudyType,
+  useCase?: ResearchPlanUseCase | null,
 ): string {
-  return studyType === "market_research"
-    ? MARKET_STUDY_SYNTHESIS_SYSTEM_PROMPT
-    : STUDY_SYNTHESIS_SYSTEM_PROMPT;
+  if (studyType !== "market_research") {
+    return STUDY_SYNTHESIS_SYSTEM_PROMPT;
+  }
+  return useCase
+    ? `${MARKET_STUDY_SYNTHESIS_SYSTEM_PROMPT}\n\nUSE-CASE FOCUS:\n${MARKET_SYNTHESIS_USE_CASE_FOCUS[useCase]}`
+    : MARKET_STUDY_SYNTHESIS_SYSTEM_PROMPT;
 }
 
 function formatInsight(insight: SynthesisInsightInput): string {
