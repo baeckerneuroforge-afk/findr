@@ -29,6 +29,10 @@ import {
  *   200  — { success: true, result: { answer, citations, answered } }
  */
 
+// One Opus turn over the full study corpus per request — explicit ceiling
+// like the other LLM routes (voice: 300).
+export const maxDuration = 300;
+
 const HistoryTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string().min(1).max(4000),

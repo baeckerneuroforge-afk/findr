@@ -11,6 +11,10 @@ import type { Json } from "@/types/database";
 import { getLatestRiskScore } from "@/lib/risk/service";
 import { getDemoRiskSnapshot } from "@/lib/seed/demo-data";
 
+// Risk analysis runs the Opus classifier (plus alert evaluation) inside the
+// request — explicit ceiling like the other LLM routes (voice: 300).
+export const maxDuration = 300;
+
 function getMockDealId(rawData: Json | null, externalId: string): string {
   if (rawData && typeof rawData === "object" && !Array.isArray(rawData)) {
     const mockDealId = rawData.mock_deal_id;

@@ -40,6 +40,10 @@ import { ResearchAgentHistoryTurnSchema } from "@/lib/schemas/research-agent";
  * renders it as a visible, distinctly-styled turn.
  */
 
+// Multi-turn agent deliverable = one long Opus call per request — explicit
+// ceiling like the other LLM routes (voice: 300).
+export const maxDuration = 300;
+
 const BodySchema = z.object({
   instruction: z.string().min(1).max(2000),
   history: z.array(ResearchAgentHistoryTurnSchema).max(20).optional(),

@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-import {
-  Inter,
-  Bricolage_Grotesque,
-  Space_Grotesk,
-  Fraunces,
-  Hanken_Grotesk,
-  JetBrains_Mono,
-} from "next/font/google";
+import { Inter, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextIntlClientProvider } from "next-intl";
@@ -21,33 +14,19 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// Comic landing (/v2) display + body fonts.
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
 // Platform shell (dashboard/onboarding) faces. Self-hosted by next/font: the
 // font files are fetched at BUILD time and served from our own origin, so there
-// is no runtime request to Google — no @import, no DSGVO regression. All three
-// are variable fonts, so the weight comes from the variable axis (no `weight`).
-//   Fraunces       → loaded but currently unused (display/headlines moved to
-//                    sans; flip --font-heading in globals.css to restore serif)
+// is no runtime request to Google — no @import, no DSGVO regression. Both are
+// variable fonts, so the weight comes from the variable axis (no `weight`).
 //   Hanken Grotesk → body / UI AND display / headlines (--font-heading is now
 //                    Hanken: KPI numbers + page titles render sans-serif)
 //   JetBrains Mono → numbers / code (the `font-mono` utility)
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-});
-
+// (PERF CLEANUP — Fraunces, Bricolage Grotesque and Space Grotesk were
+// REMOVED: all three were loaded + preloaded on every page but consumed by no
+// CSS rule — Bricolage/Space Grotesk belonged to the deleted /v2 comic
+// landing, Fraunces to the retired serif-headline look. To restore one,
+// re-add its next/font import + <html> variable and point the relevant
+// globals.css token (--font-heading / --font-display) at it.)
 const hankenGrotesk = Hanken_Grotesk({
   variable: "--font-hanken",
   subsets: ["latin"],
@@ -121,7 +100,7 @@ export default async function RootLayout({
     >
       <html
         lang={locale}
-        className={`${inter.variable} ${GeistSans.variable} ${bricolage.variable} ${spaceGrotesk.variable} ${fraunces.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full scroll-smooth antialiased`}
+        className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full scroll-smooth antialiased`}
       >
         <body className="min-h-full flex flex-col bg-obsidian text-white">
           <NextIntlClientProvider

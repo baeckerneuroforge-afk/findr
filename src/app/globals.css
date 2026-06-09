@@ -58,13 +58,12 @@
   --font-sans: var(--font-inter);
   --font-geist: var(--font-geist-sans);
 
-  /* Comic / Neobrutalism landing (/v2) colour tokens (--color-paper/-ink/
-     -comic-*) were removed in Etappe D together with the comic landing trees —
-     grep verified 0 remaining users. The --font-display/--font-grotesk tokens
-     stay: the fonts are loaded in app/layout.tsx (root, untouched) and the
-     tokens are out of the named cleanup scope. */
-  --font-display: var(--font-bricolage);
-  --font-grotesk: var(--font-space-grotesk);
+  /* Comic / Neobrutalism landing (/v2) tokens are fully gone: the colour
+     tokens (--color-paper/-ink/-comic-*) were removed in Etappe D together
+     with the comic landing trees, and the --font-display/--font-grotesk
+     tokens followed in the perf cleanup that unloaded their fonts
+     (Bricolage / Space Grotesk) from app/layout.tsx — grep verified
+     0 remaining users for both rounds. */
 
   /* Platform shell faces (dashboard/onboarding), wired via next/font in
      app/layout.tsx (self-hosted — no @import). Headlines/display + KPI numbers
@@ -75,8 +74,9 @@
      JetBrains Mono = numbers/code. Setting --font-mono here overrides
      Tailwind's default mono token, so the `font-mono` utility resolves to
      JetBrains Mono — only dashboard surfaces use font-mono, landing is
-     unaffected. (Fraunces is still loaded in layout.tsx but now unused — flip
-     --font-heading back to var(--font-fraunces) to restore the serif headings.) */
+     unaffected. (Fraunces was unloaded from layout.tsx in the perf cleanup —
+     to restore the serif headings, re-add it there and flip --font-heading
+     back to var(--font-fraunces).) */
   --font-heading: var(--font-hanken);
   --font-body: var(--font-hanken);
   --font-mono: var(--font-jetbrains-mono);
@@ -89,8 +89,9 @@
      <html>) — no external request, no DSGVO regression — so this is a pure token
      remap: every `font-marketing` heading across the marketing surface switches
      to clean sans at once, without touching the protected root layout. (Fraunces
-     stays loaded in layout.tsx but is now unused by marketing — flip this token
-     back to var(--font-fraunces) to restore the serif headings.) */
+     was unloaded from layout.tsx in the perf cleanup — to restore the serif
+     marketing headings, re-add it there and flip this token back to
+     var(--font-fraunces).) */
   --font-marketing: var(--font-geist-sans);
 
   /* ────────────────────────────────────────────────────────────────

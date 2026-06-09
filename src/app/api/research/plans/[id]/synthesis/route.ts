@@ -26,6 +26,11 @@ import { synthesizeStudy } from "@/lib/synthesis/engine";
  *               unavailable" / DB write fail / etc.)
  *   200       — { success: true, synthesis: StudySynthesisRecord }
  */
+
+// Stage-2 synthesis is one long Opus call over the whole study — give the
+// route the same explicit ceiling as the other LLM surfaces (voice: 300).
+export const maxDuration = 300;
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

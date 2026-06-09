@@ -35,6 +35,10 @@ import {
  *   200      — { success: true, reel: HighlightReel }
  */
 
+// Each reel is a fresh Opus invocation (compute-on-demand, see above) —
+// explicit ceiling like the other LLM routes (voice: 300).
+export const maxDuration = 300;
+
 async function handleHighlights(
   planId: string,
   orgId: string,
