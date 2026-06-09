@@ -215,9 +215,11 @@ export async function resolvePublicOpenEntry(
 
 // ── Anti-Abuse: max_sessions-Cap (Etappe 5) ──────────────────────────────────
 //
-// Der offene Link ist funktional komplett, aber ungeschützt: jeder qualifizierte
-// Walk-in feuert einen Opus-Eröffnungs-Turn (createResearchInterview →
-// createInterviewSession), also ist ein geteilter/geleakter Link ohne Cap ein
+// Der offene Link ist funktional komplett, aber ungeschützt: jede qualifizierte
+// Walk-in-Session zieht Opus-Turns nach sich (seit Perf-B2 nicht mehr beim
+// Create selbst, sondern ab dem ersten Stream-Turn — ohne Session-Token gibt es
+// aber keinen Turn, der Cap greift also unverändert davor), also ist ein
+// geteilter/geleakter Link ohne Cap ein
 // offenes Spend-Tor. Das ist ein VOLUMEN-/KOSTEN-Risiko, KEIN Isolations-Risiko
 // (die Mandantentrennung ist in E1–E4 bewiesen). max_sessions ist die
 // strukturelle Bremse: die screen-Route zählt VOR dem teuren Opus-Call und

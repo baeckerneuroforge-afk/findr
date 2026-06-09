@@ -726,6 +726,16 @@ export function InterviewChat({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Streaming turn (Perf-Etappe B1): the agent's partial message while SSE
+  // deltas arrive, rendered as its own bubble. Kept OUT of `messages` on
+  // purpose — every consumer of the finished transcript (TTS autoplay,
+  // visual-capture submit, ttsLatestAgentIndex) keys off `messages`, which
+  // only updates when the authoritative `final` event lands. So nothing can
+  // act on a half-generated turn.
+  const [streamText, setStreamText] = useState<string | null>(null);
+  // B2: the opening turn is requested at most once per mount (the server
+  // side is idempotent on top — a second request is a no-op final).
+  const openingRequestedRef = useRef(false);
   const [visualCaptureState, setVisualCaptureState] =
     useState<VisualCaptureState>("unsupported");
   const [visualFrameCount, setVisualFrameCount] = useState(0);
@@ -833,7 +843,20 @@ export function InterviewChat({
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, streamText]);
+
+  // B2: a session created without its opening (empty conversation) fetches it
+  // as the FIRST streamed turn — the page painted instantly, the greeting
+  // streams in. Mount-only by design: re-runs are pointless (the ref latches)
+  // and the server treats duplicates as no-ops anyway.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (initialConversation.some((m) => m.role === "agent")) return;
+    if (openingRequestedRef.current) return;
+    openingRequestedRef.current = true;
+    void requestOpening();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only opening fetch
+  }, []);
 
   useEffect(() => {
     if (!visualCaptureEnabled || !isOpen) return;
@@ -1553,9 +1576,126 @@ export function InterviewChat({
     }
   }
 
+  /** Adopt the server's authoritative session view — the ONE place the
+   *  transcript/status update after a turn (stream final, resync, opening). */
+  function applySession(session: SessionView) {
+    if (session.status === "completed") {
+      void submitVisualCapture();
+    }
+    setMessages(session.conversation);
+    setStatus(session.status);
+  }
+
+  /** POST to the SSE turn route; feeds deltas into streamText and returns the
+   *  authoritative final session. Throws on transport failure, a missing
+   *  final event, or a server-sent `error` event — callers resync. */
+  async function streamTurn(payload: { message?: string }): Promise<SessionView> {
+    const res = await fetch(`/api/interview/${token}/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!res.ok || !res.body || !contentType.includes("text/event-stream")) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(data.error ?? t("error.requestFailed"));
+    }
+
+    let finalSession: SessionView | null = null;
+    let streamError: string | null = null;
+
+    const handleEvent = (rawEvent: string) => {
+      let event = "message";
+      const dataLines: string[] = [];
+      for (const line of rawEvent.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
+      }
+      if (dataLines.length === 0) return;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(dataLines.join("\n"));
+      } catch {
+        return;
+      }
+      if (event === "delta") {
+        const text = (parsed as { text?: unknown }).text;
+        if (typeof text === "string" && text) {
+          setStreamText((prev) => (prev ?? "") + text);
+        }
+      } else if (event === "final") {
+        finalSession = (parsed as { session?: SessionView }).session ?? null;
+      } else if (event === "error") {
+        streamError = (parsed as { error?: string }).error ?? t("error.generic");
+      }
+    };
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep: number;
+      while ((sep = buffer.indexOf("\n\n")) !== -1) {
+        handleEvent(buffer.slice(0, sep));
+        buffer = buffer.slice(sep + 2);
+      }
+    }
+    if (buffer.trim()) handleEvent(buffer);
+
+    if (streamError) throw new Error(streamError);
+    if (!finalSession) throw new Error(t("error.requestFailed"));
+    return finalSession;
+  }
+
+  /** One GET against the session — used to converge after a broken stream
+   *  (the turn may or may not have persisted server-side). */
+  async function resyncSession(): Promise<SessionView | null> {
+    try {
+      const res = await fetch(`/api/interview/${token}`);
+      if (!res.ok) return null;
+      const data = (await res.json()) as { session?: SessionView };
+      return data.session ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** B2: fetch the opening turn as the first streamed turn. */
+  async function requestOpening() {
+    setError(null);
+    setLoading(true);
+    try {
+      const session = await streamTurn({});
+      applySession(session);
+    } catch {
+      // The opening may still have persisted server-side (the route finishes
+      // the turn even when the stream dies) — one resync converges.
+      const synced = await resyncSession();
+      if (synced && synced.conversation.some((m) => m.role === "agent")) {
+        applySession(synced);
+      } else {
+        setError(t("error.generic"));
+        // Allow another attempt if the participant triggers a re-render path
+        // (e.g. reload); within this mount the latch stays closed on purpose.
+      }
+    } finally {
+      setStreamText(null);
+      setLoading(false);
+    }
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || loading || !isOpen || visualConsentPending) return;
+    // B2: nothing to answer until the opening turn exists.
+    if (!messages.some((m) => m.role === "agent")) return;
+
+    // Captured BEFORE the optimistic append: a server-advanced conversation
+    // must have grown by at least customer+agent relative to this.
+    const expectedMinLength = messages.length + 2;
 
     setError(null);
     setInput("");
@@ -1563,32 +1703,35 @@ export function InterviewChat({
     setLoading(true);
 
     try {
-      const res = await fetch(`/api/interview/${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error ?? t("error.requestFailed"));
-      }
-      const data = (await res.json()) as { session: SessionView };
-      if (data.session.status === "completed") {
-        void submitVisualCapture();
-      }
-      setMessages(data.session.conversation);
-      setStatus(data.session.status);
+      const session = await streamTurn({ message: text });
+      applySession(session);
     } catch (err) {
-      // Roll back the optimistic message and let the buyer resend.
-      setMessages((prev) =>
-        prev.filter(
-          (m, i) =>
-            !(i === prev.length - 1 && m.role === "customer" && m.text === text),
-        ),
-      );
-      setInput(text);
-      setError(err instanceof Error ? err.message : t("error.generic"));
+      // The stream can die before OR after the server ran the turn. NEVER
+      // blind-retry (a second advanceInterview would duplicate the turn) —
+      // resync instead and only roll back when the message verifiably never
+      // landed.
+      const synced = await resyncSession();
+      const landed =
+        synced !== null &&
+        synced.conversation.length >= expectedMinLength &&
+        synced.conversation
+          .slice(-2)
+          .some((m) => m.role === "customer" && m.text === text);
+      if (landed && synced) {
+        applySession(synced);
+      } else {
+        // Roll back the optimistic message and let the buyer resend.
+        setMessages((prev) =>
+          prev.filter(
+            (m, i) =>
+              !(i === prev.length - 1 && m.role === "customer" && m.text === text),
+          ),
+        );
+        setInput(text);
+        setError(err instanceof Error ? err.message : t("error.generic"));
+      }
     } finally {
+      setStreamText(null);
       setLoading(false);
     }
   }
@@ -1660,7 +1803,13 @@ export function InterviewChat({
             }
           />
         ))}
-        {loading && <TypingBubble />}
+        {streamText !== null && streamText !== "" && (
+          // B1: the agent's in-flight message, growing as deltas arrive. No
+          // tts control — that appears when the turn finalizes into
+          // `messages` (and the TTS autoplay effect fires exactly then).
+          <Bubble role="agent" text={streamText} />
+        )}
+        {loading && !streamText && <TypingBubble />}
         <div ref={endRef} />
       </div>
 

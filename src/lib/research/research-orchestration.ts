@@ -197,6 +197,12 @@ export async function createResearchInterview(params: {
       dealContext: input,
       language: params.language ?? "de",
       screeningAnswers: params.screeningAnswers ?? null,
+      // Perf-Etappe B2: every createResearchInterview caller sits on the
+      // PARTICIPANT's request path (lazy page-load create + both screening
+      // routes). Create the row without the blocking Opus opening — the page
+      // paints immediately and the opening arrives as the first streamed
+      // turn (ensureOpeningTurn via /api/interview/[token]/stream).
+      skipOpening: true,
     });
 
     // Thread the freshly inserted session through — getPublicSession's

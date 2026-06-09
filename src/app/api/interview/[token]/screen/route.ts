@@ -20,8 +20,9 @@ import type { Json } from "@/types/database";
  * configured questions:
  *
  *   QUALIFIED → create the interview session via the SAME createResearchInterview
- *     path the no-screening flow uses (fires the opening Opus turn + inserts the
- *     interview_sessions row), persists the answers onto that session, and
+ *     path the no-screening flow uses (inserts the interview_sessions row;
+ *     since Perf-B2 WITHOUT the opening turn — that streams in on the
+ *     interview page), persists the answers onto that session, and
  *     appends ONE anonymous research_screening_responses row (verdict='qualified').
  *     The client then reloads → the page resolves to the session → interview.
  *

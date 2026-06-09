@@ -4,6 +4,7 @@ import {
   buildResearchSystemPrompt,
   type ResearchInput,
 } from "@/lib/voice-agent/interviewer";
+import { ensureOpeningTurnBySessionId } from "@/lib/voice-agent/session-service";
 import { requireVoiceAgentAuth } from "@/lib/voice-interview/agent-auth";
 import { loadVoiceBridgeSession } from "@/lib/voice-interview/bridge-service";
 import { sessionIdFromRoomName } from "@/lib/voice-interview/room";
@@ -23,10 +24,12 @@ import { sessionIdFromRoomName } from "@/lib/voice-interview/room";
  *     wirken sich damit in beiden Modalitäten gleich (nicht) aus.
  *   - Studien-Titel, Objective, Persona, Sprache, Leitfaden (topics inkl.
  *     intent + private hypotheses), Stimulus-Metadaten, Brand-Grounding.
- *   - conversation + nextTurnIndex: conversation[0] ist die beim
- *     Session-Create generierte Opening-Message — der Agent SPRICHT diese als
- *     Begrüßung und indiziert seine eigenen Turns ab nextTurnIndex (Kontrakt
- *     von /api/voice/transcript). Bei Reconnect enthält conversation bereits
+ *   - conversation + nextTurnIndex: conversation[0] ist die Opening-Message
+ *     (seit Perf-B2 nicht mehr beim Session-Create erzeugt, sondern hier
+ *     lazily via ensureOpeningTurnBySessionId sichergestellt, bevor der
+ *     Kontext rausgeht) — der Agent SPRICHT diese als Begrüßung und
+ *     indiziert seine eigenen Turns ab nextTurnIndex (Kontrakt von
+ *     /api/voice/transcript). Bei Reconnect enthält conversation bereits
  *     gelieferte Voice-Turns → nahtloses Fortsetzen.
  *
  * Auth: Authorization: Bearer <VOICE_AGENT_SHARED_SECRET>. Der Secret-Inhaber
@@ -113,6 +116,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           }
         : null;
 
+    // Perf-Etappe B2: research sessions are now created WITHOUT the opening
+    // turn (it streams in lazily on the text surface). The voice agent's
+    // contract is "speak conversation[0] as the greeting" — so an empty
+    // conversation grows its opening HERE, before context is handed out.
+    // Idempotent + race-guarded in ensureOpeningTurn; sessions that already
+    // have turns (reconnect, pre-B2 rows) skip the LLM call entirely.
+    let conversation = session.conversation;
+    if (conversation.length === 0) {
+      const opened = await ensureOpeningTurnBySessionId(session.id);
+      conversation = opened?.conversation ?? conversation;
+    }
+
     return NextResponse.json({
       sessionId: session.id,
       roomName: room,
@@ -125,8 +140,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       stimulus,
       brand: input.brand ?? null,
       systemPrompt,
-      conversation: session.conversation,
-      nextTurnIndex: session.conversation.length,
+      conversation,
+      nextTurnIndex: conversation.length,
     });
   } catch (err) {
     console.error(

@@ -30,6 +30,7 @@ import {
   type InterviewResult,
   type InterviewTurn,
   type ResearchInput,
+  type TurnDelta,
 } from "./interviewer";
 
 /**
@@ -285,9 +286,10 @@ export async function loadByToken(
 }
 
 /**
- * Create a session and generate the agent's opening question (empty history ->
- * first message). Returns the row including the access token. deal_id may be null
- * in this sprint (test sessions without a real deal).
+ * Create a session and — unless skipOpening is set (B2) — generate the
+ * agent's opening question (empty history -> first message). Returns the row
+ * including the access token. deal_id may be null in this sprint (test
+ * sessions without a real deal).
  */
 export async function createInterviewSession(params: {
   orgId: string;
@@ -329,16 +331,25 @@ export async function createInterviewSession(params: {
    *  jeder Nicht-Panel-INSERT referenziert die Spalte gar nicht (funktioniert
    *  also auch, falls die Migration 20260702000000 noch nicht angewandt ist). */
   panelContext?: Json | null;
+  /** Perf-Etappe B2: create the session WITHOUT generating the opening
+   *  message (conversation starts empty). The participant-facing research
+   *  paths set this so the page can paint immediately; the opening is then
+   *  generated as the first STREAMED turn via ensureOpeningTurn. Omitted →
+   *  the original blocking-opening behavior (post_loss / checkin, whose
+   *  sessions are created on operator actions, not on the participant's
+   *  request path). */
+  skipOpening?: boolean;
 }): Promise<InterviewSession> {
   const kind = params.kind ?? "post_loss";
   const mode = params.mode ?? "text";
   const model = params.model ?? process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL;
   const language = params.language ?? DEFAULT_INTERVIEW_LANGUAGE;
 
-  // Opening message routing — same callJson plumbing, different prompt + input
-  // shape per flow.
-  const opening =
-    kind === "research"
+  // Opening message routing — same plain-turn plumbing, different prompt +
+  // input shape per flow. Skipped entirely under B2 (see skipOpening above).
+  const opening = params.skipOpening
+    ? null
+    : kind === "research"
       ? await nextResearchMessage(
           params.dealContext as ResearchInput,
           [],
@@ -358,9 +369,9 @@ export async function createInterviewSession(params: {
             language,
             model,
           );
-  const conversation: InterviewTurn[] = [
-    { role: "agent", text: opening.message },
-  ];
+  const conversation: InterviewTurn[] = opening
+    ? [{ role: "agent", text: opening.message }]
+    : [];
 
   const supabase = createResearchSupabase();
   // expand-contract Phase 1: kind stays authoritative; we ALSO write `flow`
@@ -419,12 +430,12 @@ export async function createInterviewSession(params: {
  *
  *   (2) No session, but a research_invites row has access_token = token
  *         → LAZY-create the session via createResearchInterview, which
- *           fires the opening message and inserts an interview_sessions
- *           row with the SAME access_token (so the invite's URL stays
- *           stable through the mail it was embedded in). The session
- *           is created only when the participant actually opens the
- *           link — saves an Opus call per invite that never gets
- *           clicked.
+ *           inserts an interview_sessions row with the SAME access_token
+ *           (so the invite's URL stays stable through the mail it was
+ *           embedded in). Since Perf-Etappe B2 the row is created WITHOUT
+ *           the opening message (conversation = []) — the opening arrives
+ *           as the first streamed turn via ensureOpeningTurn, so this
+ *           lazy-create is cheap and the page paints immediately.
  *
  *   (3) Token matches neither table → null (404 from the page).
  *
@@ -447,11 +458,10 @@ export async function createInterviewSession(params: {
  * IMMER. Wenn die Zeile existiert (egal wer von uns sie geschrieben
  * hat), gewinnt der erste Insert, der zweite Request liest das
  * Ergebnis und serviert dieselbe Session. Das löst den
- * Korrektheits-Race auf Datenebene; ein Opus-Edge-Case bleibt (beide
- * Requests generieren VOR dem INSERT eine Opening-Message), das ist
- * akzeptiert, weil bei einem Teilnehmer-Doppelklick selten und
- * Opening-Messages billig sind. Eine spätere Optimierung könnte ein
- * pg_advisory_lock vor dem Opus-Call setzen.
+ * Korrektheits-Race auf Datenebene. (Der frühere Opus-Edge-Case —
+ * beide Racer generieren VOR dem INSERT eine Opening-Message — ist
+ * mit B2 strukturell weg: die Erstellung macht keinen LLM-Call mehr;
+ * Opening-Races behandelt ensureOpeningTurn mit eigenem Guard.)
  */
 export async function getPublicSession(
   token: string,
@@ -698,6 +708,106 @@ export async function markInterviewInvited(
 }
 
 /**
+ * Perf-Etappe B2 — generate + persist the opening message for a session that
+ * was created with skipOpening (empty conversation). Idempotent: if the
+ * conversation already has content (a parallel request won, or the session
+ * predates B2), it returns the current view WITHOUT an LLM call — so the
+ * client may call this on every page load.
+ *
+ * RACE GUARD: the UPDATE is conditioned on `conversation = '[]'` (jsonb
+ * equality), so a late writer can never overwrite a conversation that a
+ * faster opener — or worse, an already-answering participant — has advanced.
+ * Losing the race is not an error: we reload and serve the winner's row.
+ */
+export async function ensureOpeningTurn(
+  token: string,
+  onDelta?: TurnDelta,
+): Promise<PublicInterviewView | null> {
+  const session = await loadByToken(token);
+  if (!session) return null;
+  if (
+    session.status !== "open" ||
+    session.conversation.length > 0 ||
+    !session.dealContext
+  ) {
+    return toPublicView(session);
+  }
+
+  const model = session.model ?? process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL;
+  const opening =
+    session.kind === "research"
+      ? await nextResearchMessage(
+          session.dealContext as unknown as ResearchInput,
+          [],
+          session.language,
+          model,
+          onDelta,
+        )
+      : session.kind === "checkin"
+        ? await nextCheckinMessage(
+            session.dealContext as unknown as CheckinInput,
+            [],
+            session.language,
+            model,
+            onDelta,
+          )
+        : await nextInterviewMessage(
+            session.dealContext as InterviewInput,
+            [],
+            session.language,
+            model,
+            onDelta,
+          );
+
+  const conversation: InterviewTurn[] = [
+    { role: "agent", text: opening.message },
+  ];
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .update({ conversation: conversation as unknown as Json })
+    .eq("access_token", token)
+    // jsonb equality — Postgres normalizes jsonb at parse, so '[]' matches
+    // regardless of how the empty array was ever formatted on write.
+    .eq("conversation", "[]")
+    .eq("status", "open")
+    .select()
+    .maybeSingle();
+  if (error) {
+    throw new Error(`Failed to persist opening turn: ${error.message}`);
+  }
+  if (data) return toPublicView(toSession(data));
+
+  // 0 rows matched — a parallel opener (or an answering participant) got
+  // there first. Their row is authoritative; ours is discarded.
+  const current = await loadByToken(token);
+  return current ? toPublicView(current) : null;
+}
+
+/**
+ * Id-keyed wrapper for backend-to-backend callers that know the session UUID
+ * but not the capability token (the LiveKit voice bridge: its agent speaks
+ * conversation[0] as the greeting, so a B2-created empty session must grow
+ * its opening before the bridge hands out context). One narrow select to
+ * resolve the token, then the token-keyed path with all its guarantees.
+ */
+export async function ensureOpeningTurnBySessionId(
+  sessionId: string,
+): Promise<PublicInterviewView | null> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select("access_token")
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`Failed to resolve session token: ${error.message}`);
+  }
+  if (!data) return null;
+  return ensureOpeningTurn(data.access_token);
+}
+
+/**
  * Append the buyer/customer message, generate the next agent message, persist,
  * and finish when the agent (or the safety cap) closes the conversation.
  *
@@ -714,6 +824,7 @@ export async function markInterviewInvited(
 export async function advanceInterview(
   token: string,
   buyerMessage: string,
+  onDelta?: TurnDelta,
 ): Promise<PublicInterviewView | null> {
   const session = await loadByToken(token);
   if (!session) return null;
@@ -736,24 +847,25 @@ export async function advanceInterview(
   // untouched.
   if (session.kind === "research") {
     const input = session.dealContext as unknown as ResearchInput;
-    const { done, message } = await nextResearchMessage(
-      input,
-      history,
-      session.language,
-      model,
-    );
 
-    // Decide BEFORE pushing the agent turn: would pushing the LLM message
-    // bring conversation.length to the cap? If so AND the agent isn't
-    // self-closing (done=false), the LLM just emitted "another question"
-    // when the system already has to stop. Swap that question for the
-    // generic warm closing so the participant doesn't end on an
-    // unanswered prompt.
+    // Decide BEFORE the LLM call: would pushing the agent message bring
+    // conversation.length to the cap? If so AND the agent doesn't self-close
+    // (done=false below), its message gets SWAPPED for the generic warm
+    // closing — so on this one turn nothing may stream to the participant
+    // (they'd watch a question appear that the swap then deletes).
     //
     // The cap is measured against `history.length + 1` because the agent's
     // turn isn't appended yet — we're predicting the row we're about to
     // push.
     const wouldHitCap = history.length + 1 >= MAX_RESEARCH_TOTAL_TURNS;
+
+    const { done, message } = await nextResearchMessage(
+      input,
+      history,
+      session.language,
+      model,
+      wouldHitCap ? undefined : onDelta,
+    );
     const forceCapClose = wouldHitCap && !done;
     const finalAgentText = forceCapClose
       ? RESEARCH_CAP_CLOSING_MESSAGE
@@ -822,6 +934,7 @@ export async function advanceInterview(
       history,
       session.language,
       model,
+      onDelta,
     );
     history.push({ role: "agent", text: message });
     const finished = done || agentTurnCount(history) >= MAX_CHECKIN_AGENT_TURNS;
@@ -886,6 +999,7 @@ export async function advanceInterview(
     history,
     session.language,
     model,
+    onDelta,
   );
   history.push({ role: "agent", text: message });
 

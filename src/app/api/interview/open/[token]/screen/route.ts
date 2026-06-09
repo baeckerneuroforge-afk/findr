@@ -176,9 +176,10 @@ export async function POST(
     return NextResponse.json({ qualified: false });
   }
 
-  // ⑥ ANTI-ABUSE CAP (E5) — the structural cost brake, placed BEFORE the Opus
-  //    turn. Qualified means the next step (createResearchInterview) fires the
-  //    opening Opus turn (nextResearchMessage, inside createInterviewSession). So
+  // ⑥ ANTI-ABUSE CAP (E5) — the structural cost brake, placed BEFORE session
+  //    creation. Qualified means the next step (createResearchInterview) mints
+  //    a session token, and every Opus turn (the opening included, since
+  //    Perf-B2 streamed lazily) hangs off that token — no session, no spend. So
   //    we COUNT first: sessions already attributed to THIS link, org-scoped.
   //    Only created/qualified sessions carry open_link_id, so REJECTIONS never
   //    consume the cap. At/over the cap → NO session, NO Opus turn, NO qualified

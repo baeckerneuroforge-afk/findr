@@ -15,8 +15,9 @@ import { MESSAGES, translate } from "@/i18n/messages";
  * generateMetadata and the Page component in PARALLEL for the same request —
  * both call this helper with the same token. Without cache(), each would
  * independently run the entry resolution; for a no-screening research invite
- * that means the lazy-create branch fires twice (2× Opus opening calls + an
- * INSERT race on the UNIQUE access_token). React.cache() memoizes per render so
+ * that means the lazy-create branch fires twice (an INSERT race on the UNIQUE
+ * access_token; pre-B2 also 2× Opus opening calls — the create is LLM-free
+ * now, but the race stays worth avoiding). React.cache() memoizes per render so
  * both share ONE resolution. (For a screening-deferred or needs_screening token
  * no session is created at all, so there's nothing to race.)
  *
