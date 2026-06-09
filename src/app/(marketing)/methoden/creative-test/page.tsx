@@ -9,7 +9,7 @@ import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 const PATH = "/methoden/creative-test";
 const OG_TITLE = "Creative-Test — findr.";
 const DESCRIPTION =
-  "Die Wirkung einer Kreation prüfen, bevor das Budget fließt: findr. erfasst ersten Eindruck und emotionale Wirkung. In Vorbereitung. KI-Interviews auf Deutsch, DSGVO-nativ.";
+  "Die Wirkung einer Kreation prüfen, bevor das Budget fließt: findr. erfasst ersten Eindruck und emotionale Wirkung. KI-Interviews auf Deutsch, DSGVO-nativ.";
 
 export const metadata: Metadata = {
   title: "Creative-Test",
@@ -30,7 +30,7 @@ const SOFTWARE_JSONLD = {
 
 const CONTENT: MethodContent = {
   slug: "creative-test",
-  status: "Bald",
+  status: "Live",
   eyebrow: "Methode · Creative-Test",
   heroTitle: <>Wirkt die Kreation — bevor das Budget fließt?</>,
   heroSubhead:
@@ -38,7 +38,7 @@ const CONTENT: MethodContent = {
   audience:
     "Marketing-, Brand- und Kreativ-Teams, die eine Kreation prüfen wollen, bevor sie ausgespielt wird.",
   statusNote:
-    "Diese Methode ist in Vorbereitung. Der Creative-Test braucht das Zeigen eines Stimulus (Anzeige, Mockup oder Clip) im Interview — diese Funktion bauen wir gerade. Bedarf & Verhalten und Markenwahrnehmung laufen heute.",
+    "Diese Methode läuft heute — du zeigst deine Kreation (Anzeige, Mockup oder Clip) im Interview und setzt sie direkt in einer Market-Research-Studie ein.",
   pain: {
     eyebrow: "Creative-Test · Der blinde Fleck",
     title: <>Performance-Zahlen kommen, wenn das Budget schon läuft.</>,
@@ -67,38 +67,38 @@ const CONTENT: MethodContent = {
   how: {
     title: <>Erster Eindruck zuerst.</>,
     lead:
-      "findr. zeigt die Kreation als Asset und erfasst die spontane Reaktion — was zuerst auffällt und hängenbleibt, ohne zu überanalysieren. So ist die Methode geplant, sobald die Stimulus-Funktion live ist.",
+      "findr. zeigt die Kreation als Asset und erfasst die spontane Reaktion — was zuerst auffällt und hängenbleibt, ohne zu überanalysieren.",
     steps: [
       {
         phase: "Stimulus",
         title: "Die Kreation zeigen",
         body: "findr. spielt die Kreation als echtes Asset im Interview aus — Anzeige, Mockup oder Clip — statt sie zu beschreiben.",
-        tag: "Bald",
+        tag: "Live",
       },
       {
         phase: "Erster Eindruck",
         title: "Die spontane Reaktion einfangen",
         body: "„Was ist Ihr erster spontaner Eindruck?“ Die erste Sekunde zählt — findr. fragt danach, bevor Nachdenken sie glättet.",
-        tag: "Bald",
+        tag: "Live",
       },
       {
         phase: "Botschaft",
         title: "Was ankommt",
         body: "„Welche Botschaft nehmen Sie mit?“ findr. prüft, ob die gemeinte Botschaft auch die wahrgenommene ist.",
-        tag: "Bald",
+        tag: "Live",
       },
       {
         phase: "Erinnerung",
         title: "Was hängenbleibt",
         body: "findr. fragt, was am stärksten im Gedächtnis bleibt — die emotionale Wirkung, die später die Erinnerung trägt.",
-        tag: "Bald",
+        tag: "Live",
       },
     ],
   },
   result: {
     eyebrow: "Creative-Test · Was rauskommt",
     title: <>Die Wirkung, bevor das Budget fließt.</>,
-    body: "findr. verdichtet ersten Eindruck, wahrgenommene Botschaft und emotionale Erinnerung zu belegter Evidenz — verankert im Transkript. Über mehrere Kreationen hinweg deterministisch gezählt. Sobald die Methode live ist, läuft sie auf derselben Synthese wie die verfügbaren Methoden.",
+    body: "findr. verdichtet ersten Eindruck, wahrgenommene Botschaft und emotionale Erinnerung zu belegter Evidenz — verankert im Transkript. Über mehrere Kreationen hinweg deterministisch gezählt. Dieselbe Synthese wie bei jeder anderen Methode.",
     payoff: {
       strong: "Eine Vorab-Entscheidung mit echten Reaktionen statt mit Media-Geld.",
       body: "Du siehst, welche Kreation zieht und woran — bevor der erste Euro Spend fließt.",
@@ -120,10 +120,10 @@ const CONTENT: MethodContent = {
     },
   },
   proofLead:
-    "Sobald der Creative-Test live ist, läuft er auf derselben Synthese wie jede Methode — Live, was Live ist; Bald, was kommt.",
+    "Was aus den Gesprächen wird, übernimmt dieselbe Synthese wie bei jeder Methode — Live, was Live ist; Bald, was kommt.",
   cta: {
-    title: <>Bald: Kreationen prüfen, bevor das Budget fließt.</>,
-    lead: "Der Creative-Test ist in Vorbereitung. Buch eine Demo — wir zeigen dir, was heute schon geht, und melden uns, sobald der Creative-Test live ist.",
+    title: <>Kreationen prüfen, bevor das Budget fließt.</>,
+    lead: "Buch eine Demo und sieh, wie findr. eine Kreation als Asset zeigt und ersten Eindruck, Botschaft und emotionale Wirkung einfängt — bevor das Budget fließt.",
   },
 };
 

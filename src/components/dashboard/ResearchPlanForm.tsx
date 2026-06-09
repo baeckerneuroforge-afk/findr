@@ -713,6 +713,19 @@ export function ResearchPlanForm({
       return;
     }
 
+    // Hard requirement: stimulus-driven use-cases (creative_test/concept_test,
+    // gated by USE_CASE_META.needsStimulus) cannot be submitted without an
+    // uploaded asset. Only the asset (stimulusUrl) is required — the description
+    // stays optional. general_survey/brand_research keep needsStimulus=false,
+    // and the discovery path fixes form.useCase to a non-stimulus case, so both
+    // are unaffected. Safe for the draft-first flow: a set stimulusUrl implies
+    // ensureDraftPlanId already ran during upload, so this only gates the final
+    // POST/PATCH — it never creates or races a plan itself.
+    if (needsStimulus && !form.stimulusUrl) {
+      setError(t("errStimulusRequired"));
+      return;
+    }
+
     // Optional sampleTarget: empty string -> null. Non-numeric / out-of-range
     // is rejected here so the user sees a precise message instead of a
     // generic 400 from the API's Zod validation.
@@ -1179,9 +1192,12 @@ export function ResearchPlanForm({
               </Field>
             </div>
 
-            {/* Pflicht-Hinweis — KEIN hartes Submit-Blocken (kollidiert mit dem
-                planId-Timing): die Studie ist nur erst startklar, wenn ein Asset
-                gesetzt ist. */}
+            {/* Pflicht-Hinweis (proaktiv, neben dem Uploader). Hart durchgesetzt
+                wird die Pflicht jetzt in handleSubmit (Guard needsStimulus &&
+                !stimulusUrl) — ohne Asset ist die Studie nicht absendbar.
+                Unkritisch fürs planId-Timing: ein gesetztes stimulusUrl
+                impliziert bereits einen Draft (ensureDraftPlanId lief beim
+                Upload); der Guard gated nur den finalen POST/PATCH. */}
             {!form.stimulusUrl && (
               <p className="mt-3 rounded-md border border-warning-500/30 bg-warning-50 px-3 py-2 text-caption text-warning-700">
                 {t("stimulusRequiredHint")}

@@ -1068,6 +1068,7 @@
       "stimulusDescHint": "Kurze Beschreibung des Assets — fließt in die Fragen des KI-Interviewers.",
       "phStimulusDesc": "z. B. Neues Verpackungsdesign, Variante B mit reduziertem Etikett.",
       "stimulusRequiredHint": "Für diesen Studientyp wird ein Stimulus benötigt. Die Studie ist erst startklar, wenn ein Bild oder Link gesetzt ist.",
+      "errStimulusRequired": "Für diesen Studientyp ist ein Stimulus Pflicht. Bitte lade ein Bild hoch oder hinterlege einen Link, um fortzufahren.",
       "errStimulusNeedsBasics": "Bitte zuerst Titel und Forschungsziel ausfüllen — der Stimulus wird an die angelegte Studie gehängt.",
       "errStimulusType": "Nicht unterstütztes Format. Erlaubt sind PNG, JPG und WebP.",
       "errStimulusSize": "Datei zu groß. Maximal 5 MB.",

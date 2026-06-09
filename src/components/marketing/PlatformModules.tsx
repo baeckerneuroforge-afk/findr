@@ -54,7 +54,7 @@ export const MODULES: ModuleEntry[] = [
     href: "/methoden/konzept-test",
     blurb:
       "Erst Verständnis, dann Relevanz: ob ein Konzept trägt — und woran genau es das tut oder scheitert.",
-    status: "Bald",
+    status: "Live",
     icon: "FileCheckIcon",
   },
   {
@@ -63,7 +63,7 @@ export const MODULES: ModuleEntry[] = [
     href: "/methoden/creative-test",
     blurb:
       "Erster Eindruck und emotionale Wirkung einer Kreation — bevor du Media-Budget dahinter legst.",
-    status: "Bald",
+    status: "Live",
     icon: "TargetIcon",
   },
 ];
