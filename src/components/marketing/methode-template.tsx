@@ -42,11 +42,11 @@ import {
  * pages (which this template mirrors verbatim, incl. the NarrativeBand + Callout
  * helpers).
  *
- * HONESTY: Bedarf & Verhalten and Markenwahrnehmung run today (status "Live");
- * Konzept-Test and Creative-Test are in Vorbereitung (status "Bald") because they
- * need the Stimulus-in-interview function that is still being built — said
- * plainly via MethodStatus, the "Bald"-tagged HowItWorks steps and the CTA copy,
- * never dressed up as available. The methodical essence is grounded in the real
+ * HONESTY: all four methods run today (status "Live") — Bedarf & Verhalten,
+ * Markenwahrnehmung, Konzept-Test and Creative-Test. The template surfaces each
+ * method's status plainly via MethodStatus, the status-tagged HowItWorks steps
+ * and the CTA copy, never dressing a not-yet-live capability up as available. The
+ * methodical essence is grounded in the real
  * in-product use-case notes; the example cards use findr.'s REAL interview
  * questions and describe the output honestly — NO invented metrics, quotes or
  * customers. The synthesis ProofPoints reuse the vetted homepage claims (only

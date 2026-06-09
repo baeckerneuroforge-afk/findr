@@ -17,9 +17,8 @@ export type ModuleEntry = {
 
 /**
  * The four market-research METHODS, given EQUAL weight (same card, same depth) —
- * facets of ONE qualitative-research engine, not four separate products. The
- * first two run today (Live); Konzept- und Creative-Test sind in Vorbereitung
- * ("Bald").
+ * facets of ONE qualitative-research engine, not four separate products. All
+ * four run today (Live).
  *
  * Exported as the single source for the four-method set: the homepage grid (this
  * file), the header's "Plattform" mega-menu panel (via nav-data) AND the footer
