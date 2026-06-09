@@ -17,6 +17,7 @@ import {
   normalizeThemes,
 } from "@/lib/schemas/product-discovery";
 import {
+  coerceUseCase,
   getResearchPlan,
   getMarketResearchPlanIds,
   type ResearchPlanRecord,
@@ -743,6 +744,7 @@ async function persistMarketResearchInsight(
       market: plan.persona,
       orgName: orgName?.trim() || null,
     },
+    useCase: coerceUseCase(plan.useCase),
     recordedAt: call.recorded_at,
   });
 

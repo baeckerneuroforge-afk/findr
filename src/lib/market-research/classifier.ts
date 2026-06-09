@@ -10,8 +10,8 @@ import {
   type MarketResearchResult,
 } from "@/lib/schemas/market-research";
 import {
-  MARKET_RESEARCH_SYSTEM_PROMPT,
   buildMarketResearchPrompt,
+  selectMarketResearchSystemPrompt,
   type MarketResearchInput,
 } from "./prompts";
 
@@ -67,7 +67,7 @@ export async function analyzeMarketResearch(
   try {
     return await callClaudeStructured({
       schema: MarketResearchResultSchema,
-      system: MARKET_RESEARCH_SYSTEM_PROMPT,
+      system: selectMarketResearchSystemPrompt(input.useCase),
       messages: [{ role: "user", content: userPrompt }],
       model,
       // Larger budget than Product Discovery's 2048: a market extraction packs

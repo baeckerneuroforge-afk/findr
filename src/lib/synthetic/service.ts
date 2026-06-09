@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { Database, Json } from "@/types/database";
 import {
+  coerceUseCase,
   getResearchPlan,
   planToAgentContext,
   type ResearchPlanRecord,
@@ -389,6 +390,7 @@ export async function extractSessionInsight(
     const r = await analyzeMarketResearch({
       transcript,
       study: { subject: plan.title, market: plan.persona, orgName: null },
+      useCase: coerceUseCase(plan.useCase),
     });
     const themes = r.themes.map((tm) => ({
       label: tm.label,

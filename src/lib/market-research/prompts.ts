@@ -3,6 +3,7 @@ import {
   MARKET_FINDING_CATEGORIES,
   SENTIMENT_VALUES,
 } from "@/lib/schemas/market-research";
+import type { ResearchPlanUseCase } from "@/lib/research/db";
 
 /**
  * Market Research classifier prompt — Phase M0, PREPARED BUT NOT WIRED.
@@ -43,6 +44,9 @@ export interface MarketResearchInput {
   /** Full transcript text for a single market-research conversation. */
   transcript: string;
   study?: MarketResearchStudyContext;
+  /** Optional market-research method. Null/undefined preserves the generic
+   *  Stage-1 extraction prompt byte-for-byte. */
+  useCase?: ResearchPlanUseCase | null;
   /** Optional ISO date of the conversation — helps the model anchor
    *  "last week"-style references. */
   recordedAt?: string | null;
@@ -135,6 +139,33 @@ OUTPUT — return ONLY this JSON object, no markdown, no preamble:
   "sentiment": "<${SENTIMENT_VALUES.join(" | ")}>",
   "source": "transcript"
 }`;
+
+export const MARKET_RESEARCH_USE_CASE_FOCUS: Record<
+  ResearchPlanUseCase,
+  string
+> = {
+  general_survey:
+    "Fokus: Extrahiere Bedarf und Pain Points aus konkretem Erleben, aktuelle Lösungen/Workarounds und Aufwand sowie Preis-Sensitivität und belastbare Kaufabsicht. Priorisiere SEGMENT_NEED, PRICE_SENSITIVITY und PURCHASE_INTENT; Komplimente oder hypothetische Zustimmung zählen nicht als Kaufsignal, konkretes Verhalten, Commitment, Preisgrenzen und begründete Wechselabsicht schon.",
+  brand_research:
+    "Fokus: Extrahiere spontane Assoziationen, Bilder, Gefühle und Worte zur Marke sowie explizite Vergleiche, Differenzierung und Wettbewerbswahrnehmung. Priorisiere BRAND_PERCEPTION und COMPETITIVE_PERCEPTION und halte die Codierung flach: Erzeuge kein PRICE_SENSITIVITY- oder SEGMENT_NEED-Finding, wenn der Teilnehmer nicht tatsächlich über Preis oder ein Problem spricht.",
+  concept_test:
+    "Fokus: Extrahiere zuerst Signale dazu, wie der Teilnehmer das Konzept versteht oder missversteht, danach Relevanz, wahrgenommenen Nutzen und belastbare Kaufabsicht. Priorisiere SEGMENT_NEED, PURCHASE_INTENT und BRAND_PERCEPTION; hypothetische Zustimmung zählt schwächer als aktuelles Verhalten, Commitment oder begründete Präferenz, und Verständnis kommt vor Nutzen.",
+  creative_test:
+    "Fokus: Extrahiere Botschaftsverständnis, ersten spontanen Eindruck, emotionale Wirkung und Markenfit; ordne Gestaltungselemente nur dann einer Wirkung zu, wenn der Teilnehmer das selbst trägt. Priorisiere BRAND_PERCEPTION und, wo tatsächlich verglichen wird, COMPETITIVE_PERCEPTION; erzwinge keine PURCHASE_INTENT- oder SEGMENT_NEED-Codierung.",
+};
+
+/**
+ * Append the method-specific Stage-1 extraction focus only when a use_case is
+ * present. Market research without a use_case keeps the base prompt exactly
+ * unchanged, matching the Stage-2 gating posture.
+ */
+export function selectMarketResearchSystemPrompt(
+  useCase?: ResearchPlanUseCase | null,
+): string {
+  return useCase
+    ? `${MARKET_RESEARCH_SYSTEM_PROMPT}\n\nUSE-CASE FOCUS:\n${MARKET_RESEARCH_USE_CASE_FOCUS[useCase]}`
+    : MARKET_RESEARCH_SYSTEM_PROMPT;
+}
 
 function formatStudyContext(study?: MarketResearchStudyContext): string {
   if (!study) {
