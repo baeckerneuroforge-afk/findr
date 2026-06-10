@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { useInView, useReducedMotion } from "framer-motion";
+import { useInViewOnce } from "./useInViewOnce";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /**
  * The animated "durchgehender Faden" for HomeWorkflow. When the timeline first
@@ -29,10 +30,10 @@ const NODE_BASE_DELAY_MS = 120;
 const NODE_STEP_DELAY_MS = 240;
 
 export function WorkflowSteps({ steps }: { steps: Step[] }) {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   // Fire once, slightly before the block is fully on-screen.
-  const inView = useInView(ref, { once: true, margin: "-100px" });
+  const inView = useInViewOnce(ref);
   const show = reduce || inView;
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /**
  * Homepage centerpiece — a clearly-labelled EXAMPLE analysis of a findr.-
@@ -159,7 +159,7 @@ function SevChip({ sev }: { sev: Sev }) {
 }
 
 export function HeroAnalysisDemo() {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const [analyzed, setAnalyzed] = useState(false);
   // `revealed` flips one frame AFTER the signal cards mount, so their staggered
   // "list builds up" transition actually fires (a freshly-mounted node at its

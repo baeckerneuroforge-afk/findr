@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /**
  * Interactive live-analysis demo for the Sales-Intelligence module page — the
@@ -110,7 +110,7 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 export function SalesLiveDemo() {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const [analyzed, setAnalyzed] = useState(false);
   const [score, setScore] = useState(0);
   const rafRef = useRef(0);

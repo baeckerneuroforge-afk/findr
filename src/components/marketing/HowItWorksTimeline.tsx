@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { useInView, useReducedMotion } from "framer-motion";
+import { useInViewOnce } from "./useInViewOnce";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import { StatusTag } from "./primitives";
 import { Reveal } from "./Reveal";
 
@@ -39,10 +40,10 @@ const NODE_BASE_DELAY_MS = 100;
 const NODE_STEP_DELAY_MS = 220;
 
 export function HowItWorksTimeline({ steps }: { steps: HowStep[] }) {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const ref = useRef<HTMLOListElement>(null);
   // Fire once, slightly before the block is fully on-screen.
-  const inView = useInView(ref, { once: true, margin: "-100px" });
+  const inView = useInViewOnce(ref);
   const show = reduce || inView;
 
   return (

@@ -3,8 +3,10 @@
 import Link from "next/link";
 
 /**
- * Root error boundary. Must be a Client Component. Renders inside the root
- * layout, so it paints its own light marketing surface over the dark body.
+ * Marketing-tree error boundary (twin of the (app) one — each root layout
+ * needs its own since the shared root was split, Perf-Etappe C). Must be a
+ * Client Component. Paints its own full-height light surface so it reads
+ * cleanly regardless of where in the tree it fires.
  */
 export default function Error({
   reset,

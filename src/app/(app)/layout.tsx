@@ -7,7 +7,7 @@ import { getLocale } from "next-intl/server";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
 import { MESSAGES } from "@/i18n/messages";
 import { SITE_URL } from "@/lib/marketing/seo";
-import "./globals.css";
+import "../globals.css";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -37,15 +37,15 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
-// App-wide metadata defaults.
+// App-tree metadata defaults (Perf-Etappe C: this is now the ROOT layout of
+// the (app) tree only — (marketing) has its own root layout with its own
+// metadata, so nothing can leak between the two anymore).
 //   • metadataBase is mandatory for relative canonical/OG urls to resolve
 //     (otherwise next build errors); it reads the single SITE_URL placeholder.
-//   • `title` is a PLAIN default (the de-staled fallback) — NOT a template.
-//     The "%s — findr." title template + the OG/twitter/themeColor defaults are
-//     deliberately scoped to the (marketing) layout, so they DON'T leak a
-//     "— findr." suffix / findr OG onto the protected interview, dashboard,
-//     shared-synthesis and legacy /pricing routes (those keep their own titles
-//     unchanged — important for white-label participant pages).
+//   • `title` is a PLAIN default (the de-staled fallback) — NOT a template,
+//     so there is no "— findr." suffix / findr OG on the protected interview,
+//     dashboard and shared-synthesis routes (important for white-label
+//     participant pages).
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "findr. — Conversation-Intelligence-Plattform für B2B-SaaS",

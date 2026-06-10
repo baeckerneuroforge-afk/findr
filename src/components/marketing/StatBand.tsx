@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /** Honest positioning anchors — NO invented volume/customer numbers. The values
  *  are factual ratios (100 % EU-hosting, 0 US-cloud, 100 % German, 14-day trial),
@@ -20,7 +20,7 @@ const STATS = [
  * (it sits below the fold, so the brief reset to 0 is never visible).
  */
 export function StatBand() {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const [counts, setCounts] = useState<number[]>(() => STATS.map((s) => s.target));
 

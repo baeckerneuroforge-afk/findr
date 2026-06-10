@@ -18,7 +18,12 @@ const nextConfig: NextConfig = {
     "/api/deals/\\[id\\]/interview/pdf": ["./src/lib/pdf/fonts/*.ttf"],
   },
   experimental: {
-    optimizePackageImports: ["framer-motion"],
+    // Perf-Etappe C (Multi-Root-Layouts): mit zwei Root-Layouts gibt es kein
+    // gemeinsames Layout mehr, in dem ein klassisches Root-not-found rendern
+    // könnte. global-not-found.tsx (app-Root) übernimmt 404s für URLs, die
+    // GAR KEINE Route treffen — dokumentiertes Pattern dieser Next-Version
+    // für genau diesen Fall (not-found.md §global-not-found).
+    globalNotFound: true,
   },
   // /pricing was the old EN static-HTML pricing route; Etappe C replaces it with
   // the German /preise. Keep old links alive with a permanent (308) redirect.

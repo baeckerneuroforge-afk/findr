@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useReducedMotion } from "framer-motion";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import { CtaLink } from "./CtaLink";
 import { ICONS, ChevronDownIcon } from "./icons";
 import type { NavEntry } from "./nav-data";
@@ -21,7 +21,7 @@ import type { NavEntry } from "./nav-data";
 export function MobileNav({ nav }: { nav: NavEntry[] }) {
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<string | null>(null);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = usePrefersReducedMotion();
   const burgerRef = useRef<HTMLButtonElement>(null);
 
   // Closing the menu always collapses any expanded section (so the next open

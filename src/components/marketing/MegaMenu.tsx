@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useReducedMotion } from "framer-motion";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import { ICONS, ChevronDownIcon } from "./icons";
 import type { NavEntry, NavGroup, NavLeaf } from "./nav-data";
 
@@ -25,7 +25,7 @@ import type { NavEntry, NavGroup, NavLeaf } from "./nav-data";
  *     devices (matchMedia). On touch the trigger is pure click-disclosure.
  *
  * Motion: panel fades in via the existing `animate-fade-in-panel` keyframe,
- * gated by framer's useReducedMotion() → prefers-reduced-motion gets the panel
+ * gated by usePrefersReducedMotion (matchMedia) → prefers-reduced-motion gets the panel
  * instantly, no movement (only opacity/transform animate anyway).
  */
 
@@ -37,7 +37,7 @@ export function MegaMenu({ nav }: { nav: NavEntry[] }) {
   const hoverCapable = useRef(false);
   const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const rootRef = useRef<HTMLElement>(null);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = usePrefersReducedMotion();
 
   // Hover-intent only on a real mouse (fine pointer + hover). On touch/coarse
   // pointers the menu stays click-only. Re-check on change for hybrid devices.
