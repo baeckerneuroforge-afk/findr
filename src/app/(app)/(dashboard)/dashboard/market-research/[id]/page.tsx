@@ -24,6 +24,7 @@ import {
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
+import { AutoRefresh } from "@/components/dashboard/AutoRefresh";
 import { BulkInviteForm } from "@/components/dashboard/BulkInviteForm";
 import { CopyInterviewLinkButton } from "@/components/dashboard/CopyInterviewLinkButton";
 import { DeleteParticipantButton } from "@/components/dashboard/DeleteParticipantButton";
@@ -1069,6 +1070,11 @@ export default async function MarketCampaignDetailPage({
       </section>
         </div>
       </div>
+
+      {/* O6-Folge: stilles 30s-Polling — Ziel-Pool, Teilnehmer-Status und
+          die Interviews-Liste bleiben aktuell; Formular-State der Panels
+          überlebt den refresh (etabliertes AutoRefresh-Muster). */}
+      <AutoRefresh />
     </div>
   );
 }
