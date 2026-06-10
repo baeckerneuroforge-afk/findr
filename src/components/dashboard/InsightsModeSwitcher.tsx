@@ -39,8 +39,8 @@ export function InsightsModeSwitcher({ studies }: { studies: StudyRef[] }) {
       onClick={() => setMode(m)}
       className={`rounded-md px-4 py-1.5 text-small font-medium transition-colors ${
         mode === m
-          ? "bg-white text-neutral-900 shadow-sm"
-          : "text-neutral-500 hover:text-neutral-800"
+          ? "bg-primary-50 text-primary-700"
+          : "text-neutral-500 hover:text-neutral-900"
       }`}
     >
       {label}
@@ -53,7 +53,7 @@ export function InsightsModeSwitcher({ studies }: { studies: StudyRef[] }) {
         <div
           role="tablist"
           aria-label={t("modeAria")}
-          className="inline-flex rounded-lg border border-neutral-200 bg-neutral-50 p-1"
+          className="inline-flex rounded-lg border border-neutral-200 bg-white p-1"
         >
           {tab("chat", t("modeChat"))}
           {tab("agent", t("modeAgent"))}
