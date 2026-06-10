@@ -21,6 +21,7 @@ import {
 } from "@/lib/research/plans-service";
 import { listPoolMembers } from "@/lib/research/participant-pool";
 import { HeuteGreeting } from "@/components/dashboard/HeuteGreeting";
+import { AutoRefresh } from "@/components/dashboard/AutoRefresh";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { buildForecastSummary } from "@/lib/forecast/service";
 import { getOnboardingStatus } from "@/lib/onboarding/status";
@@ -447,7 +448,15 @@ export default async function DashboardPage() {
   }
 
   if (!ENABLED_MODULES.salesIntelligence) {
-    return <HeuteDashboard orgId={orgId} />;
+    return (
+      <>
+        <HeuteDashboard orgId={orgId} />
+        {/* O6: stilles 30s-Polling über die vorhandenen Reads — nur bei
+            sichtbarem Tab. Digest, KPIs und Listen bleiben so aktuell,
+            ohne dass jemand neu laden muss. */}
+        <AutoRefresh />
+      </>
+    );
   }
 
   const t = await getTranslations("sales.pipeline");
