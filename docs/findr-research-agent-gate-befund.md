@@ -1,5 +1,22 @@
 # Research-Agent: GATE-RED-Befund + Fix-Plan
 
+> **NACHTRAG (Fix-Session, gleicher Tag):** F1–F4 sind auf
+> `fix/research-agent-schema` gebaut. Dabei kam die entscheidende neue
+> Erkenntnis: **Die Macke ist sonnet-spezifisch — und die Produktion läuft
+> auf Opus.** Der Eval-Default (sonnet) maß ein Modell, das die Live-Route
+> (`DEFAULT_RESEARCH_AGENT_MODEL = CLAUDE_MODELS.opus`) nie nutzt; Opus
+> zeigt den Defekt in 14/14 gezielten Versuchen nicht. Der Roh-Payload
+> (neue raw=-Diagnose im Retry-Warn) belegt zudem: sonnet legt in `items`
+> einen String, der wie ein JSON-Array AUSSIEHT, dessen Inner-JSON aber
+> kaputt ist — deshalb verpackt das Modell ihn überhaupt als String, und
+> deshalb kann auch das F1-Self-Healing (JSON.parse) ihn nicht retten;
+> client-seitige Blind-Reparatur wäre unseriös. Konsequenz zusätzlich zu
+> F1–F4: **Eval-Default = Engine-Default (Single Source)** — das Gate misst
+> jetzt das Produktionsmodell; der Sonnet-Spar-Tier-Check bleibt per
+> `RESEARCH_AGENT_MODEL`-Override verfügbar und ist dort als bekannte
+> Limitation dokumentiert. Sonnet-Läufe nach Fix: weiterhin exakt
+> ra_05+ra_18 (3 Läufe konsistent), alle Anti-Halluzinations-Achsen grün.
+
 **Datum:** 2026-06-10 · **Status:** Analyse, KEIN Code geändert · **Quelle:** 2×
 `pnpm eval:research-agent` (claude-sonnet-4-6), voller Log des 2. Laufs in
 diesem Doc verankert. Betroffene Engine: `src/lib/research-agent/engine.ts`

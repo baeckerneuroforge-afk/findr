@@ -293,7 +293,7 @@ const RESEARCH_AGENT_TOOL: Anthropic.Tool = {
       items: {
         type: "array",
         description:
-          "The deliverable body — one entry per bullet / ranked theme / breakdown part. Empty on refusal.",
+          "The deliverable body — one entry per bullet / ranked theme / breakdown part. Empty on refusal. Must be a real JSON array of objects — NEVER a JSON-encoded string.",
         items: {
           type: "object",
           properties: {
@@ -339,10 +339,14 @@ async function callResearchAgentClaude(
   model: string,
 ): Promise<ResearchAgentResponse> {
   const client = getAnthropicClient();
+  // Der Nag benennt den real beobachteten Defekt KONKRET (GATE-RED-Befund:
+  // `items` kam als JSON-encodierter String — ein "valid JSON object" war es
+  // ja; der alte generische Hinweis konnte das nicht korrigieren). Wortlaut-
+  // Muster aus anthropic/structured.ts.
   const system =
     attempt > 0
       ? systemPrompt +
-        "\n\nIMPORTANT: Your last response did not match the required JSON schema. Return ONLY a valid JSON object with the exact structure specified. No markdown, no preamble."
+        "\n\nIMPORTANT: Your last tool call did not match the required schema. Provide EVERY field with its declared type — `items` MUST be a JSON array of objects, NEVER a JSON-encoded string. Include all required fields and call the tool exactly once."
       : systemPrompt;
 
   // Multi-turn: prior turns are threaded in BEFORE the current instruction so a
@@ -453,6 +457,10 @@ export async function runResearchAgentDiagnostics(
     console.warn(
       "Research-agent schema validation failed on first attempt, retrying:",
       err.message,
+      // Roh-Snippet für die Diagnose der items-als-String-Macke (GATE-RED-
+      // Befund): ohne den tatsächlichen Payload ist der Defekt nicht von
+      // Double-Encoding/Prosa unterscheidbar. Gekappt — kein Log-Flooding.
+      `raw=${err.rawResponse.slice(0, 400)}`,
     );
     try {
       raw = await callResearchAgentClaude(

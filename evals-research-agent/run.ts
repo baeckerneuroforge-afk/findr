@@ -12,7 +12,8 @@
  * than an invented deliverable.
  *
  * Always calls the LLM. Pick the model via RESEARCH_AGENT_MODEL; default is
- * Sonnet (cheap). Run it yourself, foreground — once per model:
+ * the ENGINE default (= production model, Opus). Run it yourself, foreground —
+ * once per model:
  *
  *   env -u ANTHROPIC_API_KEY \
  *     pnpm exec tsx --conditions=react-server evals-research-agent/run.ts
@@ -25,9 +26,9 @@
 
 import { config } from "dotenv";
 
-import { CLAUDE_MODELS } from "@/lib/anthropic/client";
 import {
   buildSynthesisAnchorSet,
+  DEFAULT_RESEARCH_AGENT_MODEL,
   fold,
   runResearchAgentDiagnostics,
   type ResearchAgentDiagnostics,
@@ -45,7 +46,13 @@ import {
 config({ path: ".env.local" });
 config({ path: ".env" });
 
-const MODEL = process.env.RESEARCH_AGENT_MODEL ?? CLAUDE_MODELS.sonnet;
+// Default = der Engine-Default (Single Source) — das GATE misst das Modell,
+// das die Live-Route tatsächlich fährt (Opus; "Anchor-Integrität war der
+// Opus-Grund"). Sonnet bleibt als expliziter Spar-Tier-Check per Env-Override:
+// die items-als-String-Macke auf ra_05/ra_18 ist sonnet-spezifisch
+// dokumentiert (GATE-RED-Befund) — ein default-roter Gate auf einem Modell,
+// das Produktion nie nutzt, wäre Alarm-Müdigkeit statt Regressionsschutz.
+const MODEL = process.env.RESEARCH_AGENT_MODEL ?? DEFAULT_RESEARCH_AGENT_MODEL;
 
 // ── tiny ANSI helpers (mirror evals-synthesis) ──────────────────────────────
 
@@ -133,6 +140,11 @@ interface Row {
   group: ResearchAgentCaseGroup;
   expectedFulfilled: boolean;
   gotFulfilled: boolean;
+  /** Engine-Abbruch (Schema-/Transportfehler) — F4 (GATE-RED-Befund): wird
+   *  als EIGENE Gate-Metrik gezählt und von Anchor-Pass AUSGENOMMEN, damit
+   *  ein Ausfall nicht wie eine Halluzination liest. Das Gate bleibt hart:
+   *  jeder Engine-Abbruch zählt weiter in `failed`. */
+  engineError: boolean;
   anchorPass: boolean;
   impossibleNumber: boolean;
   refusalCorrect: boolean | null;
@@ -381,6 +393,7 @@ function runChecks(
       group: caseGroup(testCase),
       expectedFulfilled: testCase.expected.fulfilled,
       gotFulfilled: f.fulfilled,
+      engineError: false,
       anchorPass,
       impossibleNumber,
       refusalCorrect,
@@ -440,7 +453,11 @@ async function main(): Promise<void> {
         group: caseGroup(c),
         expectedFulfilled: c.expected.fulfilled,
         gotFulfilled: false,
-        anchorPass: false,
+        engineError: true,
+        // Neutral — Engine-Ausfälle laufen NICHT in die Anchor-Metrik (eigene
+        // Engine-Verfügbarkeits-Zeile unten); `totalFailed++` oben hält das
+        // Gate trotzdem RED.
+        anchorPass: true,
         impossibleNumber: false,
         refusalCorrect: c.expected.fulfilled === false ? false : null,
         modelRefusedDirectly: null,
@@ -463,7 +480,8 @@ async function main(): Promise<void> {
   // ── aggregate metrics ──────────────────────────────────────────────────
   const answerable = rows.filter((r) => r.expectedFulfilled === true);
   const negatives = rows.filter((r) => r.expectedFulfilled === false);
-  const anchorPassRate = rows.filter((r) => r.anchorPass).length;
+  const engineOk = rows.filter((r) => !r.engineError);
+  const anchorPassRate = engineOk.filter((r) => r.anchorPass).length;
   const impossibleNumbers = rows.filter((r) => r.impossibleNumber).length;
   const refusalsCorrect = negatives.filter((r) => r.refusalCorrect === true).length;
   const modelRefusedDirect = negatives.filter(
@@ -499,7 +517,8 @@ async function main(): Promise<void> {
 
   console.log(`\n${C.bold}═══ METRICS ═══${C.reset}  (model=${MODEL})`);
   console.log(
-    `  Anchor-Pass:               ${anchorPassRate}/${rows.length}  (every surfaced item anchored to real synthesis text)  [GATE]`,
+    `  Engine-Verfügbarkeit:      ${engineOk.length}/${rows.length}  (Engine-Call lieferte ein valides Deliverable — Abbruch = Gate-Fail, aber KEIN Anchor-Befund)  [GATE]`,
+    `  Anchor-Pass:               ${anchorPassRate}/${engineOk.length}  (every surfaced item anchored to real synthesis text)  [GATE]`,
   );
   console.log(
     `  Halluzinierte Zahlen:      ${impossibleNumbers}/${rows.length}  (surfaced respondent count > based_on_count — must be 0)  [GATE]`,

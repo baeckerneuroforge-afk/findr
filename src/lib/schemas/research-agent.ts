@@ -59,6 +59,30 @@ export type DeliverableItem = z.infer<typeof DeliverableItemSchema>;
 
 // ── Response ────────────────────────────────────────────────────────────────
 
+/**
+ * Self-Healing für die items-als-String-Macke (GATE-RED-Befund,
+ * docs/findr-research-agent-gate-befund.md): Unter Präzisionsdruck
+ * (Exakt-Zahl-Fragen) emittiert das Modell `items` gelegentlich als
+ * JSON-ENCODIERTEN String statt als Array — valides JSON-Objekt, falscher
+ * Feldtyp, vom generischen Retry nicht heilbar. Hier wird AUSSCHLIESSLICH
+ * dieser eine Fall repariert: ein String, der getrimmt wie ein JSON-Array
+ * aussieht und sich zu einem Array parsen lässt, wird entpackt. Alles andere
+ * (Müll-Strings, Objekte, Zahlen) fällt unverändert in die normale
+ * Zod-Fehlerbahn — und die Element-Validierung (DeliverableItemSchema) plus
+ * das nachgelagerte Anchor-Filter laufen über das geheilte Array genauso wie
+ * über ein nativ geliefertes; es kann nichts durchrutschen, was vorher
+ * abgelehnt worden wäre.
+ */
+function coerceJsonArrayString(value: unknown): unknown {
+  if (typeof value !== "string" || !value.trim().startsWith("[")) return value;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : value;
+  } catch {
+    return value;
+  }
+}
+
 export const ResearchAgentResponseSchema = z.object({
   /** false = the instruction cannot be fulfilled from THIS synthesis (asks for
    *  data the synthesis does not contain). The honest-refusal contract: an
@@ -70,8 +94,11 @@ export const ResearchAgentResponseSchema = z.object({
   /** Short German headline for the whole deliverable. Empty on refusal. */
   title: z.string().max(200).default(""),
   /** The deliverable body, one entry per bullet / ranked theme / breakdown
-   *  part. Empty on refusal. */
-  items: z.array(DeliverableItemSchema).max(20).default([]),
+   *  part. Empty on refusal. z.preprocess = Self-Healing für den
+   *  String-statt-Array-Fall (siehe coerceJsonArrayString oben). */
+  items: z
+    .preprocess(coerceJsonArrayString, z.array(DeliverableItemSchema).max(20))
+    .default([]),
   /** Honest 1-sentence German note. REQUIRED to be meaningful when
    *  fulfilled=false; empty when fulfilled=true. */
   note: z.string().max(800).default(""),
