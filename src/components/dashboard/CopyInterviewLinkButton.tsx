@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
 
 /**
  * Per-invite "Link kopieren" button on the plan-detail page. Pure utility —
@@ -36,6 +37,7 @@ export function CopyInterviewLinkButton({
   link,
 }: CopyInterviewLinkButtonProps) {
   const t = useTranslations("research.plans");
+  const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Hold the timer in a ref so the cleanup effect can clear it on unmount
@@ -67,6 +69,7 @@ export function CopyInterviewLinkButton({
       // visible error rather than a silent no-op.
       await navigator.clipboard.writeText(link);
       setCopied(true);
+      toast(t("copiedToast"));
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => setCopied(false), 1500);
     } catch {
