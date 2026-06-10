@@ -259,9 +259,14 @@ body {
      Geschwister in 45-ms-Schritten über --st (style={{ "--st": n }}).
      Reduced-Motion ist hier EINGEBACKEN (Endzustand sofort), damit kein
      Aufrufer motion-reduce vergessen kann. */
+  /* WICHTIG: Der Endzustand ist `transform: none` (nicht translateY(0)).
+     Mit fill-mode `both` bliebe ein identischer translateY(0)-Transform
+     dauerhaft berechnet — und JEDER Transform macht das animierte Element
+     zum Containing Block für position:fixed-Nachfahren (Modals/Tooltips in
+     den Seiten würden sich am Template statt am Viewport ausrichten). */
   @keyframes console-rise {
     from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    to { opacity: 1; transform: none; }
   }
 
   .animate-console-rise {
