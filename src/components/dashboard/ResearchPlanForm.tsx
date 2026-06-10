@@ -24,6 +24,19 @@ import {
 const STIMULUS_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const STIMULUS_ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
+/** Status der einmaligen KI-Vision-Analyse eines Bild-Stimulus. Client-Spiegel
+ *  von StimulusAnalysisStatus (stimulus-analysis.ts ist server-only und kann
+ *  hier nicht importiert werden). Die Analyse läuft SYNCHRON im Upload-Request
+ *  der Stimulus-Route — deren Response trägt bereits den finalen Status
+ *  ('done' | 'failed' für Bilder, null für Links), kein Polling nötig. */
+type StimulusAnalysisStatus = "pending" | "done" | "failed";
+
+/** Defensiver Response-Read (Muster coerceStimulusAnalysisStatus serverseitig):
+ *  alles außer den drei bekannten Werten liest als null → kein Badge. */
+function coerceAnalysisStatus(raw: unknown): StimulusAnalysisStatus | null {
+  return raw === "pending" || raw === "done" || raw === "failed" ? raw : null;
+}
+
 /**
  * Form for creating a new research plan. Spirit-spiegelt ManualDealForm:
  * use-client component, useState for form/submitting/error, inline Field
@@ -328,6 +341,13 @@ export function ResearchPlanForm({
   const [linkDraft, setLinkDraft] = useState("");
   const [stimulusBusy, setStimulusBusy] = useState(false);
   const [stimulusError, setStimulusError] = useState<string | null>(null);
+  // Status der KI-Analyse des aktuellen Bild-Stimulus (transient, gespiegelt
+  // aus der Response der Stimulus-Route). 'pending' wird optimistisch beim
+  // Start des Bild-Uploads gesetzt (die Analyse läuft synchron in genau diesem
+  // Request); die Response überschreibt mit dem finalen Stand. null = kein
+  // Badge (Link-Stimulus, entfernt, oder noch nie analysiert).
+  const [stimulusAnalysisStatus, setStimulusAnalysisStatus] =
+    useState<StimulusAnalysisStatus | null>(null);
   const stimulusFileRef = useRef<HTMLInputElement>(null);
   // Guards ensureDraftPlanId against a concurrency race: the `planId` STATE
   // guard only blocks a second create AFTER setPlanId has flushed, so two
@@ -573,6 +593,11 @@ export function ResearchPlanForm({
     }
 
     setStimulusBusy(true);
+    // Optimistisch 'pending': die Vision-Analyse läuft synchron in genau
+    // diesem Upload-Request. Schlägt der Upload fehl, hat der Server nichts
+    // geschrieben (alte Analyse bleibt gültig) → vorherigen Stand wiederherstellen.
+    const previousAnalysisStatus = stimulusAnalysisStatus;
+    setStimulusAnalysisStatus("pending");
     try {
       const id = await ensureDraftPlanId();
       const body = new FormData();
@@ -584,6 +609,7 @@ export function ResearchPlanForm({
       const data = (await res.json().catch(() => ({}))) as {
         stimulus_url?: string;
         stimulus_type?: string;
+        stimulus_analysis_status?: string | null;
         error?: string;
       };
       if (!res.ok || !data.stimulus_url) {
@@ -594,7 +620,12 @@ export function ResearchPlanForm({
         stimulusUrl: data.stimulus_url ?? null,
         stimulusType: data.stimulus_type ?? null,
       }));
+      // Finaler Stand aus der Response (Analyse lief synchron im Request).
+      setStimulusAnalysisStatus(
+        coerceAnalysisStatus(data.stimulus_analysis_status),
+      );
     } catch (err) {
+      setStimulusAnalysisStatus(previousAnalysisStatus);
       setStimulusError(
         err instanceof Error ? err.message : t("errStimulusUpload"),
       );
@@ -639,6 +670,7 @@ export function ResearchPlanForm({
       const data = (await res.json().catch(() => ({}))) as {
         stimulus_url?: string;
         stimulus_type?: string;
+        stimulus_analysis_status?: string | null;
         error?: string;
       };
       if (!res.ok || !data.stimulus_url) {
@@ -649,6 +681,11 @@ export function ResearchPlanForm({
         stimulusUrl: data.stimulus_url ?? null,
         stimulusType: data.stimulus_type ?? null,
       }));
+      // Link-Stimulus → Server invalidiert eine alte Bild-Analyse (Status
+      // null in der Response) → Badge verschwindet. Spiegelung wie im Bild-Zweig.
+      setStimulusAnalysisStatus(
+        coerceAnalysisStatus(data.stimulus_analysis_status),
+      );
       setLinkDraft("");
     } catch (err) {
       setStimulusError(
@@ -673,6 +710,7 @@ export function ResearchPlanForm({
         stimulusUrl: null,
         stimulusType: null,
       }));
+      setStimulusAnalysisStatus(null);
       setLinkDraft("");
       return;
     }
@@ -688,6 +726,8 @@ export function ResearchPlanForm({
         stimulusUrl: null,
         stimulusType: null,
       }));
+      // DELETE räumt serverseitig auch Analyse + Status ab — Badge weg.
+      setStimulusAnalysisStatus(null);
       setLinkDraft("");
     } catch (err) {
       setStimulusError(
@@ -1070,6 +1110,50 @@ export function ResearchPlanForm({
                   {stimulusBusy ? t("stimulusRemoving") : t("stimulusRemove")}
                 </button>
               </div>
+            )}
+
+            {/* KI-Analyse-Status (Etappe 2) — nur für Bild-Stimuli. Die Analyse
+                läuft synchron im Upload-Request; 'pending' ist der optimistische
+                Stand WÄHREND des Uploads, die Response liefert final done/failed.
+                Bei null (kein Bild, Link, entfernt): nichts. failed ist bewusst
+                dezent (neutral, kein Alarm) — der Stimulus funktioniert im
+                Interview auch ohne Analyse; erneutes Hochladen analysiert neu. */}
+            {stimulusAnalysisStatus === "pending" && (
+              <p className="mt-2 inline-flex items-center gap-2 text-caption text-neutral-500">
+                <span
+                  className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin"
+                  aria-hidden="true"
+                />
+                {t("stimulusAnalysisPending")}
+              </p>
+            )}
+            {stimulusAnalysisStatus === "done" && (
+              <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="inline-flex items-center gap-1.5 text-caption font-medium text-success-700">
+                  <svg
+                    className="h-3.5 w-3.5 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m5 12 5 5L20 7" />
+                  </svg>
+                  {t("stimulusAnalysisDone")}
+                </span>
+                <span className="text-caption text-neutral-500">
+                  {t("stimulusAnalysisFormDoneHint")}
+                </span>
+              </p>
+            )}
+            {stimulusAnalysisStatus === "failed" && (
+              <p className="mt-2 text-caption text-neutral-500">
+                {t("stimulusAnalysisFailed")}{" "}
+                {t("stimulusAnalysisReuploadHint")}
+              </p>
             )}
 
             {/* Umschalter Bild | Link — gleicher Segmented-Control-Stil wie der

@@ -260,6 +260,218 @@ export default async function MarketCampaignDetailPage({
         </CardBody>
       </Card>
 
+      {/* Stimulus + KI-Analyse (Etappe 2) — nur wenn die Studie einen Stimulus
+          trägt (creative_test/concept_test); Pläne ohne Stimulus rendern hier
+          byte-identisch nichts. Asset-Vorschau + Beschreibung + Analyse-Status;
+          bei 'done' eine aufklappbare (native <details>, collapsed by default,
+          kein Client-JS) Darstellung des analysis-Objekts aus dem Envelope —
+          bewusst NICHT der textBlock, der ist fürs Modell gerendert. */}
+      {plan.stimulusUrl && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-h3 text-neutral-900">
+              {t("stimulusSectionTitle")}
+            </h2>
+            <p className="text-small text-neutral-500">
+              {t("stimulusSectionDesc")}
+            </p>
+          </div>
+          <Card>
+            <CardBody className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                {plan.stimulusType === "image" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={plan.stimulusUrl}
+                    alt={t("stimulusThumbAlt")}
+                    className="h-20 w-20 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
+                  />
+                ) : (
+                  <a
+                    href={plan.stimulusUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="min-w-0 flex-1 truncate text-small text-primary-700 underline underline-offset-2 hover:text-primary-800"
+                  >
+                    {plan.stimulusUrl}
+                  </a>
+                )}
+                <Badge variant="default">
+                  {plan.stimulusType === "image"
+                    ? t("stimulusModeImage")
+                    : t("stimulusModeLink")}
+                </Badge>
+                {/* Analyse-Status — derselbe Stand wie im Formular (DB-Read).
+                    'pending' ist hier nur nach einem abgebrochenen Status-Write
+                    sichtbar (die Analyse selbst läuft synchron im Upload). */}
+                {plan.stimulusAnalysisStatus === "pending" && (
+                  <span className="inline-flex items-center gap-2 text-caption text-neutral-500">
+                    <span
+                      className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin"
+                      aria-hidden="true"
+                    />
+                    {t("stimulusAnalysisPending")}
+                  </span>
+                )}
+                {plan.stimulusAnalysisStatus === "done" && (
+                  <Badge variant="success">{t("stimulusAnalysisDone")}</Badge>
+                )}
+              </div>
+
+              {plan.stimulusDescription && (
+                <div>
+                  <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
+                    {t("stimulusDetailDescLabel")}
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-body text-neutral-700">
+                    {plan.stimulusDescription}
+                  </p>
+                </div>
+              )}
+
+              {/* failed — dezent (neutral, kein Alarm): das Interview nutzt den
+                  Stimulus auch ohne Analyse. */}
+              {plan.stimulusAnalysisStatus === "failed" && (
+                <p className="text-caption text-neutral-500">
+                  {t("stimulusAnalysisFailed")}
+                </p>
+              )}
+
+              {plan.stimulusAnalysisStatus === "done" &&
+                plan.stimulusAnalysis && (
+                  <details className="group rounded-md border border-neutral-200">
+                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-small font-medium text-neutral-700 hover:text-neutral-900 [&::-webkit-details-marker]:hidden">
+                      <svg
+                        className="h-3.5 w-3.5 shrink-0 text-neutral-400 transition-transform group-open:rotate-90"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="m9 18 6-6-6-6" />
+                      </svg>
+                      {t("stimulusAnalysisSummary")}
+                    </summary>
+                    <div className="space-y-4 border-t border-neutral-200 px-3 py-3">
+                      <div>
+                        <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
+                          {t("saLayout")}
+                        </div>
+                        <p className="mt-1 text-small text-neutral-700">
+                          {plan.stimulusAnalysis.analysis.layout}
+                        </p>
+                      </div>
+                      <div>
+                        <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
+                          {t("saFarbwelt")}
+                        </div>
+                        <p className="mt-1 text-small text-neutral-700">
+                          {plan.stimulusAnalysis.analysis.farbwelt}
+                        </p>
+                      </div>
+                      <div>
+                        <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
+                          {t("saBildelemente")}
+                        </div>
+                        <ul className="mt-1 list-disc space-y-1 pl-5">
+                          {plan.stimulusAnalysis.analysis.bildelemente.map(
+                            (item, i) => (
+                              <li
+                                key={i}
+                                className="text-small text-neutral-700"
+                              >
+                                {item}
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      </div>
+                      {plan.stimulusAnalysis.analysis.textImBild.length > 0 && (
+                        <div>
+                          <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
+                            {t("saTextImBild")}
+                          </div>
+                          <ul className="mt-1 list-disc space-y-1 pl-5">
+                            {plan.stimulusAnalysis.analysis.textImBild.map(
+                              (item, i) => (
+                                <li
+                                  key={i}
+                                  className="text-small text-neutral-700"
+                                >
+                                  „{item}“
+                                </li>
+                              ),
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
+                          {t("saClaim")}
+                        </div>
+                        <p className="mt-1 text-small text-neutral-700">
+                          {plan.stimulusAnalysis.analysis.claimBotschaft}
+                        </p>
+                      </div>
+                      {plan.stimulusAnalysis.analysis.gestaltungsentscheidungen
+                        .length > 0 && (
+                        <div>
+                          <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
+                            {t("saGestaltung")}
+                          </div>
+                          <ul className="mt-1 list-disc space-y-1 pl-5">
+                            {plan.stimulusAnalysis.analysis.gestaltungsentscheidungen.map(
+                              (item, i) => (
+                                <li
+                                  key={i}
+                                  className="text-small text-neutral-700"
+                                >
+                                  {item}
+                                </li>
+                              ),
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
+                          {t("saFrageansaetze")}
+                        </div>
+                        <ol className="mt-1 list-decimal space-y-1 pl-5">
+                          {plan.stimulusAnalysis.analysis.frageansaetze.map(
+                            (item, i) => (
+                              <li
+                                key={i}
+                                className="text-small text-neutral-700"
+                              >
+                                {item}
+                              </li>
+                            ),
+                          )}
+                        </ol>
+                      </div>
+                      {/* Kein Re-Analyse-Button: die Stimulus-Route bietet keinen
+                          Trigger ohne neuen Datei-Upload (Etappe-2-Befund) —
+                          erneutes Hochladen analysiert neu. */}
+                      <p className="text-caption text-neutral-400">
+                        {t("stimulusAnalysisGeneratedAt", {
+                          date: formatDate(
+                            plan.stimulusAnalysis.generatedAt,
+                            locale,
+                          ),
+                        })}
+                      </p>
+                    </div>
+                  </details>
+                )}
+            </CardBody>
+          </Card>
+        </section>
+      )}
+
       {/* Ziel-Pool-Fortschritt (§7) — "47 von 200". Misst sample_target gegen
           abgeschlossene Interviews. Bewusst GETRENNT von den Rollen-Quoten
           (unten) und vom max_sessions-Spend-Cap des offenen Links. */}
