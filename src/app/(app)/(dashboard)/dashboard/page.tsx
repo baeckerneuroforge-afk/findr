@@ -17,6 +17,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { loadOrgSyntheses } from "@/lib/mission-control/engine";
 import {
   countCompletedSessionsForPlans,
+  countRecentCompletedSessionsForPlans,
   listResearchPlans,
 } from "@/lib/research/plans-service";
 import { listPoolMembers } from "@/lib/research/participant-pool";
@@ -175,17 +176,23 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
 
   // Zwei READ-ONLY-Batches über vorhandene Queries, parallel — identisches
   // Muster (inkl. fail-open-Verhalten) wie /dashboard/market-research.
-  const [completedCounts, synthesisPlanIds, poolMembers] = await Promise.all([
-    countCompletedSessionsForPlans(
-      orgId,
-      plans.map((plan) => plan.id),
-    ),
-    loadOrgSyntheses(orgId)
-      .then((rows) => new Set(rows.map((row) => row.studyId)))
-      .catch(() => new Set<string>()),
-    // listPoolMembers degradiert selbst zu [] — liest hier als „0 Profile“.
-    listPoolMembers(orgId).catch(() => []),
-  ]);
+  const [completedCounts, recentCounts, synthesisPlanIds, poolMembers] =
+    await Promise.all([
+      countCompletedSessionsForPlans(
+        orgId,
+        plans.map((plan) => plan.id),
+      ),
+      // „Seit gestern“ — gleicher Zähler, rollierendes 24-h-Fenster.
+      countRecentCompletedSessionsForPlans(
+        orgId,
+        plans.map((plan) => plan.id),
+      ),
+      loadOrgSyntheses(orgId)
+        .then((rows) => new Set(rows.map((row) => row.studyId)))
+        .catch(() => new Set<string>()),
+      // listPoolMembers degradiert selbst zu [] — liest hier als „0 Profile“.
+      listPoolMembers(orgId).catch(() => []),
+    ]);
 
   const activePlans = plans.filter((p) => p.status === "active");
   const draftPlans = plans.filter((p) => p.status === "draft");
@@ -196,7 +203,13 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
   const completedDisplay: string | number =
     completedCounts === null ? tm("poolCountUnknown") : completedTotal;
 
+  const recentKnown = recentCounts ? [...recentCounts.values()] : [];
+  const recentTotal = recentKnown.reduce((sum, c) => sum + c, 0);
+
   const digestParts = [
+    ...(recentCounts !== null
+      ? [t("digestSince", { count: recentTotal })]
+      : []),
     t("digestActive", { count: activePlans.length }),
     ...(completedCounts !== null
       ? [t("digestCompleted", { count: completedTotal })]
@@ -272,7 +285,11 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
         <StatCard
           label={t("kpiCompleted")}
           value={completedDisplay}
-          subtitle={t("kpiCompletedSub")}
+          subtitle={
+            recentCounts !== null && recentTotal > 0
+              ? t("sinceYesterday", { count: recentTotal })
+              : t("kpiCompletedSub")
+          }
         />
         <StatCard
           label={t("kpiSyntheses")}
@@ -350,6 +367,7 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
           ) : (
             runningPlans.map((plan) => {
               const completed = completedCounts?.get(plan.id) ?? null;
+              const recent = recentCounts?.get(plan.id) ?? 0;
               const pct =
                 completed !== null && plan.sampleTarget
                   ? Math.min(
@@ -393,6 +411,11 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
                           style={{ width: `${pct}%` }}
                         />
                       </div>
+                    )}
+                    {recent > 0 && (
+                      <p className="mt-1 text-caption text-neutral-400">
+                        {t("sinceYesterday", { count: recent })}
+                      </p>
                     )}
                   </div>
                 </div>

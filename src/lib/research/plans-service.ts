@@ -398,6 +398,41 @@ export async function countCompletedSessionsForPlans(
   return counts;
 }
 
+/**
+ * „Seit gestern“-Variante des §7-Batch-Zählers (Konsole-v5, Heute-Digest):
+ * identisches Prädikat-Set wie countCompletedSessionsForPlans, zusätzlich
+ * auf ein rollierendes 24-h-Fenster über completed_at eingegrenzt. Bewusst
+ * rollierend statt Kalender-Mitternacht: der Server kennt die Zeitzone des
+ * Nutzers nicht, und ein gleitendes Fenster lügt nie um Mitternacht herum.
+ * Fail-open: null bei Lesefehler — der Aufrufer lässt die Angabe dann weg
+ * (kein „0“, das fälschlich Stillstand behauptet).
+ */
+export async function countRecentCompletedSessionsForPlans(
+  orgId: string,
+  planIds: string[],
+  windowHours = 24,
+): Promise<Map<string, number> | null> {
+  if (planIds.length === 0) return new Map();
+  const cutoff = new Date(
+    Date.now() - windowHours * 60 * 60 * 1000,
+  ).toISOString();
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select("plan_id")
+    .eq("org_id", orgId)
+    .eq("status", "completed")
+    .gte("completed_at", cutoff)
+    .in("plan_id", planIds);
+  if (error || !data) return null;
+  const counts = new Map<string, number>(planIds.map((id) => [id, 0]));
+  for (const row of data) {
+    if (row.plan_id === null) continue;
+    counts.set(row.plan_id, (counts.get(row.plan_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
 // ── Session-Sichtbarkeit (Voice Phase 2 E2) ────────────────────────────────
 
 export type PlanSessionStatus = "open" | "completed" | "abandoned";
