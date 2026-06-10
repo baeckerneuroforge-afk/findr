@@ -8,6 +8,7 @@ import {
   countCompletedSessionsForPlans,
   listResearchPlans,
 } from "@/lib/research/plans-service";
+import { AutoRefresh } from "@/components/dashboard/AutoRefresh";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Card, CardBody } from "@/components/ui/Card";
 import { FIELD_INPUT_CLASS } from "@/components/ui/Field";
@@ -151,6 +152,7 @@ export default async function MarketResearchOverviewPage({
           description={t("emptyDesc")}
           cta={{ label: t("emptyCta"), href: "/dashboard/market-research/new" }}
         />
+        <AutoRefresh />
       </div>
     );
   }
@@ -410,6 +412,10 @@ export default async function MarketResearchOverviewPage({
           </Table>
         )}
       </Card>
+
+      {/* O6: stilles 30s-Polling — "47 von 200" und Synthese-Badges bleiben
+          aktuell, Filter/Suche (URL-Parameter) überleben den Refresh. */}
+      <AutoRefresh />
     </div>
   );
 }
