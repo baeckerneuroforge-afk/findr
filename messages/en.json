@@ -1451,6 +1451,7 @@
       "synthesisReady": "Ready",
       "prolificTitle": "Set up a Prolific study",
       "prolificDesc": "Findr automatically uses the active open link as the participant URL. After creation the draft appears in Prolific — publish it there, set the sample and fund it.",
+      "transcriptOpenFull": "Open full view",
       "railAria": "Sections of this study",
       "railOverview": "Overview",
       "railSetup": "Setup",
