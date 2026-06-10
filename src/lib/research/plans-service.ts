@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Json } from "@/types/database";
 import type {
+  InterviewTurn,
   ResearchPlanContext,
   ResearchTopic,
 } from "@/lib/voice-agent/interviewer";
@@ -395,6 +396,139 @@ export async function countCompletedSessionsForPlans(
     counts.set(row.plan_id, (counts.get(row.plan_id) ?? 0) + 1);
   }
   return counts;
+}
+
+// ── Session-Sichtbarkeit (Voice Phase 2 E2) ────────────────────────────────
+
+export type PlanSessionStatus = "open" | "completed" | "abandoned";
+export type PlanSessionMode = "text" | "voice" | "video";
+
+/** Listen-Zeile der Interviews-Sektion — bewusst OHNE conversation-Payload
+ *  über die Service-Grenze: nur die abgeleiteten Anzeigefelder reisen. */
+export interface PlanSessionSummary {
+  id: string;
+  status: PlanSessionStatus;
+  mode: PlanSessionMode;
+  turnCount: number;
+  /** Erster customer-Turn, gekürzt — null, solange der Teilnehmer noch
+   *  nichts gesagt hat (z. B. frisch geöffnete Session). */
+  preview: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+/** Einzelansicht für die Transkript-Seite — volle conversation. */
+export interface PlanSessionTranscript {
+  id: string;
+  status: PlanSessionStatus;
+  mode: PlanSessionMode;
+  conversation: InterviewTurn[];
+  createdAt: string;
+  completedAt: string | null;
+}
+
+/** Server-seitiges Cap der Interviews-Liste (keine Pagination, E2-Scope). */
+const SESSION_LIST_LIMIT = 50;
+const SESSION_PREVIEW_MAX_CHARS = 140;
+
+/**
+ * Lenient read-mapper für conversation (jsonb) — Stil von coerceTopics:
+ * niemals werfen, Einträge ohne die zwei Pflichtfelder fallen weg. Die
+ * Schreibseite (advanceInterview / Voice-Bridge) ist wohlgeformt; das hier
+ * schützt nur Lese-Ansichten vor Legacy-/Hand-editierten Zeilen.
+ */
+function coerceConversation(raw: unknown): InterviewTurn[] {
+  if (!Array.isArray(raw)) return [];
+  const out: InterviewTurn[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const e = entry as Record<string, unknown>;
+    if (e.role !== "agent" && e.role !== "customer") continue;
+    if (typeof e.text !== "string") continue;
+    out.push({ role: e.role, text: e.text });
+  }
+  return out;
+}
+
+function sessionPreview(conversation: InterviewTurn[]): string | null {
+  const first = conversation.find(
+    (t) => t.role === "customer" && t.text.trim() !== "",
+  );
+  if (!first) return null;
+  const text = first.text.trim();
+  return text.length > SESSION_PREVIEW_MAX_CHARS
+    ? `${text.slice(0, SESSION_PREVIEW_MAX_CHARS).trimEnd()}…`
+    : text;
+}
+
+/**
+ * Alle Interview-Sessions EINER Studie für die Forscher-Ansicht — org+plan-
+ * scoped (dieselbe Trust-Boundary wie getResearchPlan: der Aufrufer hat die
+ * orgId bereits via requireOrgId authentifiziert), neueste zuerst, hartes
+ * LIMIT 50. ALLE Status (open/completed/abandoned) — anders als der §7-Zähler
+ * countCompletedSessionsForPlan, der NUR Abschlüsse misst; hier geht es um
+ * Sichtbarkeit, nicht um Fortschritt. Fail-open [] wie listResearchPlans
+ * (leere Liste liest sich als "noch keine Interviews").
+ *
+ * conversation wird mitgeladen (PostgREST kann jsonb_array_length nicht ohne
+ * RPC) und hier auf turnCount + Preview reduziert — bei ≤50 Zeilen unkritisch.
+ */
+export async function listSessionsForPlan(
+  orgId: string,
+  planId: string,
+): Promise<PlanSessionSummary[]> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select("id, status, mode, conversation, created_at, completed_at")
+    .eq("org_id", orgId)
+    .eq("plan_id", planId)
+    .order("created_at", { ascending: false })
+    .limit(SESSION_LIST_LIMIT);
+  if (error || !data) return [];
+  return data.map((row) => {
+    const conversation = coerceConversation(row.conversation);
+    return {
+      id: row.id,
+      status: row.status,
+      mode: row.mode,
+      turnCount: conversation.length,
+      preview: sessionPreview(conversation),
+      createdAt: row.created_at,
+      completedAt: row.completed_at,
+    };
+  });
+}
+
+/**
+ * EINE Session inkl. vollem conversation-Array für die Transkript-Seite.
+ * org+plan+id-scoped: die plan_id-Bindung wird hier serverseitig erzwungen,
+ * damit eine fremde sessionId unter fremder Plan-URL nie auflöst (URL-
+ * Manipulation → null → notFound() beim Aufrufer). Null auch bei Query-
+ * Fehler — wie getResearchPlan.
+ */
+export async function getSessionWithTranscript(
+  orgId: string,
+  planId: string,
+  sessionId: string,
+): Promise<PlanSessionTranscript | null> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select("id, status, mode, conversation, created_at, completed_at")
+    .eq("org_id", orgId)
+    .eq("plan_id", planId)
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    id: data.id,
+    status: data.status,
+    mode: data.mode,
+    conversation: coerceConversation(data.conversation),
+    createdAt: data.created_at,
+    completedAt: data.completed_at,
+  };
 }
 
 // ── Writes ──────────────────────────────────────────────────────────────────
