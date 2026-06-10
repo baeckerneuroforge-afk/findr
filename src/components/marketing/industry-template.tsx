@@ -17,61 +17,61 @@ import {
 } from "./module-template";
 import { CTASection } from "./CTASection";
 import {
-  TargetIcon,
-  NetworkIcon,
+  MicIcon,
+  ImageIcon,
+  DownloadIcon,
   CheckIcon,
   RadarIcon,
   HexagonIcon,
-  CpuIcon,
   type IconName,
 } from "./icons";
 
 /**
- * Shared template for the B2C Market-Research INDUSTRY pages (/branchen/<slug>).
+ * Shared template for the Market-Research INDUSTRY pages (/branchen/<slug>).
  *
- * These pages target consumer-facing brands (Konsumgüter, Handel, Tech) and show
- * ONLY the Market-Research module — never Sales/CS/Discovery, which are
- * irrelevant to this audience. Every page composes the same blocks in the same
- * order so the three industries read as equally weighted; only the
- * industry-specific copy in the passed-in `content` varies:
+ * Five segments — Mittelstand, B2C & Konsumgüter, B2B, Design & Agenturen,
+ * Industrie — one engine. Every page composes the same blocks in the same
+ * order so the five segments read as equally weighted; only the
+ * segment-specific copy in the passed-in `content` varies:
  *
  *   ModuleHero (canvas) → Pain (cream) → HowItWorks (canvas) →
  *   Solution (cream) → Proactive (canvas) → ProofPoints (canvas) →
  *   IndustryGrid (cream) → CTASection (canvas)
  *
- * → the homepage's warm canvas/cream rhythm, single-ink headings, Reveal
- * staggers and reduced-motion-safe atmosphere, exactly like the module pages.
+ * → the homepage's canvas/cream rhythm, single-ink headings, Reveal staggers
+ * and reduced-motion-safe atmosphere, exactly like the method pages.
  *
  * TWO ANGLES, ONE PROMISE: the page deliberately shows both sides of the same
  * Market-Research engine. The Pain → Solution pair is the REACTIVE angle —
  * the voice behind what already happened, the gap a dashboard leaves open
  * (sachlich, not fear-framed). The Proactive band is the FORWARD angle — the
  * same studies run BEFORE the decision (launch / roll-out / build, per
- * industry), to validate instead of guess. Both land on findr.'s one promise:
- * echte Gespräche mit echten Menschen, belegt statt geraten. The Proactive
- * band sits on the canvas surface so it reads as its own forward beat rather
- * than a clone of the cream Solution band above it.
+ * segment), to validate instead of guess. Both land on findr.'s one promise:
+ * echte Gespräche mit echten Menschen, belegt statt geraten.
  *
- * GROUNDING: the steps and proof points below are the REAL Market-Research
- * capabilities, lifted faithfully from /produkt/market-research (product truth,
- * brand-neutral wording). The pages SHARPEN the existing story onto each
- * industry — they invent NO new features. Honest Live/Bald tags are preserved.
+ * GROUNDING: the steps and proof points below are the REAL platform
+ * capabilities — KI-/Voice-Interviews (/api/interview/[token]/voice +
+ * /api/voice/*), Stimulus (/api/research/plans/[id]/stimulus), Screening +
+ * Quoten + Panel + Open-Link (research/plans/[id]/*), Markt-Linse,
+ * deterministische Cross-Study-Zählung und der Synthese-Export als PDF &
+ * PowerPoint (synthesis/{pdf,pptx}). The pages SHARPEN the existing story
+ * onto each segment — they invent NO new features.
  */
 
-// ── The real Market-Research flow (faithful to the module page) ──────────────
-// Shared by all three industry pages so there is one source of "what Market
-// Research does"; only the section LEAD is tuned per industry.
+// ── The real Market-Research flow ─────────────────────────────────────────────
+// Shared by all five industry pages so there is one source of "what Market
+// Research does"; only the section LEAD is tuned per segment.
 const MR_STEPS: HowStep[] = [
   {
     phase: "Aufsetzen",
-    title: "Studie & Screening definieren",
-    body: "Leg pro Frage eine eigene Interview-Studie an und setz ein Screening-Gate davor — nur die passende Zielgruppe kommt ins Interview, der Rest wird sauber und DSGVO-konform abgewiesen.",
+    title: "Studie, Screening & Quoten definieren",
+    body: "Leg pro Frage eine eigene Interview-Studie an, setz ein Screening-Gate und Quoten davor — nur die passende Zielgruppe kommt ins Interview, der Rest wird sauber und DSGVO-konform abgewiesen.",
     tag: "Live",
   },
   {
     phase: "Einsammeln",
-    title: "Offener Link & Walk-ins",
-    body: "Teil einen offenen Studien-Link — echte Teilnehmer:innen starten selbst ein KI-Interview auf Deutsch. Kein Panel-Dienstleister, kein Kalender-Ping-Pong, kein Moderator.",
+    title: "Offener Link, eigener Pool oder Panel",
+    body: "Teil einen offenen Studien-Link, lade deinen eigenen Teilnehmer-Pool ein oder rekrutiere über die Panel-Anbindung. Teilnehmer:innen starten selbst — das KI-Interview läuft auf Deutsch, auf Wunsch hörbar vom Voice-Agent geführt.",
     tag: "Live",
   },
   {
@@ -90,26 +90,26 @@ const MR_STEPS: HowStep[] = [
 
 const MR_PROOFS: Proof[] = [
   {
-    title: "KI-Interviews auf Deutsch",
-    body: "Strukturierte Interviews in DACH-Gesprächssprache mit echten Teilnehmer:innen — dort, wo rein englischsprachige Tools an ihre Grenzen kommen.",
-    Icon: TargetIcon,
+    title: "KI-Interviews auf Deutsch — auch per Voice",
+    body: "Strukturierte Tiefeninterviews in DACH-Gesprächssprache. Auf Wunsch führt der Voice-Agent das Gespräch hörbar — Teilnehmer:innen sprechen einfach, das Transkript bleibt die Quelle.",
+    Icon: MicIcon,
     tag: "Live",
   },
   {
-    title: "Offener Studien-Link & Walk-ins",
-    body: "Teil einen Link; echte Teilnehmer:innen starten selbst ein Interview — mit Kontingent und Ablaufdatum gegen Missbrauch.",
-    Icon: NetworkIcon,
+    title: "Stimulus: Entwürfe live zeigen",
+    body: "Zeig Konzepte, Packshots, Anzeigen oder Landingpages direkt im Interview — die Zielgruppe nimmt Bezug auf genau das Material, das du testen willst.",
+    Icon: ImageIcon,
     tag: "Live",
   },
   {
-    title: "Screening-Gate",
-    body: "Qualifizier Teilnehmer:innen vor dem Interview — die richtige Zielgruppe kommt rein, der Rest wird sauber und DSGVO-konform abgewiesen.",
+    title: "Screening-Gate & Quoten",
+    body: "Qualifizier Teilnehmer:innen vor dem Interview und steuer die Stichprobe — die richtige Zielgruppe kommt rein, der Rest wird sauber und DSGVO-konform abgewiesen.",
     Icon: CheckIcon,
     tag: "Live",
   },
   {
     title: "Markt-Linse",
-    body: "Extrahiert Preis-Signale, Kaufabsicht, Segment und Wettbewerb — getrennt von der Discovery-Linse, zugeschnitten auf Markt- und Verbraucherfragen.",
+    body: "Extrahiert Preis-Signale, Kaufabsicht, Segment und Wettbewerb — zugeschnitten auf Markt- und Verbraucherfragen, im Transkript verankert.",
     Icon: HexagonIcon,
     tag: "Live",
   },
@@ -120,16 +120,16 @@ const MR_PROOFS: Proof[] = [
     tag: "Live",
   },
   {
-    title: "Highlight-Reels",
-    body: "Belegte Interview-Ausschnitte automatisch zu einem Themen-Reel zusammengeschnitten — für das nächste Stakeholder-Review.",
-    Icon: CpuIcon,
-    tag: "Bald",
+    title: "Export als PDF & PowerPoint",
+    body: "Die Synthese als klarer Report oder fertiges Folien-Deck im eigenen Branding — plus teilbare Ergebnis-Links für Stakeholder.",
+    Icon: DownloadIcon,
+    tag: "Live",
   },
 ];
 
 // ── Industry registry (single source for footer + cross-links + slugs) ───────
-// `icon` is additive: the industry PAGES never rendered a per-industry icon, but
-// the "Lösungen" mega-menu panel does, so the icon NAME lives here (single
+// `icon` is additive: the industry PAGES never render a per-industry icon, but
+// the "Branchen" mega-menu panel does, so the icon NAME lives here (single
 // source, serializable) alongside the slug/name/tagline it already owned.
 export type IndustryRef = {
   slug: string;
@@ -140,22 +140,34 @@ export type IndustryRef = {
 
 export const INDUSTRIES: IndustryRef[] = [
   {
-    slug: "konsumgueter",
-    name: "Konsumgüter",
-    tagline: "Rezeptur, Verpackung, Markenversprechen — belegt vor dem Launch.",
-    icon: "HexagonIcon",
+    slug: "mittelstand",
+    name: "Mittelstand",
+    tagline: "Entscheider-Wissen ohne Institutsbudget — direkt von deinen Zielgruppen.",
+    icon: "FactoryIcon",
   },
   {
-    slug: "handel",
-    name: "Handel & E-Commerce",
-    tagline: "Warenkorbabbruch, Sortiment, Preisgefühl — der Grund hinter dem Klick.",
+    slug: "b2c",
+    name: "B2C & Konsumgüter",
+    tagline: "Käufer verstehen: Produkt, Marke, Preis — belegt vor dem Launch.",
     icon: "ShoppingBagIcon",
   },
   {
-    slug: "tech",
-    name: "Tech & Consumer Apps",
-    tagline: "Onboarding-Frust, Feature-Wunsch, Abwanderung — die Stimme hinter der Kurve.",
-    icon: "SmartphoneIcon",
+    slug: "b2b",
+    name: "B2B",
+    tagline: "Buying-Center im O-Ton: Entscheider, Anwender, Einwände.",
+    icon: "NetworkIcon",
+  },
+  {
+    slug: "design-agenturen",
+    name: "Design & Agenturen",
+    tagline: "Entwürfe vor dem Pitch testen — Creative-Feedback in Tagen, nicht Wochen.",
+    icon: "PenIcon",
+  },
+  {
+    slug: "industrie",
+    name: "Industrie",
+    tagline: "Anwender-Feedback von der Fläche — bevor investiert wird.",
+    icon: "CpuIcon",
   },
 ];
 
@@ -212,9 +224,9 @@ export type IndustryContent = {
 };
 
 /**
- * Two-column "narrative + card" band (mirrors the /loesungen UseCase and the
- * Market-Research module's solution section). `tone` paints the band; the card
- * sits on the right and pops on the muted background.
+ * Two-column "narrative + card" band (same mould as the method pages'
+ * solution section). `tone` paints the band; the card sits on the right and
+ * pops on the muted background.
  */
 function NarrativeBand({
   eyebrow,
@@ -313,11 +325,11 @@ export function IndustryGrid({
               ))}
               {showModuleLink ? (
                 <Link
-                  href="/produkt/market-research"
+                  href="/produkt"
                   className="group flex h-full flex-col gap-2 bg-white p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                 >
                   <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-primary-700">
-                    Market Research im Detail
+                    Die Plattform im Detail
                     <span
                       aria-hidden
                       className="transition-transform group-hover:translate-x-0.5"
@@ -326,8 +338,9 @@ export function IndustryGrid({
                     </span>
                   </div>
                   <p className="text-sm leading-relaxed text-neutral-500">
-                    Das Modul hinter allen Branchen: KI-Interviews, Screening,
-                    Synthese und die deterministische Cross-Study-Zählung.
+                    Die Engine hinter allen Branchen: Voice-Interviews,
+                    Stimulus, Screening, Synthese mit PDF- & PowerPoint-Export
+                    und die deterministische Cross-Study-Zählung.
                   </p>
                 </Link>
               ) : null}
@@ -349,7 +362,7 @@ export function IndustryPage({ content }: { content: IndustryContent }) {
         subhead={content.heroSubhead}
         audience={content.audience}
         primary={{ label: "Demo buchen →", href: "/demo" }}
-        secondary={{ label: "Market Research ansehen", href: "/produkt/market-research" }}
+        secondary={{ label: "Plattform ansehen", href: "/produkt" }}
       />
 
       {/* The industry pain: why market research matters HERE. The red "blind
@@ -417,7 +430,7 @@ export function IndustryPage({ content }: { content: IndustryContent }) {
       <CTASection
         title={content.cta.title}
         lead={content.cta.lead}
-        secondary={{ label: "Market Research ansehen", href: "/produkt/market-research" }}
+        secondary={{ label: "Plattform ansehen", href: "/produkt" }}
       />
     </>
   );

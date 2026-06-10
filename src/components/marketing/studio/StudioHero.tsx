@@ -50,7 +50,7 @@ export function StudioHero() {
       const h = wave.offsetHeight;
       const mid = h / 2;
       wctx.clearRect(0, 0, w, h);
-      wctx.fillStyle = "rgba(25,21,18,.3)";
+      wctx.fillStyle = "rgba(74,81,168,.34)";
       const bw = 3;
       const gap = 6;
       const n = Math.ceil(w / (bw + gap));
@@ -91,17 +91,17 @@ export function StudioHero() {
   }, []);
 
   return (
-    <section className="relative flex min-h-[92svh] flex-col justify-end overflow-hidden pt-28">
+    <section className="st-sky relative flex min-h-[92svh] flex-col justify-end overflow-hidden pt-28">
       <canvas
         ref={waveRef}
-        className="pointer-events-none absolute inset-x-0 bottom-16 h-[110px] w-full opacity-50"
+        className="pointer-events-none absolute inset-x-0 bottom-16 h-[110px] w-full opacity-55"
         aria-hidden
       />
       <div className="relative mx-auto w-full max-w-[1280px] px-[clamp(20px,4vw,56px)]">
         <Rv className="st-fade mb-[clamp(24px,4vh,48px)] flex items-center justify-between">
           <span className="st-rec-chip">
             <b aria-hidden />
-            Aufnahme läuft
+            Session läuft
           </span>
           <span ref={tcRef} className="st-tc">
             00:00:00

@@ -14,7 +14,7 @@ import { INSIGHTS_BY_DATE } from "@/lib/insights/articles";
 const PATH = "/insights";
 const OG_TITLE = "Insights — findr.";
 const DESCRIPTION =
-  "Ressourcen zu Conversation Intelligence, Revenue, Product Research und DSGVO-nativer KI — evidence-anchored, ohne Hype, von findr.";
+  "Ressourcen zu qualitativer Marktforschung, KI- und Voice-Interviews und DSGVO-nativer KI — belegt statt geraten, ohne Hype, von findr.";
 
 export const metadata: Metadata = {
   title: "Insights",
@@ -58,7 +58,7 @@ export default function InsightsPage() {
                   Was wir übers Zuhören gelernt haben.
                 </>
               }
-              lead="Ressourcen zu Conversation Intelligence, Revenue, Product Research und DSGVO-nativer KI. Belegt, nicht geraten — und ohne Hype."
+              lead="Ressourcen zu qualitativer Marktforschung, KI- und Voice-Interviews und DSGVO-nativer KI. Belegt, nicht geraten — und ohne Hype."
             />
           </Reveal>
         </Container>
@@ -83,7 +83,7 @@ export default function InsightsPage() {
             Lieber selbst sehen als nachlesen?
           </>
         }
-        lead="Buch eine Demo und sieh, was findr. in deinen eigenen Gesprächen findet — über alle vier Produkte hinweg."
+        lead="Buch eine Demo und sieh, was findr. in echten Tiefeninterviews findet — über alle vier Methoden hinweg, vom Voice-Interview bis zum exportierten Deck."
         secondary={{ label: "Plattform ansehen", href: "/produkt" }}
       />
     </>

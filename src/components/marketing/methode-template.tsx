@@ -54,10 +54,10 @@ import {
  */
 
 // ── The shared synthesis engine — "was rauskommt", identical per method ───────
-// Faithful to the vetted homepage synthesis section + the Market-Research module
-// page. The method only changes WHAT is probed; the engine that condenses the
-// conversations is the same one for every method. Highlight-Reels stays "Bald"
-// (the conservative claim from /produkt/market-research).
+// Faithful to the vetted homepage synthesis section. The method only changes
+// WHAT is probed; the engine that condenses the conversations is the same one
+// for every method. Highlight-Reels stays "Bald" (the conservative claim);
+// PDF & PowerPoint export are both real (synthesis/{pdf,pptx} routes).
 const SYNTHESIS_PROOFS: Proof[] = [
   {
     title: "Automatische Verdichtung",
@@ -84,8 +84,8 @@ const SYNTHESIS_PROOFS: Proof[] = [
     tag: "Live",
   },
   {
-    title: "PDF-Export",
-    body: "Ein klarer Report für Entscheider.",
+    title: "Export als PDF & PowerPoint",
+    body: "Ein klarer Report und ein fertiges Folien-Deck — im eigenen Branding, bereit fürs nächste Meeting.",
     Icon: FileCheckIcon,
     tag: "Live",
   },
@@ -246,7 +246,7 @@ function MethodGrid({ current }: { current: string }) {
                 </Link>
               ))}
               <Link
-                href="/produkt/market-research"
+                href="/produkt"
                 className="group flex h-full flex-col gap-3 bg-white p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
               >
                 <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-primary-700">
@@ -259,9 +259,9 @@ function MethodGrid({ current }: { current: string }) {
                   </span>
                 </div>
                 <p className="text-sm leading-relaxed text-neutral-500">
-                  Synthese je Studie, Mit-den-Daten-Chat und die deterministische
-                  Cross-Study-Zählung — das Market-Research-Modul hinter allen
-                  Methoden.
+                  Voice-Agent, Stimulus, Synthese mit PDF- & PowerPoint-Export
+                  und die deterministische Cross-Study-Zählung — die Plattform
+                  hinter allen Methoden.
                 </p>
               </Link>
             </div>
@@ -282,7 +282,7 @@ export function MethodPage({ content }: { content: MethodContent }) {
         subhead={content.heroSubhead}
         audience={content.audience}
         primary={{ label: "Demo buchen →", href: "/demo" }}
-        secondary={{ label: "Market Research ansehen", href: "/produkt/market-research" }}
+        secondary={{ label: "Plattform ansehen", href: "/produkt" }}
       />
 
       {/* Honest availability — stated immediately under the hero. */}
@@ -350,7 +350,7 @@ export function MethodPage({ content }: { content: MethodContent }) {
       <CTASection
         title={content.cta.title}
         lead={content.cta.lead}
-        secondary={{ label: "Market Research ansehen", href: "/produkt/market-research" }}
+        secondary={{ label: "Plattform ansehen", href: "/produkt" }}
       />
     </>
   );

@@ -39,65 +39,117 @@ export interface InsightArticle {
 
 export const INSIGHTS: InsightArticle[] = [
   {
-    slug: "crm-forecast-luegt",
-    title: "Warum dein CRM-Forecast lügt — und was die Gespräche verraten",
+    slug: "umfrage-sagt-nicht-warum",
+    title: "Die Umfrage sagt 7 von 10. Sie sagt nicht, warum.",
     excerpt:
-      "CRM-Stages bilden ab, was Reps eintragen — nicht, was im Deal wirklich passiert. Warum eine risiko-adjustierte Prognose aus echten Gesprächen ehrlicher ist als jede Pipeline-Spalte.",
-    category: "Conversation Intelligence",
+      "Skalen und Scores zeigen, WAS deine Zielgruppe denkt — aber nie, warum. Warum das Warum in Tiefeninterviews wohnt, und wie KI sie endlich skalierbar macht.",
+    category: "Qualitative Forschung",
     date: "2026-05-20",
     readingMinutes: 6,
     body: [
       {
         kind: "p",
-        text: "Jeden Montag dieselbe Übung: Die Pipeline wird durchgesprochen, die Stages werden geschoben, und am Ende steht eine Zahl, an die niemand so richtig glaubt. Das liegt selten an den Reps. Es liegt daran, woraus der Forecast gebaut ist.",
+        text: "Die Zustimmung liegt bei 7 von 10, der Score ist seit dem letzten Quartal stabil, das Dashboard ist grün. Und trotzdem weiß nach dem Meeting niemand, was jetzt zu tun ist. Das liegt nicht an der Umfrage — sie tut genau, was sie kann. Es liegt daran, was sie prinzipiell nicht kann.",
       },
-      { kind: "h2", text: "Das Problem mit dem Stage-basierten Forecast" },
+      { kind: "h2", text: "Was die Skala verschweigt" },
       {
         kind: "p",
-        text: "Ein klassischer CRM-Forecast multipliziert Deal-Wert mit einer Wahrscheinlichkeit, die an der Stage hängt. Die Stage wiederum pflegt der Rep — von Hand, nach bestem Wissen und mit einem verständlichen Hang zum Optimismus. Was dabei systematisch verloren geht:",
+        text: "Eine Skala verdichtet eine Entscheidung auf eine Zahl — und wirft dabei genau die Information weg, die du für die nächste Entscheidung brauchst:",
       },
       {
         kind: "ul",
         items: [
-          "Der Champion ist intern abgesprungen, aber die Stage steht noch auf „Verhandlung“.",
-          "Ein Wettbewerber ist im Spiel — erwähnt im Call, nirgends im CRM-Feld.",
-          "Budget-Signale aus dem letzten Gespräch, die niemand dokumentiert hat.",
+          "„Preis ist okay“ — aber nicht, ob das Verzicht, Gewohnheit oder echte Zahlungsbereitschaft ist.",
+          "„Würde ich empfehlen“ — aber nicht, in welcher Situation und mit welchen Worten.",
+          "Ein Absprung im Funnel — aber nicht, ob Verwirrung, Misstrauen oder schlicht ein besseres Angebot dahintersteckt.",
         ],
       },
       {
         kind: "p",
-        text: "Der Forecast ist also nur so ehrlich wie die Felder, die ihn speisen. Und die Felder kennen die Hälfte der Geschichte nicht.",
+        text: "Dazu kommt ein leiser Messfehler: Skalen werden sozial beantwortet. Eine 5 fühlt sich unhöflich an, also wird es eine 7 — und der Unterschied zwischen echter Begeisterung und höflicher Gleichgültigkeit verschwindet in derselben Zahl.",
       },
-      { kind: "h2", text: "Was Gespräche verraten, was Felder nicht können" },
+      { kind: "h2", text: "Das Warum wohnt im Gespräch" },
       {
         kind: "p",
-        text: "Die entscheidenden Signale fallen im Gespräch — und bleiben dort liegen. Ein einziger Satz kann ein „wahrscheinlich“ in ein „gefährdet“ drehen:",
+        text: "Im Tiefeninterview passiert, was keine Skala leisten kann: Jemand erzählt eine konkrete Situation, und auf die erste Antwort folgt eine Nachfrage. Erst hinter der ersten Antwort liegt der Grund.",
       },
       {
         kind: "quote",
-        text: "Sarah war eigentlich die treibende Kraft auf unserer Seite — seit sie letzte Woche gegangen ist, liegt das Thema etwas auf Eis.",
-        cite: "Aus einem echten Discovery-Call",
+        text: "Ich hab 7 angekreuzt, weil 5 irgendwie gemein wirkt. Ehrlich gesagt benutze ich es seit Wochen nicht mehr.",
+        cite: "Aus einem KI-geführten Tiefeninterview",
       },
       {
         kind: "p",
-        text: "Kein Pflichtfeld der Welt fängt diesen Moment ein. Eine Conversation-Intelligence-Engine, die jeden Call mitliest, schon — und kann ihn an der exakten Transkript-Stelle belegen, statt ihn zu interpretieren.",
+        text: "Genau deshalb waren Tiefeninterviews immer das Werkzeug für die wichtigen Entscheidungen — und genau deshalb wurden sie so selten gemacht: Rekrutierung, Moderation, Transkription, Auswertung. Wochen an Aufwand für eine Handvoll Gespräche.",
       },
-      { kind: "h2", text: "Risiko-adjustiert statt optimistisch" },
+      { kind: "h2", text: "KI macht das Warum skalierbar" },
       {
         kind: "p",
-        text: "Die ehrlichere Prognose dreht die Logik um: Statt einer optimistischen Stage-Wahrscheinlichkeit bekommt jeder Deal einen Risiko-Score aus dem, was tatsächlich gesagt wurde — und der Forecast zeigt eine Spanne statt einer Wunschzahl.",
+        text: "KI-geführte Interviews ändern die Rechnung. Was sich für DACH-Teams dabei bewährt:",
       },
       {
         kind: "ul",
         items: [
-          "Best Case, wahrscheinlich, Worst Case — als Spanne, nicht als Punkt.",
-          "Jedes Risiko-Signal mit dem Zitat belegt, das es ausgelöst hat.",
-          "Aktualisiert nach jedem Call, nicht erst beim Quartals-Review.",
+          "Hunderte Interviews parallel statt acht pro Woche — per Link, eigenem Pool oder Panel.",
+          "Auf Deutsch, mit echtem Nachbohren — auf Wunsch hörbar, per Voice-Agent.",
+          "Beleg-Pflicht: Jede Aussage der Auswertung bleibt am Originalzitat verankert.",
         ],
       },
       {
         kind: "p",
-        text: "Der Forecast lügt nicht mehr, weil er nicht mehr rät. Er rechnet mit dem, was im Gespräch steht — belegt, nicht geraten.",
+        text: "Die Skala behält ihren Platz: Sie zeigt, WO du hinschauen musst. Aber die Entscheidung selbst verdient das Warum — und das steht in den Gesprächen, nicht in der Verteilung.",
+      },
+    ],
+  },
+  {
+    slug: "voice-interviews-mehr-tiefe",
+    title: "Voice-Interviews: Warum sprechende Teilnehmer mehr erzählen",
+    excerpt:
+      "Tippen ist eine Hürde — besonders mobil. Wenn ein Voice-Agent das Interview hörbar führt, werden Antworten länger und spontaner. Worauf es dabei wirklich ankommt.",
+    category: "KI-Interviews",
+    date: "2026-06-03",
+    readingMinutes: 5,
+    body: [
+      {
+        kind: "p",
+        text: "Ein Tiefeninterview lebt von dem, was Menschen von sich aus erzählen. Genau da hat das getippte Interview eine eingebaute Bremse: Schreiben ist Arbeit. Wer auf dem Handy antwortet, kürzt ab — und der spannendste Halbsatz fällt der Tipperei zum Opfer.",
+      },
+      { kind: "h2", text: "Die Tipp-Hürde" },
+      {
+        kind: "ul",
+        items: [
+          "Getippte Antworten sind kurz — Nebengedanken werden weggelassen, bevor sie ausgesprochen sind.",
+          "Mobil steigt die Abbruchgefahr mit jeder Frage, die eine lange Antwort verlangt.",
+          "Schreiben ist redigiert: Was unhöflich oder ungeordnet wirkt, wird vor dem Absenden geglättet.",
+        ],
+      },
+      { kind: "h2", text: "Was sich ändert, wenn gesprochen wird" },
+      {
+        kind: "p",
+        text: "Im Voice-Interview stellt der Agent die Frage hörbar, und die Person antwortet, wie sie reden würde — mit Anläufen, Korrekturen und genau den Nebensätzen, in denen die eigentlichen Gründe stecken. Gesprochene Sprache ist weniger redigiert, und das ist forschungsrelevant: Der erste Gedanke kommt mit.",
+      },
+      {
+        kind: "quote",
+        text: "Ach, und noch was — das fällt mir jetzt erst ein: Eigentlich war der Hauptgrund ein ganz anderer …",
+        cite: "Aus einem Voice-Interview, live transkribiert",
+      },
+      {
+        kind: "p",
+        text: "Solche Sätze tippt niemand. Gesagt werden sie ständig.",
+      },
+      { kind: "h2", text: "Worauf es technisch ankommt" },
+      {
+        kind: "ul",
+        items: [
+          "Das Transkript bleibt die Quelle der Wahrheit — jede Auswertung verweist auf die exakte Stelle, Voice ändert nichts an der Beleg-Pflicht.",
+          "Unterbrechen muss erlaubt sein: Wer dem Agenten ins Wort fällt, ist engagiert — das System sollte zuhören, nicht weiterreden.",
+          "Tippen bleibt jederzeit möglich — nicht jede Umgebung verträgt Sprechen, der Wechsel darf nichts kosten.",
+          "Audio ist besonders persönlich: EU-Hosting und klare Löschfristen sind bei Voice keine Kür, sondern Voraussetzung.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "Voice ersetzt das getippte Interview nicht — es senkt die Hürde für alle, denen Reden leichter fällt als Schreiben. Und das sind, außerhalb unserer Bubble, die meisten.",
       },
     ],
   },
@@ -140,7 +192,7 @@ export const INSIGHTS: InsightArticle[] = [
       },
       {
         kind: "quote",
-        text: "Ich will mich nicht durch ein Sales-Gespräch quälen — lass mich es einfach selbst ausprobieren.",
+        text: "Ich will mich nicht durch ein Verkaufsgespräch quälen — lass mich es einfach selbst ausprobieren.",
         cite: "Aus einem KI-geführten Nutzer-Interview",
       },
       {

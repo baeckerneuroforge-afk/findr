@@ -63,7 +63,7 @@ export function TargetIcon(props: IconProps) {
   );
 }
 
-// Sharper with every deal — trending up
+// Wächst mit jeder Studie — trending up
 export function TrendingUpIcon(props: IconProps) {
   return (
     <svg {...base(props)}>
@@ -172,6 +172,59 @@ export function ChevronDownIcon(props: IconProps) {
   );
 }
 
+// Voice-Agent — microphone
+export function MicIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="9" y="2.5" width="6" height="11" rx="3" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0" />
+      <path d="M12 17.5V21" />
+    </svg>
+  );
+}
+
+// Stimulus — image / draft frame
+export function ImageIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="m5 18 5-5 3 3 3.5-3.5 3 3" />
+    </svg>
+  );
+}
+
+// Synthese-Export — download tray
+export function DownloadIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 4v10" />
+      <path d="m8 10.5 4 4 4-4" />
+      <path d="M4.5 17.5V19a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-1.5" />
+    </svg>
+  );
+}
+
+// Mittelstand / Fabrik — factory roofline
+export function FactoryIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3.5 20.5V9.5l5 3.5V9.5l5 3.5V9.5l7 4.5v6.5z" />
+      <path d="M8 17h.01M12.5 17h.01M17 17h.01" />
+    </svg>
+  );
+}
+
+// Design & Agenturen — pen nib
+export function PenIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="m12 19-7 2 2-7L17.5 3.5a2.1 2.1 0 0 1 3 3z" />
+      <path d="m15 6 3 3" />
+    </svg>
+  );
+}
+
 /**
  * Name → component map. The mega-menu / mobile accordion live in "use client"
  * islands and receive the nav registry as serializable props — a React
@@ -197,6 +250,11 @@ export const ICONS = {
   ShoppingBagIcon,
   SmartphoneIcon,
   ChevronDownIcon,
+  MicIcon,
+  ImageIcon,
+  DownloadIcon,
+  FactoryIcon,
+  PenIcon,
 } as const;
 
 export type IconName = keyof typeof ICONS;

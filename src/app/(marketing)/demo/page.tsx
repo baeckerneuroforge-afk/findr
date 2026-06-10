@@ -14,7 +14,7 @@ import { ogDefaults } from "@/lib/marketing/seo";
 const PATH = "/demo";
 const OG_TITLE = "Demo buchen — findr.";
 const DESCRIPTION =
-  "Sieh in einer kurzen, persönlichen Demo, was findr. in deinen eigenen Gesprächen findet — über alle vier Produkte hinweg. DSGVO-nativ, in der EU gehostet.";
+  "Sieh in einer kurzen, persönlichen Demo, was findr. in echten Tiefeninterviews findet — vom Voice-Agent über Stimulus bis zum PowerPoint-Export. DSGVO-nativ, in der EU gehostet.";
 
 export const metadata: Metadata = {
   title: "Demo buchen",
@@ -34,7 +34,7 @@ export default function DemoPage() {
             Gesprächen findet.
           </>
         }
-        subhead="In einer kurzen, persönlichen Demo zeigen wir dir findr. an einem echten Gesprächsbeispiel — keine Folien, sondern dein Use-Case über alle vier Produkte hinweg."
+        subhead="In einer kurzen, persönlichen Demo zeigen wir dir findr. an einem echten Studien-Beispiel — keine Folien, sondern deine Forschungsfrage: vom Voice-Interview über den Stimulus-Test bis zur exportierten Synthese."
         primary={{ label: "Termin buchen →", href: DEMO_BOOKING_URL }}
         secondary={{ label: "Lieber direkt testen", href: "/sign-up" }}
         // TODO D3: UWG-Claim — "DSGVO-nativ" ist eine werbliche Aussage, die vor
@@ -56,9 +56,10 @@ export default function DemoPage() {
                 15 Minuten, ein echtes Gespräch, deine Fragen.
               </h2>
               <p className="max-w-lg text-[16px] leading-relaxed text-neutral-500">
-                Such dir einen Termin aus, der dir passt. Wir bringen ein
-                anonymisiertes Beispiel mit oder nutzen einen deiner eigenen
-                Calls — du entscheidest, was wir uns ansehen.
+                Such dir einen Termin aus, der dir passt. Wir bringen eine
+                anonymisierte Beispiel-Studie mit oder setzen direkt eine
+                Studie zu deiner eigenen Forschungsfrage auf — du entscheidest,
+                was wir uns ansehen.
               </p>
               {/* TODO D6: echte Demo-Buchungs-URL bestätigen (DEMO_BOOKING_URL
                   ist Platzhalter). Bis dahin Link statt Embed. */}

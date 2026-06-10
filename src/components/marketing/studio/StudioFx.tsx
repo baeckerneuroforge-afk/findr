@@ -3,20 +3,49 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Globale Studio-Effekte für die gesamte Marketing-Oberfläche:
+ * Globale Konsolen-Effekte für die gesamte Marketing-Oberfläche:
  *
- *   1. Custom-Cursor (REC-Punkt + nachziehender Ring) — nur auf Geräten mit
- *      feinem Pointer und ohne prefers-reduced-motion. Der System-Cursor
+ *   1. Custom-Cursor (Indigo-Punkt + nachziehender Ring) — nur auf Geräten
+ *      mit feinem Pointer und ohne prefers-reduced-motion. Der System-Cursor
  *      bleibt sichtbar (kein cursor:none — Akzent, nicht Ersatz).
  *   2. Magnetische Buttons — jedes Element mit der Klasse `magnetic` folgt
  *      dem Pointer ein paar Pixel (Event-Delegation, ein einziger Listener).
+ *   3. Scroll-Fortschritt — die 2px-Indigo-Hairline ganz oben skaliert mit
+ *      der Lesposition. Läuft AUCH unter Reduced-Motion: sie ist eine
+ *      Positionsanzeige (folgt 1:1 dem Scroll), keine Animation.
  *
  * Reines Client-Theater: kein State nach außen, alles wird beim Unmount
- * sauber abgeräumt. Reduced-Motion → die Komponente tut schlicht nichts.
+ * sauber abgeräumt.
  */
 export function StudioFx() {
   const dotRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-Fortschritt (motion-unabhängig, rAF-gedrosselt).
+  useEffect(() => {
+    const bar = progressRef.current;
+    if (!bar) return;
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`;
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    update();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
 
   useEffect(() => {
     const fine = window.matchMedia("(pointer: fine)").matches;
@@ -75,6 +104,7 @@ export function StudioFx() {
 
   return (
     <>
+      <div ref={progressRef} className="st-progress" aria-hidden />
       <div ref={dotRef} className="st-cursor-dot" aria-hidden />
       <div ref={ringRef} className="st-cursor-ring" aria-hidden />
     </>

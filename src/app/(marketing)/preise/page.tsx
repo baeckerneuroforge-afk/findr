@@ -9,7 +9,6 @@ import { Reveal } from "@/components/marketing/Reveal";
 import { HeroAtmosphere } from "@/components/marketing/HeroAtmosphere";
 import { CtaLink } from "@/components/marketing/CtaLink";
 import { PlatformModules } from "@/components/marketing/PlatformModules";
-import { PricingMatrix } from "@/components/marketing/PricingMatrix";
 import { FAQ, type FaqItem } from "@/components/marketing/FAQ";
 import { JsonLd } from "@/components/marketing/JsonLd";
 import {
@@ -101,7 +100,7 @@ const ALWAYS_INCLUDED: { Icon: IconType; label: string; sub: string }[] = [
   {
     Icon: CpuIcon,
     label: "KI-Interviews auf Deutsch",
-    sub: "DACH-Gesprächssprache, wo rein englische Tools an ihre Grenzen kommen.",
+    sub: "Text oder hörbar per Voice-Agent — DACH-Gesprächssprache, wo rein englische Tools an ihre Grenzen kommen.",
   },
   {
     Icon: CheckIcon,
@@ -127,7 +126,7 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
   },
   {
     q: "Bekomme ich Unterstützung beim Setup?",
-    a: "Ja. findr. verbindet sich mit deinem bestehenden Stack — Gong, HubSpot, Slack, Kalender — ohne technisches Projekt. Wie eng wir dich beim Rollout, beim Onboarding und im laufenden Betrieb begleiten, stimmen wir auf dein Team ab.",
+    a: "Ja — wobei das Setup bewusst klein ist: Studien laufen über teilbare Links, deinen eigenen Teilnehmer-Pool oder die Panel-Anbindung, ganz ohne technisches Projekt. Wie eng wir dich beim Rollout, beim Onboarding und im laufenden Betrieb begleiten, stimmen wir auf dein Team ab.",
   },
   {
     q: "Ist das DSGVO-konform?",
@@ -150,16 +149,6 @@ const FAQPAGE_JSONLD = {
 };
 
 const faqItems: FaqItem[] = FAQ_ITEMS;
-
-/**
- * PricingMatrix vorübergehend ausgeblendet (Etappe-2-Nachzug): Ihre Zeilen/Zellen
- * sind noch auf die alten Module (Sales/CS/PD) verdrahtet und passen nicht zur
- * MR-Methoden-Positionierung. Die Komponente bleibt erhalten und kommt mit
- * MR-Daten zurück.
- * REAKTIVIERUNG: dieses Flag auf `true` setzen — die Matrix-Sektion (inkl. ihrer
- * eigenen Überschrift) rendert dann wieder. KEIN weiterer Schritt nötig.
- */
-const SHOW_PRICING_MATRIX = false;
 
 export default function PreisePage() {
   return (
@@ -229,26 +218,7 @@ export default function PreisePage() {
         lead="Vier Methoden auf einer gemeinsamen KI-Engine. Du musst nicht alles auf einmal nehmen — wähl, was heute zählt, und erweitere, wenn dein Team so weit ist."
       />
 
-      {/* 4 ── FEATURE-/MODUL-MATRIX (vorübergehend ausgeblendet, s. SHOW_PRICING_MATRIX
-            oben — Heading gehört zur Matrix und wird mit ausgeblendet) ───────── */}
-      {SHOW_PRICING_MATRIX && (
-        <Section tone="muted">
-          <Container>
-            <Reveal>
-              <SectionHeading
-                eyebrow="Was in welcher Methode steckt"
-                title="Die Plattform im Überblick."
-                lead="Zeilen sind Fähigkeiten, Spalten sind die vier Methoden. So siehst du auf einen Blick, was jede Methode liefert — und woraus sich dein Baukasten zusammensetzt."
-              />
-            </Reveal>
-            <Reveal>
-              <PricingMatrix />
-            </Reveal>
-          </Container>
-        </Section>
-      )}
-
-      {/* 5 ── WAS IMMER DABEI IST ───────────────────────────────────────────── */}
+      {/* 4 ── WAS IMMER DABEI IST ───────────────────────────────────────────── */}
       <Section>
         <Container>
           <Reveal>
@@ -299,9 +269,9 @@ export default function PreisePage() {
         tone="muted"
       />
 
-      {/* 7 ── ABSCHLUSS-CTA (dunkler Anker #1C1F45) ────────────────────────── */}
-      <section className="bg-anchor">
-        <Container className="py-20 sm:py-28">
+      {/* 6 ── ABSCHLUSS-CTA (Twilight-Anker mit Sternen) ───────────────────── */}
+      <section className="st-on-dark st-dusk st-stars relative overflow-hidden">
+        <Container className="relative z-10 py-20 sm:py-28">
           <Reveal>
             <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 text-center">
               <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-primary-300">
@@ -321,10 +291,10 @@ export default function PreisePage() {
                   Demo buchen →
                 </CtaLink>
                 <Link
-                  href="/loesungen"
+                  href="/produkt"
                   className="inline-flex h-12 items-center justify-center gap-2 rounded border border-white/25 px-6 text-[15px] font-medium text-neutral-300 transition-colors hover:border-white/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-anchor"
                 >
-                  Lösungen ansehen
+                  Plattform ansehen
                 </Link>
               </div>
             </div>

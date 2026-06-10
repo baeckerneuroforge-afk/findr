@@ -26,18 +26,19 @@ const COMPLIANCE = [
 export function MarketingFooter() {
   const year = new Date().getFullYear();
   return (
-    // Studio-Dunkel (#14110c, --color-anchor): der Anker unter jeder Seite.
-    // Creme-Druckfarbe, Mono-Spaltentitel, Hairlines in Creme bei 12 % — und
-    // als Abschluss die riesige Outline-Wortmarke (st-ghostword) wie im
-    // freigegebenen Entwurf.
-    <footer className="st-on-dark relative overflow-hidden border-t border-white/10 bg-anchor">
+    // Twilight-Dunkel (#141734, --color-anchor): die Dämmerungsstunde unter
+    // jeder Seite — Dusk-Verlauf + Sternenhimmel (st-dusk/st-stars), Indigo-
+    // Creme-Druckfarbe, Mono-Spaltentitel, Hairlines bei 12 % — und als
+    // Abschluss die riesige Outline-Wortmarke (st-ghostword).
+    <footer className="st-on-dark st-dusk st-stars relative overflow-hidden border-t border-white/10">
       <Container className="relative z-10 py-16">
         <div className={`grid gap-x-8 gap-y-12 md:grid-cols-2 ${GRID_COLS}`}>
           <div className="flex flex-col gap-3">
             <Wordmark tone="light" />
             <p className="max-w-xs text-sm leading-relaxed text-anchor-foreground/70">
               Qualitative Marktforschung mit KI — hunderte Tiefeninterviews,
-              DSGVO-nativ und auf Deutsch, verdichtet zu belegten Insights.
+              auf Wunsch per Voice-Agent, DSGVO-nativ und auf Deutsch,
+              verdichtet zu belegten Insights.
             </p>
           </div>
 
@@ -68,7 +69,7 @@ export function MarketingFooter() {
               <li key={c} className="inline-flex items-center gap-2">
                 <span
                   aria-hidden
-                  className="h-1 w-1 rounded-full bg-[#ff4b2e]"
+                  className="h-1 w-1 rounded-full bg-[var(--st-rec)]"
                 />
                 {c}
               </li>

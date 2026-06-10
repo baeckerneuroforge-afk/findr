@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import {
-  Bricolage_Grotesque,
+  Hanken_Grotesk,
   Instrument_Serif,
-  Archivo,
-  Spline_Sans_Mono,
+  JetBrains_Mono,
 } from "next/font/google";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
@@ -13,18 +12,21 @@ import { ogDefaults, twitterDefaults, SITE_URL } from "@/lib/marketing/seo";
 import "../globals.css";
 import "@/components/marketing/studio/studio.css";
 
-// ── Studio-Session-Schriftstimmen ────────────────────────────────────────────
+// ── Twilight-Konsole-Schriftstimmen ──────────────────────────────────────────
 // Self-hosted via next/font (Build-Time-Download, ausgeliefert vom eigenen
 // Origin — kein Google-Request zur Laufzeit, keine DSGVO-Regression). Bewusst
 // HIER geladen statt im Root-Layout: die Variablen hängen am .studio-Wrapper
-// unten, damit Dashboard/Interview/Auth keine zusätzlichen Fonts preloaden
-// (deckt sich mit dem Perf-Cleanup, der ungenutzte Fonts aus dem Root entfernte).
-//   Bricolage Grotesque → Display/Headlines (--font-marketing via studio.css)
-//   Instrument Serif    → kursiver Serif-Akzent in Headlines + Zitate
-//   Archivo             → Fließtext (--font-body im .studio-Scope)
-//   Spline Sans Mono    → Tape-Labels, Timecodes, Kapitelmarken
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
+// unten, damit Dashboard/Interview/Auth keine zusätzlichen Fonts preloaden.
+// Die Stimmen sind jetzt die PLATTFORM-Stimmen — Marketing und Produkt
+// sprechen dieselbe Sprache (Hanken Grotesk + JetBrains Mono, wie die
+// Dashboard-Shell), plus Instrument Serif als Stimme der Befragten:
+//   Hanken Grotesk   → Display/Headlines + Fließtext (--font-marketing/--font-body)
+//   JetBrains Mono   → Konsolen-Etiketten, Timecodes, Kapitelmarken (--font-mono)
+//   Instrument Serif → kursiver Serif-Akzent in Headlines + Originalzitate
+// Eigene Var-Namen (-mkt) statt der Root-Layout-Namen, damit klar bleibt,
+// dass dieser Tree seine Fonts selbst lädt (Multi-Root: kein Sharing).
+const hanken = Hanken_Grotesk({
+  variable: "--font-hanken-mkt",
   subsets: ["latin"],
 });
 
@@ -35,13 +37,8 @@ const instrumentSerif = Instrument_Serif({
   style: "italic",
 });
 
-const archivo = Archivo({
-  variable: "--font-archivo",
-  subsets: ["latin"],
-});
-
-const splineSansMono = Spline_Sans_Mono({
-  variable: "--font-spline-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jbmono-mkt",
   subsets: ["latin"],
 });
 
@@ -82,11 +79,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f4eee0",
+  themeColor: "#fafafa",
 };
 
 /**
- * Marketing ROOT layout — die „Studio-Session“-Bühne (Perf-Etappe C, Fund 0):
+ * Marketing ROOT layout — die „Twilight-Konsole“-Bühne (Perf-Etappe C, Fund 0):
  * eigenes Root-Layout im Multi-Root-Pattern statt nested unter dem App-Shell.
  * Bewusst NICHT drin: ClerkProvider (Marketing nutzt 0× Clerk → ~45 KB gz JS
  * weniger pro Public-Page), NextIntlClientProvider (0 Namespaces genutzt →
@@ -95,13 +92,16 @@ export const viewport: Viewport = {
  * hart: Marketing ist per Entscheidung DE-only. Damit rendert der Tree
  * statisch und /insights/[slug] wird wirklich SSG.
  *
- * Der .studio-Wrapper:
- *   • remappt die Marketing-Design-Tokens (studio.css) — warmes Papier,
- *     Tinten-Neutrals, REC-Rot als Akzent — ohne globals.css anzufassen,
- *   • trägt die next/font-Variablen der vier Studio-Schriften (die App-Fonts
- *     des (app)-Trees existieren hier nicht; studio.css remappt --font-body/
+ * Der .studio-Wrapper (Klassenname bleibt als stabiles Scope-Präfix der
+ * st-*-Komponentenklassen, die Haut darunter ist jetzt Twilight):
+ *   • remappt die Marketing-Design-Tokens (studio.css) — heller Lab-Canvas,
+ *     Zinc-Neutrals, Twilight-Indigo #4A51A8 als das EINE Signal — ohne
+ *     globals.css anzufassen,
+ *   • trägt die next/font-Variablen der drei Stimmen (die App-Fonts des
+ *     (app)-Trees existieren hier nicht; studio.css remappt --font-body/
  *     --font-marketing/--font-mono vollständig im .studio-Scope),
- *   • legt das Filmkorn (st-grain) und die Cursor-FX über alle Seiten.
+ *   • legt Punktraster (st-grid), Filmkorn (st-grain) und die Cursor-FX
+ *     über alle Seiten.
  *
  * Die Reveal-Choreografie (Rv) armiert ihren versteckten Ausgangszustand
  * selbst erst nach dem Mount — no-JS/Bots sehen alles sofort, und es gibt
@@ -115,8 +115,9 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
     <html lang="de" className="h-full scroll-smooth antialiased">
       <body className="min-h-full">
         <div
-          className={`studio ${bricolage.variable} ${instrumentSerif.variable} ${archivo.variable} ${splineSansMono.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
+          className={`studio ${hanken.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
         >
+          <div className="st-grid" aria-hidden />
           <div className="st-grain" aria-hidden />
           <StudioFx />
           <MarketingHeader />

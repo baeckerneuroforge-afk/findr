@@ -1,6 +1,5 @@
 import { MODULES } from "./PlatformModules";
 import { INDUSTRIES } from "./industry-template";
-import { ROLES } from "./role-template";
 import type { IconName } from "./icons";
 
 /**
@@ -73,12 +72,40 @@ const industryLeaves: NavLeaf[] = INDUSTRIES.map((i) => ({
   icon: i.icon,
 }));
 
-const roleLeaves: NavLeaf[] = ROLES.map((r) => ({
-  label: r.name,
-  href: `/loesungen/${r.slug}`,
-  desc: r.painTeaser,
-  icon: r.icon,
-}));
+/**
+ * Die Werkzeuge der Plattform — Anker auf /produkt (dort lebt je Werkzeug eine
+ * eigene Tiefen-Sektion). Alle vier sind reale, gebaute Fähigkeiten:
+ * Voice-Agent (/api/interview/[token]/voice + /api/voice/*), Stimulus
+ * (/api/research/plans/[id]/stimulus + Split-View im Interview), Synthese-
+ * Export (synthesis/{pdf,pptx}-Routen) und Qualität/Rekrutierung (Screening-
+ * Fragen, Quoten, Panel-Anbindung, offene Links, eigener Pool).
+ */
+const featureLeaves: NavLeaf[] = [
+  {
+    label: "Voice-Agent",
+    href: "/produkt#voice",
+    desc: "Interviews hörbar geführt — sprechen statt tippen.",
+    icon: "MicIcon",
+  },
+  {
+    label: "Stimulus",
+    href: "/produkt#stimulus",
+    desc: "Entwürfe & Konzepte live im Interview zeigen.",
+    icon: "ImageIcon",
+  },
+  {
+    label: "Synthese & Export",
+    href: "/produkt#synthese",
+    desc: "Themen, Lager, Zitate — als PDF & PowerPoint.",
+    icon: "DownloadIcon",
+  },
+  {
+    label: "Qualität & Rekrutierung",
+    href: "/produkt#qualitaet",
+    desc: "Screening, Quoten, Panel-Anbindung, offene Links.",
+    icon: "ShieldCheckIcon",
+  },
+];
 
 // ── 1) The header navigation (mega-menu + mobile accordion) ───────────────────
 
@@ -90,23 +117,13 @@ export const PRIMARY_NAV: NavEntry[] = [
     id: "produkt",
     groups: [
       {
+        heading: "Methoden",
         items: moduleLeaves,
         overview: { label: "Plattform-Überblick", href: "/produkt" },
       },
-    ],
-  },
-  {
-    kind: "panel",
-    label: "Anwendungsfälle",
-    // Semantic home of the section is the role hub (/loesungen); the trigger
-    // itself is a <button>, the hub is reachable via the overview foot-link.
-    href: "/loesungen",
-    id: "anwendungsfaelle",
-    groups: [
       {
-        heading: "Nach Rolle",
-        items: roleLeaves,
-        overview: { label: "Alle Anwendungsfälle", href: "/loesungen" },
+        heading: "Werkzeuge",
+        items: featureLeaves,
       },
     ],
   },
@@ -116,12 +133,12 @@ export const PRIMARY_NAV: NavEntry[] = [
     // No /branchen index page exists; the panel's destinations are the
     // per-industry pages below. `href` is the section's semantic home — NOT
     // rendered as a link by MegaMenu/MobileNav (the trigger is a <button>), so
-    // it points at the Market-Research product page as the closest hub.
-    href: "/produkt/market-research",
+    // it points at the platform page as the closest hub.
+    href: "/produkt",
     id: "branchen",
     groups: [
       {
-        heading: "Für Marken & Marktforschung",
+        heading: "Für wen findr. forscht",
         items: industryLeaves,
         // No "see all": there is no /branchen index page (plan O4).
       },
@@ -145,11 +162,8 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     links: [{ label: "Plattform", href: "/produkt" }, ...toLinks(moduleLeaves)],
   },
   {
-    title: "Anwendungsfälle",
-    links: [
-      { label: "Alle Anwendungsfälle", href: "/loesungen" },
-      ...toLinks(roleLeaves),
-    ],
+    title: "Werkzeuge",
+    links: toLinks(featureLeaves),
   },
   {
     title: "Branchen",
@@ -201,10 +215,10 @@ export const SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/produkt", priority: 0.8 },
   // The four method pages (/methoden/<slug>), derived from the same MODULES
   // leaves the mega-menu + footer use — so each route is declared exactly once.
+  // The Werkzeuge leaves are anchors on /produkt and deliberately NOT listed
+  // (fragments don't belong in a sitemap).
   ...moduleLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   { path: "/preise", priority: 0.8 },
-  { path: "/loesungen", priority: 0.7 },
-  ...roleLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   ...industryLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   { path: "/insights", priority: 0.6 },
   { path: "/demo", priority: 0.5 },

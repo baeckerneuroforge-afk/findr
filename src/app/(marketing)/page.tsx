@@ -12,7 +12,7 @@ import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
 const TITLE = "findr. — Qualitative Marktforschung mit KI, DSGVO-nativ & auf Deutsch";
 const DESCRIPTION =
-  "findr. führt hunderte qualitative Tiefeninterviews mit deiner Zielgruppe — KI-geführt, auf Deutsch und DSGVO-nativ in Frankfurt gehostet. Vier Methoden, eine Engine: Bedarf & Verhalten, Markenwahrnehmung, Konzept- und Creative-Test, verdichtet zu belegten Insights.";
+  "findr. führt hunderte qualitative Tiefeninterviews mit deiner Zielgruppe — auf Wunsch per Voice-Agent, mit Entwürfen als Stimulus direkt im Gespräch. Auf Deutsch, DSGVO-nativ in Frankfurt. Vier Methoden, eine Engine — verdichtet zu belegten Insights, exportiert als PDF oder PowerPoint.";
 
 export const metadata: Metadata = {
   // absolute → skip the "%s — findr." template for the homepage title.
@@ -45,16 +45,23 @@ function Kap({ label, center = false }: { label: string; center?: boolean }) {
 
 const WRAP = "mx-auto w-full max-w-[1280px] px-[clamp(20px,4vw,56px)]";
 
-// Synthese-Fähigkeiten — die sechs realen Capabilities (Copy unverändert aus
-// der bisherigen Synthese-Sektion; Highlight-Reels trägt ehrlich „Bald“).
+// Synthese-Fähigkeiten — die sechs realen Capabilities. Export nennt jetzt
+// ehrlich beide Formate (PDF-Report UND PowerPoint-Deck — beide Routen leben
+// unter /api/research/plans/[id]/synthesis/{pdf,pptx}, inkl. eigenem Branding);
+// Highlight-Reels trägt weiter ehrlich „Bald“.
 const CAPS: { n: string; t: string; d: string; soon?: boolean }[] = [
   { n: "S.01", t: "Automatische Verdichtung", d: "Themen, Lager und Zitate über alle Interviews" },
   { n: "S.02", t: "Mit den Daten chatten", d: "Rückfragen an den ganzen Studien-Korpus" },
   { n: "S.03", t: "Highlight-Reels", d: "Die stärksten Momente als Zusammenschnitt", soon: true },
   { n: "S.04", t: "Teilbare Ergebnis-Links", d: "Synthese per Link, auch extern, im eigenen Branding" },
-  { n: "S.05", t: "PDF-Export", d: "Ein klarer Report für Entscheider" },
+  { n: "S.05", t: "Export als PDF & PowerPoint", d: "Report und Folien-Deck, fertig fürs nächste Meeting" },
   { n: "S.06", t: "Studienübergreifende Muster", d: "Was sich über Studien hinweg wiederholt" },
 ];
+
+// Die Werkzeuge — Voice-Agent + Stimulus (K.04). Beide real: Voice-Interview
+// über /api/interview/[token]/voice + LiveKit-Voice-Agent (/api/voice/*),
+// Stimulus über /api/research/plans/[id]/stimulus + Split-View im Interview.
+const VOICE_BARS = [38, 62, 24, 78, 46, 90, 30, 70, 52, 84, 36, 58, 26, 66];
 
 const RULES: { n: string; t: string; d: string }[] = [
   {
@@ -183,10 +190,95 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── K.04 — Die Auswertung (Syntheseblatt + Fähigkeiten) ──────── */}
+      {/* ── K.04 — Die Werkzeuge (Voice-Agent + Stimulus) ────────────── */}
+      <section id="werkzeuge" className="pt-[clamp(100px,15vh,180px)]">
+        <div className={WRAP}>
+          <Kap label="K.04 — Die Werkzeuge" />
+          <div className="mb-[clamp(36px,6vh,64px)] flex flex-wrap items-end justify-between gap-6">
+            <Rv as="h2" className="st-rv st-display text-[clamp(34px,6vw,84px)]">
+              <span className="st-ln">
+                <i>Sprich. Zeig.</i>
+              </span>
+              <span className="st-ln">
+                <i>
+                  <span className="st-serif">Frag nach.</span>
+                </i>
+              </span>
+            </Rv>
+            <Rv as="p" className="st-fade max-w-[42ch] text-neutral-500">
+              Interviews, die sich wie echte Gespräche anfühlen: Der
+              Voice-Agent führt sie hörbar, und mit Stimulus zeigst du deiner
+              Zielgruppe live, woran du gerade arbeitest.
+            </Rv>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Werkzeug 01 — Voice-Agent */}
+            <Rv className="st-fade st-tool" threshold={0.3}>
+              <div className="flex items-center justify-between">
+                <span className="st-tag">Werkzeug 01 · Voice</span>
+                <span className="st-lamp st-lamp--light">
+                  <b aria-hidden />
+                  Live
+                </span>
+              </div>
+              <div className="st-voicebars" aria-hidden>
+                {VOICE_BARS.map((h, i) => (
+                  <i key={i} style={{ "--h": `${h}%`, "--i": i } as CSSProperties} />
+                ))}
+              </div>
+              <h3>Der Voice-Agent führt das Interview</h3>
+              <p>
+                Teilnehmer:innen sprechen einfach — die KI hört zu, bohrt
+                hörbar nach und transkribiert live. Tippen bleibt jederzeit
+                möglich, das Transkript bleibt die eine Quelle der Wahrheit.
+              </p>
+              <div className="st-tool-foot">
+                <span>Sprechen statt tippen</span>
+                <span>Nachfragen in Echtzeit</span>
+                <span>Volles Transkript</span>
+              </div>
+            </Rv>
+
+            {/* Werkzeug 02 — Stimulus */}
+            <Rv className="st-fade st-tool" threshold={0.3} d={100}>
+              <div className="flex items-center justify-between">
+                <span className="st-tag">Werkzeug 02 · Stimulus</span>
+                <span className="st-lamp st-lamp--light">
+                  <b aria-hidden />
+                  Live
+                </span>
+              </div>
+              <div className="st-stim" aria-hidden>
+                <div className="st-stim-asset">
+                  <span className="st-tag !text-[9px]">Dein Entwurf</span>
+                  <b>A</b>
+                </div>
+                <div className="st-stim-chat">
+                  <span className="is-f">Was fällt dir zuerst auf?</span>
+                  <span>„Das Dunkelblau wirkt hochwertig — aber ich finde den Preis nicht.“</span>
+                </div>
+              </div>
+              <h3>Stimulus: Entwürfe live zeigen</h3>
+              <p>
+                Lade Konzepte, Packshots, Anzeigen oder Landingpages in die
+                Studie — deine Zielgruppe sieht sie direkt im Interview und
+                nimmt Bezug auf genau das, was du testen willst.
+              </p>
+              <div className="st-tool-foot">
+                <span>Bild oder Link</span>
+                <span>Für Design & Marketing</span>
+                <span>Konzept- & Creative-Test</span>
+              </div>
+            </Rv>
+          </div>
+        </div>
+      </section>
+
+      {/* ── K.05 — Die Auswertung (Syntheseblatt + Fähigkeiten) ──────── */}
       <section id="synthese" className="py-[clamp(110px,16vh,190px)]">
         <div className={WRAP}>
-          <Kap label="K.04 — Die Auswertung" />
+          <Kap label="K.05 — Die Auswertung" />
           <div className="mb-[clamp(40px,7vh,72px)] flex flex-wrap items-end justify-between gap-6">
             <Rv as="h2" className="st-rv st-display text-[clamp(34px,6vw,84px)]">
               <span className="st-ln">
@@ -201,7 +293,8 @@ export default function HomePage() {
             <Rv as="p" className="st-fade max-w-[42ch] text-neutral-500">
               findr. verdichtet jedes Interview und alle zusammen — Themen,
               Lager, Originalzitate. Ohne manuelles Tagging, ohne
-              Auswertungs-Wochen.
+              Auswertungs-Wochen. Und am Ende exportierst du das Ganze als
+              PDF-Report oder PowerPoint-Deck.
             </Rv>
           </div>
 
@@ -243,9 +336,17 @@ export default function HomePage() {
                 „Ich stand jeden Abend planlos vor dem Kühlschrank.“
                 <footer>Originalzitat · Session 001 · 02:14</footer>
               </blockquote>
-              <span className="st-belegt" aria-hidden>
-                Belegt am Transkript
-              </span>
+              {/* Beleg-Siegel: zeichnet sich beim Einscrollen (st-sheet.in). */}
+              <div className="st-seal" aria-hidden>
+                <svg viewBox="0 0 96 96">
+                  <circle cx="48" cy="48" r="42" />
+                </svg>
+                <div className="st-seal-txt">
+                  <span className="st-chk">✓</span>
+                  <span>Belegt am</span>
+                  <span>Transkript</span>
+                </div>
+              </div>
             </Rv>
 
             {/* Fähigkeiten-Liste */}
@@ -273,10 +374,10 @@ export default function HomePage() {
       {/* ── Zahlen ───────────────────────────────────────────────────── */}
       <NumbersBand />
 
-      {/* ── K.05 — Die Herkunft (Stempelhof) ─────────────────────────── */}
+      {/* ── K.06 — Die Herkunft (Plakettenhof) ───────────────────────── */}
       <section id="herkunft" className="py-[clamp(110px,16vh,190px)] text-center">
         <div className={WRAP}>
-          <Kap label="K.05 — Die Herkunft" center />
+          <Kap label="K.06 — Die Herkunft" center />
           <Rv as="h2" className="st-fade st-display text-[clamp(30px,5vw,64px)]">
             Souverän aus Europa.
           </Rv>
@@ -306,9 +407,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Finale: dunkler Anker, fließt in den Studio-Footer ───────── */}
-      <section id="demo-cta" className="st-on-dark relative overflow-hidden bg-anchor py-[clamp(110px,17vh,210px)]">
-        <div className={WRAP}>
+      {/* ── Finale: Twilight-Anker mit Sternen, fließt in den Footer ─── */}
+      <section id="demo-cta" className="st-on-dark st-dusk st-stars relative overflow-hidden py-[clamp(110px,17vh,210px)]">
+        <div className={`${WRAP} relative z-10`}>
           <Rv as="h2" className="st-rv st-display text-[clamp(42px,8.5vw,128px)]">
             <span className="st-ln">
               <i>Hör deiner</i>

@@ -1,11 +1,9 @@
-import Link from "next/link";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import {
   Container,
   Section,
   SectionHeading,
   Eyebrow,
-  CornerBrackets,
   StatusTag,
 } from "./primitives";
 import { CtaLink } from "./CtaLink";
@@ -19,11 +17,10 @@ type Cta = { label: string; href: string };
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
 /**
- * Shared module-page template (§4.3). Every product page composes these in the
- * same order — ModuleHero → HowItWorks → (demo) → ExampleCard → ProofPoints →
- * (cross-links) → CTASection — so the four modules read as EQUALLY weighted
- * regardless of how much source copy each had. Etappe A proves the template on
- * /produkt/sales-intelligence; Etappe B reuses it for the other three.
+ * Shared page-building blocks (Hero, HowItWorks, ProofPoints, ExampleCard) für
+ * die Methoden- und Branchen-Templates. Jede Seite komponiert dieselben Blöcke
+ * in derselben Reihenfolge, damit alle Methoden/Branchen gleich gewichtet
+ * lesen — nur die Copy variiert.
  */
 
 // ── ModuleHero ──────────────────────────────────────────────────────────────
@@ -108,56 +105,6 @@ export function HowItWorks({
             through the numbered nodes on scroll-in and the rings light up in
             sequence (client component; reduced-motion → final state, no movement). */}
         <HowItWorksTimeline steps={steps} />
-      </Container>
-    </Section>
-  );
-}
-
-// ── DemoPlaceholder ─────────────────────────────────────────────────────────
-// Static product-preview slot for module pages without an interactive demo yet
-// (the 3 Etappe-B modules). Sales-Intelligence replaces this slot with the
-// interactive SalesLiveDemo. Real screenshot via next/image lands later.
-export function DemoPlaceholder({
-  eyebrow = "Produkt-Demo",
-  title,
-  lead,
-  label = "Produkt-Vorschau",
-}: {
-  eyebrow?: ReactNode;
-  title: ReactNode;
-  lead?: ReactNode;
-  label?: string;
-}) {
-  return (
-    <Section>
-      <Container>
-        <Reveal>
-          <SectionHeading eyebrow={eyebrow} title={title} lead={lead} />
-        </Reveal>
-        <Reveal>
-          {/* A recessed neutral-50 panel on the white section — reads clearly as
-              an intentional, framed preview slot (not a broken/empty element).
-              Honest placeholder: a real screenshot / Remotion walk-through lands
-              here later; we never fake a product window. */}
-          <div className="relative mt-12 aspect-[16/9] w-full overflow-hidden rounded border border-neutral-200 bg-neutral-50">
-            <CornerBrackets className="border-primary-200" />
-            <div
-              aria-hidden
-              className="absolute inset-0 opacity-50"
-              style={{
-                backgroundImage:
-                  "radial-gradient(#d4d4d8 0.5px, transparent 0.5px)",
-                backgroundSize: "22px 22px",
-              }}
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
-              <span className="rounded border border-neutral-200 bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-500">
-                Vorschau folgt
-              </span>
-              <span className="text-xs text-neutral-500">{label}</span>
-            </div>
-          </div>
-        </Reveal>
       </Container>
     </Section>
   );
@@ -268,54 +215,6 @@ export function ProofPoints({
   );
 }
 
-// ── ModuleCrossLinks ────────────────────────────────────────────────────────
-const ALL_MODULES = [
-  { slug: "sales-intelligence", name: "Sales Intelligence" },
-  { slug: "customer-health", name: "Customer Success Health" },
-  { slug: "product-discovery", name: "Product Discovery" },
-  { slug: "market-research", name: "Market Research" },
-];
-
-export function ModuleCrossLinks({ current }: { current: string }) {
-  const others = ALL_MODULES.filter((m) => m.slug !== current);
-  return (
-    <Section tone="muted">
-      <Container>
-        <Reveal>
-          <div className="flex flex-col gap-6">
-            <Eyebrow>Weiter im System</Eyebrow>
-            <div className="grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-4">
-              {others.map((m) => (
-                <Link
-                  key={m.slug}
-                  href={`/produkt/${m.slug}`}
-                  className="group flex items-center justify-between gap-2 bg-white p-5 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
-                >
-                  {m.name}
-                  <span
-                    aria-hidden
-                    className="text-primary-600 transition-transform group-hover:translate-x-0.5"
-                  >
-                    →
-                  </span>
-                </Link>
-              ))}
-              <Link
-                href="/produkt"
-                className="group flex items-center justify-between gap-2 bg-white p-5 text-sm font-medium text-primary-700 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
-              >
-                Alle Module ansehen
-                <span
-                  aria-hidden
-                  className="transition-transform group-hover:translate-x-0.5"
-                >
-                  →
-                </span>
-              </Link>
-            </div>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  );
-}
+// ModuleCrossLinks + DemoPlaceholder (die alten Modul-Querverweise) wurden mit
+// der Produkt-Achse entfernt — die Methoden- und Branchen-Seiten bringen ihre
+// eigenen Grids mit (MethodGrid / IndustryGrid).
