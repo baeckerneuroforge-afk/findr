@@ -22,9 +22,16 @@ import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
  *     loads context, persists transcript turns and calls complete — this
  *     component only connects, moves audio in/out and renders live state.
  *   - Live captions arrive on the `lk.transcription` text stream
- *     (TranscriptSynchronizer → RoomIO). If the stream stays silent we degrade
- *     honestly: the ticker shows the server-rendered history plus a hint.
+ *     (TranscriptSynchronizer → RoomIO). E3: they are no longer rendered as a
+ *     running ticker — the live view centers a state-driven orb instead. The
+ *     stream is still consumed and kept in state: the collapsed "last
+ *     question" fallback (accessibility: didn't catch it acoustically) shows
+ *     the newest agent segment, with the server-rendered history as fallback.
  *     Deliberately NO polling endpoint (O2).
+ *   - The orb state comes from the standard `lk.agent.state` participant
+ *     attribute (initializing/listening/thinking/speaking) published by the
+ *     livekit-agents session; if the attribute never arrives we degrade to
+ *     the ActiveSpeakersChanged boolean (speaking/listening only).
  *
  * Completion: the agent finishes → room empties / disconnects → we re-render
  * the server component (router.refresh, bounded attempts) until the session
@@ -70,6 +77,18 @@ interface LiveSegment {
   final: boolean;
 }
 
+/** `lk.agent.state` values published by the livekit-agents AgentSession. */
+type AgentState = "initializing" | "listening" | "thinking" | "speaking";
+
+function parseAgentState(value: string | undefined): AgentState | null {
+  return value === "initializing" ||
+    value === "listening" ||
+    value === "thinking" ||
+    value === "speaking"
+    ? value
+    : null;
+}
+
 const DEFAULT_ACCENT = "#4A51A8";
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 const FONT = "var(--font-inter), Inter, system-ui, -apple-system, sans-serif";
@@ -86,13 +105,6 @@ const ENDED_CHECK_INTERVAL_MS = 1_500;
 /** Collapse whitespace + case for the opening-echo comparison. */
 function normalizeForEcho(text: string): string {
   return text.toLowerCase().replace(/\s+/g, " ").trim();
-}
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
 }
 
 /** Ring spinner — mirrors InterviewChat's Spinner (motion-safe gated). */
@@ -165,23 +177,118 @@ function VoiceStimulusPanel({ url, kind }: { url: string; kind: "image" | "link"
   );
 }
 
-function VoiceBubble({ role, text, interim = false }: {
-  role: InterviewTurn["role"];
-  text: string;
-  interim?: boolean;
-}) {
-  const isAgent = role === "agent";
+/**
+ * Conversation orb — visualizes the agent state in the live phase. Pure CSS
+ * keyframes on transform/opacity only (compositor-friendly, no layout work);
+ * `prefers-reduced-motion` freezes everything to the static rings and the
+ * text label underneath carries the state. Colors derive from the white-label
+ * accent: speaking = full accent, listening = subtly lightened (`color-mix`
+ * with a plain-accent fallback for browsers without it), thinking in between.
+ */
+const ORB_CSS = `
+.voice-orb {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  --orb-color: var(--brand-accent);
+}
+.voice-orb[data-state="listening"] {
+  --orb-color: var(--brand-accent);
+  --orb-color: color-mix(in oklab, var(--brand-accent) 72%, white);
+}
+.voice-orb[data-state="thinking"],
+.voice-orb[data-state="initializing"] {
+  --orb-color: var(--brand-accent);
+  --orb-color: color-mix(in oklab, var(--brand-accent) 88%, white);
+}
+.voice-orb__halo,
+.voice-orb__ring,
+.voice-orb__core {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform, opacity;
+}
+.voice-orb__halo {
+  inset: -24px;
+  background: var(--orb-color);
+  opacity: 0.12;
+  filter: blur(18px);
+}
+.voice-orb__ring {
+  inset: 0;
+  border: 2px solid var(--orb-color);
+  opacity: 0.35;
+}
+.voice-orb__core {
+  inset: 20px;
+  background: var(--orb-color);
+}
+@keyframes voice-orb-ring-speak {
+  0%, 100% { transform: scale(1); opacity: 0.45; }
+  50% { transform: scale(1.45); opacity: 0.12; }
+}
+@keyframes voice-orb-core-speak {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+@keyframes voice-orb-ring-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(1.1); opacity: 0.22; }
+}
+@keyframes voice-orb-core-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+@keyframes voice-orb-ring-think {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.25); opacity: 0.18; }
+}
+@keyframes voice-orb-core-think {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+@keyframes voice-orb-halo-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.1; }
+  50% { transform: scale(1.08); opacity: 0.2; }
+}
+.voice-orb[data-state="speaking"] .voice-orb__ring {
+  animation: voice-orb-ring-speak 1.1s ease-in-out infinite;
+}
+.voice-orb[data-state="speaking"] .voice-orb__core {
+  animation: voice-orb-core-speak 1.1s ease-in-out infinite;
+}
+.voice-orb[data-state="speaking"] .voice-orb__halo {
+  animation: voice-orb-halo-pulse 1.1s ease-in-out infinite;
+}
+.voice-orb[data-state="listening"] .voice-orb__ring {
+  animation: voice-orb-ring-breathe 4s ease-in-out infinite;
+}
+.voice-orb[data-state="listening"] .voice-orb__core {
+  animation: voice-orb-core-breathe 4s ease-in-out infinite;
+}
+.voice-orb[data-state="thinking"] .voice-orb__ring,
+.voice-orb[data-state="initializing"] .voice-orb__ring {
+  animation: voice-orb-ring-think 2.2s ease-in-out infinite;
+}
+.voice-orb[data-state="thinking"] .voice-orb__core,
+.voice-orb[data-state="initializing"] .voice-orb__core {
+  animation: voice-orb-core-think 2.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-orb__halo,
+  .voice-orb__ring,
+  .voice-orb__core {
+    animation: none !important;
+  }
+}
+`;
+
+function VoiceOrb({ state }: { state: AgentState }) {
   return (
-    <div className={`flex ${isAgent ? "justify-start" : "justify-end"}`}>
-      <div
-        className={`max-w-[82%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${
-          isAgent
-            ? "rounded-tl-sm bg-[#F4F1FD] text-[#0E0A1F]"
-            : "rounded-tr-sm bg-[var(--brand-accent)] text-white"
-        } ${interim ? "opacity-70" : ""}`}
-      >
-        {text}
-      </div>
+    <div className="voice-orb" data-state={state} aria-hidden="true">
+      <span className="voice-orb__halo" />
+      <span className="voice-orb__ring" />
+      <span className="voice-orb__core" />
     </div>
   );
 }
@@ -222,6 +329,9 @@ export function VoiceInterviewView({
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [liveSegments, setLiveSegments] = useState<LiveSegment[]>([]);
   const [endedTick, setEndedTick] = useState(0);
+  /** `lk.agent.state` attribute value; null until the agent publishes one. */
+  const [agentState, setAgentState] = useState<AgentState | null>(null);
+  const [showLastQuestion, setShowLastQuestion] = useState(false);
 
   const roomRef = useRef<Room | null>(null);
   const phaseRef = useRef<Phase>(phase);
@@ -229,7 +339,6 @@ export function VoiceInterviewView({
   const intentionalCloseRef = useRef(false);
   const agentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioHostRef = useRef<HTMLDivElement | null>(null);
-  const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -246,14 +355,6 @@ export function VoiceInterviewView({
       void roomRef.current?.disconnect();
     };
   }, []);
-
-  // Keep the ticker pinned to the newest turn.
-  useEffect(() => {
-    endRef.current?.scrollIntoView({
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-      block: "end",
-    });
-  }, [initialConversation.length, liveSegments, phase]);
 
   // Ended → bounded status re-checks. router.refresh() re-renders the server
   // component; client state survives, only the props update. The status-flip
@@ -343,6 +444,8 @@ export function VoiceInterviewView({
     setLiveSegments([]);
     setEndedTick(0);
     setAgentSpeaking(false);
+    setAgentState(null);
+    setShowLastQuestion(false);
     setMuted(false);
     setAudioBlocked(false);
     setReconnecting(false);
@@ -408,7 +511,19 @@ export function VoiceInterviewView({
       if (phaseRef.current === "connecting") setPhase("live");
     };
 
-    room.on(lk.RoomEvent.ParticipantConnected, goLive);
+    room.on(lk.RoomEvent.ParticipantConnected, (participant) => {
+      const state = parseAgentState(participant.attributes?.["lk.agent.state"]);
+      if (state) setAgentState(state);
+      goLive();
+    });
+    // Orb state — the agents framework publishes `lk.agent.state` on the
+    // agent participant. Guard against the local participant anyway and let
+    // parseAgentState drop anything unknown.
+    room.on(lk.RoomEvent.ParticipantAttributesChanged, (changed, participant) => {
+      if (participant === room.localParticipant) return;
+      const state = parseAgentState(changed["lk.agent.state"]);
+      if (state) setAgentState(state);
+    });
     room.on(lk.RoomEvent.TrackSubscribed, (track) => {
       if (track.kind === lk.Track.Kind.Audio) {
         const el = track.attach();
@@ -504,7 +619,20 @@ export function VoiceInterviewView({
   }
 
   const heading = headingOverride ?? t("header.titleResearch");
-  const hasLiveCaptions = liveSegments.length > 0;
+
+  // Orb state: prefer the published agent state, fall back to the
+  // ActiveSpeakersChanged boolean if the attribute never arrived.
+  const orbState: AgentState =
+    agentState ?? (agentSpeaking ? "speaking" : "listening");
+
+  // Accessibility fallback ("didn't catch that"): newest agent caption, or —
+  // before any caption arrived — the last agent turn already in the history
+  // (the opening question is suppressed as an echo, so it only lives there).
+  const lastAgentText =
+    [...liveSegments].reverse().find((seg) => seg.role === "agent")?.text ??
+    [...initialConversation].reverse().find((turn) => turn.role === "agent")
+      ?.text ??
+    null;
 
   // ── Right-column content per phase ────────────────────────────────────────
   let content: React.ReactNode;
@@ -600,53 +728,20 @@ export function VoiceInterviewView({
       </div>
     );
   } else {
-    // ── live ──
+    // ── live ── calm right column: centered orb + status label, the
+    // collapsed last-question fallback underneath, mute + end at the bottom.
     const statusLabel = reconnecting
       ? t("voiceLive.live.reconnecting")
-      : agentSpeaking
+      : orbState === "speaking"
         ? t("voiceLive.live.speaking")
-        : muted
-          ? t("voiceLive.live.mutedStatus")
-          : t("voiceLive.live.listening");
+        : orbState === "thinking" || orbState === "initializing"
+          ? t("voiceLive.live.thinking")
+          : muted
+            ? t("voiceLive.live.mutedStatus")
+            : t("voiceLive.live.listening");
     content = (
       <>
-        <div className="sticky top-0 z-10 -mx-1 flex items-center justify-between gap-3 bg-white px-1 py-3">
-          <span
-            className="inline-flex h-[36px] items-center gap-2 rounded-full border border-[#E8E4F2] bg-[#FAFAFE] px-3.5 text-[12px] font-medium text-[#0E0A1F]"
-            role="status"
-          >
-            {reconnecting ? (
-              <RingSpinner className="h-3 w-3 text-[#8A85A0]" />
-            ) : agentSpeaking ? (
-              <span className="flex items-end gap-[2px]" aria-hidden="true">
-                {["0ms", "150ms", "300ms"].map((d) => (
-                  <span
-                    key={d}
-                    className="inline-block h-[10px] w-[3px] rounded-full bg-[var(--brand-accent)] motion-safe:animate-pulse"
-                    style={{ animationDelay: d }}
-                  />
-                ))}
-              </span>
-            ) : (
-              <span
-                className={`inline-block h-2 w-2 rounded-full ${
-                  muted ? "bg-[#B7B0CC]" : "bg-[#2E9E6B] motion-safe:animate-pulse"
-                }`}
-                aria-hidden="true"
-              />
-            )}
-            {statusLabel}
-          </span>
-          <button
-            type="button"
-            onClick={() => void toggleMute()}
-            aria-pressed={muted}
-            className="inline-flex h-[36px] shrink-0 items-center gap-2 rounded-full border border-[#E8E4F2] bg-[#FAFAFE] px-3.5 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:bg-[#F4F1FD]"
-          >
-            <MicGlyph size={14} muted={muted} />
-            {muted ? t("voiceLive.live.unmute") : t("voiceLive.live.mute")}
-          </button>
-        </div>
+        <style>{ORB_CSS}</style>
 
         {audioBlocked && (
           <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-3">
@@ -663,27 +758,49 @@ export function VoiceInterviewView({
           </div>
         )}
 
-        <p className="mb-2 mt-1 text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
-          {t("voiceLive.live.transcriptLabel")}
-        </p>
-        <div className="flex-1 space-y-4">
-          {initialConversation.map((turn, i) => (
-            <VoiceBubble key={`h-${i}`} role={turn.role} text={turn.text} />
-          ))}
-          {liveSegments.map((seg) => (
-            <VoiceBubble
-              key={seg.key}
-              role={seg.role}
-              text={seg.text}
-              interim={!seg.final}
-            />
-          ))}
-          {!hasLiveCaptions && (
-            <p className="text-[12px] leading-relaxed text-[#8A85A0]">
-              {t("voiceLive.live.transcriptHint")}
-            </p>
-          )}
-          <div ref={endRef} />
+        <div className="flex min-h-[320px] flex-1 flex-col items-center justify-center py-8">
+          <VoiceOrb state={orbState} />
+          <p
+            role="status"
+            className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium text-[#6B6680]"
+          >
+            {reconnecting && <RingSpinner className="h-3 w-3 text-[#8A85A0]" />}
+            {statusLabel}
+          </p>
+
+          <div className="mt-6 flex w-full max-w-md flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setShowLastQuestion((open) => !open)}
+              aria-expanded={showLastQuestion}
+              className="text-[12px] text-[#8A85A0] underline underline-offset-2 transition-colors hover:text-[#0E0A1F]"
+            >
+              {showLastQuestion
+                ? t("voiceLive.lastQuestion.hide")
+                : t("voiceLive.lastQuestion.show")}
+            </button>
+            {showLastQuestion && (
+              <div className="mt-3 w-full rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-3 text-[14px] leading-relaxed text-[#0E0A1F]">
+                {lastAgentText ?? (
+                  <span className="text-[#8A85A0]">
+                    {t("voiceLive.lastQuestion.empty")}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2 pb-2">
+          <button
+            type="button"
+            onClick={() => void toggleMute()}
+            aria-pressed={muted}
+            className="inline-flex h-[38px] items-center gap-2 rounded-full border border-[#E8E4F2] bg-[#FAFAFE] px-4 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:bg-[#F4F1FD]"
+          >
+            <MicGlyph size={14} muted={muted} />
+            {muted ? t("voiceLive.live.unmute") : t("voiceLive.live.mute")}
+          </button>
         </div>
 
         <p className="mt-6 pb-6 text-center text-[11px] text-[#9B9BA3]">

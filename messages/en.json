@@ -68,16 +68,20 @@
         "agentWait": "Your interviewer is joining in a moment."
       },
       "live": {
-        "speaking": "Your interviewer is speaking",
-        "listening": "Listening",
+        "speaking": "Speaking …",
+        "listening": "Listening …",
+        "thinking": "Thinking …",
         "mutedStatus": "Microphone is muted",
         "reconnecting": "Reconnecting …",
         "mute": "Mute",
         "unmute": "Unmute",
-        "transcriptLabel": "Transcript",
-        "transcriptHint": "The live transcript may appear with a delay — the conversation continues regardless.",
         "soundBlocked": "Enable sound",
         "soundBlockedHint": "Your browser blocks audio playback until you allow it once."
+      },
+      "lastQuestion": {
+        "show": "Show last question",
+        "hide": "Hide last question",
+        "empty": "No question has come through yet."
       },
       "ended": {
         "checking": "Wrapping up the interview …"

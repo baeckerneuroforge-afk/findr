@@ -68,16 +68,20 @@
         "agentWait": "Ihr Gesprächspartner kommt gleich dazu."
       },
       "live": {
-        "speaking": "Ihr Interviewer spricht",
-        "listening": "Hört zu",
+        "speaking": "Spricht …",
+        "listening": "Hört zu …",
+        "thinking": "Denkt nach …",
         "mutedStatus": "Mikrofon ist stumm",
         "reconnecting": "Verbindung wird wiederhergestellt …",
         "mute": "Stummschalten",
         "unmute": "Stummschaltung aufheben",
-        "transcriptLabel": "Mitschrift",
-        "transcriptHint": "Die Live-Mitschrift kann verzögert erscheinen — das Gespräch läuft davon unabhängig weiter.",
         "soundBlocked": "Ton aktivieren",
         "soundBlockedHint": "Ihr Browser blockiert die Audio-Wiedergabe, bis Sie sie einmal erlauben."
+      },
+      "lastQuestion": {
+        "show": "Letzte Frage anzeigen",
+        "hide": "Letzte Frage ausblenden",
+        "empty": "Es wurde noch keine Frage übertragen."
       },
       "ended": {
         "checking": "Das Interview wird abgeschlossen …"
