@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>findr. Plattform — Design-Vorschlag v4 (auf dem heutigen Design aufgebaut · statisches Mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ════════════════════════════════════════════════════════════════════════
+   findr. PLATTFORM — Design-Vorschlag v4
+
+   AUFGEBAUT AUF DEM HEUTIGEN DESIGNSYSTEM der Plattform (nicht ersetzt):
+   weiße Sidebar, Neutral-50-Fläche, Indigo #4a51a8 als einziger Akzent,
+   Hanken Grotesk, JetBrains Mono für Zahlen, weiße rounded-lg-Karten,
+   Badge-/Tabellen-Sprache wie im Bestand — nur aufbereitet:
+
+   • klarere Hierarchie (Seitenkopf, Karten-Köpfe, ruhigere Tabellen)
+   • Struktur-Elemente: Breadcrumbs, Status-Stepper, Sektions-Navigation,
+     Zwei-Spalten-Synthese, Quellen-Spalte im Cross-Study
+   • DSGVO ALS DESIGNELEMENT: Teilnehmer pseudonymisiert (P-IDs), Klarnamen/
+     E-Mails standardmäßig maskiert mit Berechtigungs-Hinweis, Zitate nur mit
+     Interview-Nummern — Datenschutz sichtbar, nicht versteckt.
+
+   Statisches Mockup, Beispiel-Daten, kein Produkt-Code berührt.
+   ════════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#fafafa;
+  --surface:#ffffff;
+  --surface-2:#f4f4f5;
+  --border:#e4e4e7;
+  --border-2:#d4d4d8;
+
+  --ink:#18181b;
+  --text:#3f3f46;
+  --muted:#71717a;
+  --faint:#a1a1aa;
+
+  --primary:#4a51a8;
+  --primary-700:#353c8a;
+  --primary-50:#eeeff8;
+  --primary-100:#ededf6;
+  --primary-200:#dcdeef;
+  --primary-300:#b8bbdd;
+
+  --success:#047857;--success-bg:#f0fdf4;--success-bd:rgba(16,185,129,.3);
+  --warning:#b45309;--warning-bg:#fffbeb;--warning-bd:rgba(245,158,11,.3);
+  --danger:#b91c1c;--danger-bg:#fef2f2;--danger-bd:rgba(239,68,68,.3);
+
+  --f:"Hanken Grotesk",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--f);font-size:14px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+}
+::selection{background:var(--primary);color:#fff}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit;text-align:left}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
+
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.caption{font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+
+/* ── App-Raster ───────────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:240px 1fr;height:100vh}
+
+/* ── Sidebar (weiß, wie heute) ────────────────────────────────────── */
+.side{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.side::-webkit-scrollbar{width:0}
+.side-brand{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 16px;border-bottom:1px solid var(--border)}
+.brand{display:inline-flex;align-items:baseline;font-weight:700;font-size:17px;letter-spacing:-.01em;color:var(--ink)}
+.brand i{font-style:normal;width:5px;height:5px;border-radius:50%;background:#bb0000;align-self:center;margin-left:4px}
+.kbd{font-family:var(--mono);font-size:10.5px;color:var(--faint);border:1px solid var(--border);border-radius:5px;padding:2px 6px;cursor:pointer}
+.kbd:hover{color:var(--text);border-color:var(--border-2)}
+
+.side-nav{flex:1;padding:8px 12px 16px}
+.group{margin-top:16px}
+.group-label{padding:0 10px 6px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.item{
+  display:flex;align-items:center;gap:8px;width:100%;
+  padding:6px 10px;border-radius:8px;font-size:13.5px;color:var(--text);
+}
+.item:hover{background:var(--surface-2);color:var(--ink)}
+.item.on{background:var(--primary-50);color:var(--primary-700);font-weight:600}
+.item .count{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint)}
+.item.on .count{color:var(--primary)}
+
+.side-foot{border-top:1px solid var(--border);padding:12px 16px}
+.user{display:flex;align-items:center;gap:9px}
+.avatar{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;background:var(--primary);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;
+}
+.user b{display:block;font-size:12.5px;font-weight:600;color:var(--ink)}
+.user span{display:block;font-size:11.5px;color:var(--faint)}
+.side-compliance{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11.5px;color:var(--faint)}
+.side-compliance svg{flex-shrink:0}
+
+/* ── Hauptbereich ─────────────────────────────────────────────────── */
+.main{display:flex;flex-direction:column;min-width:0;height:100vh}
+.top{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;height:56px;
+  padding-inline:28px;border-bottom:1px solid var(--border);background:var(--surface);
+}
+.crumbs{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted)}
+.crumbs b{font-weight:600;color:var(--ink)}
+.crumbs .sep{color:var(--border-2)}
+.top-right{display:flex;align-items:center;gap:10px}
+.searchpill{
+  display:flex;align-items:center;gap:8px;width:280px;height:32px;
+  border:1px solid var(--border);border-radius:8px;background:var(--bg);
+  padding-inline:11px;color:var(--faint);font-size:13px;cursor:pointer;
+}
+.searchpill:hover{border-color:var(--border-2);background:var(--surface)}
+.searchpill .kbd{margin-left:auto}
+.lang{font-size:12.5px;font-weight:600;color:var(--muted);border:1px solid var(--border);border-radius:7px;padding:4px 9px}
+
+.content{flex:1;overflow-y:auto;padding:32px 36px 80px}
+.content-inner{max-width:1100px;margin-inline:auto}
+
+/* ── Seitenkopf ───────────────────────────────────────────────────── */
+.pagehead{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:26px}
+.pagehead h1{font-size:24px;font-weight:600;letter-spacing:-.015em;color:var(--ink);line-height:1.25}
+.pagehead .sub{margin-top:4px;font-size:14px;color:var(--muted);max-width:62ch}
+.pagehead .actions{display:flex;align-items:center;gap:8px;padding-top:3px}
+.backlink{display:inline-block;font-size:13px;color:var(--muted);margin-bottom:10px;cursor:pointer}
+.backlink:hover{color:var(--ink)}
+.headrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+
+/* Buttons (heutige Sprache: primary indigo, rounded-md) */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:34px;padding-inline:14px;border-radius:8px;font-size:13.5px;font-weight:600;
+  white-space:nowrap;transition:background .12s,border-color .12s;
+}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-700)}
+.btn-ghost{border:1px solid var(--border);color:var(--ink);background:var(--surface)}
+.btn-ghost:hover{border-color:var(--border-2);background:var(--bg)}
+.btn-sm{height:28px;padding-inline:10px;font-size:12.5px;font-weight:500}
+
+/* Badges (heutige Sprache: rounded-md, tinted bg + border) */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;
+  font-size:11.5px;font-weight:600;border:1px solid var(--border);
+  background:var(--surface-2);color:var(--muted);white-space:nowrap;
+}
+.badge i{width:5px;height:5px;border-radius:50%;background:var(--faint)}
+.badge.g{background:var(--success-bg);color:var(--success);border-color:var(--success-bd)}
+.badge.g i{background:#10b981}
+.badge.a{background:var(--warning-bg);color:var(--warning);border-color:var(--warning-bd)}
+.badge.a i{background:#f59e0b}
+.badge.r{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-bd)}
+.badge.r i{background:#ef4444}
+.badge.p{background:var(--primary-50);color:var(--primary-700);border-color:var(--primary-200)}
+.badge.p i{background:var(--primary)}
+
+/* Methoden-Pill */
+.pill{display:inline-flex;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:500;background:var(--surface);color:var(--text);white-space:nowrap}
+
+/* DSGVO: Pseudonym-Chip + maskierte Daten */
+.pseudo{font-family:var(--mono);font-size:12px;color:var(--primary-700);background:var(--primary-50);border-radius:5px;padding:1px 6px}
+.masked{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.04em}
+.privacy-hint{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.privacy-hint svg{flex-shrink:0;color:var(--primary)}
+
+/* ── KPI-Karten (heutige StatCards, aufbereitet) ──────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;box-shadow:0 1px 2px rgba(24,24,27,.03)}
+.kpi .l{font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{margin-top:6px;font-size:27px;font-weight:600;letter-spacing:-.015em;color:var(--ink)}
+.kpi .v small{font-size:14px;font-weight:500;color:var(--faint)}
+.kpi .v.crit{color:var(--danger)}
+.kpi .s{margin-top:3px;font-size:12.5px;color:var(--faint)}
+
+/* ── Karten ───────────────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 1px 2px rgba(24,24,27,.03)}
+.card+.card,.section+.section{margin-top:16px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 20px;border-bottom:1px solid var(--border)}
+.card-head h2{font-size:14px;font-weight:600;color:var(--ink)}
+.card-head .hint{font-size:12.5px;color:var(--faint)}
+.card-head .right{display:flex;align-items:center;gap:10px}
+.card-body{padding:18px 20px}
+.card-foot{padding:11px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12.5px;color:var(--faint)}
+
+/* ── Tabellen (heutige Sprache: caption-Header, aufbereitet) ──────── */
+table{width:100%;border-collapse:collapse}
+th{
+  text-align:left;padding:9px 20px;font-size:11.5px;font-weight:500;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--border);background:var(--bg);
+}
+th.r,td.r{text-align:right}
+td{padding:12px 20px;border-bottom:1px solid var(--surface-2);font-size:13.5px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover{background:var(--bg)}
+.title{display:block;font-weight:600;color:var(--ink)}
+.meta{display:block;margin-top:1px;font-size:12px;color:var(--faint)}
+
+/* Fortschritt */
+.prog{display:flex;align-items:center;gap:10px;min-width:150px}
+.prog .bar{flex:1;height:5px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.prog .bar b{display:block;height:100%;border-radius:99px;background:var(--primary);width:var(--w,0%)}
+.prog.done .bar b{background:#10b981}
+.prog .n{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* ── Studie: Stepper + Rail ───────────────────────────────────────── */
+.steps{display:flex;align-items:center;gap:10px;margin:12px 0 24px;font-size:12.5px;color:var(--faint)}
+.steps .st{display:flex;align-items:center;gap:6px}
+.steps .st i{width:7px;height:7px;border-radius:50%;background:var(--border-2)}
+.steps .st.done{color:var(--muted)}.steps .st.done i{background:var(--faint)}
+.steps .st.on{color:var(--primary-700);font-weight:600}.steps .st.on i{background:var(--primary);box-shadow:0 0 0 3px var(--primary-100)}
+.steps .ln{width:30px;height:1px;background:var(--border)}
+
+.detail-grid{display:grid;grid-template-columns:180px minmax(0,1fr);gap:28px;align-items:start}
+@media(max-width:1000px){.detail-grid{grid-template-columns:1fr}}
+.rail{position:sticky;top:0;display:flex;flex-direction:column;gap:1px;padding-top:2px}
+.rail button{padding:6px 10px;border-radius:8px;font-size:13px;color:var(--muted)}
+.rail button:hover{color:var(--ink);background:var(--surface-2)}
+.rail button.on{color:var(--primary-700);font-weight:600;background:var(--primary-50)}
+
+/* Ziel-Pool */
+.pool{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.pool .big{font-size:36px;font-weight:600;letter-spacing:-.02em;color:var(--ink);line-height:1}
+.pool .big small{font-size:17px;font-weight:500;color:var(--faint)}
+.pool-right{flex:1;min-width:240px}
+.pool-bar{height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.pool-bar b{display:block;height:100%;border-radius:99px;background:var(--primary);width:var(--w,0%)}
+.pool-meta{display:flex;justify-content:space-between;margin-top:7px;font-size:12.5px;color:var(--faint)}
+
+/* Definitionszeilen */
+.def{display:grid;grid-template-columns:150px 1fr;gap:9px 18px;font-size:13.5px}
+.def dt{font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);padding-top:2px}
+.def dd{color:var(--text)}
+
+/* Themen (Leitfaden) */
+.topic{padding:14px 20px;border-bottom:1px solid var(--surface-2)}
+.topic:last-child{border-bottom:0}
+.topic h3{font-size:14px;font-weight:600;color:var(--ink)}
+.topic h3 .tn{display:inline-flex;width:20px;height:20px;border-radius:6px;background:var(--primary-50);color:var(--primary-700);font-size:11.5px;align-items:center;justify-content:center;margin-right:9px;vertical-align:-3px}
+.topic p{margin-top:4px;font-size:13px;color:var(--muted);max-width:76ch}
+.topic .hyp{margin-top:8px;display:flex;flex-direction:column;gap:3px}
+.topic .hyp span{border-left:2px solid var(--primary-200);padding-left:10px;font-size:12.5px;color:var(--muted)}
+.topic .hyp .h-label{border:0;padding:0;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
+
+/* Feldzugang-Zeilen */
+.frow{display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid var(--surface-2)}
+.frow:last-child{border-bottom:0}
+.frow .fr-main{min-width:0;flex:1}
+.frow .fr-main b{display:block;font-size:13.5px;font-weight:600;color:var(--ink)}
+.frow .fr-main span{display:block;margin-top:1px;font-size:12.5px;color:var(--muted)}
+.urlbox{
+  display:inline-flex;align-items:center;gap:10px;margin-top:4px;border:1px solid var(--border);
+  border-radius:7px;background:var(--bg);padding:4px 10px;font-family:var(--mono);font-size:12px;color:var(--muted);
+}
+.urlbox button{color:var(--primary-700);font-size:12px;font-weight:600;font-family:var(--f)}
+.urlbox button:hover{text-decoration:underline}
+
+/* ── Synthese ─────────────────────────────────────────────────────── */
+.synth-grid{display:grid;grid-template-columns:minmax(0,7.4fr) minmax(0,4.6fr);gap:16px;align-items:start}
+@media(max-width:1100px){.synth-grid{grid-template-columns:1fr}}
+.theme{border-bottom:1px solid var(--surface-2)}
+.theme:last-child{border-bottom:0}
+.theme-head{display:flex;align-items:flex-start;gap:12px;width:100%;padding:14px 20px}
+.theme-head:hover{background:var(--bg)}
+.theme-head .chev{margin-top:5px;font-size:9px;color:var(--faint);transition:transform .18s}
+.theme.open .theme-head .chev{transform:rotate(90deg)}
+.theme-head h3{font-size:14px;font-weight:600;color:var(--ink)}
+.theme-head p{margin-top:2px;font-size:13px;color:var(--muted);max-width:58ch}
+.theme-freq{margin-left:auto;flex-shrink:0;text-align:right}
+.theme-freq .n{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.theme-freq .bar{margin-top:6px;width:100px;height:5px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.theme-freq .bar b{display:block;height:100%;border-radius:99px;background:var(--primary);width:var(--w,0%)}
+.theme-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .22s ease}
+.theme.open .theme-body{grid-template-rows:1fr}
+.theme-body>div{overflow:hidden}
+.theme-body .inner{padding:2px 20px 16px 41px;display:flex;flex-direction:column;gap:10px}
+.quote{border-left:2px solid var(--primary-200);padding:2px 0 2px 12px;font-size:13.5px;line-height:1.55;color:var(--text);font-style:italic}
+.quote .src{display:block;margin-top:4px;font-size:11.5px;font-style:normal;color:var(--faint)}
+.quote .src .pseudo{font-size:11px}
+
+.notice{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1px solid var(--primary-200);border-radius:10px;background:var(--primary-50);
+  padding:11px 16px;margin-bottom:16px;font-size:13px;color:var(--primary-700);
+}
+
+/* Chat */
+.chat-body{padding:16px;display:flex;flex-direction:column;gap:11px}
+.chat-q{align-self:flex-end;max-width:88%;background:var(--primary);color:#fff;border-radius:10px 10px 3px 10px;padding:8px 12px;font-size:13px}
+.chat-a{align-self:flex-start;max-width:94%;font-size:13px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:10px 10px 10px 3px;padding:10px 12px}
+.chat-a .quote{margin-top:8px}
+.chat-src{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted)}
+.chat-input{
+  margin:2px 16px 16px;display:flex;align-items:center;gap:10px;
+  border:1px solid var(--border-2);border-radius:9px;padding:3px 4px 3px 12px;background:var(--surface);
+}
+.chat-input input{flex:1;border:0;outline:0;background:none;font:inherit;font-size:13px;color:var(--ink)}
+.chat-input .send{width:27px;height:27px;border-radius:7px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer}
+
+.lrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--surface-2);font-size:13px}
+.lrow:last-child{border-bottom:0}
+
+/* Segmented */
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;padding:2px;background:var(--surface);gap:2px}
+.seg button{border-radius:7px;padding:4px 14px;font-size:13px;color:var(--muted)}
+.seg button.on{background:var(--primary-50);color:var(--primary-700);font-weight:600}
+
+/* Integrationen */
+.int-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:1000px){.int-grid{grid-template-columns:1fr 1fr}}
+.int{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:7px;box-shadow:0 1px 2px rgba(24,24,27,.03)}
+.int .i-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.int .i-name{font-size:14px;font-weight:600;color:var(--ink)}
+.int p{font-size:12.5px;color:var(--muted)}
+.int .i-foot{margin-top:5px;padding-top:9px;border-top:1px solid var(--surface-2);display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint)}
+.int.off{opacity:.55}
+
+/* ⌘K */
+.cmdk{position:fixed;inset:0;z-index:100;display:none;align-items:flex-start;justify-content:center;padding-top:15vh;background:rgba(24,24,27,.35)}
+.cmdk.open{display:flex}
+.cmdk-box{width:min(520px,92vw);background:var(--surface);border-radius:12px;overflow:hidden;box-shadow:0 24px 60px -16px rgba(24,24,27,.3)}
+.cmdk-box input{width:100%;border:0;outline:0;background:transparent;padding:14px 16px;font:inherit;font-size:14px;color:var(--ink);border-bottom:1px solid var(--border)}
+.cmdk-list{padding:6px;max-height:300px;overflow:auto}
+.cmdk-h{padding:8px 12px 3px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.cmdk-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13.5px;color:var(--text);cursor:pointer}
+.cmdk-item:hover{background:var(--primary-50);color:var(--primary-700)}
+.cmdk-item .badge{margin-left:auto}
+
+/* Mockup-Umschalter */
+.demo-switch{
+  position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:80;
+  display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:3px;box-shadow:0 8px 24px -8px rgba(24,24,27,.18);
+}
+.demo-switch button{border-radius:7px;padding:5px 12px;font-size:12.5px;color:var(--muted)}
+.demo-switch button:hover{color:var(--ink)}
+.demo-switch button.on{background:var(--primary);color:#fff;font-weight:600}
+
+.view{display:none}
+.view.on{display:block}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ════ SIDEBAR ═════════════════════════════════════════════════ -->
+  <aside class="side">
+    <div class="side-brand">
+      <span class="brand">findr<i aria-hidden="true"></i></span>
+      <button class="kbd" id="kbdBtn" type="button">⌘K</button>
+    </div>
+
+    <nav class="side-nav">
+      <div class="group">
+        <div class="group-label">Market Research</div>
+        <button class="item on" data-view="mr" type="button">Übersicht <span class="count">6</span></button>
+        <button class="item" data-view="studie" type="button">Studien <span class="count">3</span></button>
+        <button class="item" type="button">Teilnehmer-Pool <span class="count">148</span></button>
+      </div>
+
+      <div class="group">
+        <div class="group-label">Studienübergreifend</div>
+        <button class="item" data-view="cross" type="button">Cross-Study</button>
+      </div>
+
+      <div class="group">
+        <div class="group-label">Workspace</div>
+        <button class="item" data-view="quellen" type="button">Datenquellen</button>
+        <button class="item" type="button">Einstellungen</button>
+      </div>
+    </nav>
+
+    <div class="side-foot">
+      <div class="user">
+        <span class="avatar">AB</span>
+        <span><b>André Bäcker</b><span>NeuroForge GmbH</span></span>
+      </div>
+      <div class="side-compliance">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+        EU-Hosting · Frankfurt · DSGVO
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════ HAUPTBEREICH ════════════════════════════════════════════ -->
+  <div class="main">
+    <header class="top">
+      <div class="crumbs" id="crumbs"><span>Market Research</span><span class="sep">/</span><b>Übersicht</b></div>
+      <div class="top-right">
+        <button class="searchpill" id="searchBtn" type="button">Suchen … <span class="kbd">⌘K</span></button>
+        <span class="lang">DE</span>
+        <span class="avatar">AB</span>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="content-inner">
+
+        <!-- ════ 1 · ÜBERSICHT ══════════════════════════════════════ -->
+        <section class="view on" id="view-mr">
+          <div class="pagehead">
+            <div>
+              <h1>Market Research</h1>
+              <p class="sub">Qualitative Studien mit KI-geführten Tiefeninterviews — jede Erkenntnis am Transkript belegt.</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-ghost" type="button">Teilnehmer-Pool</button>
+              <button class="btn btn-primary" type="button">+ Neue Studie</button>
+            </div>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi"><div class="l">Studien</div><div class="v mono">6</div><div class="s">3 aktiv im Feld</div></div>
+            <div class="kpi"><div class="l">Abgeschl. Interviews</div><div class="v mono">247 <small>/ 600</small></div><div class="s">über alle aktiven Studien</div></div>
+            <div class="kpi"><div class="l">Synthesen bereit</div><div class="v mono crit">2</div><div class="s">warten auf Review</div></div>
+            <div class="kpi"><div class="l">Teilnehmer-Pool</div><div class="v mono">148</div><div class="s">pseudonymisierte Profile</div></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2>Studien</h2>
+              <div class="right"><span class="hint">Beispieldaten</span><button class="btn btn-ghost btn-sm" type="button">Filter</button></div>
+            </div>
+            <table>
+              <thead><tr>
+                <th>Studie</th><th>Methode</th><th>Status</th><th>Fortschritt</th><th>Synthese</th><th class="r">Erstellt</th>
+              </tr></thead>
+              <tbody>
+                <tr class="click" data-view-link="studie">
+                  <td><span class="title">Meal-Planning DACH</span><span class="meta">3 Themen · Screening aktiv</span></td>
+                  <td><span class="pill">Bedarf &amp; Verhalten</span></td>
+                  <td><span class="badge g"><i></i>Aktiv</span></td>
+                  <td><span class="prog"><span class="bar"><b style="--w:23.5%"></b></span><span class="n">47 / 200</span></span></td>
+                  <td><span class="badge p"><i></i>Bereit</span></td>
+                  <td class="r mono">02.06.26</td>
+                </tr>
+                <tr class="click">
+                  <td><span class="title">Marken-Check Q3</span><span class="meta">4 Themen · Screening aktiv</span></td>
+                  <td><span class="pill">Markenwahrnehmung</span></td>
+                  <td><span class="badge g"><i></i>Aktiv</span></td>
+                  <td><span class="prog"><span class="bar"><b style="--w:62%"></b></span><span class="n">93 / 150</span></span></td>
+                  <td><span class="badge"><i></i>—</span></td>
+                  <td class="r mono">28.05.26</td>
+                </tr>
+                <tr class="click">
+                  <td><span class="title">Abo-Konzept v2</span><span class="meta">2 Themen · Stimulus hinterlegt</span></td>
+                  <td><span class="pill">Konzept-Test</span></td>
+                  <td><span class="badge a"><i></i>Screening eng</span></td>
+                  <td><span class="prog"><span class="bar"><b style="--w:14%"></b></span><span class="n">17 / 120</span></span></td>
+                  <td><span class="badge"><i></i>—</span></td>
+                  <td class="r mono">21.05.26</td>
+                </tr>
+                <tr class="click">
+                  <td><span class="title">Spot „Abendchaos“ 20s</span><span class="meta">2 Themen · Stimulus hinterlegt</span></td>
+                  <td><span class="pill">Creative-Test</span></td>
+                  <td><span class="badge"><i></i>Entwurf</span></td>
+                  <td><span class="prog"><span class="bar"><b style="--w:0%"></b></span><span class="n">0 / 80</span></span></td>
+                  <td><span class="badge"><i></i>—</span></td>
+                  <td class="r mono">16.05.26</td>
+                </tr>
+                <tr class="click">
+                  <td><span class="title">Packaging Relaunch</span><span class="meta">3 Themen</span></td>
+                  <td><span class="pill">Konzept-Test</span></td>
+                  <td><span class="badge"><i></i>Abgeschlossen</span></td>
+                  <td><span class="prog done"><span class="bar"><b style="--w:100%"></b></span><span class="n">100 / 100</span></span></td>
+                  <td><span class="badge p"><i></i>Bereit</span></td>
+                  <td class="r mono">02.05.26</td>
+                </tr>
+                <tr class="click">
+                  <td><span class="title">Pricing-Wahrnehmung</span><span class="meta">3 Themen</span></td>
+                  <td><span class="pill">Bedarf &amp; Verhalten</span></td>
+                  <td><span class="badge"><i></i>Abgeschlossen</span></td>
+                  <td><span class="prog done"><span class="bar"><b style="--w:100%"></b></span><span class="n">60 / 60</span></span></td>
+                  <td><span class="badge"><i></i>Geteilt</span></td>
+                  <td class="r mono">18.04.26</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ════ 2 · STUDIE ═════════════════════════════════════════ -->
+        <section class="view" id="view-studie">
+          <span class="backlink" data-view-link="mr">← Übersicht</span>
+          <div class="pagehead" style="margin-bottom:0">
+            <div>
+              <div class="headrow">
+                <h1>Meal-Planning DACH</h1>
+                <span class="badge p"><i></i>Markt-Studie</span>
+                <span class="badge g"><i></i>Aktiv</span>
+              </div>
+              <p class="sub">Bedarf &amp; Verhalten · erstellt am 2. Juni 2026 · Interviews auf Deutsch</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-ghost" type="button">Studie testen</button>
+              <button class="btn btn-primary" data-view-link="synth" type="button">Zur Synthese</button>
+            </div>
+          </div>
+
+          <div class="steps" aria-label="Status">
+            <span class="st done"><i></i>Entwurf</span><span class="ln"></span>
+            <span class="st on"><i></i>Aktiv</span><span class="ln"></span>
+            <span class="st"><i></i>Abgeschlossen</span><span class="ln"></span>
+            <span class="st"><i></i>Archiviert</span>
+          </div>
+
+          <div class="detail-grid">
+            <nav class="rail">
+              <button class="on" type="button">Ziel-Pool</button>
+              <button type="button">Ziel &amp; Stichprobe</button>
+              <button type="button">Leitfaden</button>
+              <button type="button">Feldzugang</button>
+              <button type="button">Teilnehmer</button>
+              <button type="button">Auswertung</button>
+            </nav>
+
+            <div>
+              <div class="card">
+                <div class="card-head"><h2>Ziel-Pool</h2><span class="hint">Nur abgeschlossene Interviews zählen</span></div>
+                <div class="card-body">
+                  <div class="pool">
+                    <div class="big mono">47 <small>/ 200</small></div>
+                    <div class="pool-right">
+                      <div class="pool-bar"><b style="--w:23.5%"></b></div>
+                      <div class="pool-meta"><span>24 % erreicht</span><span>Ø 8:42 min je Interview</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card section">
+                <div class="card-head"><h2>Ziel &amp; Stichprobe</h2><button class="btn btn-ghost btn-sm" type="button">Bearbeiten</button></div>
+                <div class="card-body">
+                  <dl class="def">
+                    <dt>Forschungsziel</dt>
+                    <dd>Verstehen, wie Haushalte in DACH ihre Abendessen-Entscheidungen treffen — und woran bestehende Planungs-Lösungen scheitern.</dd>
+                    <dt>Ziel-Persona</dt>
+                    <dd>Berufstätige 28–45, Haushaltsgröße 2+, kocht mindestens 3× pro Woche selbst.</dd>
+                    <dt>Stichprobenziel</dt>
+                    <dd>200 abgeschlossene Interviews</dd>
+                  </dl>
+                </div>
+              </div>
+
+              <div class="card section">
+                <div class="card-head"><h2>Leitfaden</h2><span class="hint">3 Themen — die KI bohrt je Thema nach</span></div>
+                <div class="topic">
+                  <h3><span class="tn">1</span>Entscheidungsmoment am Abend</h3>
+                  <p>Den konkreten Moment rekonstruieren, in dem entschieden wird, was gekocht wird — Auslöser, Dauer, Gefühl.</p>
+                  <div class="hyp">
+                    <span class="h-label">Private Hypothesen</span>
+                    <span>Die Entscheidung ist anstrengender als das Kochen selbst.</span>
+                    <span>Wochenend-Planung zerfällt unter der Woche.</span>
+                  </div>
+                </div>
+                <div class="topic">
+                  <h3><span class="tn">2</span>Ausweich-Verhalten</h3>
+                  <p>Was passiert, wenn keine Entscheidung fällt — Bestellen, Reste, Ausfall — und wie es sich anfühlt.</p>
+                </div>
+                <div class="topic">
+                  <h3><span class="tn">3</span>Bisherige Lösungsversuche</h3>
+                  <p>Welche Apps und Methoden probiert wurden — und an welchem Punkt sie aufgegeben wurden.</p>
+                </div>
+              </div>
+
+              <div class="card section">
+                <div class="card-head"><h2>Feldzugang</h2><span class="badge g"><i></i>Offen für Teilnahmen</span></div>
+                <div class="frow">
+                  <span class="fr-main">
+                    <b>Offener Studien-Link</b>
+                    <span class="urlbox">findr.de/s/meal-planning-dach-x7f2 <button type="button">Kopieren</button></span>
+                  </span>
+                  <span class="hint" style="font-size:12.5px;color:var(--faint)">Kontingent 250 · gültig bis 31.07.</span>
+                  <span class="badge g"><i></i>Aktiv</span>
+                </div>
+                <div class="frow">
+                  <span class="fr-main"><b>Screening</b><span>2 Fragen vorgeschaltet — nur passende Zielgruppe kommt ins Interview.</span></span>
+                  <button class="btn btn-ghost btn-sm" type="button">Fragen bearbeiten</button>
+                </div>
+                <div class="frow">
+                  <span class="fr-main"><b>Prolific</b><span>Draft angelegt (unveröffentlicht) · Completion-URLs eingerichtet.</span></span>
+                  <span class="badge g"><i></i>Verbunden</span>
+                </div>
+                <div class="frow">
+                  <span class="fr-main"><b>Quote „Vielbesteller“</b><span>Mindestanteil in der Stichprobe.</span></span>
+                  <span class="prog" style="min-width:120px"><span class="bar"><b style="--w:60%"></b></span><span class="n">12 / 20</span></span>
+                </div>
+              </div>
+
+              <!-- DSGVO: Teilnehmer pseudonymisiert, Klarnamen maskiert -->
+              <div class="card section">
+                <div class="card-head">
+                  <h2>Teilnehmer</h2>
+                  <div class="right">
+                    <span class="privacy-hint">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                      Pseudonymisiert — Klarnamen nur mit Berechtigung
+                    </span>
+                    <button class="btn btn-primary btn-sm" type="button">Einladen</button>
+                  </div>
+                </div>
+                <table>
+                  <thead><tr><th>Teilnehmer:in</th><th>Kontakt</th><th>Modus</th><th>Termin</th><th>Status</th><th class="r">Interview-Link</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="pseudo">P-044</span></td>
+                      <td><span class="masked">l.h•••@•••.de</span></td>
+                      <td><span class="pill">Voice</span></td>
+                      <td>—</td>
+                      <td><span class="badge g"><i></i>Abgeschlossen</span></td>
+                      <td class="r"><button class="btn btn-ghost btn-sm" type="button">Kopieren</button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="pseudo">P-045</span></td>
+                      <td><span class="masked">p.y•••@•••.de</span></td>
+                      <td><span class="pill">Text</span></td>
+                      <td class="mono">12.06., 14:00</td>
+                      <td><span class="badge a"><i></i>Geplant</span></td>
+                      <td class="r"><button class="btn btn-ghost btn-sm" type="button">Kopieren</button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="pseudo">P-046</span></td>
+                      <td><span class="masked">anonym · offener Link</span></td>
+                      <td><span class="pill">Voice</span></td>
+                      <td>—</td>
+                      <td><span class="badge g"><i></i>Abgeschlossen</span></td>
+                      <td class="r">—</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="card-foot">
+                  <span>44 weitere anonyme Teilnahmen über den offenen Link</span>
+                  <span>Kontaktdaten einblenden erfordert die Rolle „Owner“ und wird protokolliert</span>
+                </div>
+              </div>
+
+              <div class="card section">
+                <div class="card-head"><h2>Auswertung</h2><span class="badge a"><i></i>3 neue Interviews</span></div>
+                <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+                  <p style="font-size:13px;color:var(--muted);max-width:56ch">Synthese, Chat mit den Daten und Exporte — zuletzt verdichtet vor 2 Stunden aus 44 Interviews.</p>
+                  <button class="btn btn-primary" data-view-link="synth" type="button">Synthese öffnen</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════ 3 · SYNTHESE ═══════════════════════════════════════ -->
+        <section class="view" id="view-synth">
+          <span class="backlink" data-view-link="studie">← Meal-Planning DACH</span>
+          <div class="pagehead">
+            <div>
+              <div class="headrow">
+                <h1>Synthese</h1>
+                <span class="privacy-hint">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                  Zitate pseudonymisiert
+                </span>
+              </div>
+              <p class="sub">47 Interviews · zuletzt verdichtet vor 2 Stunden · jede Zahl am Transkript belegt</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-ghost" type="button">Aktualisieren</button>
+              <button class="btn btn-ghost" type="button">Teilen</button>
+              <button class="btn btn-primary" type="button">PDF-Report</button>
+            </div>
+          </div>
+
+          <div class="notice">
+            <span>3 neue Interviews seit der letzten Synthese</span>
+            <button class="btn btn-primary btn-sm" type="button">Jetzt aktualisieren</button>
+          </div>
+
+          <div class="synth-grid">
+            <div class="card">
+              <div class="card-head"><h2>Themen</h2><span class="hint">Häufigkeit über 47 Interviews</span></div>
+
+              <div class="theme open">
+                <button class="theme-head" type="button">
+                  <span class="chev">▶</span>
+                  <span>
+                    <h3>Entscheidungslast, nicht Rezeptmangel</h3>
+                    <p>Die Hürde ist das tägliche Entscheiden — nicht fehlende Rezepte.</p>
+                  </span>
+                  <span class="theme-freq"><span class="n">31 von 47</span><span class="bar"><b style="--w:66%"></b></span></span>
+                </button>
+                <div class="theme-body"><div><div class="inner">
+                  <p class="quote">„Ich stand jeden Abend planlos vor dem Kühlschrank.“<span class="src"><span class="pseudo">P-001</span> · Interview · 02:14</span></p>
+                  <p class="quote">„Mir fehlt nicht die Idee — mir fehlt die Kraft, mich zu entscheiden.“<span class="src"><span class="pseudo">P-019</span> · Interview · 05:48</span></p>
+                </div></div></div>
+              </div>
+
+              <div class="theme">
+                <button class="theme-head" type="button">
+                  <span class="chev">▶</span>
+                  <span>
+                    <h3>Impulsives Ausweichen aufs Bestellen</h3>
+                    <p>Geplantes Kochen kippt abends in spontanes Bestellen — gegen den eigenen Vorsatz.</p>
+                  </span>
+                  <span class="theme-freq"><span class="n">22 von 47</span><span class="bar"><b style="--w:47%"></b></span></span>
+                </button>
+                <div class="theme-body"><div><div class="inner">
+                  <p class="quote">„Meistens bestelle ich einfach was, obwohl ich's mir anders vorgenommen hatte.“<span class="src"><span class="pseudo">P-001</span> · Interview · 04:02</span></p>
+                </div></div></div>
+              </div>
+
+              <div class="theme">
+                <button class="theme-head" type="button">
+                  <span class="chev">▶</span>
+                  <span>
+                    <h3>Bedien-Hürden bestehender Apps</h3>
+                    <p>Vorhandene Lösungen scheitern am Pflegeaufwand.</p>
+                  </span>
+                  <span class="theme-freq"><span class="n">12 von 47</span><span class="bar"><b style="--w:26%"></b></span></span>
+                </button>
+                <div class="theme-body"><div><div class="inner">
+                  <p class="quote">„Das ewige Eintippen war mir zu mühsam.“<span class="src"><span class="pseudo">P-007</span> · Interview · 03:31</span></p>
+                </div></div></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card">
+                <div class="card-head"><h2>Chat mit den Daten</h2></div>
+                <div class="chat-body">
+                  <div class="chat-q">Welche Rolle spielt der Preis beim Ausweichen aufs Bestellen?</div>
+                  <div class="chat-a">
+                    Preis wird in <b>9 von 22</b> Bestell-Nennungen als Reue-Faktor genannt — <b>nach</b> der Entscheidung, nie als Auslöser.
+                    <p class="quote">„Hinterher ärgere ich mich über die 30 Euro.“<span class="src"><span class="pseudo">P-033</span> · Interview · 06:12</span></p>
+                  </div>
+                </div>
+                <div class="chat-input">
+                  <input placeholder="Frag den Studien-Korpus …" />
+                  <span class="send" aria-hidden>↑</span>
+                </div>
+              </div>
+
+              <div class="card section">
+                <div class="card-head"><h2>Weitergeben</h2></div>
+                <div class="lrow"><span>Geteilter Ergebnis-Link</span><span class="hint" style="font-size:12px;color:var(--faint)">2 aktiv · anonymisiert</span></div>
+                <div class="lrow"><span>PDF-Report</span><button class="btn btn-ghost btn-sm" type="button">Export</button></div>
+                <div class="lrow"><span>PPTX-Export</span><button class="btn btn-ghost btn-sm" type="button">Export</button></div>
+                <div class="lrow"><span>Highlight-Reel</span><span class="badge a"><i></i>Bald</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════ 4 · CROSS-STUDY ════════════════════════════════════ -->
+        <section class="view" id="view-cross">
+          <div class="pagehead">
+            <div>
+              <h1>Cross-Study</h1>
+              <p class="sub">Frag über alle Studien hinweg — exakt gezählt, jede Zahl mit einem Zitat je Studie belegt.</p>
+            </div>
+            <div class="seg" role="tablist">
+              <button class="on" type="button">Chat</button>
+              <button type="button">Agent</button>
+            </div>
+          </div>
+
+          <div class="synth-grid">
+            <div class="card">
+              <div class="card-head"><h2>Chat</h2><span class="hint">Korpus: 7 Synthesen · 412 Interviews</span></div>
+              <div class="chat-body">
+                <div class="chat-q">In wie vielen Studien taucht Preis-Sensibilität als Thema auf?</div>
+                <div class="chat-a">
+                  Preis-Sensibilität erscheint in <b>3 von 7 Studien</b>:
+                  <div class="chat-src"><span class="pill">Meal-Planning DACH</span>Reue-Faktor nach Bestellungen</div>
+                  <p class="quote">„Hinterher ärgere ich mich über die 30 Euro.“<span class="src"><span class="pseudo">P-033</span> · Markt-Studie</span></p>
+                  <div class="chat-src"><span class="pill">Pricing-Wahrnehmung</span>Schwelle bei 9,99 € im Abo</div>
+                  <p class="quote">„Unter zehn Euro denke ich nicht nach.“<span class="src"><span class="pseudo">P-012</span> · Markt-Studie</span></p>
+                  <div class="chat-src"><span class="pill">Packaging Relaunch</span>Preis-Optik vor Regalpreis</div>
+                </div>
+              </div>
+              <div class="chat-input">
+                <input placeholder="Frag alle Studien …" />
+                <span class="send" aria-hidden>↑</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head"><h2>Quellen dieser Antwort</h2></div>
+              <div class="lrow"><span><span class="title" style="font-size:13px">Meal-Planning DACH</span><span class="meta">47 Interviews · vor 2 h verdichtet</span></span><span class="badge p"><i></i>Zitiert</span></div>
+              <div class="lrow"><span><span class="title" style="font-size:13px">Pricing-Wahrnehmung</span><span class="meta">60 Interviews · abgeschlossen</span></span><span class="badge p"><i></i>Zitiert</span></div>
+              <div class="lrow"><span><span class="title" style="font-size:13px">Packaging Relaunch</span><span class="meta">100 Interviews · abgeschlossen</span></span><span class="badge p"><i></i>Zitiert</span></div>
+              <div class="lrow"><span><span class="title" style="font-size:13px">Marken-Check Q3</span><span class="meta">93 Interviews · läuft</span></span><span class="badge"><i></i>Kein Treffer</span></div>
+              <div class="lrow"><span class="hint" style="font-size:12.5px;color:var(--faint)">3 weitere Studien ohne Treffer</span><span></span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════ 5 · DATENQUELLEN ═══════════════════════════════════ -->
+        <section class="view" id="view-quellen">
+          <div class="pagehead">
+            <div>
+              <h1>Datenquellen</h1>
+              <p class="sub">Verbundene Dienste für Rekrutierung, Versand und Benachrichtigungen.</p>
+            </div>
+            <button class="btn btn-ghost" type="button">Verbindung hinzufügen</button>
+          </div>
+
+          <div class="int-grid">
+            <div class="int">
+              <div class="i-top"><span class="i-name">Prolific</span><span class="badge g"><i></i>Verbunden</span></div>
+              <p>Panel-Rekrutierung — Drafts direkt aus dem offenen Studien-Link.</p>
+              <div class="i-foot"><span>Token gültig</span><span>Geprüft vor 12 min</span></div>
+            </div>
+            <div class="int">
+              <div class="i-top"><span class="i-name">E-Mail-Versand</span><span class="badge g"><i></i>Aktiv</span></div>
+              <p>Einladungs- und Erinnerungs-Mails für geplante Interviews.</p>
+              <div class="i-foot"><span>Eigene Domain</span><span>238 zugestellt</span></div>
+            </div>
+            <div class="int">
+              <div class="i-top"><span class="i-name">Slack</span><span class="badge g"><i></i>Verbunden</span></div>
+              <p>Benachrichtigungen bei abgeschlossenen Interviews und Synthesen.</p>
+              <div class="i-foot"><span>#research</span><span>Geprüft vor 1 h</span></div>
+            </div>
+            <div class="int off">
+              <div class="i-top"><span class="i-name">Gong</span><span class="badge"><i></i>Inaktiv</span></div>
+              <p>Call-Import — gehört zu den derzeit deaktivierten Modulen.</p>
+              <div class="i-foot"><span>Modul offline</span><span></span></div>
+            </div>
+            <div class="int off">
+              <div class="i-top"><span class="i-name">HubSpot</span><span class="badge"><i></i>Inaktiv</span></div>
+              <p>CRM-Sync — gehört zu den derzeit deaktivierten Modulen.</p>
+              <div class="i-foot"><span>Modul offline</span><span></span></div>
+            </div>
+            <div class="int">
+              <div class="i-top"><span class="i-name">Datenschutz</span><span class="badge g"><i></i>EU · Frankfurt</span></div>
+              <p>Pseudonymisierung, Export und Löschung pro Studie — Betroffenenrechte in den Einstellungen.</p>
+              <div class="i-foot"><span>DSGVO</span><span>Einstellungen → Daten</span></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ⌘K -->
+<div class="cmdk" id="cmdk">
+  <div class="cmdk-box">
+    <input placeholder="Suchen — Studien, Synthesen, Seiten …" id="cmdkInput" />
+    <div class="cmdk-list">
+      <div class="cmdk-h">Studien</div>
+      <div class="cmdk-item">Meal-Planning DACH <span class="badge g"><i></i>Aktiv</span></div>
+      <div class="cmdk-item">Marken-Check Q3 <span class="badge g"><i></i>Aktiv</span></div>
+      <div class="cmdk-h">Gehe zu</div>
+      <div class="cmdk-item">Cross-Study</div>
+      <div class="cmdk-item">Teilnehmer-Pool</div>
+      <div class="cmdk-item">Datenquellen</div>
+    </div>
+  </div>
+</div>
+
+<!-- Mockup-Umschalter -->
+<div class="demo-switch" role="tablist" aria-label="Demo-Ansichten">
+  <button class="on" data-view-link="mr" type="button">Übersicht</button>
+  <button data-view-link="studie" type="button">Studie</button>
+  <button data-view-link="synth" type="button">Synthese</button>
+  <button data-view-link="cross" type="button">Cross-Study</button>
+  <button data-view-link="quellen" type="button">Datenquellen</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var CRUMBS = {
+    mr: '<span>Market Research</span><span class="sep">/</span><b>Übersicht</b>',
+    studie: '<span>Market Research</span><span class="sep">/</span><span>Studien</span><span class="sep">/</span><b>Meal-Planning DACH</b>',
+    synth: '<span>Meal-Planning DACH</span><span class="sep">/</span><b>Synthese</b>',
+    cross: '<span>Studienübergreifend</span><span class="sep">/</span><b>Cross-Study</b>',
+    quellen: '<span>Workspace</span><span class="sep">/</span><b>Datenquellen</b>'
+  };
+  var NAVMAP = { mr: "mr", studie: "studie", synth: "studie", cross: "cross", quellen: "quellen" };
+
+  function show(view) {
+    document.querySelectorAll(".view").forEach(function (v) {
+      v.classList.toggle("on", v.id === "view-" + view);
+    });
+    document.querySelectorAll(".demo-switch button").forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-view-link") === view);
+    });
+    document.querySelectorAll(".item[data-view]").forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-view") === NAVMAP[view]);
+    });
+    document.getElementById("crumbs").innerHTML = CRUMBS[view] || CRUMBS.mr;
+    document.querySelector(".content").scrollTop = 0;
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-view-link],[data-view]");
+    if (!t) return;
+    var v = t.getAttribute("data-view-link") || t.getAttribute("data-view");
+    if (v) show(v);
+  });
+
+  document.querySelectorAll(".theme-head").forEach(function (h) {
+    h.addEventListener("click", function () {
+      h.parentElement.classList.toggle("open");
+    });
+  });
+
+  var cmdk = document.getElementById("cmdk");
+  function openK() { cmdk.classList.add("open"); document.getElementById("cmdkInput").focus(); }
+  function closeK() { cmdk.classList.remove("open"); }
+  document.getElementById("searchBtn").addEventListener("click", openK);
+  document.getElementById("kbdBtn").addEventListener("click", openK);
+  cmdk.addEventListener("click", function (e) { if (e.target === cmdk) closeK(); });
+  document.addEventListener("keydown", function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openK(); }
+    if (e.key === "Escape") closeK();
+  });
+})();
+</script>
+</body>
+</html>

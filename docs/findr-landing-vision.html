@@ -1,0 +1,1170 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>findr. — Studio-Session (Design-Vision, Entwurf)</title>
+<script>document.documentElement.classList.add("js");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,800&family=Instrument+Serif:ital@1&family=Archivo:wght@400;500&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ════════════════════════════════════════════════════════════════════════
+   findr. — „DIE SESSION“ · eigenständige Design-Vision (kein Bezug zum
+   Live-Designsystem). Idee: qualitative Forschung als Tonstudio-Session.
+   Warmes Analog-Schwarz, Creme-Papier, REC-Rot. Timecodes, Stempel,
+   Bandmaschinen-Ästhetik. Alles Vanilla — keine Frameworks.
+   ════════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0f0d0a;          /* warmes Studio-Schwarz */
+  --bg-lift:#151209;
+  --cream:#f0e8d8;       /* Creme-„Druckfarbe“ auf Schwarz */
+  --cream-60:rgba(240,232,216,.6);
+  --cream-35:rgba(240,232,216,.35);
+  --line:rgba(240,232,216,.14);
+  --line-strong:rgba(240,232,216,.28);
+  --paper:#f2ebdc;       /* Transkript-Papier */
+  --paper-shade:#e7dfcc;
+  --ink:#191512;         /* Tinte auf Papier */
+  --ink-60:rgba(25,21,18,.62);
+  --ink-line:rgba(25,21,18,.16);
+  --rec:#ff4b2e;         /* Aufnahme-Rot */
+  --rec-deep:#d63a22;
+  --live:#46c97a;        /* Live-Lampe */
+  --amber:#e8a33d;
+
+  --f-disp:"Bricolage Grotesque",sans-serif;
+  --f-serif:"Instrument Serif",Georgia,serif;
+  --f-body:"Archivo",system-ui,sans-serif;
+  --f-mono:"Spline Sans Mono",ui-monospace,monospace;
+
+  --ease:cubic-bezier(.19,1,.22,1);
+  --ease-stamp:cubic-bezier(.34,1.56,.64,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  background:var(--bg);color:var(--cream);
+  font-family:var(--f-body);font-size:16px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;overflow-x:clip;
+}
+::selection{background:var(--rec);color:var(--bg)}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--rec);outline-offset:3px;border-radius:2px}
+img,svg,canvas{display:block}
+
+/* Korn über allem — analoge Textur */
+.grain{
+  position:fixed;inset:-50%;z-index:80;pointer-events:none;opacity:.05;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.wrap{margin-inline:auto;width:100%;max-width:1280px;padding-inline:clamp(20px,4vw,56px)}
+
+/* Mono-Etiketten (Tape-Label) */
+.tag{
+  font-family:var(--f-mono);font-size:11px;font-weight:500;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--cream-60);
+}
+.tag--ink{color:var(--ink-60)}
+
+/* Kapitelmarke */
+.kap{display:flex;align-items:center;gap:14px;margin-bottom:clamp(36px,5vw,64px)}
+.kap .tag{color:var(--rec)}
+.kap::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ── Zeilen-Maskenreveal (kinetische Typo) ─────────────────────────── */
+.ln{display:block;overflow:hidden;padding-block:.06em;margin-block:-.06em}
+.ln i{display:block;font-style:normal;transform:none;transition:transform 1s var(--ease)}
+.js .ln i{transform:translateY(115%)}
+.js .rv.in .ln i{transform:translateY(0)}
+.js .rv.in .ln:nth-child(2) i{transition-delay:.08s}
+.js .rv.in .ln:nth-child(3) i{transition-delay:.16s}
+
+.fade{opacity:1;transform:none;transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.js .fade{opacity:0;transform:translateY(22px)}
+.js .fade.in{opacity:1;transform:none}
+
+@media(prefers-reduced-motion:reduce){
+  .js .ln i,.js .fade{transform:none!important;opacity:1!important;transition:none!important}
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+}
+
+/* ── Cursor (nur Desktop-Pointer) ──────────────────────────────────── */
+.cursor-dot,.cursor-ring{position:fixed;left:0;top:0;z-index:99;pointer-events:none;border-radius:50%;display:none}
+.cursor-dot{width:6px;height:6px;background:var(--rec)}
+.cursor-ring{width:34px;height:34px;border:1px solid rgba(255,75,46,.55);transition:width .25s,height .25s,border-color .25s}
+.cursor-ring.hot{width:56px;height:56px;border-color:var(--cream)}
+@media(pointer:fine){
+  html.cursor-on .cursor-dot,html.cursor-on .cursor-ring{display:block}
+  html.cursor-on,html.cursor-on a,html.cursor-on button{cursor:none}
+}
+
+/* ── Header ────────────────────────────────────────────────────────── */
+.top{
+  position:fixed;inset-inline:0;top:0;z-index:60;
+  transition:background .3s,border-color .3s,backdrop-filter .3s;
+  border-bottom:1px solid transparent;
+}
+.top.solid{background:rgba(15,13,10,.82);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom-color:var(--line)}
+.top-in{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:baseline;gap:2px;font-family:var(--f-disp);font-weight:800;font-size:22px;letter-spacing:-.02em}
+.brand i{font-style:normal;width:7px;height:7px;border-radius:50%;background:var(--rec);align-self:center;margin-left:5px;animation:blink 2.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.top-nav{display:none;gap:34px}
+@media(min-width:840px){.top-nav{display:flex}}
+.top-nav a{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--cream-60);transition:color .2s}
+.top-nav a:hover{color:var(--cream)}
+.top-cta{
+  display:inline-flex;align-items:center;gap:8px;height:38px;padding-inline:18px;
+  border:1px solid var(--line-strong);border-radius:999px;
+  font-family:var(--f-mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;
+  transition:background .25s,color .25s,border-color .25s;
+}
+.top-cta:hover{background:var(--cream);color:var(--bg);border-color:var(--cream)}
+
+/* ── Kapitel-Rail (links, Desktop) ─────────────────────────────────── */
+.rail{position:fixed;left:18px;top:50%;transform:translateY(-50%);z-index:55;display:none;flex-direction:column;gap:18px}
+@media(min-width:1200px){.rail{display:flex}}
+.rail a{display:flex;align-items:center;gap:10px;font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;color:var(--cream-35);transition:color .3s}
+.rail a::before{content:"";width:14px;height:1px;background:currentColor;transition:width .3s}
+.rail a.on{color:var(--rec)}
+.rail a.on::before{width:26px}
+
+/* ── Hero ──────────────────────────────────────────────────────────── */
+.hero{position:relative;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;padding-top:120px;overflow:hidden}
+.hero-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:clamp(24px,4vh,48px)}
+.rec-chip{display:inline-flex;align-items:center;gap:9px;font-family:var(--f-mono);font-size:11.5px;letter-spacing:.2em;color:var(--cream-60)}
+.rec-chip b{width:9px;height:9px;border-radius:50%;background:var(--rec);animation:blink 1.6s infinite;box-shadow:0 0 12px rgba(255,75,46,.8)}
+.tc{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.18em;color:var(--cream-60);font-variant-numeric:tabular-nums}
+
+.hero h1{
+  font-family:var(--f-disp);font-weight:800;text-transform:uppercase;
+  font-size:clamp(46px,10.4vw,156px);line-height:.95;letter-spacing:-.025em;
+  font-variation-settings:"opsz" 96;
+}
+.hero h1 .serif{
+  font-family:var(--f-serif);font-style:italic;font-weight:400;text-transform:none;
+  letter-spacing:-.01em;color:var(--rec);font-size:1.04em;
+}
+.hero-sub{
+  display:grid;gap:28px;margin-top:clamp(28px,4vh,52px);
+  padding-bottom:clamp(120px,18vh,200px);
+}
+@media(min-width:840px){.hero-sub{grid-template-columns:minmax(0,560px) auto;justify-content:space-between;align-items:end}}
+.hero-sub p{font-size:clamp(16px,1.4vw,19px);line-height:1.7;color:var(--cream-60);max-width:54ch}
+.hero-sub p b{color:var(--cream);font-weight:500}
+.hero-ctas{display:flex;flex-wrap:wrap;gap:14px}
+
+.btn-rec{
+  position:relative;display:inline-flex;align-items:center;gap:12px;
+  height:56px;padding-inline:30px;border-radius:999px;
+  background:var(--rec);color:#16100d;font-weight:500;font-size:16px;
+  transition:background .25s,transform .25s;will-change:transform;
+}
+.btn-rec:hover{background:#ff6045}
+.btn-rec .dot{width:8px;height:8px;border-radius:50%;background:#16100d}
+.btn-ghost{
+  display:inline-flex;align-items:center;gap:10px;height:56px;padding-inline:26px;border-radius:999px;
+  border:1px solid var(--line-strong);color:var(--cream);font-size:16px;
+  transition:border-color .25s,background .25s;will-change:transform;
+}
+.btn-ghost:hover{border-color:var(--cream);background:rgba(240,232,216,.06)}
+
+#wave{position:absolute;left:0;right:0;bottom:64px;width:100%;height:110px;opacity:.5;pointer-events:none}
+
+/* Laufband */
+.marquee{position:relative;border-block:1px solid var(--line);overflow:hidden;padding-block:16px;background:var(--bg)}
+.marquee-track{display:flex;gap:0;width:max-content;animation:mq 36s linear infinite}
+@keyframes mq{to{transform:translateX(-50%)}}
+.marquee span{
+  font-family:var(--f-disp);font-weight:300;font-size:clamp(18px,2.2vw,26px);
+  letter-spacing:.02em;color:var(--cream-60);white-space:nowrap;padding-inline:28px;
+  display:inline-flex;align-items:center;gap:28px;
+}
+.marquee span::after{content:"✺";color:var(--rec);font-size:.8em}
+@media(prefers-reduced-motion:reduce){.marquee-track{animation:none}}
+
+/* ── Statement (Scroll-Marker) ─────────────────────────────────────── */
+.statement{padding-block:clamp(110px,16vh,200px)}
+.statement p.big{
+  font-family:var(--f-disp);font-weight:500;font-size:clamp(27px,4.4vw,58px);
+  line-height:1.22;letter-spacing:-.02em;max-width:21ch;
+}
+.statement p.big + p.big{margin-top:1.2em}
+.hl{position:relative;white-space:nowrap}
+.hl::after{
+  content:"";position:absolute;left:-2px;right:-2px;bottom:.04em;height:.42em;z-index:-1;
+  background:var(--rec);opacity:.85;transform:scaleX(0);transform-origin:left;
+  transition:transform .8s var(--ease);
+}
+.hl.mark::after{transform:scaleX(1)}
+.hl--soft::after{background:var(--amber);opacity:.5}
+
+.rules{margin-top:clamp(64px,9vh,110px);border-top:1px solid var(--line)}
+.rule{
+  display:grid;grid-template-columns:64px 1fr;gap:18px;align-items:baseline;
+  padding-block:26px;border-bottom:1px solid var(--line);
+  transition:padding-left .35s var(--ease);
+}
+@media(min-width:760px){.rule{grid-template-columns:90px minmax(0,420px) 1fr}}
+.rule:hover{padding-left:14px}
+.rule .n{font-family:var(--f-mono);font-size:12px;letter-spacing:.2em;color:var(--rec)}
+.rule h3{font-family:var(--f-disp);font-weight:800;font-size:clamp(20px,2.6vw,30px);letter-spacing:-.015em;text-transform:uppercase}
+.rule p{font-size:14.5px;color:var(--cream-60);max-width:46ch}
+@media(max-width:759px){.rule p{grid-column:2}}
+
+/* ── Die Session (Transkript-Papier) ───────────────────────────────── */
+.session{padding-block:clamp(90px,14vh,170px)}
+.session-head{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:24px;margin-bottom:clamp(36px,6vh,64px)}
+.session-head h2,.methoden-head h2,.synth-head h2{
+  font-family:var(--f-disp);font-weight:800;text-transform:uppercase;
+  font-size:clamp(34px,6vw,84px);line-height:.98;letter-spacing:-.02em;
+}
+.session-head .serif,.synth-head .serif,.methoden-head .serif,.cta-end .serif{
+  font-family:var(--f-serif);font-style:italic;font-weight:400;text-transform:none;color:var(--rec);
+}
+.session-head p{max-width:40ch;color:var(--cream-60)}
+
+.deck{
+  position:relative;background:var(--paper);color:var(--ink);border-radius:10px;
+  box-shadow:0 60px 120px -40px rgba(0,0,0,.8),0 0 0 1px rgba(240,232,216,.08);
+  overflow:hidden;
+}
+.deck-top{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+  padding:18px 26px;border-bottom:1px solid var(--ink-line);background:var(--paper-shade);
+}
+.deck-top .left{display:flex;align-items:center;gap:14px}
+.deck-rec{display:inline-flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-60)}
+.deck-rec b{width:8px;height:8px;border-radius:50%;background:var(--rec)}
+.deck.playing .deck-rec b{animation:blink 1.1s infinite}
+.deck-tc{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;color:var(--ink-60);font-variant-numeric:tabular-nums}
+
+.deck-body{display:grid}
+@media(min-width:1000px){.deck-body{grid-template-columns:minmax(0,1fr) 320px}}
+
+.tape{padding:clamp(22px,3.5vw,40px);min-height:380px}
+.tape-row{position:relative;display:flex;gap:14px;margin-bottom:18px;padding-right:96px}
+@media(max-width:759px){.tape-row{padding-right:0}}
+.tape-row .who{
+  flex-shrink:0;margin-top:3px;font-family:var(--f-mono);font-size:10px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;
+  border:1px solid var(--ink-line);border-radius:3px;padding:3px 7px;height:fit-content;
+  color:var(--ink-60);background:rgba(255,255,255,.4);
+}
+.tape-row.is-f .who{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.tape-row p{font-size:15.5px;line-height:1.7;max-width:62ch}
+.caret{display:inline-block;width:2px;height:1em;background:var(--rec);vertical-align:-2px;margin-left:2px;animation:blink .8s infinite}
+
+.stamp{
+  position:absolute;right:0;top:-2px;transform:rotate(6deg) scale(1.6);opacity:0;
+  border:2px solid var(--rec);color:var(--rec);border-radius:4px;
+  font-family:var(--f-mono);font-size:10px;font-weight:500;letter-spacing:.2em;
+  padding:5px 9px;text-transform:uppercase;
+  transition:transform .45s var(--ease-stamp),opacity .3s;
+  background:
+    radial-gradient(circle at 30% 60%,rgba(242,235,220,.25) 0 2px,transparent 3px),
+    radial-gradient(circle at 70% 30%,rgba(242,235,220,.3) 0 2px,transparent 3px);
+}
+.stamp.show{opacity:.92;transform:rotate(-7deg) scale(1)}
+.stamp--2{border-color:var(--amber);color:#9a6a1d}
+.stamp--3{border-color:var(--ink-60);color:var(--ink-60)}
+@media(max-width:759px){
+  .stamp{position:static;display:inline-block;margin-top:8px;transform:rotate(-4deg) scale(1.6)}
+  .stamp.show{transform:rotate(-4deg) scale(1)}
+}
+
+.tape-actions{display:flex;gap:12px;margin-top:8px}
+.play-btn{
+  display:inline-flex;align-items:center;gap:10px;height:46px;padding-inline:22px;border-radius:999px;
+  background:var(--ink);color:var(--paper);font-size:14.5px;font-weight:500;
+  transition:background .2s,opacity .2s;
+}
+.play-btn:hover{background:#000}
+.play-btn[disabled]{opacity:.45;cursor:default}
+.skip-btn{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-60);padding-inline:10px;display:none}
+.deck.playing .skip-btn{display:inline-flex}
+.skip-btn:hover{color:var(--ink)}
+
+/* Befund-Seitenspalte */
+.findings{border-top:1px solid var(--ink-line);padding:clamp(22px,3.5vw,32px)}
+@media(min-width:1000px){.findings{border-top:0;border-left:1px solid var(--ink-line)}}
+.findings .tag--ink{display:block;margin-bottom:18px}
+.finding{
+  border:1px solid var(--ink-line);border-left:3px solid var(--rec);border-radius:6px;
+  background:rgba(255,255,255,.45);padding:14px;margin-bottom:12px;
+  opacity:0;transform:translateX(14px);transition:opacity .5s var(--ease),transform .5s var(--ease);
+}
+.finding.show{opacity:1;transform:none}
+.finding[data-k="2"]{border-left-color:var(--amber)}
+.finding[data-k="3"]{border-left-color:var(--ink-60)}
+.finding .f-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.finding .f-name{font-family:var(--f-disp);font-weight:800;font-size:13.5px;text-transform:uppercase;letter-spacing:.02em}
+.finding .f-k{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-60)}
+.finding q{display:block;margin-top:6px;font-family:var(--f-serif);font-style:italic;font-size:14.5px;color:var(--ink-60);quotes:"„" "“"}
+
+.verdikt{
+  margin-top:18px;border:1.5px dashed var(--ink-60);border-radius:6px;padding:16px;
+  opacity:0;transform:translateY(10px);transition:opacity .6s var(--ease),transform .6s var(--ease);
+}
+.verdikt.show{opacity:1;transform:none}
+.verdikt .tag--ink{margin-bottom:10px}
+.verdikt .row{display:flex;justify-content:space-between;gap:14px;font-size:14px;padding-block:4px}
+.verdikt .row span:first-child{color:var(--ink-60);font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding-top:3px}
+.verdikt .old{text-decoration:line-through;color:var(--ink-60)}
+.verdikt .neu{font-weight:500}
+
+/* ── Methoden (Sticky-Stapel) ──────────────────────────────────────── */
+.methoden{padding-top:clamp(90px,14vh,170px)}
+.methoden-head{margin-bottom:clamp(40px,7vh,80px);display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:24px}
+.methoden-head p{max-width:42ch;color:var(--cream-60)}
+.stack{position:relative}
+.tapecard{
+  position:sticky;top:84px;margin-bottom:26px;border:1px solid var(--line);border-radius:14px;
+  background:linear-gradient(160deg,var(--bg-lift),#0d0b08 70%);
+  padding:clamp(26px,4vw,52px);overflow:hidden;will-change:transform;
+  display:flex;flex-direction:column;gap:18px;min-height:380px;
+}
+.tapecard::after{ /* Spulenloch-Deko */
+  content:"";position:absolute;right:clamp(20px,5vw,60px);top:50%;transform:translateY(-50%);
+  width:clamp(120px,18vw,220px);aspect-ratio:1;border-radius:50%;
+  border:1px solid var(--line);
+  background:
+    radial-gradient(circle,var(--bg) 0 18%,transparent 19%),
+    repeating-conic-gradient(from 0deg,transparent 0 24deg,rgba(240,232,216,.06) 24deg 30deg);
+  opacity:.7;pointer-events:none;
+}
+.tapecard .meta{display:flex;justify-content:space-between;align-items:center}
+.lamp{display:inline-flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--live)}
+.lamp b{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 10px rgba(70,201,122,.7)}
+.tapecard h3{
+  font-family:var(--f-disp);font-weight:800;text-transform:uppercase;
+  font-size:clamp(34px,6vw,76px);line-height:.98;letter-spacing:-.02em;max-width:12ch;
+  position:relative;z-index:1;
+}
+.tapecard .desc{max-width:46ch;color:var(--cream-60);font-size:15.5px;position:relative;z-index:1}
+.tapecard .q{
+  margin-top:auto;padding-top:18px;border-top:1px solid var(--line);
+  display:flex;flex-direction:column;gap:6px;position:relative;z-index:1;
+}
+.tapecard .q .tag{font-size:10px}
+.tapecard .q p{font-family:var(--f-serif);font-style:italic;font-size:clamp(16px,1.8vw,21px);color:var(--cream)}
+
+/* ── Synthese ──────────────────────────────────────────────────────── */
+.synth{padding-block:clamp(110px,16vh,190px)}
+.synth-head{margin-bottom:clamp(40px,7vh,72px);display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:24px}
+.synth-head p{max-width:42ch;color:var(--cream-60)}
+.synth-grid{display:grid;gap:22px}
+@media(min-width:1000px){.synth-grid{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}}
+
+.sheet{
+  background:var(--paper);color:var(--ink);border-radius:10px;padding:clamp(24px,3.5vw,40px);
+  box-shadow:0 50px 100px -40px rgba(0,0,0,.8);position:relative;
+}
+.sheet .s-top{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--ink-line);padding-bottom:14px}
+.theme{margin-top:22px}
+.theme .t-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.theme .t-name{font-family:var(--f-disp);font-weight:800;font-size:17px;text-transform:uppercase;letter-spacing:.01em}
+.theme .t-n{font-family:var(--f-mono);font-size:11px;color:var(--ink-60);letter-spacing:.1em}
+.theme .t-bar{margin-top:9px;height:8px;border-radius:99px;background:rgba(25,21,18,.1);overflow:hidden}
+.theme .t-bar b{display:block;height:100%;border-radius:99px;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform 1.1s var(--ease)}
+.theme:nth-of-type(2) .t-bar b{background:var(--rec)}
+.theme:nth-of-type(3) .t-bar b{background:var(--amber)}
+.sheet.in .theme .t-bar b{transform:scaleX(var(--w))}
+.sheet.in .theme:nth-of-type(1) .t-bar b{transition-delay:.15s}
+.sheet.in .theme:nth-of-type(2) .t-bar b{transition-delay:.3s}
+.sheet.in .theme:nth-of-type(3) .t-bar b{transition-delay:.45s}
+.sheet blockquote{
+  margin-top:26px;border-left:3px solid var(--rec);padding-left:16px;
+  font-family:var(--f-serif);font-style:italic;font-size:clamp(17px,1.8vw,21px);line-height:1.55;color:var(--ink);
+}
+.sheet blockquote footer{margin-top:8px;font-family:var(--f-mono);font-style:normal;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-60)}
+.sheet .belegt{
+  position:absolute;right:clamp(18px,3vw,34px);bottom:clamp(18px,3vw,30px);
+  border:2px solid var(--rec);color:var(--rec);border-radius:4px;padding:6px 10px;
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  transform:rotate(-6deg) scale(1.5);opacity:0;transition:transform .5s var(--ease-stamp),opacity .3s;
+}
+.sheet.in .belegt{opacity:.9;transform:rotate(-6deg) scale(1);transition-delay:.7s}
+
+.caps{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.cap{
+  display:grid;grid-template-columns:54px 1fr auto;gap:14px;align-items:center;
+  padding-block:20px;border-bottom:1px solid var(--line);transition:padding-left .3s var(--ease);
+}
+.cap:hover{padding-left:10px}
+.cap .n{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;color:var(--cream-35)}
+.cap .t{font-family:var(--f-disp);font-weight:500;font-size:clamp(17px,1.8vw,21px);letter-spacing:-.01em}
+.cap .d{display:none;color:var(--cream-60);font-size:13.5px;max-width:30ch;text-align:right}
+@media(min-width:640px){.cap .d{display:block}}
+
+/* ── Zahlen ────────────────────────────────────────────────────────── */
+.numbers{border-block:1px solid var(--line)}
+.numbers-grid{display:grid;grid-template-columns:1fr 1fr}
+@media(min-width:900px){.numbers-grid{grid-template-columns:repeat(4,1fr)}}
+.num{
+  padding:clamp(34px,5vw,56px) clamp(18px,2.5vw,32px);
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.num:nth-child(2n){border-right:0}
+@media(min-width:900px){.num{border-bottom:0;border-right:1px solid var(--line)}.num:last-child{border-right:0}.num:nth-child(2n){border-right:1px solid var(--line)}.num:nth-child(4n){border-right:0}}
+.num .v{
+  font-family:var(--f-disp);font-weight:800;font-size:clamp(52px,7.5vw,110px);
+  line-height:.95;letter-spacing:-.03em;font-variant-numeric:tabular-nums;
+}
+.num .v small{font-size:.42em;font-weight:500;color:var(--rec);letter-spacing:0}
+.num .l{margin-top:10px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--cream-60);line-height:1.7}
+
+/* ── Herkunft / Stempelhof ─────────────────────────────────────────── */
+.origin{padding-block:clamp(110px,16vh,190px);text-align:center}
+.origin h2{
+  font-family:var(--f-disp);font-weight:800;text-transform:uppercase;
+  font-size:clamp(30px,5vw,64px);letter-spacing:-.02em;line-height:1.02;
+}
+.origin .lead{margin:18px auto 0;max-width:54ch;color:var(--cream-60)}
+.stamps{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(18px,4vw,44px);margin-top:clamp(44px,7vh,72px)}
+.bigstamp{
+  border:2.5px solid var(--cream-60);border-radius:8px;padding:18px 26px;
+  font-family:var(--f-mono);font-size:clamp(11px,1.2vw,13px);letter-spacing:.24em;text-transform:uppercase;
+  color:var(--cream-60);line-height:1.9;
+  transform:rotate(var(--r,0deg)) scale(1.5);opacity:0;
+  transition:transform .55s var(--ease-stamp),opacity .35s;
+}
+.bigstamp em{display:block;font-style:normal;font-family:var(--f-disp);font-weight:800;font-size:1.5em;letter-spacing:.04em;color:var(--cream)}
+.bigstamp.show{opacity:1;transform:rotate(var(--r,0deg)) scale(1)}
+.bigstamp--rec{border-color:var(--rec);color:rgba(255,75,46,.75)}
+.bigstamp--rec em{color:var(--rec)}
+
+/* ── Finale ────────────────────────────────────────────────────────── */
+.cta-end{background:var(--paper);color:var(--ink);padding-block:clamp(110px,17vh,210px);position:relative;overflow:hidden}
+.cta-end h2{
+  font-family:var(--f-disp);font-weight:800;text-transform:uppercase;
+  font-size:clamp(42px,8.5vw,128px);line-height:.96;letter-spacing:-.025em;
+}
+.cta-end .serif{color:var(--rec-deep)}
+.cta-row{display:flex;flex-wrap:wrap;align-items:center;gap:22px;margin-top:clamp(34px,5vh,56px)}
+.cta-end .btn-rec{background:var(--ink);color:var(--paper);height:62px;padding-inline:36px;font-size:17px}
+.cta-end .btn-rec:hover{background:#000}
+.cta-end .note{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-60)}
+.cta-end .ghostword{
+  position:absolute;left:50%;bottom:-.22em;transform:translateX(-50%);
+  font-family:var(--f-disp);font-weight:800;font-size:clamp(140px,26vw,420px);
+  line-height:1;letter-spacing:-.04em;color:transparent;
+  -webkit-text-stroke:1px rgba(25,21,18,.12);pointer-events:none;white-space:nowrap;
+}
+
+/* ── Footer ────────────────────────────────────────────────────────── */
+.foot{border-top:1px solid var(--line);padding-block:56px 40px}
+.foot-grid{display:grid;gap:36px}
+@media(min-width:840px){.foot-grid{grid-template-columns:1fr auto auto auto;gap:64px}}
+.foot .brand{font-size:28px}
+.foot .claim{margin-top:12px;max-width:30ch;color:var(--cream-60);font-size:14px}
+.foot h4{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--cream-35);margin-bottom:14px}
+.foot ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+.foot ul a{font-size:14px;color:var(--cream-60);transition:color .2s}
+.foot ul a:hover{color:var(--cream)}
+.foot-end{
+  margin-top:48px;padding-top:22px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--cream-35);
+}
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"></div>
+
+<!-- ── Header ─────────────────────────────────────────────────────────── -->
+<header class="top" id="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#">findr<i aria-hidden="true"></i></a>
+    <nav class="top-nav" aria-label="Hauptnavigation">
+      <a href="#session">Session</a>
+      <a href="#methoden">Methoden</a>
+      <a href="#synthese">Synthese</a>
+      <a href="#herkunft">Herkunft</a>
+    </nav>
+    <a class="top-cta" href="#demo">Demo buchen</a>
+  </div>
+</header>
+
+<!-- ── Kapitel-Rail ───────────────────────────────────────────────────── -->
+<nav class="rail" aria-label="Kapitel">
+  <a href="#start" data-ch="start">Start</a>
+  <a href="#session" data-ch="session">Session</a>
+  <a href="#methoden" data-ch="methoden">Methoden</a>
+  <a href="#synthese" data-ch="synthese">Synthese</a>
+  <a href="#herkunft" data-ch="herkunft">Herkunft</a>
+</nav>
+
+<main>
+  <!-- ── Hero ─────────────────────────────────────────────────────────── -->
+  <section class="hero" id="start" data-ch="start">
+    <canvas id="wave" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <div class="hero-meta fade">
+        <span class="rec-chip"><b aria-hidden="true"></b>Aufnahme läuft</span>
+        <span class="tc" id="heroTc">00:00:00</span>
+      </div>
+      <h1 class="rv" id="heroH1">
+        <span class="ln"><i>Hör zu, was dein</i></span>
+        <span class="ln"><i>Markt <span class="serif">wirklich</span> sagt.</i></span>
+      </h1>
+      <div class="hero-sub">
+        <p class="fade" data-d="150">
+          findr. führt <b>hunderte qualitative Tiefeninterviews</b> mit deiner
+          Zielgruppe — auf Deutsch, DSGVO-nativ, gehostet in Frankfurt. Eine KI,
+          die nachbohrt wie ein erfahrener Researcher, und jede Erkenntnis
+          <b>am Transkript belegt</b>.
+        </p>
+        <div class="hero-ctas fade" data-d="250">
+          <a class="btn-rec magnetic" href="#demo"><span class="dot" aria-hidden="true"></span>Demo buchen</a>
+          <a class="btn-ghost magnetic" href="#session">Session abspielen ↓</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Laufband -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span>Bedarf &amp; Verhalten</span><span>Markenwahrnehmung</span><span>Konzept-Test</span><span>Creative-Test</span><span>Eine Engine</span>
+      <span>Bedarf &amp; Verhalten</span><span>Markenwahrnehmung</span><span>Konzept-Test</span><span>Creative-Test</span><span>Eine Engine</span>
+    </div>
+  </div>
+
+  <!-- ── K.01 Statement ───────────────────────────────────────────────── -->
+  <section class="statement">
+    <div class="wrap">
+      <div class="kap"><span class="tag">K.01 — Das Problem</span></div>
+      <p class="big fade">
+        Umfragen geben dir Zahlen. Aber niemand erzählt einer Skala von eins
+        bis zehn, <span class="hl">warum er geht</span>.
+      </p>
+      <p class="big fade" data-d="100">
+        findr. <span class="hl hl--soft">bohrt nach</span> — und liefert dir
+        Entscheidungen, die <span class="hl">am Gespräch belegt</span> sind.
+      </p>
+
+      <div class="rules">
+        <div class="rule fade">
+          <span class="n">R.01</span>
+          <h3>Nachbohren statt abnicken</h3>
+          <p>Die KI fragt nach wie ein erfahrener Researcher — bis hinter die erste Antwort, statt bei der Hypothese stehenzubleiben.</p>
+        </div>
+        <div class="rule fade" data-d="60">
+          <span class="n">R.02</span>
+          <h3>Beleg statt Bauchgefühl</h3>
+          <p>Jede Erkenntnis trägt ihr Originalzitat. Fraud- und Qualitätsprüfung filtern Durchklicker heraus.</p>
+        </div>
+        <div class="rule fade" data-d="120">
+          <span class="n">R.03</span>
+          <h3>Deutsch, nicht übersetzt</h3>
+          <p>Tiefeninterviews in echtem Deutsch — Tonalität und Kontext, die US-Tools schlicht nicht treffen.</p>
+        </div>
+        <div class="rule fade" data-d="180">
+          <span class="n">R.04</span>
+          <h3>Frankfurt, nicht Virginia</h3>
+          <p>DSGVO-nativ, in der EU gehostet, ausgerichtet am EU AI Act. Keine US-Cloud, keine Lock-ins.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── K.02 Die Session ─────────────────────────────────────────────── -->
+  <section class="session" id="session" data-ch="session">
+    <div class="wrap">
+      <div class="kap"><span class="tag">K.02 — Die Session</span></div>
+      <div class="session-head">
+        <h2 class="rv">
+          <span class="ln"><i>So klingt</i></span>
+          <span class="ln"><i><span class="serif">Forschung.</span></i></span>
+        </h2>
+        <p class="fade">Ein Ausschnitt aus einem findr.-Tiefeninterview — vorgefertigtes Beispiel, kein Login, keine echten Teilnehmerdaten. Drück Play.</p>
+      </div>
+
+      <div class="deck fade" id="deck">
+        <div class="deck-top">
+          <div class="left">
+            <span class="deck-rec"><b aria-hidden="true"></b>Session 001</span>
+            <span class="tag tag--ink">Bedarf &amp; Verhalten</span>
+          </div>
+          <span class="deck-tc" id="deckTc">TC 00:00:00</span>
+        </div>
+        <div class="deck-body">
+          <div class="tape">
+            <div id="tapeLines" aria-live="polite"></div>
+            <div class="tape-actions">
+              <button class="play-btn" id="playBtn" type="button">▶&nbsp; Session abspielen</button>
+              <button class="skip-btn" id="skipBtn" type="button">Überspringen ⏭</button>
+            </div>
+          </div>
+          <aside class="findings">
+            <span class="tag tag--ink">Befunde — live mitgeschnitten</span>
+            <div class="finding" data-k="1">
+              <div class="f-top"><span class="f-name">Bedürfnis</span><span class="f-k">Stark</span></div>
+              <q>Ich stand jeden Abend planlos vor dem Kühlschrank.</q>
+            </div>
+            <div class="finding" data-k="2">
+              <div class="f-top"><span class="f-name">Workaround</span><span class="f-k">Mittel</span></div>
+              <q>… bestelle ich einfach was, obwohl ich's mir anders vorgenommen hatte.</q>
+            </div>
+            <div class="finding" data-k="3">
+              <div class="f-top"><span class="f-name">Reibung</span><span class="f-k">Leicht</span></div>
+              <q>… das ewige Eintippen war mir zu mühsam.</q>
+            </div>
+            <div class="verdikt" id="verdikt">
+              <span class="tag tag--ink">Annahme vs. Realität</span>
+              <div class="row"><span>Annahme</span><span class="old">Mehr Rezepte gewünscht</span></div>
+              <div class="row"><span>findr.</span><span class="neu">Entscheidungslast, nicht Rezeptmangel</span></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── K.03 Methoden ────────────────────────────────────────────────── -->
+  <section class="methoden" id="methoden" data-ch="methoden">
+    <div class="wrap">
+      <div class="kap"><span class="tag">K.03 — Das Repertoire</span></div>
+      <div class="methoden-head">
+        <h2 class="rv">
+          <span class="ln"><i>Vier Methoden,</i></span>
+          <span class="ln"><i><span class="serif">eine</span> Engine.</i></span>
+        </h2>
+        <p class="fade">Dieselbe Tiefe, dasselbe Nachbohren, dieselbe Beleg-Disziplin — egal ob Bedarf, Marke, Konzept oder Creative. Jedes Interview zahlt auf dasselbe Gehirn ein.</p>
+      </div>
+
+      <div class="stack" id="stack">
+        <article class="tapecard">
+          <div class="meta"><span class="tag">Spur 01 / 04</span><span class="lamp"><b aria-hidden="true"></b>Live</span></div>
+          <h3>Bedarf &amp;<br />Verhalten</h3>
+          <p class="desc">Konkrete Situationen, echte Workarounds und unerfüllte Bedürfnisse — belegt am Gespräch, statt aus Hypothesen abgeleitet.</p>
+          <div class="q"><span class="tag">Beispielfrage</span><p>„Erzähl mal von letzter Woche — wie hast du entschieden, was du kochst?“</p></div>
+        </article>
+        <article class="tapecard">
+          <div class="meta"><span class="tag">Spur 02 / 04</span><span class="lamp"><b aria-hidden="true"></b>Live</span></div>
+          <h3>Marken-<br />wahrnehmung</h3>
+          <p class="desc">Welche Assoziationen, Bilder und Gefühle deine Marke auslöst — in den eigenen Worten deiner Zielgruppe.</p>
+          <div class="q"><span class="tag">Beispielfrage</span><p>„Wenn diese Marke eine Person wäre — wie würdest du sie beschreiben?“</p></div>
+        </article>
+        <article class="tapecard">
+          <div class="meta"><span class="tag">Spur 03 / 04</span><span class="lamp"><b aria-hidden="true"></b>Live</span></div>
+          <h3>Konzept-Test</h3>
+          <p class="desc">Erst Verständnis, dann Relevanz: ob ein Konzept trägt — und woran genau es das tut oder scheitert.</p>
+          <div class="q"><span class="tag">Beispielfrage</span><p>„Erklär mir das Konzept in deinen eigenen Worten — was bleibt hängen?“</p></div>
+        </article>
+        <article class="tapecard">
+          <div class="meta"><span class="tag">Spur 04 / 04</span><span class="lamp"><b aria-hidden="true"></b>Live</span></div>
+          <h3>Creative-Test</h3>
+          <p class="desc">Erster Eindruck und emotionale Wirkung einer Kreation — bevor du Media-Budget dahinter legst.</p>
+          <div class="q"><span class="tag">Beispielfrage</span><p>„Du hast die Anzeige drei Sekunden gesehen — was ist hängengeblieben?“</p></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── K.04 Synthese ────────────────────────────────────────────────── -->
+  <section class="synth" id="synthese" data-ch="synthese">
+    <div class="wrap">
+      <div class="kap"><span class="tag">K.04 — Die Auswertung</span></div>
+      <div class="synth-head">
+        <h2 class="rv">
+          <span class="ln"><i>Aus Stimmen</i></span>
+          <span class="ln"><i>wird <span class="serif">Beweis.</span></i></span>
+        </h2>
+        <p class="fade">findr. verdichtet jedes Interview und alle zusammen — Themen, Lager, Originalzitate. Ohne manuelles Tagging, ohne Auswertungs-Wochen.</p>
+      </div>
+
+      <div class="synth-grid">
+        <div class="sheet fade" id="sheet">
+          <div class="s-top">
+            <span class="tag tag--ink">Syntheseblatt · Beispiel</span>
+            <span class="tag tag--ink">3 Themen</span>
+          </div>
+          <div class="theme" style="--w:.86">
+            <div class="t-head"><span class="t-name">Entscheidungslast</span><span class="t-n">häufigstes Lager</span></div>
+            <div class="t-bar"><b></b></div>
+          </div>
+          <div class="theme" style="--w:.58">
+            <div class="t-head"><span class="t-name">Impulsives Ausweichen</span><span class="t-n">wiederkehrend</span></div>
+            <div class="t-bar"><b></b></div>
+          </div>
+          <div class="theme" style="--w:.34">
+            <div class="t-head"><span class="t-name">Bedien-Hürden</span><span class="t-n">vereinzelt</span></div>
+            <div class="t-bar"><b></b></div>
+          </div>
+          <blockquote>
+            „Ich stand jeden Abend planlos vor dem Kühlschrank.“
+            <footer>Originalzitat · Session 001 · 02:14</footer>
+          </blockquote>
+          <span class="belegt" aria-hidden="true">Belegt am Transkript</span>
+        </div>
+
+        <div class="caps">
+          <div class="cap fade"><span class="n">S.01</span><span class="t">Automatische Verdichtung</span><span class="d">Themen, Lager und Zitate über alle Interviews</span></div>
+          <div class="cap fade" data-d="50"><span class="n">S.02</span><span class="t">Mit den Daten chatten</span><span class="d">Rückfragen an den ganzen Studien-Korpus</span></div>
+          <div class="cap fade" data-d="100"><span class="n">S.03</span><span class="t">Highlight-Reels</span><span class="d">Die stärksten Momente als Zusammenschnitt</span></div>
+          <div class="cap fade" data-d="150"><span class="n">S.04</span><span class="t">Teilbare Ergebnis-Links</span><span class="d">Synthese per Link, auch extern, im eigenen Branding</span></div>
+          <div class="cap fade" data-d="200"><span class="n">S.05</span><span class="t">PDF-Export</span><span class="d">Ein klarer Report für Entscheider</span></div>
+          <div class="cap fade" data-d="250"><span class="n">S.06</span><span class="t">Studienübergreifende Muster</span><span class="d">Was sich über Studien hinweg wiederholt</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Zahlen ───────────────────────────────────────────────────────── -->
+  <section class="numbers">
+    <div class="numbers-grid" id="numbers">
+      <div class="num"><div class="v"><span data-target="100">100</span><small>%</small></div><div class="l">EU-gehostet · DSGVO-konform</div></div>
+      <div class="num"><div class="v"><span data-target="0">0</span></div><div class="l">US-Cloud · null Datentransfer</div></div>
+      <div class="num"><div class="v"><span data-target="4">4</span></div><div class="l">Methoden · alle live</div></div>
+      <div class="num"><div class="v"><span data-target="14">14</span><small>d</small></div><div class="l">Gratis testen · ohne Kreditkarte</div></div>
+    </div>
+  </section>
+
+  <!-- ── K.05 Herkunft ────────────────────────────────────────────────── -->
+  <section class="origin" id="herkunft" data-ch="herkunft">
+    <div class="wrap">
+      <div class="kap" style="justify-content:center"><span class="tag">K.05 — Die Herkunft</span></div>
+      <h2 class="fade">Souverän aus Europa.</h2>
+      <p class="lead fade" data-d="80">
+        In Deutschland gebaut, in Frankfurt am Main gehostet, ausgerichtet am
+        EU AI Act. Deine Forschungsdaten verlassen die EU nicht — und gehören dir.
+      </p>
+      <div class="stamps">
+        <div class="bigstamp bigstamp--rec" style="--r:-5deg">Datenschutz<em>DSGVO-nativ</em></div>
+        <div class="bigstamp" style="--r:3deg">Rechenzentrum<em>Frankfurt a.M.</em></div>
+        <div class="bigstamp" style="--r:-2deg">Ausgerichtet am<em>EU AI Act</em></div>
+        <div class="bigstamp" style="--r:4deg">Entwickelt in<em>Deutschland</em></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Finale ───────────────────────────────────────────────────────── -->
+  <section class="cta-end" id="demo">
+    <div class="wrap">
+      <h2 class="rv">
+        <span class="ln"><i>Hör deiner</i></span>
+        <span class="ln"><i>Zielgruppe <span class="serif">zu.</span></i></span>
+      </h2>
+      <div class="cta-row fade">
+        <a class="btn-rec magnetic" href="#"><span class="dot" style="background:var(--paper)" aria-hidden="true"></span>Demo buchen</a>
+        <span class="note">14 Tage gratis · ohne Kreditkarte</span>
+      </div>
+    </div>
+    <span class="ghostword" aria-hidden="true">findr.</span>
+  </section>
+</main>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────── -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="#">findr<i aria-hidden="true"></i></a>
+        <p class="claim">Qualitative Marktforschung mit KI — echte Gespräche, belegte Entscheidungen.</p>
+      </div>
+      <div>
+        <h4>Methoden</h4>
+        <ul>
+          <li><a href="#methoden">Bedarf &amp; Verhalten</a></li>
+          <li><a href="#methoden">Markenwahrnehmung</a></li>
+          <li><a href="#methoden">Konzept-Test</a></li>
+          <li><a href="#methoden">Creative-Test</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Produkt</h4>
+        <ul>
+          <li><a href="#synthese">Synthese</a></li>
+          <li><a href="#session">Beispiel-Session</a></li>
+          <li><a href="#demo">Demo buchen</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Rechtliches</h4>
+        <ul>
+          <li><a href="#">Impressum</a></li>
+          <li><a href="#">Datenschutz</a></li>
+          <li><a href="#">AGB</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-end">
+      <span>© 2026 findr.</span>
+      <span>Aufgenommen in Frankfurt am Main</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var fine = window.matchMedia("(pointer: fine)").matches;
+
+  /* ── Header-Zustand ─────────────────────────────────────────────── */
+  var top = document.getElementById("top");
+  function onScroll() { top.classList.toggle("solid", window.scrollY > 12); }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  /* ── Reveals (.rv Zeilenmasken / .fade) ─────────────────────────── */
+  var revealEls = [].slice.call(document.querySelectorAll(".rv,.fade"));
+  if (reduce || !("IntersectionObserver" in window)) {
+    revealEls.forEach(function (el) { el.classList.add("in"); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var el = e.target;
+        el.style.transitionDelay = (parseInt(el.getAttribute("data-d") || "0", 10)) + "ms";
+        el.classList.add("in");
+        io.unobserve(el);
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -60px 0px" });
+    revealEls.forEach(function (el) { io.observe(el); });
+  }
+
+  /* ── Scroll-Marker im Statement ─────────────────────────────────── */
+  var hls = [].slice.call(document.querySelectorAll(".hl"));
+  if (!reduce && "IntersectionObserver" in window) {
+    var hIo = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var el = e.target;
+        el.style.transitionDelay = (hls.indexOf(el) % 3) * 180 + 200 + "ms";
+        el.classList.add("mark");
+        hIo.unobserve(el);
+      });
+    }, { threshold: 0.6 });
+    hls.forEach(function (el) { hIo.observe(el); });
+  } else {
+    hls.forEach(function (el) { el.classList.add("mark"); });
+  }
+
+  /* ── Hero-Timecode (läuft seit Seitenstart) ─────────────────────── */
+  var heroTc = document.getElementById("heroTc");
+  var t0 = performance.now();
+  function fmt(ms) {
+    var s = Math.floor(ms / 1000);
+    var f = Math.floor((ms % 1000) / 41.7); /* ~24fps Frames */
+    var m = Math.floor(s / 60);
+    function p(n) { return (n < 10 ? "0" : "") + n; }
+    return p(m) + ":" + p(s % 60) + ":" + p(f);
+  }
+  if (!reduce) {
+    (function tcTick(now) {
+      heroTc.textContent = fmt(now - t0);
+      requestAnimationFrame(tcTick);
+    })(t0);
+  } else {
+    heroTc.textContent = "00:00:00";
+  }
+
+  /* ── Waveform-Canvas im Hero ────────────────────────────────────── */
+  var wave = document.getElementById("wave");
+  var wctx = wave.getContext("2d");
+  var waveVisible = true;
+  function sizeWave() {
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    wave.width = wave.offsetWidth * dpr;
+    wave.height = wave.offsetHeight * dpr;
+    wctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  sizeWave();
+  window.addEventListener("resize", sizeWave);
+  function drawWave(t) {
+    var w = wave.offsetWidth, h = wave.offsetHeight, mid = h / 2;
+    wctx.clearRect(0, 0, w, h);
+    wctx.fillStyle = "rgba(240,232,216,.38)";
+    var bw = 3, gap = 6, n = Math.ceil(w / (bw + gap));
+    for (var i = 0; i < n; i++) {
+      var x = i * (bw + gap);
+      var a = Math.sin(i * .32 + t * .0021) * Math.sin(i * .07 - t * .0009);
+      var bh = 4 + Math.abs(a) * (h * .42);
+      wctx.fillRect(x, mid - bh / 2, bw, bh);
+    }
+  }
+  if (reduce) {
+    drawWave(4200); /* statisches Standbild */
+  } else {
+    (function waveTick(now) {
+      if (waveVisible) drawWave(now);
+      requestAnimationFrame(waveTick);
+    })(0);
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (e) { waveVisible = !!(e[0] && e[0].isIntersecting); })
+        .observe(wave);
+    }
+  }
+
+  /* ── Kapitel-Rail ───────────────────────────────────────────────── */
+  var railLinks = [].slice.call(document.querySelectorAll(".rail a"));
+  var chapters = [].slice.call(document.querySelectorAll("[data-ch]")).filter(function (el) { return el.tagName !== "A"; });
+  if ("IntersectionObserver" in window) {
+    var rIo = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var ch = e.target.getAttribute("data-ch");
+        railLinks.forEach(function (a) { a.classList.toggle("on", a.getAttribute("data-ch") === ch); });
+      });
+    }, { rootMargin: "-40% 0px -55% 0px" });
+    chapters.forEach(function (el) { rIo.observe(el); });
+  }
+
+  /* ── Magnetische Buttons ────────────────────────────────────────── */
+  if (fine && !reduce) {
+    [].slice.call(document.querySelectorAll(".magnetic")).forEach(function (el) {
+      el.addEventListener("mousemove", function (ev) {
+        var r = el.getBoundingClientRect();
+        var dx = (ev.clientX - r.left - r.width / 2) / (r.width / 2);
+        var dy = (ev.clientY - r.top - r.height / 2) / (r.height / 2);
+        el.style.transform = "translate(" + dx * 7 + "px," + dy * 6 + "px)";
+      });
+      el.addEventListener("mouseleave", function () { el.style.transform = ""; });
+    });
+  }
+
+  /* ── Cursor ─────────────────────────────────────────────────────── */
+  if (fine && !reduce) {
+    document.documentElement.classList.add("cursor-on");
+    var dot = document.querySelector(".cursor-dot");
+    var ring = document.querySelector(".cursor-ring");
+    var mx = -100, my = -100, rx = -100, ry = -100;
+    document.addEventListener("mousemove", function (e) { mx = e.clientX; my = e.clientY; });
+    document.addEventListener("mouseover", function (e) {
+      ring.classList.toggle("hot", !!e.target.closest("a,button"));
+    });
+    (function curTick() {
+      rx += (mx - rx) * .16; ry += (my - ry) * .16;
+      dot.style.transform = "translate(" + (mx - 3) + "px," + (my - 3) + "px)";
+      ring.style.transform = "translate(" + (rx - 17) + "px," + (ry - 17) + "px)";
+      requestAnimationFrame(curTick);
+    })();
+  }
+
+  /* ── Sticky-Stapel: hintere Karte schiebt vordere sanft zurück ──── */
+  var cards = [].slice.call(document.querySelectorAll(".tapecard"));
+  if (!reduce && cards.length) {
+    var ticking = false;
+    function stackTick() {
+      ticking = false;
+      cards.forEach(function (card, i) {
+        var next = cards[i + 1];
+        if (!next) { card.style.transform = ""; return; }
+        var r = next.getBoundingClientRect();
+        var cover = Math.min(1, Math.max(0, 1 - (r.top - 84) / window.innerHeight));
+        card.style.transform = "scale(" + (1 - cover * .05) + ") translateY(" + (-cover * 14) + "px)";
+        card.style.opacity = String(1 - cover * .35);
+      });
+    }
+    window.addEventListener("scroll", function () {
+      if (!ticking) { ticking = true; requestAnimationFrame(stackTick); }
+    }, { passive: true });
+    stackTick();
+  }
+
+  /* ── Syntheseblatt: Balken + Stempel ────────────────────────────── */
+  var sheet = document.getElementById("sheet");
+  if (sheet) {
+    if (reduce || !("IntersectionObserver" in window)) {
+      sheet.classList.add("in");
+    } else {
+      var shIo = new IntersectionObserver(function (e) {
+        if (e[0] && e[0].isIntersecting) { sheet.classList.add("in"); shIo.disconnect(); }
+      }, { threshold: 0.35 });
+      shIo.observe(sheet);
+    }
+  }
+
+  /* ── Zahlen: Count-up (Endwerte stehen bereits im Markup) ───────── */
+  var numbers = document.getElementById("numbers");
+  if (numbers && !reduce && "IntersectionObserver" in window) {
+    var spans = [].slice.call(numbers.querySelectorAll("[data-target]"));
+    var nIo = new IntersectionObserver(function (entries) {
+      if (!entries[0] || !entries[0].isIntersecting) return;
+      nIo.disconnect();
+      var start = performance.now(), dur = 1300;
+      spans.forEach(function (s) { s.textContent = "0"; });
+      (function tick(now) {
+        var p = Math.min(1, (now - start) / dur);
+        var eased = 1 - Math.pow(1 - p, 3);
+        spans.forEach(function (s) {
+          s.textContent = String(Math.round(parseInt(s.getAttribute("data-target"), 10) * eased));
+        });
+        if (p < 1) requestAnimationFrame(tick);
+      })(start);
+    }, { threshold: 0.4 });
+    nIo.observe(numbers);
+  }
+
+  /* ── Stempelhof ─────────────────────────────────────────────────── */
+  var stamps = [].slice.call(document.querySelectorAll(".bigstamp"));
+  if (reduce || !("IntersectionObserver" in window)) {
+    stamps.forEach(function (s) { s.classList.add("show"); });
+  } else {
+    var stIo = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var el = e.target;
+        el.style.transitionDelay = stamps.indexOf(el) * 140 + "ms";
+        el.classList.add("show");
+        stIo.unobserve(el);
+      });
+    }, { threshold: 0.4 });
+    stamps.forEach(function (s) { stIo.observe(s); });
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     DIE SESSION — Transkript tippt sich selbst, Befunde stempeln ein.
+     Vorgefertigtes Beispiel (gleicher Inhalt wie die echte Demo-Copy),
+     reines Client-State-Theater: kein API-Call, keine echten Daten.
+     ════════════════════════════════════════════════════════════════ */
+  var LINES = [
+    { who: "findr.", f: true,  text: "Erzähl mal von letzter Woche — wie hast du entschieden, was du kochst?" },
+    { who: "Person", f: false, text: "Ehrlich? Ich stand jeden Abend planlos vor dem Kühlschrank. Das nervt mich schon länger.", stamp: { label: "Bedürfnis", cls: "" },        finding: 1 },
+    { who: "findr.", f: true,  text: "Und wenn dir nichts einfällt — was machst du dann?" },
+    { who: "Person", f: false, text: "Meistens bestelle ich einfach was, obwohl ich's mir anders vorgenommen hatte.",               stamp: { label: "Workaround", cls: "stamp--2" }, finding: 2 },
+    { who: "findr.", f: true,  text: "Hast du schon mal etwas ausprobiert, um das zu lösen?" },
+    { who: "Person", f: false, text: "Eine App kurz getestet — aber das ewige Eintippen war mir zu mühsam.",                        stamp: { label: "Reibung", cls: "stamp--3" },    finding: 3 },
+    { who: "findr.", f: true,  text: "Danke — das ist sehr aufschlussreich." }
+  ];
+
+  var deck = document.getElementById("deck");
+  var tape = document.getElementById("tapeLines");
+  var playBtn = document.getElementById("playBtn");
+  var skipBtn = document.getElementById("skipBtn");
+  var deckTc = document.getElementById("deckTc");
+  var verdikt = document.getElementById("verdikt");
+  var findings = [].slice.call(document.querySelectorAll(".finding"));
+  var timers = [], playing = false, started = false, tcRaf = 0;
+
+  function clearTimers() {
+    timers.forEach(clearTimeout); timers = [];
+    cancelAnimationFrame(tcRaf);
+  }
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+
+  function buildRow(line) {
+    var row = document.createElement("div");
+    row.className = "tape-row" + (line.f ? " is-f" : "");
+    var who = document.createElement("span");
+    who.className = "who"; who.textContent = line.who;
+    var p = document.createElement("p");
+    row.appendChild(who); row.appendChild(p);
+    if (line.stamp) {
+      var st = document.createElement("span");
+      st.className = "stamp " + line.stamp.cls;
+      st.textContent = line.stamp.label;
+      row.appendChild(st);
+    }
+    tape.appendChild(row);
+    return row;
+  }
+
+  function finishAll() {
+    clearTimers();
+    tape.innerHTML = "";
+    LINES.forEach(function (line) {
+      var row = buildRow(line);
+      row.querySelector("p").textContent = line.text;
+      var st = row.querySelector(".stamp");
+      if (st) st.classList.add("show");
+    });
+    findings.forEach(function (f) { f.classList.add("show"); });
+    verdikt.classList.add("show");
+    deck.classList.remove("playing");
+    deckTc.textContent = "TC 00:08:42";
+    playing = false;
+    playBtn.disabled = false;
+    playBtn.innerHTML = "↺&nbsp; Nochmal abspielen";
+  }
+
+  function play() {
+    if (playing) return;
+    playing = true; started = true;
+    clearTimers();
+    tape.innerHTML = "";
+    findings.forEach(function (f) { f.classList.remove("show"); });
+    verdikt.classList.remove("show");
+    deck.classList.add("playing");
+    playBtn.disabled = true;
+    playBtn.innerHTML = "●&nbsp; Aufnahme läuft …";
+
+    if (reduce) { finishAll(); return; }
+
+    /* Session-Timecode läuft während der Wiedergabe */
+    var tStart = performance.now();
+    (function tcTick(now) {
+      var s = Math.floor((now - tStart) / 1000 * 14); /* gerafft */
+      function p(n) { return (n < 10 ? "0" : "") + n; }
+      deckTc.textContent = "TC 00:" + p(Math.floor(s / 60)) + ":" + p(s % 60);
+      if (playing) tcRaf = requestAnimationFrame(tcTick);
+    })(tStart);
+
+    var delay = 250;
+    LINES.forEach(function (line) {
+      var SPEED = line.f ? 14 : 24; /* ms pro Zeichen */
+      later(function () {
+        var row = buildRow(line);
+        var p = row.querySelector("p");
+        var caret = document.createElement("span");
+        caret.className = "caret"; caret.setAttribute("aria-hidden", "true");
+        p.appendChild(caret);
+        var i = 0;
+        (function typeChar() {
+          if (!playing) return;
+          i++;
+          p.textContent = line.text.slice(0, i);
+          if (i < line.text.length) {
+            p.appendChild(caret);
+            timers.push(setTimeout(typeChar, SPEED));
+          } else {
+            var st = row.querySelector(".stamp");
+            if (st) later(function () {
+              st.classList.add("show");
+              if (line.finding) {
+                var f = findings[line.finding - 1];
+                if (f) f.classList.add("show");
+              }
+            }, 240);
+          }
+        })();
+      }, delay);
+      delay += line.text.length * SPEED + (line.stamp ? 950 : 480);
+    });
+
+    later(function () {
+      verdikt.classList.add("show");
+      deck.classList.remove("playing");
+      playing = false;
+      playBtn.disabled = false;
+      playBtn.innerHTML = "↺&nbsp; Nochmal abspielen";
+      cancelAnimationFrame(tcRaf);
+      deckTc.textContent = "TC 00:08:42";
+    }, delay + 600);
+  }
+
+  playBtn.addEventListener("click", play);
+  skipBtn.addEventListener("click", finishAll);
+
+  /* Autostart, sobald die Session ins Bild scrollt (einmalig) */
+  if ("IntersectionObserver" in window) {
+    var dIo = new IntersectionObserver(function (e) {
+      if (e[0] && e[0].isIntersecting && !started) { play(); dIo.disconnect(); }
+    }, { threshold: 0.45 });
+    dIo.observe(deck);
+  }
+})();
+</script>
+</body>
+</html>
