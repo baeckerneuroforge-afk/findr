@@ -721,6 +721,11 @@ export interface ResearchPlanContext {
   stimulusUrl?: string | null;
   stimulusType?: string | null;
   stimulusDescription?: string | null;
+  /** Optional Vision-Analyse des Bild-Stimulus — der fertig gerenderte,
+   *  längenbegrenzte textBlock (stimulus-analysis.ts), NICHT das Roh-Envelope.
+   *  Nachhak-Material: ergänzt die Topics, ersetzt sie nie. Null/fehlend →
+   *  Prompt byte-identisch zum reinen Beschreibungs-Block. */
+  stimulusAnalysis?: string | null;
 }
 
 /** Vendor / brand context — null for independent / external research. */
@@ -827,7 +832,12 @@ const STIMULUS_USE_CASE_FOCUS: Partial<Record<ResearchPlanUseCase, string>> = {
 };
 
 function hasResearchStimulus(plan: ResearchPlanContext): boolean {
-  return Boolean(plan.stimulusDescription?.trim());
+  // Beschreibung ODER Vision-Analyse zählt als Stimulus-Präsenz — damit greift
+  // der Stimulus-Fokusblock auch, wenn der Forscher keine eigene Beschreibung
+  // getippt hat. Bestandspläne haben nie eine Analyse → Verhalten unverändert.
+  return Boolean(
+    plan.stimulusDescription?.trim() || plan.stimulusAnalysis?.trim(),
+  );
 }
 
 function withUseCaseFocus(
@@ -901,7 +911,8 @@ function formatBrand(brand: ResearchBrand | null): string {
 
 function formatStimulus(plan: ResearchPlanContext): string | null {
   const description = plan.stimulusDescription?.trim();
-  if (!description) return null;
+  const analysis = plan.stimulusAnalysis?.trim();
+  if (!description && !analysis) return null;
 
   const type = plan.stimulusType?.trim();
   const typeLabel =
@@ -911,8 +922,23 @@ function formatStimulus(plan: ResearchPlanContext): string | null {
         ? "Prototyp-Link"
         : type || null;
 
+  // Kopfzeile byte-identisch zum bisherigen Block, wenn eine Beschreibung
+  // existiert; nur ohne Beschreibung (Bild ohne Forscher-Text, aber mit
+  // Analyse) greift die generische Variante.
+  const headline = description
+    ? `Dem Teilnehmer wird gerade gezeigt: ${description}${typeLabel ? ` (Typ: ${typeLabel})` : ""}. Beziehe deine Fragen darauf.`
+    : `Dem Teilnehmer wird gerade ein Stimulus gezeigt${typeLabel ? ` (Typ: ${typeLabel})` : ""}. Beziehe deine Fragen darauf.`;
+
+  // Die Vision-Analyse ist NACHHAK-Material: sie ergänzt die TOPICS, ersetzt
+  // sie nie. Der textBlock kommt bereits längenbegrenzt aus
+  // stimulus-analysis.ts (MAX_TEXT_BLOCK_CHARS).
+  const analysisBlock = analysis
+    ? `\n\nSTIMULUS-ANALYSE (KI-Beschreibung des gezeigten Materials — Nachhak-Material: nutze sie für konkrete Vertiefungen zum Design, sie ERSETZT NICHT die TOPICS):
+${analysis}`
+    : "";
+
   return `STIMULUS:
-Dem Teilnehmer wird gerade gezeigt: ${description}${typeLabel ? ` (Typ: ${typeLabel})` : ""}. Beziehe deine Fragen darauf.`;
+${headline}${analysisBlock}`;
 }
 
 /**

@@ -15,6 +15,12 @@ import {
   ScreeningQuestionSchema,
   type ScreeningQuestion,
 } from "@/lib/schemas/screening";
+import {
+  coerceStimulusAnalysis,
+  coerceStimulusAnalysisStatus,
+  type StimulusAnalysisPayload,
+  type StimulusAnalysisStatus,
+} from "./stimulus-analysis";
 
 /**
  * Read + write helpers for the research layer. Mirrors the pattern of
@@ -55,6 +61,11 @@ export interface ResearchPlanRecord {
   stimulusUrl: string | null;
   stimulusType: string | null;
   stimulusDescription: string | null;
+  /** Einmalige Vision-Analyse des Bild-Stimulus (20260703000007). Null für
+   *  jede Bestandszeile, jeden Link-Stimulus und jede fehlgeschlagene/laufende
+   *  Analyse — der Agent-Kontext liest sie NUR bei status 'done'. */
+  stimulusAnalysis: StimulusAnalysisPayload | null;
+  stimulusAnalysisStatus: StimulusAnalysisStatus | null;
   screeningQuestions: ScreeningQuestion[];
   /** Studientyp-Diskriminator (Phase M0). Trägt 'product_discovery' für jeden
    *  Bestandsplan (DB-DEFAULT). In M0 liest KEIN Verhaltenspfad dieses Feld —
@@ -189,6 +200,12 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     stimulusDescription: coerceNullableString(
       (row as { stimulus_description?: unknown }).stimulus_description,
     ),
+    stimulusAnalysis: coerceStimulusAnalysis(
+      (row as { stimulus_analysis?: unknown }).stimulus_analysis,
+    ),
+    stimulusAnalysisStatus: coerceStimulusAnalysisStatus(
+      (row as { stimulus_analysis_status?: unknown }).stimulus_analysis_status,
+    ),
     screeningQuestions: coerceScreeningQuestions(row.screening_questions),
     studyType: coerceStudyType(row.study_type),
     createdAt: row.created_at,
@@ -235,6 +252,14 @@ export function planToAgentContext(plan: ResearchPlanRecord): ResearchPlanContex
           stimulusUrl: plan.stimulusUrl,
           stimulusType: plan.stimulusType,
           stimulusDescription: plan.stimulusDescription,
+          // Nur der fertige, längenbegrenzte textBlock — NICHT das Roh-
+          // Envelope — wandert in den Agent-Kontext (und damit in den
+          // deal_context-Snapshot). Gelesen NUR bei status 'done'; pending/
+          // failed/legacy → null → Prompt byte-identisch zu heute.
+          stimulusAnalysis:
+            plan.stimulusAnalysisStatus === "done"
+              ? (plan.stimulusAnalysis?.textBlock ?? null)
+              : null,
         }
       : {}),
   };
@@ -461,6 +486,10 @@ export interface UpdateResearchPlanInput {
   stimulusUrl?: string | null;
   stimulusType?: string | null;
   stimulusDescription?: string | null;
+  /** Vision-Analyse — geschrieben NUR von der Stimulus-Route (Trigger +
+   *  Invalidierung). Kein anderer Pfad fasst diese Felder an. */
+  stimulusAnalysis?: StimulusAnalysisPayload | null;
+  stimulusAnalysisStatus?: StimulusAnalysisStatus | null;
 }
 
 /**
@@ -496,6 +525,8 @@ export async function updateResearchPlan(
     stimulus_url?: string | null;
     stimulus_type?: string | null;
     stimulus_description?: string | null;
+    stimulus_analysis?: Json | null;
+    stimulus_analysis_status?: string | null;
   } = {};
   if (input.title !== undefined) update.title = input.title;
   if (input.objective !== undefined) update.objective = input.objective;
@@ -516,6 +547,10 @@ export async function updateResearchPlan(
   if (input.stimulusType !== undefined) update.stimulus_type = input.stimulusType;
   if (input.stimulusDescription !== undefined)
     update.stimulus_description = input.stimulusDescription;
+  if (input.stimulusAnalysis !== undefined)
+    update.stimulus_analysis = input.stimulusAnalysis as unknown as Json;
+  if (input.stimulusAnalysisStatus !== undefined)
+    update.stimulus_analysis_status = input.stimulusAnalysisStatus;
 
   if (Object.keys(update).length === 0) {
     return getResearchPlan(orgId, planId);

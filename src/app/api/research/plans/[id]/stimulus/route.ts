@@ -6,8 +6,18 @@ import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
   getResearchPlan,
   updateResearchPlan,
+  type ResearchPlanRecord,
 } from "@/lib/research/plans-service";
+import {
+  analyzeStimulusImage,
+  type StimulusImageMediaType,
+} from "@/lib/research/stimulus-analysis";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+
+// Der Bild-Zweig wartet synchron auf die einmalige Vision-Analyse (Opus,
+// bis ~100s Timeout) — Draft-Phase, der Forscher sieht den vorhandenen
+// stimulusBusy-Spinner. Konvention wie /speak bzw. die Plan-Engine-Routen.
+export const maxDuration = 120;
 
 const BUCKET = "research-stimuli";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -176,6 +186,61 @@ function invalidResponse(error: string, code: string) {
   return NextResponse.json({ error, code }, { status: 400 });
 }
 
+/**
+ * Einmalige Vision-Analyse des frisch hochgeladenen Bild-Stimulus — FAIL-OPEN:
+ * jeder Fehler (Transport, Schema nach Retry, Persistenz) lässt den Upload
+ * trotzdem gelingen und mappt nur auf Status 'failed'. Das Interview braucht
+ * die Analyse nie — ohne sie rendert der Prompt exakt wie heute (nur die
+ * Forscher-Beschreibung). Interview-Pfade triggern NIE eine Analyse.
+ *
+ * `plan` ist die bereits aktualisierte Zeile (trägt eine im selben Request
+ * mitgeschickte Beschreibung), damit die Frageansätze den frischesten
+ * Studien-Kontext sehen.
+ */
+async function runStimulusAnalysis(
+  orgId: string,
+  planId: string,
+  file: Blob,
+  plan: ResearchPlanRecord,
+): Promise<"done" | "failed"> {
+  try {
+    const imageBase64 = Buffer.from(await file.arrayBuffer()).toString(
+      "base64",
+    );
+    const payload = await analyzeStimulusImage({
+      imageBase64,
+      // file.type ist oben bereits gegen EXT_BY_TYPE (png/jpeg/webp) validiert.
+      mediaType: file.type as StimulusImageMediaType,
+      study: {
+        title: plan.title,
+        objective: plan.objective,
+        topics: plan.topics,
+        useCase: plan.useCase,
+        stimulusDescription: plan.stimulusDescription,
+      },
+    });
+    const written = await updateResearchPlan(orgId, planId, {
+      stimulusAnalysis: payload,
+      stimulusAnalysisStatus: "done",
+    });
+    if (!written) {
+      throw new Error("could not persist the stimulus analysis");
+    }
+    return "done";
+  } catch (err) {
+    console.error(
+      `[POST /api/research/plans/${planId}/stimulus] analysis failed (fail-open):`,
+      err instanceof Error ? err.message : err,
+    );
+    // Best-effort Status-Schreiben — schlägt auch das fehl, bleibt 'pending'
+    // stehen; der Upload selbst ist davon unberührt.
+    await updateResearchPlan(orgId, planId, {
+      stimulusAnalysisStatus: "failed",
+    }).catch(() => null);
+    return "failed";
+  }
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -244,6 +309,13 @@ export async function POST(
       ...("description" in parsed.input
         ? { stimulusDescription: parsed.input.description }
         : {}),
+      // INVALIDIERUNG: jeder neue Stimulus (Bild ODER Link) macht eine alte
+      // Analyse ungültig — es gibt keinen Zustand, in dem eine Analyse zu
+      // einem anderen Bild gehört. Bild → 'pending' (Analyse folgt unten),
+      // Link → null (nichts zu analysieren).
+      stimulusAnalysis: null,
+      stimulusAnalysisStatus:
+        parsed.input.mode === "image" ? "pending" : null,
     });
     if (!updated) {
       return NextResponse.json(
@@ -252,9 +324,15 @@ export async function POST(
       );
     }
 
+    const analysisStatus =
+      parsed.input.mode === "image"
+        ? await runStimulusAnalysis(orgId, planId, parsed.input.file, updated)
+        : null;
+
     return NextResponse.json({
       stimulus_url: updated.stimulusUrl,
       stimulus_type: updated.stimulusType,
+      stimulus_analysis_status: analysisStatus,
     });
   } catch (err) {
     console.error(
@@ -291,6 +369,8 @@ export async function DELETE(
       stimulusUrl: null,
       stimulusType: null,
       stimulusDescription: null,
+      stimulusAnalysis: null,
+      stimulusAnalysisStatus: null,
     });
     if (!updated) {
       return NextResponse.json(

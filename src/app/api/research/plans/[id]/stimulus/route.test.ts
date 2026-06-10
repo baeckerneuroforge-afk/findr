@@ -5,6 +5,7 @@ import {
   getResearchPlan,
   updateResearchPlan,
 } from "@/lib/research/plans-service";
+import { analyzeStimulusImage } from "@/lib/research/stimulus-analysis";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { DELETE, POST } from "./route";
 
@@ -21,6 +22,10 @@ vi.mock("@/lib/research/plans-service", () => ({
   updateResearchPlan: vi.fn(),
 }));
 
+vi.mock("@/lib/research/stimulus-analysis", () => ({
+  analyzeStimulusImage: vi.fn(),
+}));
+
 vi.mock("@/lib/supabase/server", () => ({
   createAdminSupabaseClient: vi.fn(),
 }));
@@ -28,7 +33,28 @@ vi.mock("@/lib/supabase/server", () => ({
 const mockRequireOrgIdOrError = vi.mocked(requireOrgIdOrError);
 const mockGetResearchPlan = vi.mocked(getResearchPlan);
 const mockUpdateResearchPlan = vi.mocked(updateResearchPlan);
+const mockAnalyzeStimulusImage = vi.mocked(analyzeStimulusImage);
 const mockCreateAdminSupabaseClient = vi.mocked(createAdminSupabaseClient);
+
+const ANALYSIS_PAYLOAD = {
+  version: 1 as const,
+  model: "claude-opus-4-7",
+  generatedAt: "2026-06-10T12:00:00.000Z",
+  analysis: {
+    layout: "Zentrierte Headline über Produktbild",
+    farbwelt: "Blau-dominant mit gelbem Akzent",
+    bildelemente: ["Produktverpackung", "CTA-Button"],
+    textImBild: ["Jetzt testen"],
+    claimBotschaft: "Schnell startklar",
+    gestaltungsentscheidungen: ["Sehr großer Weißraum"],
+    frageansaetze: [
+      "Was fällt Ihnen zuerst auf?",
+      "Was verstehen Sie unter der Headline?",
+      "Welche Rolle spielt das Produktbild für Sie?",
+    ],
+  },
+  textBlock: "Layout/Aufbau: Zentrierte Headline über Produktbild",
+};
 
 const ORG_ID = "00000000-0000-4000-8000-000000000001";
 const PLAN_ID = "00000000-0000-4000-8000-000000000002";
@@ -112,12 +138,13 @@ describe("POST /api/research/plans/[id]/stimulus", () => {
     expect(mockCreateAdminSupabaseClient).not.toHaveBeenCalled();
   });
 
-  it("uploads a validated PNG and persists its public URL through the plan service", async () => {
+  it("uploads a validated PNG, persists its public URL and runs the one-time analysis", async () => {
     vi.spyOn(Date, "now").mockReturnValue(1_717_171_717_171);
     const storage = mockStorage();
     mockUpdateResearchPlan.mockResolvedValue(
       updatedPlan("https://storage.example/stimulus.png", "image"),
     );
+    mockAnalyzeStimulusImage.mockResolvedValue(ANALYSIS_PAYLOAD);
     const form = new FormData();
     form.set(
       "file",
@@ -140,6 +167,7 @@ describe("POST /api/research/plans/[id]/stimulus", () => {
     expect(body).toEqual({
       stimulus_url: "https://storage.example/stimulus.png",
       stimulus_type: "image",
+      stimulus_analysis_status: "done",
     });
     expect(storage.from).toHaveBeenCalledWith("research-stimuli");
     expect(storage.upload).toHaveBeenCalledWith(
@@ -147,10 +175,52 @@ describe("POST /api/research/plans/[id]/stimulus", () => {
       expect.any(Blob),
       { contentType: "image/png", upsert: true },
     );
-    expect(mockUpdateResearchPlan).toHaveBeenCalledWith(ORG_ID, PLAN_ID, {
+    // First write: stimulus fields + invalidated analysis, status 'pending'.
+    expect(mockUpdateResearchPlan).toHaveBeenNthCalledWith(1, ORG_ID, PLAN_ID, {
       stimulusUrl: "https://storage.example/stimulus.png",
       stimulusType: "image",
       stimulusDescription: "Landingpage mit blauem CTA",
+      stimulusAnalysis: null,
+      stimulusAnalysisStatus: "pending",
+    });
+    // Second write: the analysis payload, status 'done'.
+    expect(mockUpdateResearchPlan).toHaveBeenNthCalledWith(2, ORG_ID, PLAN_ID, {
+      stimulusAnalysis: ANALYSIS_PAYLOAD,
+      stimulusAnalysisStatus: "done",
+    });
+    expect(mockAnalyzeStimulusImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mediaType: "image/png",
+        imageBase64: expect.any(String),
+      }),
+    );
+  });
+
+  it("keeps the upload successful when the analysis throws (fail-open) and marks it failed", async () => {
+    mockStorage();
+    mockUpdateResearchPlan.mockResolvedValue(
+      updatedPlan("https://storage.example/stimulus.png", "image"),
+    );
+    mockAnalyzeStimulusImage.mockRejectedValue(
+      new Error("Anthropic timed out"),
+    );
+    const form = new FormData();
+    form.set(
+      "file",
+      new Blob(
+        [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+        { type: "image/png" },
+      ),
+      "stimulus.png",
+    );
+
+    const response = await POST(formRequest(form), context());
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.stimulus_analysis_status).toBe("failed");
+    expect(mockUpdateResearchPlan).toHaveBeenLastCalledWith(ORG_ID, PLAN_ID, {
+      stimulusAnalysisStatus: "failed",
     });
   });
 
@@ -224,11 +294,15 @@ describe("POST /api/research/plans/[id]/stimulus", () => {
 
     expect(response.status).toBe(200);
     expect(mockCreateAdminSupabaseClient).not.toHaveBeenCalled();
+    // Link mode invalidates any previous image analysis and NEVER analyzes.
     expect(mockUpdateResearchPlan).toHaveBeenCalledWith(ORG_ID, PLAN_ID, {
       stimulusUrl: "https://www.figma.com/proto/abc",
       stimulusType: "link",
       stimulusDescription: "Klickbarer Checkout-Prototyp",
+      stimulusAnalysis: null,
+      stimulusAnalysisStatus: null,
     });
+    expect(mockAnalyzeStimulusImage).not.toHaveBeenCalled();
   });
 
   it("accepts link mode via FormData and leaves an omitted description untouched", async () => {
@@ -245,6 +319,8 @@ describe("POST /api/research/plans/[id]/stimulus", () => {
     expect(mockUpdateResearchPlan).toHaveBeenCalledWith(ORG_ID, PLAN_ID, {
       stimulusUrl: "https://prototype.example.com/flow",
       stimulusType: "link",
+      stimulusAnalysis: null,
+      stimulusAnalysisStatus: null,
     });
   });
 
@@ -305,6 +381,8 @@ describe("DELETE /api/research/plans/[id]/stimulus", () => {
       stimulusUrl: null,
       stimulusType: null,
       stimulusDescription: null,
+      stimulusAnalysis: null,
+      stimulusAnalysisStatus: null,
     });
     expect(mockCreateAdminSupabaseClient).not.toHaveBeenCalled();
   });

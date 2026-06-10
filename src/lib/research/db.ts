@@ -188,6 +188,13 @@ export type ResearchPlanRow = {
   stimulus_url: string | null;
   stimulus_type: string | null;
   stimulus_description: string | null;
+  // Stimulus-Analyse (Vision, 20260703000007). Beide nullable, kein DEFAULT/
+  // CHECK. jsonb = versioniertes Envelope (stimulus-analysis.ts), status =
+  // 'pending' | 'done' | 'failed' als freier Text. Vor angewandter Migration
+  // liefert select("*") die Spalten nicht; die Lese-Mapper (plans-service →
+  // coerceStimulusAnalysis*) defaulten undefined→null — byte-identisch.
+  stimulus_analysis: Json | null;
+  stimulus_analysis_status: string | null;
   // Studientyp (Phase M0, 20260630000000). NOT NULL DEFAULT 'product_discovery'
   // in der DB — nicht-nullbar getypt wie status. Vor angewandter Migration
   // liefert select("*") die Spalte nicht; der Lese-Mapper (plans-service
@@ -214,6 +221,8 @@ type ResearchPlanInsert = {
   stimulus_url?: string | null;
   stimulus_type?: string | null;
   stimulus_description?: string | null;
+  stimulus_analysis?: Json | null;
+  stimulus_analysis_status?: string | null;
   // Optional beim Insert — wird heute NIE gesetzt (kein Write-Pfad in M0); der
   // DB-DEFAULT vergibt 'product_discovery'. Verdrahtung kommt in M1/M3.
   study_type?: ResearchPlanStudyType;
@@ -237,6 +246,8 @@ type ResearchPlanUpdate = {
   stimulus_url?: string | null;
   stimulus_type?: string | null;
   stimulus_description?: string | null;
+  stimulus_analysis?: Json | null;
+  stimulus_analysis_status?: string | null;
   study_type?: ResearchPlanStudyType;
   created_at?: string;
 };

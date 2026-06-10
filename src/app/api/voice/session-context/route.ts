@@ -98,8 +98,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Spiegel der modul-privaten hasResearchStimulus-Logik in interviewer.ts:
-    // der Stimulus-Fokusblock greift nur bei nicht-leerer Beschreibung.
-    const hasStimulus = Boolean(input.plan.stimulusDescription?.trim());
+    // der Stimulus-Fokusblock greift bei nicht-leerer Beschreibung ODER
+    // Vision-Analyse (textBlock — Bestands-Snapshots tragen das Feld nicht →
+    // undefined → Verhalten unverändert).
+    const hasStimulus = Boolean(
+      input.plan.stimulusDescription?.trim() ||
+        input.plan.stimulusAnalysis?.trim(),
+    );
     const systemPrompt = buildResearchSystemPrompt(
       input.plan.useCase,
       hasStimulus,
@@ -108,11 +113,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const stimulus =
       input.plan.stimulusUrl ||
       input.plan.stimulusType ||
-      input.plan.stimulusDescription
+      input.plan.stimulusDescription ||
+      input.plan.stimulusAnalysis
         ? {
             url: input.plan.stimulusUrl ?? null,
             type: input.plan.stimulusType ?? null,
             description: input.plan.stimulusDescription ?? null,
+            // Additiv: der fertige Analyse-textBlock für den Voice-Agenten
+            // (eigenes Repo). Ein alter Agent ignoriert das Feld — graceful.
+            analysis: input.plan.stimulusAnalysis ?? null,
           }
         : null;
 

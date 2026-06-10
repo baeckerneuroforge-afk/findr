@@ -47,7 +47,11 @@ export class StructuredOutputError extends Error {
 
 export interface StructuredMessage {
   role: "user" | "assistant";
-  content: string;
+  /** Plain text for every classic caller. Vision callers (stimulus-analysis)
+   *  pass content BLOCKS (text + base64 image) instead — the array form is the
+   *  SDK's own MessageParam.content union, passed through verbatim, so the
+   *  string path stays byte-identical for all existing callers. */
+  content: string | Anthropic.ContentBlockParam[];
 }
 
 export interface CallClaudeStructuredOptions<T> {

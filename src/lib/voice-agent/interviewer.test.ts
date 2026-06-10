@@ -63,6 +63,68 @@ describe("research stimulus prompt wiring", () => {
     expect(systemPrompt).not.toContain("Asset-Anzeige folgt später");
   });
 
+  it("keeps the description-only stimulus block byte-identical when the analysis is null", () => {
+    const planWithDescription = {
+      ...BASE_INPUT.plan,
+      stimulusType: "link",
+      stimulusDescription:
+        "Eine Landingpage mit großer Headline und blauem CTA.",
+    };
+    const withoutAnalysisField = buildResearchContext(
+      { ...BASE_INPUT, plan: planWithDescription },
+      "de",
+    );
+    const withNullAnalysis = buildResearchContext(
+      { ...BASE_INPUT, plan: { ...planWithDescription, stimulusAnalysis: null } },
+      "de",
+    );
+
+    expect(withNullAnalysis).toBe(withoutAnalysisField);
+    expect(withNullAnalysis).not.toContain("STIMULUS-ANALYSE");
+  });
+
+  it("appends the vision analysis as Nachhak-Material below the unchanged headline", () => {
+    const prompt = buildResearchContext(
+      {
+        ...BASE_INPUT,
+        plan: {
+          ...BASE_INPUT.plan,
+          stimulusType: "image",
+          stimulusDescription: "Anzeige mit blauem CTA.",
+          stimulusAnalysis:
+            "Layout/Aufbau: Zentrierte Headline über Produktbild\nFarbwelt: Blau-dominant",
+        },
+      },
+      "de",
+    );
+
+    expect(prompt).toContain(
+      "STIMULUS:\nDem Teilnehmer wird gerade gezeigt: Anzeige mit blauem CTA. (Typ: Bild). Beziehe deine Fragen darauf.",
+    );
+    expect(prompt).toContain(
+      "STIMULUS-ANALYSE (KI-Beschreibung des gezeigten Materials — Nachhak-Material: nutze sie für konkrete Vertiefungen zum Design, sie ERSETZT NICHT die TOPICS):\nLayout/Aufbau: Zentrierte Headline über Produktbild",
+    );
+  });
+
+  it("renders a generic headline plus analysis when the researcher typed no description", () => {
+    const prompt = buildResearchContext(
+      {
+        ...BASE_INPUT,
+        plan: {
+          ...BASE_INPUT.plan,
+          stimulusType: "image",
+          stimulusAnalysis: "Layout/Aufbau: Produktbild mit CTA",
+        },
+      },
+      "de",
+    );
+
+    expect(prompt).toContain(
+      "STIMULUS:\nDem Teilnehmer wird gerade ein Stimulus gezeigt (Typ: Bild). Beziehe deine Fragen darauf.",
+    );
+    expect(prompt).toContain("Layout/Aufbau: Produktbild mit CTA");
+  });
+
   it("uses stimulus-specific creative/concept focus only when a stimulus exists", () => {
     expect(buildResearchSystemPrompt("creative_test", true)).toContain(
       "bezogen auf den gezeigten Stimulus",
