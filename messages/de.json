@@ -55,6 +55,62 @@
       "denied": "Kein Mikrofonzugriff — bitte tippen Sie Ihre Antwort.",
       "unsupported": "Spracheingabe wird hier nicht unterstützt — bitte tippen Sie Ihre Antwort."
     },
+    "voiceLive": {
+      "intro": {
+        "title": "Dies ist ein Sprach-Interview",
+        "body": "Sie führen dieses Interview im Gespräch — Ihr Interviewer stellt Fragen, Sie antworten einfach mündlich. Dafür benötigen wir Zugriff auf Ihr Mikrofon.",
+        "micNote": "Beim Start fragt Ihr Browser nach der Mikrofon-Erlaubnis.",
+        "start": "Interview starten",
+        "fallback": "Lieber schriftlich antworten"
+      },
+      "connecting": {
+        "label": "Verbindung wird aufgebaut …",
+        "agentWait": "Ihr Gesprächspartner kommt gleich dazu."
+      },
+      "live": {
+        "speaking": "Ihr Interviewer spricht",
+        "listening": "Hört zu",
+        "mutedStatus": "Mikrofon ist stumm",
+        "reconnecting": "Verbindung wird wiederhergestellt …",
+        "mute": "Stummschalten",
+        "unmute": "Stummschaltung aufheben",
+        "transcriptLabel": "Mitschrift",
+        "transcriptHint": "Die Live-Mitschrift kann verzögert erscheinen — das Gespräch läuft davon unabhängig weiter.",
+        "soundBlocked": "Ton aktivieren",
+        "soundBlockedHint": "Ihr Browser blockiert die Audio-Wiedergabe, bis Sie sie einmal erlauben."
+      },
+      "ended": {
+        "checking": "Das Interview wird abgeschlossen …"
+      },
+      "errors": {
+        "micDenied": {
+          "title": "Mikrofon-Zugriff verweigert",
+          "body": "Ohne Mikrofon können wir das Sprach-Interview nicht starten. Erlauben Sie den Zugriff in den Browser-Einstellungen und versuchen Sie es erneut — oder antworten Sie schriftlich."
+        },
+        "micUnavailable": {
+          "title": "Kein Mikrofon gefunden",
+          "body": "Wir konnten kein Mikrofon ansprechen. Prüfen Sie Ihr Gerät oder antworten Sie schriftlich."
+        },
+        "rejected": {
+          "title": "Interview nicht verfügbar",
+          "body": "Dieser Interview-Link ist nicht (mehr) für ein Sprach-Interview freigeschaltet."
+        },
+        "unavailable": {
+          "title": "Sprach-Interview derzeit nicht verfügbar",
+          "body": "Das Sprach-Interview ist im Moment nicht erreichbar. Versuchen Sie es gleich erneut — oder antworten Sie schriftlich."
+        },
+        "agent": {
+          "title": "Ihr Gesprächspartner ist gerade nicht erreichbar",
+          "body": "Wir konnten das Gespräch nicht starten. Versuchen Sie es in ein paar Minuten erneut — oder antworten Sie schriftlich."
+        },
+        "lost": {
+          "title": "Verbindung unterbrochen",
+          "body": "Die Verbindung zum Gespräch wurde getrennt. Sie können es erneut versuchen — das Interview setzt dort fort, wo Sie aufgehört haben."
+        },
+        "retry": "Erneut versuchen",
+        "fallbackCta": "Schriftlich fortsetzen"
+      }
+    },
     "tts": {
       "enable": "Ton aktivieren",
       "mute": "Ton aus",

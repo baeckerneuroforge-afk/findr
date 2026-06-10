@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { InterviewChat } from "@/components/interview/InterviewChat";
 import { ScreeningGate } from "@/components/interview/ScreeningGate";
+import { VoiceInterviewView } from "@/components/interview/VoiceInterviewView";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { resolvePublicEntry } from "@/lib/voice-agent/session-service";
 import { getOrgBranding } from "@/lib/settings/org-settings";
@@ -81,10 +82,13 @@ export async function generateMetadata({
 
 export default async function InterviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { token } = await params;
+  const search = await searchParams;
   const entry = await getCachedEntry(token);
   if (!entry) notFound();
 
@@ -153,6 +157,36 @@ export default async function InterviewPage({
   const ttsProps = { ttsEnabled };
   const useCaseProps = { useCase };
 
+  // Voice Phase 2 (E1, O1): voice-enabled studies render the LiveKit voice
+  // view INSTEAD of the chat — the push-to-talk provisional in InterviewChat
+  // becomes unreachable for voice plans. `?mode=text` is the participant's
+  // explicit text fallback: the EXISTING chat with voiceEnabled=false. For
+  // non-voice studies voiceEnabled is false → this branch never fires and the
+  // chat below renders byte-identically.
+  const useVoiceView = voiceEnabled && search.mode !== "text";
+
+  if (useVoiceView) {
+    return (
+      <NextIntlClientProvider
+        locale={locale}
+        messages={{ interview: MESSAGES[locale].interview }}
+      >
+        <VoiceInterviewView
+          token={token}
+          initialConversation={session.conversation}
+          initialStatus={session.status}
+          headingOverride={session.planTitle}
+          brandName={branding?.brandName ?? null}
+          accentColor={branding?.accentColor ?? null}
+          logoUrl={branding?.logoUrl ?? null}
+          panelCompleteRedirect={session.panelCompleteRedirect}
+          stimulusUrl={stimulusUrl}
+          stimulusType={stimulusType}
+        />
+      </NextIntlClientProvider>
+    );
+  }
+
   return (
     <NextIntlClientProvider
       locale={locale}
@@ -176,7 +210,10 @@ export default async function InterviewPage({
         // Panel-Sessions gesetzt (sonst null → kein Redirect, byte-identisch).
         panelCompleteRedirect={session.panelCompleteRedirect}
         visualCaptureEnabled={visualCaptureEnabled}
-        voiceEnabled={voiceEnabled}
+        // O1: this branch renders either a non-voice study (voiceEnabled is
+        // already false → value-identical) or the explicit ?mode=text fallback
+        // of a voice study, where the push-to-talk provisional must stay off.
+        voiceEnabled={false}
         // Stimulus E4 — drives the participant split-view (asset beside the
         // chat). Both null for non-research / no-stimulus studies → unchanged.
         stimulusUrl={stimulusUrl}

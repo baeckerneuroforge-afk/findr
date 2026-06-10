@@ -55,6 +55,62 @@
       "denied": "No microphone access — please type your answer.",
       "unsupported": "Voice input isn't supported here — please type your answer."
     },
+    "voiceLive": {
+      "intro": {
+        "title": "This is a voice interview",
+        "body": "You take this interview as a conversation — your interviewer asks questions, you simply answer out loud. For that we need access to your microphone.",
+        "micNote": "When you start, your browser will ask for microphone permission.",
+        "start": "Start interview",
+        "fallback": "I'd rather answer in writing"
+      },
+      "connecting": {
+        "label": "Connecting …",
+        "agentWait": "Your interviewer is joining in a moment."
+      },
+      "live": {
+        "speaking": "Your interviewer is speaking",
+        "listening": "Listening",
+        "mutedStatus": "Microphone is muted",
+        "reconnecting": "Reconnecting …",
+        "mute": "Mute",
+        "unmute": "Unmute",
+        "transcriptLabel": "Transcript",
+        "transcriptHint": "The live transcript may appear with a delay — the conversation continues regardless.",
+        "soundBlocked": "Enable sound",
+        "soundBlockedHint": "Your browser blocks audio playback until you allow it once."
+      },
+      "ended": {
+        "checking": "Wrapping up the interview …"
+      },
+      "errors": {
+        "micDenied": {
+          "title": "Microphone access denied",
+          "body": "Without a microphone we can't start the voice interview. Allow access in your browser settings and try again — or answer in writing."
+        },
+        "micUnavailable": {
+          "title": "No microphone found",
+          "body": "We couldn't access a microphone. Check your device or answer in writing."
+        },
+        "rejected": {
+          "title": "Interview not available",
+          "body": "This interview link is not (or no longer) enabled for a voice interview."
+        },
+        "unavailable": {
+          "title": "Voice interview currently unavailable",
+          "body": "The voice interview can't be reached right now. Try again shortly — or answer in writing."
+        },
+        "agent": {
+          "title": "Your interviewer is not reachable right now",
+          "body": "We couldn't start the conversation. Try again in a few minutes — or answer in writing."
+        },
+        "lost": {
+          "title": "Connection lost",
+          "body": "The connection to the conversation was interrupted. You can try again — the interview continues where you left off."
+        },
+        "retry": "Try again",
+        "fallbackCta": "Continue in writing"
+      }
+    },
     "tts": {
       "enable": "Enable sound",
       "mute": "Mute",
