@@ -8,6 +8,7 @@ import { getResearchPlan } from "@/lib/research/plans-service";
 import {
   countInsightsForPlanSince,
   getStudySynthesis,
+  mapInsightsToSessionIds,
   type EmergentTheme,
   type Tension,
   type TensionSide,
@@ -102,9 +103,28 @@ export default async function ResearchPlanSynthesisPage({
   const synthesisReady =
     synthesis !== null && synthesis.synthesized_at !== null;
 
-  // Both reads depend only on `synthesis`, not on each other → one parallel
-  // stage instead of two sequential roundtrips (Perf-Audit 4.3).
-  const [newInsightCount, shares] = await Promise.all([
+  // E7: Beleg-Links nur für Markt-Studien (nur dort existiert die
+  // sessions-Subroute) und nur bei fertiger Synthese. Die Auflösung kennt
+  // nur Interviews mit session_id-Stempel — alles andere fällt in der UI
+  // auf die reine ID-Anzeige zurück.
+  const insightIdsForLinks =
+    synthesisReady && synthesis && plan.studyType === "market_research"
+      ? [
+          ...new Set([
+            ...synthesis.emergent_themes.flatMap(
+              (theme) => theme.sourceInsightIds,
+            ),
+            ...synthesis.tensions.flatMap((tension) => [
+              ...tension.side_a.sourceInsightIds,
+              ...tension.side_b.sourceInsightIds,
+            ]),
+          ]),
+        ]
+      : [];
+
+  // All reads depend only on `synthesis`, not on each other → one parallel
+  // stage instead of sequential roundtrips (Perf-Audit 4.3).
+  const [newInsightCount, shares, insightSessionIds] = await Promise.all([
     // "X new insights since the last synthesis". When `synthesized_at` is null
     // (synthesis row may exist but never ran; or no row at all) this counts
     // ALL insights for the plan — which is what the user wants to see as "the
@@ -115,7 +135,16 @@ export default async function ResearchPlanSynthesisPage({
     // uses — only when a populated synthesis exists, i.e. the same gate the
     // share manager and export buttons render under.
     synthesisReady ? listSynthesisShares(orgId, planId) : [],
+    insightIdsForLinks.length > 0
+      ? mapInsightsToSessionIds(orgId, planId, insightIdsForLinks)
+      : ({} as Record<string, string>),
   ]);
+
+  const sessionHrefById: Record<string, string> = {};
+  for (const [insightId, sessionId] of Object.entries(insightSessionIds)) {
+    sessionHrefById[insightId] =
+      `/dashboard/market-research/${planId}/sessions/${sessionId}`;
+  }
 
   const t = await getTranslations("research.synthesis");
   const locale = await getLocale();
@@ -263,6 +292,7 @@ export default async function ResearchPlanSynthesisPage({
                     key={`theme-${i}`}
                     theme={theme}
                     totalParticipants={synthesis.based_on_count}
+                    sessionHrefById={sessionHrefById}
                   />
                 ))}
               </div>

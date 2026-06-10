@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import type { EmergentTheme } from "@/lib/synthesis/service";
@@ -21,6 +22,10 @@ interface SynthesisThemeCardProps {
   /** based_on_count from the parent synthesis row — drives the
    *  "{frequency} of {total} participants" label. */
   totalParticipants: number;
+  /** E7 (Konsole-v5): insightId → Transkript-Href. Optional und lückenhaft
+   *  erlaubt — IDs ohne Eintrag rendern wie bisher ohne Link (ältere
+   *  Interviews ohne session_id-Stempel). */
+  sessionHrefById?: Record<string, string>;
 }
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -41,6 +46,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 export function SynthesisThemeCard({
   theme,
   totalParticipants,
+  sessionHrefById,
 }: SynthesisThemeCardProps) {
   const [expanded, setExpanded] = useState(false);
   const t = useTranslations("research.synthesis");
@@ -124,14 +130,27 @@ export function SynthesisThemeCard({
                 {t("sourceInterviewsCard", { count: uniqueSourceIds.length })}
               </div>
               <ul className="space-y-1">
-                {uniqueSourceIds.map((id, idx) => (
-                  <li
-                    key={`${id}-${idx}`}
-                    className="font-mono text-caption text-neutral-500"
-                  >
-                    {id}
-                  </li>
-                ))}
+                {uniqueSourceIds.map((id, idx) => {
+                  const href = sessionHrefById?.[id];
+                  return (
+                    <li
+                      key={`${id}-${idx}`}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <span className="font-mono text-caption text-neutral-500">
+                        {id}
+                      </span>
+                      {href && (
+                        <Link
+                          href={href}
+                          className="shrink-0 text-caption font-medium text-primary-700 transition-colors hover:text-primary-800"
+                        >
+                          {t("openInterview")}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}

@@ -1484,6 +1484,7 @@
       "newSinceLast": "{count, plural, one {# neues Interview} other {# neue Interviews}} seit der letzten Synthese",
       "newSinceLastNotice": "{count, plural, one {# neues Interview} other {# neue Interviews}} seit der letzten Synthese — „Synthese aktualisieren“ bezieht sie ein.",
       "updatedToast": "Synthese aktualisiert — Überblick, Themen und Spannungen neu verdichtet",
+      "openInterview": "Interview öffnen",
       "slotNeverComputed": "Synthese-Slot existiert, aber noch nie berechnet.",
       "noSynthesisYet": "Noch keine Synthese — {count, plural, one {# Interview verfügbar} other {# Interviews verfügbar}}.",
       "emptyTitle": "Noch keine Synthese erstellt",

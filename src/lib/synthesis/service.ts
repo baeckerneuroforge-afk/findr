@@ -104,3 +104,85 @@ export async function countInsightsForPlanSince(
   if (error || count === null) return 0;
   return count;
 }
+
+/**
+ * E7 (Konsole-v5): löst Insight-IDs einer Studie auf die interview_session
+ * auf, aus der sie extrahiert wurden — für „Interview öffnen“-Belege in der
+ * Synthese. Kette: insight.source_call_id → calls.participants.session_id
+ * (vom Transcript-Service beim Interview-Abschluss gestempelt), verifiziert
+ * gegen interview_sessions (org- UND plan-gebunden).
+ *
+ * Ältere Interviews (vor dem session_id-Stempel) fehlen schlicht in der Map —
+ * die UI fällt dort auf die reine ID-Anzeige zurück. Lieber kein Link als ein
+ * falscher: verlinkt wird nur, was über alle drei Stufen sauber auflöst.
+ * Fail-open: jeder Lesefehler ergibt eine leere Map, nie einen Seitenfehler.
+ */
+export async function mapInsightsToSessionIds(
+  orgId: string,
+  planId: string,
+  insightIds: string[],
+): Promise<Record<string, string>> {
+  if (insightIds.length === 0) return {};
+  const supabase = createResearchSupabase();
+  try {
+    // Die generierten DB-Typen kennen source_call_id (Migration 20260609)
+    // nicht — .returns<>() stellt den echten Zeilen-Typ her, ohne wie
+    // engine.ts per select("*") alle JSONB-Spalten mitzuziehen.
+    const { data: insightRows, error: insErr } = await supabase
+      .from("product_discovery_insights")
+      .select("id, source_call_id")
+      .eq("org_id", orgId)
+      .eq("plan_id", planId)
+      .in("id", insightIds)
+      .returns<Array<{ id: string; source_call_id: string | null }>>();
+    if (insErr || !insightRows || insightRows.length === 0) return {};
+
+    const callIds = [
+      ...new Set(
+        insightRows
+          .map((row) => row.source_call_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (callIds.length === 0) return {};
+
+    const { data: callRows, error: callErr } = await supabase
+      .from("calls")
+      .select("id, participants")
+      .eq("org_id", orgId)
+      .in("id", callIds);
+    if (callErr || !callRows) return {};
+
+    const sessionByCall = new Map<string, string>();
+    for (const row of callRows) {
+      const sessionId = (row.participants as { session_id?: unknown } | null)
+        ?.session_id;
+      if (typeof sessionId === "string" && sessionId.length > 0) {
+        sessionByCall.set(row.id as string, sessionId);
+      }
+    }
+    if (sessionByCall.size === 0) return {};
+
+    const { data: sessionRows, error: sesErr } = await supabase
+      .from("interview_sessions")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("plan_id", planId)
+      .in("id", [...new Set(sessionByCall.values())]);
+    if (sesErr || !sessionRows) return {};
+    const validSessions = new Set(sessionRows.map((row) => row.id as string));
+
+    const map: Record<string, string> = {};
+    for (const row of insightRows) {
+      const sessionId = row.source_call_id
+        ? sessionByCall.get(row.source_call_id)
+        : undefined;
+      if (sessionId && validSessions.has(sessionId)) {
+        map[row.id] = sessionId;
+      }
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
