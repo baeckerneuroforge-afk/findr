@@ -5,7 +5,7 @@ import { toBcp47 } from "@/i18n/locale";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { loadOrgSyntheses } from "@/lib/mission-control/engine";
 import {
-  countCompletedSessionsForPlan,
+  countCompletedSessionsForPlans,
   listResearchPlans,
 } from "@/lib/research/plans-service";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
@@ -26,12 +26,11 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
  * NICHT angefasst. Es werden nur drei vorhandene Reads zusammengestellt:
  *   • listResearchPlans(orgId, "market_research") — die Studien (1 Read, der
  *     Diskriminator scopt auf den Markt-Bereich).
- *   • countCompletedSessionsForPlan — die §7-Fortschritts-Messung pro Studie,
- *     der byte-genaue Zähler der Detail-Seite (head:true COUNT, 0 Zeilen-
- *     Transfer, fail-open null → "—"). Per Promise.all parallel über die Pläne;
- *     bewusst KEIN zweiter, gebündelter Zähl-Pfad (kein paralleler Datenpfad,
- *     der von der Detail-Seite driften könnte) — N = Anzahl Markt-Studien ist
- *     klein, und jeder Aufruf transferiert null Zeilen.
+ *   • countCompletedSessionsForPlans — die §7-Fortschritts-Messung, seit
+ *     Perf-Etappe D als EIN gebündelter Read über alle Studien (plan_id-only
+ *     Projektion + JS-Gruppierung) statt N paralleler head-COUNTs. Lebt im
+ *     selben Service direkt neben dem Einzel-Zähler der Detail-Seite mit
+ *     identischem Prädikat-Satz — kein driftender Parallel-Datenpfad.
  *   • loadOrgSyntheses(orgId) — EIN org-weiter Batch-Read; eine Studie gilt als
  *     "Synthese bereit", wenn dafür eine study_synthesis-Zeile existiert.
  *     Defensiv fail-open umschlossen: ein Synthese-Lesefehler degradiert nur das
@@ -137,16 +136,17 @@ export default async function MarketResearchOverviewPage() {
 
   // Two READ-ONLY batches over EXISTING queries (no new backend, no migration),
   // run in parallel:
-  //   • per-plan completed-interview counts — the canonical §7 counter; each is
-  //     a head:true COUNT (zero rows transferred) and fail-open (null → "—").
-  //     Promise.all keeps the small N of COUNTs concurrent and reuses the detail
-  //     page's exact semantics instead of forking a second counting path.
+  //   • per-plan completed-interview counts — the canonical §7 counter, since
+  //     Perf-Etappe D as ONE batched query for all plans (plan_id-only
+  //     projection, JS grouping) instead of N parallel head-COUNTs. Fail-open:
+  //     null map → "—" on every row, mirroring the old per-plan null.
   //   • org-wide synthesis set — ONE batch read. A plan is "synthesis ready" iff
   //     a study_synthesis row exists for it. Wrapped fail-open so a synthesis-
   //     read hiccup only blanks the decorative flag, never the page.
   const [completedCounts, synthesisPlanIds] = await Promise.all([
-    Promise.all(
-      plans.map((plan) => countCompletedSessionsForPlan(orgId, plan.id)),
+    countCompletedSessionsForPlans(
+      orgId,
+      plans.map((plan) => plan.id),
     ),
     loadOrgSyntheses(orgId)
       .then((rows) => new Set(rows.map((row) => row.studyId)))
@@ -155,18 +155,17 @@ export default async function MarketResearchOverviewPage() {
 
   // ── Kennzahlen ────────────────────────────────────────────────────────────
   const activeStudies = plans.filter((p) => p.status === "active").length;
-  // Sum only the counts we actually know. A per-plan null is fail-open ("—");
-  // if EVERY count failed we show "—" for the total instead of a misleading 0.
-  // A partial failure shows a known lower bound — the honest fail-open value.
-  const knownCounts = completedCounts.filter((c): c is number => c !== null);
+  // Sum only the counts we actually know. The batched read is all-or-nothing:
+  // null map → every plan shows "—" and the total falls back too, instead of
+  // a misleading 0.
+  const knownCounts = completedCounts ? [...completedCounts.values()] : [];
   const completedTotal = knownCounts.reduce((sum, c) => sum + c, 0);
   const completedDisplay: string | number =
-    knownCounts.length === 0 ? t("poolCountUnknown") : completedTotal;
+    completedCounts === null ? t("poolCountUnknown") : completedTotal;
 
-  // Zip the parallel reads back onto their plans (Promise.all preserves order).
-  const rows = plans.map((plan, i) => ({
+  const rows = plans.map((plan) => ({
     plan,
-    completed: completedCounts[i],
+    completed: completedCounts?.get(plan.id) ?? null,
     hasSynthesis: synthesisPlanIds.has(plan.id),
   }));
 

@@ -7,6 +7,12 @@ import {
   syncGongCalls,
 } from "@/lib/gong/service";
 
+// Backfill-Route: fetchGongCalls paged bis 1.000 Calls und syncGongCalls
+// schreibt (6+N) Roundtrips PRO Call — ein großer Backfill riss Vercels
+// 60s-Default als silent partial sync (Perf-Audit 4.5). Gleicher Wert wie
+// auf den LLM-Routen (Etappe A).
+export const maxDuration = 300;
+
 export async function POST() {
   const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();

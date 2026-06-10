@@ -99,25 +99,23 @@ export default async function ResearchPlanSynthesisPage({
       : `/dashboard/research-plans/${planId}`;
 
   const synthesis = await getStudySynthesis(orgId, planId);
-  // "X new insights since the last synthesis". When `synthesized_at` is null
-  // (synthesis row may exist but never ran; or no row at all) this counts
-  // ALL insights for the plan — which is what the user wants to see as "the
-  // first synthesis will draw from these".
-  const newInsightCount = await countInsightsForPlanSince(
-    orgId,
-    planId,
-    synthesis?.synthesized_at ?? null,
-  );
-
-  // Existing public share links for this synthesis (org-internal, newest
-  // first). Loaded via the canonical service — same path the public route uses
-  // — only when a populated synthesis exists, i.e. the same gate the share
-  // manager and export buttons render under.
   const synthesisReady =
     synthesis !== null && synthesis.synthesized_at !== null;
-  const shares = synthesisReady
-    ? await listSynthesisShares(orgId, planId)
-    : [];
+
+  // Both reads depend only on `synthesis`, not on each other → one parallel
+  // stage instead of two sequential roundtrips (Perf-Audit 4.3).
+  const [newInsightCount, shares] = await Promise.all([
+    // "X new insights since the last synthesis". When `synthesized_at` is null
+    // (synthesis row may exist but never ran; or no row at all) this counts
+    // ALL insights for the plan — which is what the user wants to see as "the
+    // first synthesis will draw from these".
+    countInsightsForPlanSince(orgId, planId, synthesis?.synthesized_at ?? null),
+    // Existing public share links for this synthesis (org-internal, newest
+    // first). Loaded via the canonical service — same path the public route
+    // uses — only when a populated synthesis exists, i.e. the same gate the
+    // share manager and export buttons render under.
+    synthesisReady ? listSynthesisShares(orgId, planId) : [],
+  ]);
 
   const t = await getTranslations("research.synthesis");
   const locale = await getLocale();

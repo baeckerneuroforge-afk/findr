@@ -66,14 +66,27 @@ export default async function DealDetailPage({
   const deal = await getDealById(orgId, id);
   if (!deal) notFound();
 
-  const calls = await getCallsByDealId(orgId, id);
-  // Batched latest-insight lookup so per-call panels avoid N+1. Mirrors the
-  // getLatestRiskScoresForDeals pattern. Empty for calls without an insight.
-  const productDiscoveryByCall = await getLatestInsightsForCalls(
-    orgId,
-    calls.map((c) => c.id),
-  );
-  const history = await getRiskScoreHistory(orgId, id, 30);
+  // Two Promise.all stages instead of six sequential awaits (Perf-Audit 4.3).
+  // Stage 1 = everything that only needs orgId + deal: calls, risk history,
+  // and — gated on the outcome known from getDealById — the post-loss
+  // interview + org settings. Stage 2 = the reads that genuinely depend on
+  // stage-1 results (insights need the call ids, solution reports only make
+  // sense once a risk analysis exists).
+  const [calls, history, dealInterview, autoInterviewEnabled] =
+    await Promise.all([
+      getCallsByDealId(orgId, id),
+      getRiskScoreHistory(orgId, id, 30),
+      // A deal's post-loss interview only exists once it's lost; load it so
+      // the panel can show an existing session (and avoid creating a second
+      // one).
+      deal.outcome === "lost" ? getDealInterview(orgId, id) : null,
+      // Drives the "auto-interview couldn't start" hint when the toggle is on
+      // but contact details are missing.
+      deal.outcome === "lost"
+        ? getOrgSettings(orgId).then((s) => s.autoStartPostLossInterview)
+        : false,
+    ]);
+
   const latestRisk = history[history.length - 1] ?? null;
   const historyPoints = history.map((point) => ({
     date: point.analyzed_at,
@@ -81,23 +94,18 @@ export default async function DealDetailPage({
     level: point.risk_level,
   }));
 
-  // Solution layer only makes sense once a risk analysis exists. Load the most
-  // recent persisted report so it survives a reload.
-  const solutionReports = latestRisk
-    ? await getSolutionReports(orgId, id, 1)
-    : [];
+  const [productDiscoveryByCall, solutionReports] = await Promise.all([
+    // Batched latest-insight lookup so per-call panels avoid N+1. Mirrors the
+    // getLatestRiskScoresForDeals pattern. Empty for calls without an insight.
+    getLatestInsightsForCalls(
+      orgId,
+      calls.map((c) => c.id),
+    ),
+    // Solution layer only makes sense once a risk analysis exists. Load the
+    // most recent persisted report so it survives a reload.
+    latestRisk ? getSolutionReports(orgId, id, 1) : ([] as const),
+  ]);
   const latestSolution = solutionReports[0] ?? null;
-
-  // A deal's post-loss interview only exists once it's lost; load it so the
-  // panel can show an existing session (and avoid creating a second one).
-  const dealInterview =
-    deal.outcome === "lost" ? await getDealInterview(orgId, id) : null;
-  // Drives the "auto-interview couldn't start" hint when the toggle is on but
-  // contact details are missing.
-  const autoInterviewEnabled =
-    deal.outcome === "lost"
-      ? (await getOrgSettings(orgId)).autoStartPostLossInterview
-      : false;
 
   return (
     <div>

@@ -340,6 +340,38 @@ export async function countCompletedSessionsForPlan(
   return count ?? 0;
 }
 
+/**
+ * Batched flavor of the §7 counter for LIST pages: ONE query for all plans
+ * instead of N parallel head-COUNTs (Perf-Audit 4.1 / MR-Übersicht). Same
+ * predicate set as countCompletedSessionsForPlan — the §7 separation note
+ * above applies unchanged. Only the plan_id column travels; grouping happens
+ * in JS (PostgREST aggregates are disabled on Supabase by default, so a
+ * GROUP BY can't run API-side without an RPC; one uuid per completed session
+ * stays tiny at today's volumes). Every requested plan id is present in the
+ * map (0 when none). Fail-open: a read error returns null — the caller shows
+ * the unknown marker for every plan, mirroring the single counter's null.
+ */
+export async function countCompletedSessionsForPlans(
+  orgId: string,
+  planIds: string[],
+): Promise<Map<string, number> | null> {
+  if (planIds.length === 0) return new Map();
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select("plan_id")
+    .eq("org_id", orgId)
+    .eq("status", "completed")
+    .in("plan_id", planIds);
+  if (error || !data) return null;
+  const counts = new Map<string, number>(planIds.map((id) => [id, 0]));
+  for (const row of data) {
+    if (row.plan_id === null) continue;
+    counts.set(row.plan_id, (counts.get(row.plan_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
 // ── Writes ──────────────────────────────────────────────────────────────────
 
 export interface CreateResearchPlanInput {

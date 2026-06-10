@@ -120,26 +120,31 @@ function mapDbDealToDeal(row: DealRow): Deal {
 }
 
 export async function getDealsByOrg(orgId: string): Promise<Deal[]> {
+  // ONE query for all org deals, partitioned in JS (Perf-Audit 4.2): the old
+  // shape queried data_source='hubspot' first and fell back to a SECOND
+  // full-table read whenever that came back empty — so every non-HubSpot org
+  // (manual/seeded) paid two sequential roundtrips on /dashboard, /forecast
+  // and /accounts. Priority semantics are unchanged: HubSpot rows win when
+  // present, otherwise every deal counts, otherwise mocks.
   const supabase = createAdminSupabaseClient();
-  const { data, error } = await supabase
-    .from("deals")
-    .select("*")
-    .eq("org_id", orgId)
-    .eq("data_source", "hubspot")
-    .order("last_activity_at", { ascending: false });
+  const fetchAll = () =>
+    supabase
+      .from("deals")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("last_activity_at", { ascending: false });
 
-  if (!error && data && data.length > 0) {
-    return data.map(mapDbDealToDeal);
+  let { data, error } = await fetchAll();
+  if (error || !data) {
+    // The old two-query shape retried by accident (a transient error on the
+    // first read still reached the second). Keep that resilience as ONE
+    // deliberate retry — without it, a blip would render mock deals.
+    ({ data, error } = await fetchAll());
   }
 
-  const { data: seededDeals, error: seededError } = await supabase
-    .from("deals")
-    .select("*")
-    .eq("org_id", orgId)
-    .order("last_activity_at", { ascending: false });
-
-  if (!seededError && seededDeals && seededDeals.length > 0) {
-    return seededDeals.map(mapDbDealToDeal);
+  if (!error && data && data.length > 0) {
+    const hubspot = data.filter((row) => row.data_source === "hubspot");
+    return (hubspot.length > 0 ? hubspot : data).map(mapDbDealToDeal);
   }
 
   return MOCK_DEALS.map((deal) => ({ ...deal, dataSource: "mock" }));
