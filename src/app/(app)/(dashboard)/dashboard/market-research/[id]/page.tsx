@@ -36,7 +36,9 @@ import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
 import { ProlificDraftPanel } from "@/components/dashboard/ProlificDraftPanel";
 import { ScreeningQuestionsPanel } from "@/components/dashboard/ScreeningQuestionsPanel";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
+import { SectionRail } from "@/components/dashboard/SectionRail";
 import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
+import { StickyStudyBar } from "@/components/dashboard/StickyStudyBar";
 import { ENABLED_MODULES } from "@/config/modules";
 
 /**
@@ -215,6 +217,46 @@ export default async function MarketCampaignDetailPage({
       ? Math.min(100, Math.round((completed / sampleTarget) * 100))
       : 0;
 
+  // E4 (Konsole-v5): gruppierte Sektions-Navigation — NUR Anker-IDs + Labels,
+  // jede Sektion behält ihre Komponente mit identischen Props („Umzug ohne
+  // Umbau“). Die Labels sind die vorhandenen Sektions-Titel-Keys; die
+  // Gruppen folgen der tatsächlichen DOM-Reihenfolge.
+  const railGroups = [
+    {
+      label: tm("railOverview"),
+      items: [{ id: "s-pool", label: tm("poolTitle") }],
+    },
+    {
+      label: tm("railSetup"),
+      items: [
+        { id: "s-ziel", label: t("objective") },
+        ...(plan.stimulusUrl
+          ? [{ id: "s-stimulus", label: t("stimulusSectionTitle") }]
+          : []),
+        { id: "s-leitfaden", label: t("topicsTitle") },
+        { id: "s-test", label: ts("linkOutTitle") },
+      ],
+    },
+    {
+      label: tm("railField"),
+      items: [
+        { id: "s-teilnehmer", label: t("participantsTitle") },
+        { id: "s-screening", label: t("screeningTitle") },
+        { id: "s-openlink", label: t("openLinkTitle") },
+        { id: "s-prolific", label: tm("prolificTitle") },
+        { id: "s-quotas", label: t("quotasTitle") },
+        { id: "s-sessions", label: tm("sessionsTitle") },
+      ],
+    },
+    {
+      label: tm("railAnalysis"),
+      items: [
+        { id: "s-auswertung", label: t("synthesisLinkTitle") },
+        { id: "s-lifecycle", label: t("lifecycleTitle") },
+      ],
+    },
+  ];
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -243,8 +285,78 @@ export default async function MarketCampaignDetailPage({
         </div>
       </div>
 
+      <StickyStudyBar
+        title={plan.title}
+        statusLabel={t(`status.${plan.status}`)}
+        statusVariant={STATUS_VARIANT[plan.status]}
+        progressText={
+          completed !== null && sampleTarget !== null
+            ? tm("poolProgress", { completed, target: sampleTarget })
+            : null
+        }
+        ctaHref={`/dashboard/research-plans/${plan.id}/synthesis`}
+        ctaLabel={t("viewSynthesis")}
+      />
+
+      {/* E4 (Konsole-v5): ab lg zweispaltig — links die Sektions-Rail mit
+          Scroll-Spy, rechts ALLE bisherigen Sektionen mit identischen Props.
+          Einzig der Ziel-Pool rückte als „Überblick“ an den Anfang; die
+          Sektions-Einrückung darunter bleibt unangetastet (diff-schonender
+          Umzug ohne Umbau). */}
+      <div className="lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:items-start lg:gap-8">
+        <SectionRail groups={railGroups} ariaLabel={tm("railAria")} />
+        <div className="min-w-0 space-y-8">
+
+      {/* Ziel-Pool-Fortschritt (§7) — "47 von 200". Misst sample_target gegen
+          abgeschlossene Interviews. Bewusst GETRENNT von den Rollen-Quoten
+          (unten) und vom max_sessions-Spend-Cap des offenen Links. */}
+      <section id="s-pool" className="scroll-mt-28 space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">{tm("poolTitle")}</h2>
+          <p className="text-small text-neutral-500">{tm("poolDesc")}</p>
+        </div>
+        <Card>
+          <CardBody>
+            {completed === null ? (
+              <p className="text-small text-neutral-500">
+                {tm("poolCountUnknownDesc")}
+              </p>
+            ) : sampleTarget !== null ? (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <span className="text-h2 text-neutral-900">
+                    {tm("poolProgress", {
+                      completed,
+                      target: sampleTarget,
+                    })}
+                  </span>
+                  <span className="text-small text-neutral-500">
+                    {tm("poolProgressCaption")}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+                  <div
+                    className={`h-full rounded-full ${
+                      targetReached ? "bg-success-500" : "bg-primary-500"
+                    }`}
+                    style={{ width: `${targetPct}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-body text-neutral-700">
+                {tm("poolNoTarget")}{" "}
+                <span className="text-neutral-500">
+                  {tm("poolNoTargetCount", { completed })}
+                </span>
+              </p>
+            )}
+          </CardBody>
+        </Card>
+      </section>
+
       {/* Objective + persona + sample-target */}
-      <Card>
+      <Card id="s-ziel" className="scroll-mt-28">
         <CardHeader>
           <h2 className="text-h3 text-neutral-900">{t("objective")}</h2>
         </CardHeader>
@@ -293,7 +405,7 @@ export default async function MarketCampaignDetailPage({
           kein Client-JS) Darstellung des analysis-Objekts aus dem Envelope —
           bewusst NICHT der textBlock, der ist fürs Modell gerendert. */}
       {plan.stimulusUrl && (
-        <section className="space-y-3">
+        <section id="s-stimulus" className="scroll-mt-28 space-y-3">
           <div>
             <h2 className="text-h3 text-neutral-900">
               {t("stimulusSectionTitle")}
@@ -510,56 +622,8 @@ export default async function MarketCampaignDetailPage({
         </section>
       )}
 
-      {/* Ziel-Pool-Fortschritt (§7) — "47 von 200". Misst sample_target gegen
-          abgeschlossene Interviews. Bewusst GETRENNT von den Rollen-Quoten
-          (unten) und vom max_sessions-Spend-Cap des offenen Links. */}
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-h3 text-neutral-900">{tm("poolTitle")}</h2>
-          <p className="text-small text-neutral-500">{tm("poolDesc")}</p>
-        </div>
-        <Card>
-          <CardBody>
-            {completed === null ? (
-              <p className="text-small text-neutral-500">
-                {tm("poolCountUnknownDesc")}
-              </p>
-            ) : sampleTarget !== null ? (
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                  <span className="text-h2 text-neutral-900">
-                    {tm("poolProgress", {
-                      completed,
-                      target: sampleTarget,
-                    })}
-                  </span>
-                  <span className="text-small text-neutral-500">
-                    {tm("poolProgressCaption")}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
-                  <div
-                    className={`h-full rounded-full ${
-                      targetReached ? "bg-success-500" : "bg-primary-500"
-                    }`}
-                    style={{ width: `${targetPct}%` }}
-                  />
-                </div>
-              </div>
-            ) : (
-              <p className="text-body text-neutral-700">
-                {tm("poolNoTarget")}{" "}
-                <span className="text-neutral-500">
-                  {tm("poolNoTargetCount", { completed })}
-                </span>
-              </p>
-            )}
-          </CardBody>
-        </Card>
-      </section>
-
       {/* Topics (read-only) */}
-      <section className="space-y-4">
+      <section id="s-leitfaden" className="scroll-mt-28 space-y-4">
         <div>
           <h2 className="text-h2 text-neutral-900">{t("topicsTitle")}</h2>
           <p className="text-body text-neutral-500">{t("topicsDesc")}</p>
@@ -624,7 +688,7 @@ export default async function MarketCampaignDetailPage({
       {/* Studie testen (Trockenlauf) — synthetische Test-Teilnehmer, BEVOR echte
           Menschen eingeladen werden. Eigene Route + eigene (separate) Tabellen;
           zählt NICHT in den Ziel-Pool und fließt NICHT in die echte Synthese. */}
-      <section className="space-y-3">
+      <section id="s-test" className="scroll-mt-28 space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">{ts("linkOutTitle")}</h2>
           <p className="text-small text-neutral-500">{ts("linkOutDesc")}</p>
@@ -645,7 +709,7 @@ export default async function MarketCampaignDetailPage({
       </section>
 
       {/* Teilnehmer */}
-      <section className="space-y-4">
+      <section id="s-teilnehmer" className="scroll-mt-28 space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-h2 text-neutral-900">
@@ -808,7 +872,7 @@ export default async function MarketCampaignDetailPage({
       </section>
 
       {/* Screening-Fragen */}
-      <section className="space-y-3">
+      <section id="s-screening" className="scroll-mt-28 space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">{t("screeningTitle")}</h2>
           <p className="text-small text-neutral-500">{t("screeningDesc")}</p>
@@ -826,7 +890,7 @@ export default async function MarketCampaignDetailPage({
 
       {/* Offener Link — der Kern des Markt-Outreach: EIN studienweiter,
           öffentlich teilbarer Link für anonyme Walk-ins. */}
-      <section className="space-y-3">
+      <section id="s-openlink" className="scroll-mt-28 space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">{t("openLinkTitle")}</h2>
           <p className="text-small text-neutral-500">{t("openLinkDesc")}</p>
@@ -852,7 +916,7 @@ export default async function MarketCampaignDetailPage({
           Section-Überschrift ist markt-passend (de+en via research.market).
           Sitzt bewusst direkt unter dem offenen Link (der die Teilnehmer-URL
           liefert) und vor den Quoten. */}
-      <section className="space-y-3">
+      <section id="s-prolific" className="scroll-mt-28 space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">{tm("prolificTitle")}</h2>
           <p className="text-small text-neutral-500">{tm("prolificDesc")}</p>
@@ -881,7 +945,7 @@ export default async function MarketCampaignDetailPage({
       </section>
 
       {/* Screening-Quoten (Rollen-Pool) — bewusst getrennt vom Ziel-Pool oben. */}
-      <section className="space-y-3">
+      <section id="s-quotas" className="scroll-mt-28 space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">{t("quotasTitle")}</h2>
           <p className="text-small text-neutral-500">{t("quotasDesc")}</p>
@@ -903,7 +967,7 @@ export default async function MarketCampaignDetailPage({
           Reine Lese-Ansicht; jede Zeile verlinkt auf die Transkript-Subroute.
           Sitzt bewusst direkt VOR der Auswertung: die Interviews sind das
           Material, das die Synthese speist. */}
-      <section className="space-y-3">
+      <section id="s-sessions" className="scroll-mt-28 space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">{tm("sessionsTitle")}</h2>
           <p className="text-small text-neutral-500">{tm("sessionsDesc")}</p>
@@ -969,7 +1033,7 @@ export default async function MarketCampaignDetailPage({
       </section>
 
       {/* Auswertung — GETEILTER Synthese-Pfad (eine Engine, M2-typ-bewusst). */}
-      <section className="space-y-3">
+      <section id="s-auswertung" className="scroll-mt-28 space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">
             {t("synthesisLinkTitle")}
@@ -996,13 +1060,15 @@ export default async function MarketCampaignDetailPage({
       </section>
 
       {/* Status-Lifecycle */}
-      <section className="space-y-3">
+      <section id="s-lifecycle" className="scroll-mt-28 space-y-3">
         <div>
           <h2 className="text-h3 text-neutral-900">{t("lifecycleTitle")}</h2>
           <p className="text-small text-neutral-500">{t("lifecycleDesc")}</p>
         </div>
         <PlanStatusControl planId={plan.id} status={plan.status} />
       </section>
+        </div>
+      </div>
     </div>
   );
 }

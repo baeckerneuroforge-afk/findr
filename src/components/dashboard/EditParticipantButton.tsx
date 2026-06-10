@@ -188,7 +188,7 @@ export function EditParticipantButton({
             className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <h3 className="text-h4 mb-1 text-neutral-900">
+            <h3 className="text-h2 mb-1 text-neutral-900">
               {t("editDialogTitle")}
             </h3>
             <p className="mb-4 text-small text-neutral-500">

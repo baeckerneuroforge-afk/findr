@@ -261,3 +261,41 @@ Gesamtabnahme (eigener Approval-Schritt, wie beim Marketing).
   echte Quelle, die wir anzeigen können? *Empfehlung: weglassen.*
 - **O5 — Scope-Reihenfolge:** E1→E6 wie oben, oder Synthese (E5) vor der
   großen Detailseite (E4) vorziehen (sichtbarer Wow früher)?
+
+---
+
+## 8. v5-Nachtrag (2026-06-10) — „Übersicht & Smoothness“
+
+> **Neue Design-Referenz: `docs/findr-plattform-vision-v5.html`** (interaktiv,
+> von André beauftragt als „v4 veredeln“ + „Heute“-Start). v4 bleibt als
+> Vorstufe liegen. Alles unten ist **additiv zum Etappenplan oben** —
+> §1–§7 (Funktions-Erhalt, Verbote, Risiken) gelten unverändert.
+
+### 8.1 Was v5 gegenüber v4 ergänzt
+
+| # | Ergänzung | Landet in Etappe |
+|---|---|---|
+| V5-1 | **Motion-System** als Querschnitt: Tokens `--dur-1/2/3` + `--ease(.22,1,.36,1)`, Eintritts-Staffelung (45 ms), Balken/Ring-Füllung, Count-up (de-DE, tabular), Reduced-Motion = Endzustände sofort. Reines CSS + Mini-Utils, **keine framer-motion-Dependency** | E1 (Tokens/Utils) + je Seite |
+| V5-2 | **Toast-System** (Audit-Befund: fehlt komplett; Feedback heute nur inline) + verbindliches **Async-Muster**: Arbeiten → Fortschritts-Hairline → Erfolgszustand → Toast (Demo: Synthese-Update) | E1 (ui/Toast) + E5 |
+| V5-3 | **„Heute“-Startseite** ersetzt ModuleLandingPage: Digest seit gestern, Nächste Schritte (regelbasiert: Synthese veraltet → Screening eng → alter Entwurf), Läuft-gerade-Ringe, Zuletzt-abgeschlossen-Liste. Datenquellen: ausschließlich bestehende Queries (listResearchPlans, countCompletedSessionsForPlan(s), loadOrgSyntheses, Pool-Count) | **NEU E2.5** (zwischen Shell und MR-Übersicht) |
+| V5-4 | **Live-Gefühl per Polling** (~30 s) auf „Heute“ + Studienliste: neue Zeile gleitet ein, Zähler tickt. Kein Streaming; ggf. 1 kleine additive Count-Route | E2.5 / E3 |
+| V5-5 | **Sidebar-IA**: „Heute“ top-level; MR-Gruppe = Studien + Teilnehmer-Pool (MR-„Übersicht“ und Studienliste sind EINE Seite); Sidebar-Pille gleitet. nav-routes ↔ Sidebar ↔ ⌘K weiter parallel pflegen; ⌘K bekommt zusätzlich **Aktionen** | E2 |
+| V5-6 | **Studien-Detail**: gruppierte Rail (Überblick · Einrichtung · Feld · Auswertung) mit Scroll-Spy + **Sticky-Subbar** (Name, Status, 47/200, Synthese-CTA beim Scrollen) — konkretisiert das geplante SectionRail | E4 |
+| V5-7 | **Synthese zeigt alles, was die Engine liefert**: Überblick-Absatz + **Spannungen** (Seite A/B) zusätzlich zu Themen; Frequenz „X von Y“ konsistent auf die einbezogene Interview-Zahl bezogen (44 → 47 nach Update) | E5 |
+| V5-8 | **Interview-Drawer**: Transkript-Auszug + Belege je Interview als Slide-over (aus Teilnehmer-Zeile und aus Synthese-Zitat „Beleg öffnen“). Rein lesend, Daten existieren bereits | **NEU E7 (optional, klein)** |
+| V5-9 | **Neue-Studie-Seite** (Ziel-Bild): KI-Leitfaden als sichtbarer Schnellstart (heute versteckter Button im Formular), 3-Schritte-Gruppierung (kein Multi-Step-Zwang), Stimulus-Analyse-Status erlebbar (läuft → fertig → Chips). ⚠ Wegen unmerged Form-Branches: nur umsetzen, wenn Branch-Lage es erlaubt — sonst eigener späterer Schritt | E6 (vorsichtig) |
+| V5-10 | **Pool**: Volltext-Suche (Name/Rolle/Segment) + Rollen-Quoten-Karte | E6 |
+
+### 8.2 Ehrlichkeits-Regeln (verschärft übernommen)
+- Digest/Nächste Schritte/„64 % bestehen“/Prognose-Zeile: **nur deterministisch
+  ableitbare Werte** (Zählungen, Zeitstempel, Screening-Ergebnisse). Was sich
+  nicht ableiten lässt, entfällt ersatzlos (kein Sync-Chip, §3 gilt).
+- Demo-Daten im Mockup sind in sich konsistent (317 Interviews gesamt,
+  Cross-Korpus = 3 Synthesen · 207 Interviews) — Zahlen im Produkt kommen
+  ausschließlich aus den echten Queries.
+
+### 8.3 Neue offene Entscheidungen
+- **O6 — Polling-Kadenz:** 30 s fix, oder nur bei Fenster-Fokus? *(Empfehlung: 30 s + pausiert ohne Fokus)*
+- **O7 — Interview-Drawer (E7):** einplanen oder zurückstellen? *(Empfehlung: nach E4/E5, kleiner additiver Schritt)*
+- **O8 — Routen beim Studien-Merge:** `/market-research` bleibt die Route, Sidebar-Label „Studien“ *(Empfehlung: ja — kein Routen-Umbau)*
+- **O9 — „Heute“-Route:** `/dashboard` rendert künftig „Heute“ statt ModuleLandingPage *(Empfehlung: ja, Gating-Logik bleibt für deaktivierte Module)*

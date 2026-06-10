@@ -79,6 +79,21 @@ export function SynthesisThemeCard({
           <div className="mt-2 text-caption font-medium uppercase tracking-wider text-neutral-400">
             {frequencyLabel}
           </div>
+          {/* Frequenz als Balken (Konsole-v5 E5) — macht „11 von 44“ auf einen
+              Blick vergleichbar; nur sinnvoll, wenn es eine Gesamtzahl gibt. */}
+          {totalParticipants > 0 && (
+            <div className="mt-1.5 h-1.5 w-full max-w-60 overflow-hidden rounded-full bg-neutral-100">
+              <div
+                className="h-full rounded-full bg-primary-500"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.round((theme.frequency / totalParticipants) * 100),
+                  )}%`,
+                }}
+              />
+            </div>
+          )}
         </div>
         <ChevronIcon open={expanded} />
       </button>
@@ -94,9 +109,9 @@ export function SynthesisThemeCard({
                 {theme.quotes.map((q, i) => (
                   <li
                     key={i}
-                    className="border-l-2 border-neutral-200 pl-3 text-small italic text-neutral-600"
+                    className="border-l-2 border-primary-200 pl-3 text-small italic text-neutral-600"
                   >
-                    „{q}"
+                    „{q}“
                   </li>
                 ))}
               </ul>

@@ -51,8 +51,12 @@ const ALL_PALETTE_ROUTES: PaletteRouteDef[] = [
   { module: "productDiscovery", labelKey: "nav.item.productDiscovery", href: "/dashboard/product-discovery", groupKey: "nav.group.productDiscovery" },
   { module: "productDiscovery", labelKey: "nav.item.researchPlans", href: "/dashboard/research-plans", groupKey: "nav.group.productDiscovery" },
 
-  // Market Research
+  // Market Research. „Neue Studie“ ist ein Sprungziel zur Anlage-Seite —
+  // bewusst NICHT in der Sidebar (dort stehen Orte, keine Aktionen); die
+  // dokumentierte Sidebar-Parallelität gilt für alle übrigen Einträge.
   { module: "marketResearch", labelKey: "nav.item.marketResearch", href: "/dashboard/market-research", groupKey: "nav.group.marketResearch" },
+  { module: "marketResearch", labelKey: "nav.item.newStudy", href: "/dashboard/market-research/new", groupKey: "nav.group.marketResearch" },
+  { module: "marketResearch", labelKey: "nav.item.participantPool", href: "/dashboard/research-plans/pool", groupKey: "nav.group.marketResearch" },
 
   // Cross-study (studienübergreifend)
   { module: "insights", labelKey: "nav.item.crossStudy", href: "/dashboard/insights", groupKey: "nav.group.crossStudy" },
@@ -62,6 +66,20 @@ const ALL_PALETTE_ROUTES: PaletteRouteDef[] = [
   { labelKey: "nav.item.settings", href: "/dashboard/settings", groupKey: "nav.group.workspace" },
 ];
 
-export const PALETTE_ROUTES: PaletteRoute[] = ALL_PALETTE_ROUTES.filter(
-  (route) => route.module === undefined || ENABLED_MODULES[route.module],
-).map(({ module: _module, ...route }) => route);
+/** „Heute“ (Startseite, Konsole-v5) teilt sich /dashboard mit dem
+ *  Pipeline-Eintrag des Sales-Moduls. Sichtbar ist immer genau einer:
+ *  Heute solange Sales Intelligence AUS ist (dann rendert /dashboard die
+ *  Heute-Startseite), sonst Pipeline — ein negatives Gating, das das
+ *  positive `module`-Feld nicht ausdrücken kann. */
+const HEUTE_ROUTE: PaletteRoute = {
+  labelKey: "nav.item.heute",
+  href: "/dashboard",
+  groupKey: "nav.group.start",
+};
+
+export const PALETTE_ROUTES: PaletteRoute[] = [
+  ...(ENABLED_MODULES.salesIntelligence ? [] : [HEUTE_ROUTE]),
+  ...ALL_PALETTE_ROUTES.filter(
+    (route) => route.module === undefined || ENABLED_MODULES[route.module],
+  ).map(({ module: _module, ...route }) => route),
+];

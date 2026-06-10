@@ -250,6 +250,40 @@ body {
   .animate-fade-in-panel {
     animation: fade-in-panel 180ms ease-out both;
   }
+
+  /* ────────────────────────────────────────────────────────────────
+     Konsole-v5 Motion-System (E1). Drei Dauern, eine Kurve:
+     120 ms (micro: Hover/Focus, via Tailwind duration-*) · 200 ms (ui)
+     · 340 ms (view) mit cubic-bezier(.22,1,.36,1).
+     console-rise = Seiten-/Sektions-Eintritt; .st-rise staffelt
+     Geschwister in 45-ms-Schritten über --st (style={{ "--st": n }}).
+     Reduced-Motion ist hier EINGEBACKEN (Endzustand sofort), damit kein
+     Aufrufer motion-reduce vergessen kann. */
+  /* WICHTIG: Der Endzustand ist `transform: none` (nicht translateY(0)).
+     Mit fill-mode `both` bliebe ein identischer translateY(0)-Transform
+     dauerhaft berechnet — und JEDER Transform macht das animierte Element
+     zum Containing Block für position:fixed-Nachfahren (Modals/Tooltips in
+     den Seiten würden sich am Template statt am Viewport ausrichten). */
+  @keyframes console-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .animate-console-rise {
+    animation: console-rise 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .st-rise {
+    animation: console-rise 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--st, 0) * 45ms);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-console-rise,
+    .st-rise {
+      animation: none;
+    }
+  }
 }
 
 /* Dark Gen-1 landing decorative utilities (.gradient-mesh, .glass-card,

@@ -1,0 +1,2235 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>findr. Plattform — Design-Entwurf v5 (interaktives Mockup · „Heute“ + Motion-System)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ════════════════════════════════════════════════════════════════════════
+   findr. PLATTFORM — Design-Entwurf v5  ·  „Ruhe & Fluss“
+
+   BAUT AUF v4 AUF (docs/findr-plattform-vision.html, von André als Richtung
+   abgenommen): weiße Sidebar, Neutral-Fläche, Indigo #4a51a8 als einziger
+   Akzent, Hanken Grotesk, JetBrains Mono für Zahlen, weiße Karten,
+   Badge-/Tabellen-Sprache des Bestands. v5 ergänzt zwei Systeme:
+
+   ÜBERSICHT
+   • „Heute“ — neue Startseite: Digest seit gestern, nächste Schritte,
+     laufende Studien, Live-Liste der letzten Interviews
+   • MR-Übersicht + Studienliste zu EINER Seite zusammengeführt
+   • Studie: gruppierte Sektions-Navigation (Scroll-Spy) + Sticky-Subbar
+   • Synthese: Überblick + Spannungen (echte Engine-Features) sichtbar
+   • Interview-Drawer: Transkript + Belege ohne Seitenwechsel
+   • Neue Studie: KI-Leitfaden als sichtbarer Schnellstart statt verstecktem
+     Button; Stimulus-Analyse-Status als erlebbarer Zustand
+
+   SMOOTHNESS (Motion-System — verbindliche Sprache, nicht Deko)
+   • Tokens: 120 ms (micro) · 200 ms (ui) · 340 ms (view) · ease(.22,1,.36,1)
+   • Seitenwechsel: Sektionen treten mit 45-ms-Staffelung auf (Rise 8 px)
+   • Zahlen zählen ein (de-DE, tabular), Balken & Ringe füllen sich
+   • Sidebar-Pille gleitet zur aktiven Route, Segmented-Thumb gleitet
+   • Async-Muster: Fortschritt → Erfolgszustand → Toast (Synthese-Demo)
+   • Skeleton → gestaffelter Wiedereintritt (Aktualisieren-Demo)
+   • prefers-reduced-motion: alles aus, Endzustände sofort
+
+   EHRLICHKEIT (Regeln aus dem Etappenplan übernommen)
+   • Jede gezeigte Zahl ist aus heutigen Datenquellen ableitbar
+     (Zählungen, Status, Zeitstempel) — keine erfundene Telemetrie
+   • DSGVO als Designelement (v4): P-IDs, maskierte Kontakte, Hinweise
+   • Demo-Daten in sich konsistent: 6 Studien, 317 abgeschlossene
+     Interviews, 3 Synthesen im Cross-Study-Korpus (47+100+60 = 207)
+
+   Statisches Mockup, kein Produkt-Code berührt. Notizen-Modus (unten)
+   blendet Begründungen + Mapping auf heutige Komponenten ein.
+   ════════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#fafafa;
+  --surface:#ffffff;
+  --surface-2:#f4f4f5;
+  --border:#e4e4e7;
+  --border-2:#d4d4d8;
+
+  --ink:#18181b;
+  --text:#3f3f46;
+  --muted:#71717a;
+  --faint:#a1a1aa;
+
+  --primary:#4a51a8;
+  --primary-700:#353c8a;
+  --primary-800:#2a306d;
+  --primary-50:#eeeff8;
+  --primary-100:#ededf6;
+  --primary-200:#dcdeef;
+  --primary-300:#b8bbdd;
+
+  --success:#047857;--success-bg:#f0fdf4;--success-bd:rgba(16,185,129,.3);--success-dot:#10b981;
+  --warning:#b45309;--warning-bg:#fffbeb;--warning-bd:rgba(245,158,11,.3);--warning-dot:#f59e0b;
+  --danger:#b91c1c;--danger-bg:#fef2f2;--danger-bd:rgba(239,68,68,.3);--danger-dot:#ef4444;
+
+  --f:"Hanken Grotesk",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+
+  /* Motion-Tokens (v5) */
+  --dur-1:120ms;          /* micro: hover, focus */
+  --dur-2:200ms;          /* ui: toggles, fades */
+  --dur-3:340ms;          /* view: eintreten, drawer */
+  --ease:cubic-bezier(.22,1,.36,1);
+
+  /* Tiefe (systematisiert): Karten ruhen, nur Interaktives hebt sich */
+  --sh-card:0 1px 2px rgba(24,24,27,.04);
+  --sh-lift:0 10px 24px -12px rgba(24,24,27,.16);
+  --sh-pop:0 24px 64px -16px rgba(24,24,27,.28);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--f);font-size:14px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+}
+::selection{background:var(--primary);color:#fff}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit;text-align:left}
+input,textarea{font:inherit}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
+svg{display:block}
+
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.caption{font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.eyebrow{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+
+/* dünne, ruhige Scrollbars */
+*{scrollbar-width:thin;scrollbar-color:var(--border-2) transparent}
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;border:2px solid var(--bg)}
+*::-webkit-scrollbar-track{background:transparent}
+
+/* ── App-Raster ───────────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:240px 1fr;height:100vh}
+
+/* ── Sidebar ──────────────────────────────────────────────────────── */
+.side{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;z-index:20}
+.side::-webkit-scrollbar{width:0}
+.side-brand{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;height:56px;padding:0 16px;border-bottom:1px solid var(--border)}
+.brand{display:inline-flex;align-items:baseline;font-weight:700;font-size:17px;letter-spacing:-.01em;color:var(--ink)}
+.brand i{font-style:normal;width:5px;height:5px;border-radius:50%;background:#bb0000;align-self:center;margin-left:4px}
+.kbd{font-family:var(--mono);font-size:10.5px;color:var(--faint);border:1px solid var(--border);border-radius:5px;padding:2px 6px;cursor:pointer;background:var(--surface);transition:color var(--dur-1),border-color var(--dur-1)}
+.kbd:hover{color:var(--text);border-color:var(--border-2)}
+
+.side-nav{flex:1;padding:8px 12px 16px;position:relative}
+.nav-pill{
+  position:absolute;left:12px;width:calc(100% - 24px);height:32px;border-radius:8px;
+  background:var(--primary-50);opacity:0;pointer-events:none;
+  transition:transform .26s var(--ease),height .26s var(--ease),opacity var(--dur-2);
+}
+.nav-pill.ready{opacity:1}
+.group{margin-top:18px}
+.group:first-child{margin-top:10px}
+.group-label{padding:0 10px 6px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+.item{
+  position:relative;z-index:1;display:flex;align-items:center;gap:9px;width:100%;height:32px;
+  padding:0 10px;border-radius:8px;font-size:13.5px;color:var(--text);
+  transition:color var(--dur-1),background-color var(--dur-1);
+}
+.item svg{flex-shrink:0;color:var(--faint);transition:color var(--dur-1)}
+.item:hover{background:var(--surface-2);color:var(--ink)}
+.item:hover svg{color:var(--muted)}
+.item.on{color:var(--primary-700);font-weight:600;background:none}
+.item.on svg{color:var(--primary)}
+.item .count{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint)}
+.item.on .count{color:var(--primary)}
+
+.side-foot{border-top:1px solid var(--border);padding:12px 16px;flex-shrink:0}
+.user{display:flex;align-items:center;gap:9px}
+.avatar{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;background:var(--primary);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;
+}
+.user b{display:block;font-size:12.5px;font-weight:600;color:var(--ink)}
+.user span{display:block;font-size:11.5px;color:var(--faint)}
+.side-compliance{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11.5px;color:var(--faint)}
+.side-compliance svg{flex-shrink:0}
+
+/* ── Hauptbereich ─────────────────────────────────────────────────── */
+.main{display:flex;flex-direction:column;min-width:0;height:100vh;position:relative}
+.top{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;height:56px;flex-shrink:0;
+  padding-inline:28px;border-bottom:1px solid var(--border);background:var(--surface);position:relative;z-index:15;
+}
+.crumbs{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.crumbs b{font-weight:600;color:var(--ink)}
+.crumbs .sep{color:var(--border-2)}
+.top-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.searchpill{
+  display:flex;align-items:center;gap:8px;width:280px;height:32px;
+  border:1px solid var(--border);border-radius:8px;background:var(--bg);
+  padding-inline:11px;color:var(--faint);font-size:13px;cursor:pointer;
+  transition:border-color var(--dur-1),background-color var(--dur-1);
+}
+.searchpill:hover{border-color:var(--border-2);background:var(--surface)}
+.searchpill svg{color:var(--faint)}
+.searchpill .kbd{margin-left:auto}
+.lang{font-size:12.5px;font-weight:600;color:var(--muted);border:1px solid var(--border);border-radius:7px;padding:4px 9px}
+
+/* Sticky-Subbar (Studie): erscheint beim Scrollen, hält Kontext + Aktion */
+.subbar{
+  position:absolute;top:56px;left:0;right:0;z-index:14;
+  display:flex;align-items:center;gap:12px;height:48px;padding-inline:28px;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--border);
+  transform:translateY(-110%);transition:transform .28s var(--ease);
+}
+.subbar.show{transform:none}
+.subbar b{font-size:13.5px;font-weight:600;color:var(--ink)}
+.subbar .spacer{flex:1}
+
+.content{flex:1;overflow-y:auto;padding:32px 36px 110px;scroll-behavior:smooth}
+.content-inner{max-width:1120px;margin-inline:auto}
+
+/* ── Views + Eintritts-Choreografie ───────────────────────────────── */
+.view{display:none}
+.view.on{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.view.on .st{animation:rise var(--dur-3) var(--ease) both;animation-delay:calc(var(--i,0)*45ms)}
+/* Balken / Ringe füllen erst, wenn die View „da“ ist */
+.bar b,.pool-bar b{width:0;transition:width .9s var(--ease) .12s}
+.view.go .bar b,.view.go .pool-bar b{width:var(--w,0%)}
+.ring-fg{transition:stroke-dashoffset 1s var(--ease) .15s}
+
+/* ── Seitenkopf ───────────────────────────────────────────────────── */
+.pagehead{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px}
+.pagehead h1{font-size:25px;font-weight:600;letter-spacing:-.018em;color:var(--ink);line-height:1.22}
+.pagehead .sub{margin-top:4px;font-size:14px;color:var(--muted);max-width:64ch}
+.pagehead .actions{display:flex;align-items:center;gap:8px;padding-top:3px;flex-shrink:0}
+.backlink{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);margin-bottom:10px;cursor:pointer;transition:color var(--dur-1)}
+.backlink:hover{color:var(--ink)}
+.headrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:34px;padding-inline:14px;border-radius:8px;font-size:13.5px;font-weight:600;
+  white-space:nowrap;transition:background-color var(--dur-1),border-color var(--dur-1),color var(--dur-1),transform var(--dur-1),box-shadow var(--dur-1);
+}
+.btn:active{transform:translateY(.5px)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-700)}
+.btn-ghost{border:1px solid var(--border);color:var(--ink);background:var(--surface)}
+.btn-ghost:hover{border-color:var(--border-2);background:var(--bg)}
+.btn-sm{height:28px;padding-inline:10px;font-size:12.5px;font-weight:500}
+.btn[disabled]{opacity:.55;cursor:default}
+.btn .spin{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(255,255,255,.4);border-top-color:#fff;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Badges */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;
+  font-size:11.5px;font-weight:600;border:1px solid var(--border);
+  background:var(--surface-2);color:var(--muted);white-space:nowrap;
+}
+.badge i{width:5px;height:5px;border-radius:50%;background:var(--faint);flex-shrink:0}
+.badge.g{background:var(--success-bg);color:var(--success);border-color:var(--success-bd)}
+.badge.g i{background:var(--success-dot)}
+.badge.a{background:var(--warning-bg);color:var(--warning);border-color:var(--warning-bd)}
+.badge.a i{background:var(--warning-dot)}
+.badge.r{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-bd)}
+.badge.r i{background:var(--danger-dot)}
+.badge.p{background:var(--primary-50);color:var(--primary-700);border-color:var(--primary-200)}
+.badge.p i{background:var(--primary)}
+@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.35)}50%{box-shadow:0 0 0 3px rgba(16,185,129,.12)}}
+.badge.g.live i{animation:pulse-dot 2.4s ease-in-out infinite}
+
+/* Methoden-Pill + Chips */
+.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:500;background:var(--surface);color:var(--text);white-space:nowrap}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;height:28px;padding-inline:11px;border-radius:99px;
+  border:1px solid var(--border);background:var(--surface);font-size:12.5px;font-weight:500;color:var(--muted);
+  cursor:pointer;transition:all var(--dur-1);white-space:nowrap;
+}
+.chip:hover{border-color:var(--border-2);color:var(--ink)}
+.chip.on{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-700);font-weight:600}
+.chip .n{font-family:var(--mono);font-size:11px;color:var(--faint)}
+.chip.on .n{color:var(--primary)}
+
+/* DSGVO */
+.pseudo{font-family:var(--mono);font-size:12px;color:var(--primary-700);background:var(--primary-50);border-radius:5px;padding:1px 6px;white-space:nowrap}
+.masked{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.04em}
+.privacy-hint{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.privacy-hint svg{flex-shrink:0;color:var(--primary)}
+
+/* ── KPI-Karten ───────────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;box-shadow:var(--sh-card)}
+.kpi .l{font-size:11.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{margin-top:6px;font-size:28px;font-weight:600;letter-spacing:-.015em;color:var(--ink);font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:14px;font-weight:500;color:var(--faint)}
+.kpi .v.acc{color:var(--primary-700)}
+.kpi .s{margin-top:3px;font-size:12.5px;color:var(--faint)}
+@keyframes kpi-pop{0%{transform:scale(1)}35%{transform:scale(1.06)}100%{transform:scale(1)}}
+.kpi .v.pop{animation:kpi-pop .5s var(--ease)}
+
+/* ── Karten ───────────────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--sh-card)}
+.card+.card,.section+.section{margin-top:18px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 20px;border-bottom:1px solid var(--border)}
+.card-head h2{font-size:14px;font-weight:600;color:var(--ink)}
+.card-head .hint{font-size:12.5px;color:var(--faint)}
+.card-head .right{display:flex;align-items:center;gap:10px}
+.card-body{padding:18px 20px}
+.card-foot{padding:11px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--faint)}
+.card.lift{transition:transform var(--dur-2) var(--ease),box-shadow var(--dur-2) var(--ease),border-color var(--dur-2);cursor:pointer}
+.card.lift:hover{transform:translateY(-2px);box-shadow:var(--sh-lift);border-color:var(--border-2)}
+
+/* ── Tabellen ─────────────────────────────────────────────────────── */
+table{width:100%;border-collapse:collapse}
+th{
+  text-align:left;padding:9px 20px;font-size:11.5px;font-weight:500;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap;
+}
+th.r,td.r{text-align:right}
+td{padding:12px 20px;border-bottom:1px solid var(--surface-2);font-size:13.5px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr{transition:background-color var(--dur-1)}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover{background:var(--bg)}
+tbody tr .rowgo{opacity:0;transform:translateX(-3px);transition:opacity var(--dur-1),transform var(--dur-1);color:var(--faint)}
+tbody tr.click:hover .rowgo{opacity:1;transform:none}
+.title{display:block;font-weight:600;color:var(--ink)}
+.meta{display:block;margin-top:1px;font-size:12px;color:var(--faint)}
+
+/* Skeleton (Lade-Sprache) */
+@keyframes sk{0%{background-position:100% 0}100%{background-position:0 0}}
+.sk{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--surface-2) 25%,#fafafa 37%,var(--surface-2) 63%);background-size:300% 100%;animation:sk 1.1s linear infinite}
+
+/* Fortschritt */
+.prog{display:flex;align-items:center;gap:10px;min-width:150px}
+.prog .bar{flex:1;height:5px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.prog .bar b{display:block;height:100%;border-radius:99px;background:var(--primary)}
+.prog.done .bar b{background:var(--success-dot)}
+.prog .n{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* Ring (Ziel-Pool, Heute) */
+.ringwrap{position:relative;width:52px;height:52px;flex-shrink:0}
+.ringwrap svg{width:52px;height:52px;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--surface-2);stroke-width:5}
+.ring-fg{fill:none;stroke:var(--primary);stroke-width:5;stroke-linecap:round}
+.ringwrap .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:500;color:var(--primary-700)}
+
+/* ── HEUTE ────────────────────────────────────────────────────────── */
+.greet{position:relative;margin-bottom:26px}
+.greet-wash{
+  position:absolute;inset:-32px -36px auto -36px;height:240px;pointer-events:none;z-index:-1;
+  background:radial-gradient(560px 200px at 18% 0%,var(--primary-50) 0%,rgba(238,239,248,0) 70%);
+}
+.greet .date{font-size:12px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.greet h1{margin-top:6px;font-size:31px;font-weight:650;letter-spacing:-.022em;color:var(--ink);line-height:1.18}
+.greet .digest{margin-top:8px;font-size:14.5px;color:var(--muted);max-width:72ch}
+.greet .digest b{color:var(--ink);font-weight:600}
+.greet .digest .sep{margin-inline:7px;color:var(--border-2)}
+.greet-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.greet .actions{display:flex;gap:8px;padding-bottom:4px}
+
+/* Nächste Schritte */
+.next .nrow{display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid var(--surface-2)}
+.next .nrow:last-child{border-bottom:0}
+.next .ndot{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--primary-50);color:var(--primary-700)}
+.next .ndot.warn{background:var(--warning-bg);color:var(--warning)}
+.next .nmain{flex:1;min-width:0}
+.next .nmain b{display:block;font-size:13.5px;font-weight:600;color:var(--ink)}
+.next .nmain span{display:block;margin-top:1px;font-size:12.5px;color:var(--muted)}
+
+/* Heute: zwei Spalten */
+.heute-grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:18px;align-items:start;margin-top:18px}
+.runrow{display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid var(--surface-2);cursor:pointer;transition:background-color var(--dur-1)}
+.runrow:hover{background:var(--bg)}
+.runrow:last-child{border-bottom:0}
+.runrow .rmain{flex:1;min-width:0}
+.runrow .rmain b{display:block;font-size:13.5px;font-weight:600;color:var(--ink)}
+.runrow .rmain .meta{margin-top:2px}
+.runrow .rnum{text-align:right;flex-shrink:0}
+.runrow .rnum .n{font-family:var(--mono);font-size:12.5px;color:var(--ink);white-space:nowrap}
+.runrow .rnum .d{font-size:11.5px;color:var(--faint);margin-top:1px}
+.runrow .chev{color:var(--faint);flex-shrink:0;transition:transform var(--dur-1),color var(--dur-1)}
+.runrow:hover .chev{transform:translateX(2px);color:var(--muted)}
+
+/* Live-Liste */
+.liverow{display:flex;align-items:center;gap:12px;padding:11px 20px;border-bottom:1px solid var(--surface-2);font-size:13px}
+.liverow:last-child{border-bottom:0}
+.liverow .lmain{flex:1;min-width:0}
+.liverow .lmain b{display:block;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.liverow .lmain span{display:block;font-size:11.5px;color:var(--faint)}
+.liverow .dur{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.liverow .ago{font-size:11.5px;color:var(--faint);white-space:nowrap;min-width:64px;text-align:right}
+@keyframes rowin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.liverow.new{animation:rowin .4s var(--ease) both;background:var(--primary-50)}
+.liverow.new.settle{background:transparent;transition:background-color 1.2s ease}
+.livefoot{display:flex;align-items:center;gap:7px}
+.livefoot .pulse{width:6px;height:6px;border-radius:50%;background:var(--success-dot);animation:pulse-dot 2.4s ease-in-out infinite}
+
+/* ── Filter-Zeile (Studienliste) ──────────────────────────────────── */
+.filterrow{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filterrow .grow{flex:1}
+.tsearch{
+  display:flex;align-items:center;gap:8px;height:32px;min-width:210px;border:1px solid var(--border);
+  border-radius:8px;background:var(--surface);padding-inline:10px;
+  transition:border-color var(--dur-1),box-shadow var(--dur-1);
+}
+.tsearch:focus-within{border-color:var(--primary-300);box-shadow:0 0 0 3px var(--primary-50)}
+.tsearch svg{color:var(--faint);flex-shrink:0}
+.tsearch input{border:0;outline:0;background:none;font-size:13px;color:var(--ink);width:150px}
+.tsearch input::placeholder{color:var(--faint)}
+
+/* ── Studie: Stepper + Rail ───────────────────────────────────────── */
+.steps{display:flex;align-items:center;gap:10px;margin:12px 0 22px;font-size:12.5px;color:var(--faint)}
+.steps .st2{display:flex;align-items:center;gap:6px}
+.steps .st2 i{width:7px;height:7px;border-radius:50%;background:var(--border-2)}
+.steps .st2.done{color:var(--muted)}.steps .st2.done i{background:var(--faint)}
+.steps .st2.on{color:var(--primary-700);font-weight:600}
+.steps .st2.on i{background:var(--primary);box-shadow:0 0 0 3px var(--primary-100)}
+.steps .ln{width:30px;height:1px;background:var(--border)}
+.steps .ln.done{background:var(--faint)}
+
+.detail-grid{display:grid;grid-template-columns:184px minmax(0,1fr);gap:28px;align-items:start}
+.rail{position:sticky;top:6px;display:flex;flex-direction:column;gap:1px;padding-top:2px}
+.rail .eyebrow{padding:12px 10px 5px}
+.rail button{padding:6px 10px;border-radius:8px;font-size:13px;color:var(--muted);transition:color var(--dur-1),background-color var(--dur-1)}
+.rail button:hover{color:var(--ink);background:var(--surface-2)}
+.rail button.on{color:var(--primary-700);font-weight:600;background:var(--primary-50)}
+
+/* Ziel-Pool */
+.pool{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.pool .big{font-size:34px;font-weight:600;letter-spacing:-.02em;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+.pool .big small{font-size:16px;font-weight:500;color:var(--faint)}
+.pool-right{flex:1;min-width:240px}
+.pool-bar{height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.pool-bar b{display:block;height:100%;border-radius:99px;background:var(--primary)}
+.pool-meta{display:flex;justify-content:space-between;margin-top:7px;font-size:12.5px;color:var(--faint)}
+
+/* Definitionszeilen */
+.def{display:grid;grid-template-columns:150px 1fr;gap:9px 18px;font-size:13.5px}
+.def dt{font-size:11.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);padding-top:2px}
+.def dd{color:var(--text)}
+
+/* Themen (Leitfaden) */
+.topic{padding:14px 20px;border-bottom:1px solid var(--surface-2)}
+.topic:last-child{border-bottom:0}
+.topic h3{font-size:14px;font-weight:600;color:var(--ink)}
+.topic h3 .tn{display:inline-flex;width:20px;height:20px;border-radius:6px;background:var(--primary-50);color:var(--primary-700);font-size:11.5px;align-items:center;justify-content:center;margin-right:9px;vertical-align:-3px}
+.topic p{margin-top:4px;font-size:13px;color:var(--muted);max-width:76ch}
+.topic .hyp{margin-top:8px;display:flex;flex-direction:column;gap:3px}
+.topic .hyp span{border-left:2px solid var(--primary-200);padding-left:10px;font-size:12.5px;color:var(--muted)}
+.topic .hyp .h-label{border:0;padding:0;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+
+/* Feldzugang-Zeilen */
+.frow{display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid var(--surface-2)}
+.frow:last-child{border-bottom:0}
+.frow .fr-main{min-width:0;flex:1}
+.frow .fr-main b{display:block;font-size:13.5px;font-weight:600;color:var(--ink)}
+.frow .fr-main span{display:block;margin-top:1px;font-size:12.5px;color:var(--muted)}
+.frow .fr-side{font-size:12.5px;color:var(--faint);white-space:nowrap}
+.urlbox{
+  display:inline-flex;align-items:center;gap:10px;margin-top:5px;border:1px solid var(--border);
+  border-radius:7px;background:var(--bg);padding:4px 10px;font-family:var(--mono);font-size:12px;color:var(--muted);
+}
+.urlbox button{color:var(--primary-700);font-size:12px;font-weight:600;font-family:var(--f);transition:color var(--dur-1)}
+.urlbox button:hover{color:var(--primary)}
+
+/* ── Synthese ─────────────────────────────────────────────────────── */
+.synth-grid{display:grid;grid-template-columns:minmax(0,7.4fr) minmax(0,4.6fr);gap:18px;align-items:start}
+.overview-p{font-size:13.5px;color:var(--text);max-width:76ch}
+.theme{border-bottom:1px solid var(--surface-2)}
+.theme:last-child{border-bottom:0}
+.theme-head{display:flex;align-items:flex-start;gap:12px;width:100%;padding:14px 20px;transition:background-color var(--dur-1)}
+.theme-head:hover{background:var(--bg)}
+.theme-head .chev{margin-top:5px;font-size:9px;color:var(--faint);transition:transform .22s var(--ease)}
+.theme.open .theme-head .chev{transform:rotate(90deg)}
+.theme-head h3{font-size:14px;font-weight:600;color:var(--ink)}
+.theme-head p{margin-top:2px;font-size:13px;color:var(--muted);max-width:56ch}
+.theme-freq{margin-left:auto;flex-shrink:0;text-align:right}
+.theme-freq .n{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.theme-freq .bar{margin-top:6px;width:100px;height:5px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.theme-freq .bar b{display:block;height:100%;border-radius:99px;background:var(--primary)}
+.theme-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .26s var(--ease)}
+.theme.open .theme-body{grid-template-rows:1fr}
+.theme-body>div{overflow:hidden}
+.theme-body .inner{padding:2px 20px 16px 41px;display:flex;flex-direction:column;gap:10px}
+.quote{border-left:2px solid var(--primary-200);padding:2px 0 2px 12px;font-size:13.5px;line-height:1.55;color:var(--text);font-style:italic}
+.quote .src{display:flex;align-items:center;gap:7px;margin-top:4px;font-size:11.5px;font-style:normal;color:var(--faint)}
+.quote .src .pseudo{font-size:11px}
+.quote .src .open-ev{color:var(--primary-700);font-weight:600;font-size:11.5px;cursor:pointer}
+.quote .src .open-ev:hover{color:var(--primary)}
+
+/* Spannungen */
+.tension{padding:14px 20px}
+.tension-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.tension-head h3{font-size:14px;font-weight:600;color:var(--ink)}
+.tension-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+.tside{border:1px solid var(--border);border-radius:8px;padding:11px 13px;background:var(--bg)}
+.tside .tl{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.tside .tl .n{font-family:var(--mono);color:var(--primary-700)}
+.tside p{margin-top:6px;font-size:12.5px;color:var(--text);font-style:italic}
+
+/* Hinweis-Banner + Async-Demo */
+.notice{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1px solid var(--primary-200);border-radius:10px;background:var(--primary-50);
+  padding:11px 16px;margin-bottom:18px;font-size:13px;color:var(--primary-700);
+  position:relative;overflow:hidden;transition:border-color var(--dur-2),background-color var(--dur-2),color var(--dur-2);
+}
+.notice .nprog{position:absolute;left:0;bottom:0;height:2px;width:100%;transform:translateX(-101%);background:var(--primary)}
+.notice.working .nprog{animation:nsweep 1.5s var(--ease) forwards}
+@keyframes nsweep{0%{transform:translateX(-101%)}70%{transform:translateX(-18%)}100%{transform:translateX(0)}}
+.notice.ok{border-color:var(--success-bd);background:var(--success-bg);color:var(--success)}
+
+/* Chat */
+.chat-body{padding:16px;display:flex;flex-direction:column;gap:11px}
+.chat-q{align-self:flex-end;max-width:88%;background:var(--primary);color:#fff;border-radius:10px 10px 3px 10px;padding:8px 12px;font-size:13px}
+.chat-a{align-self:flex-start;max-width:94%;font-size:13px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:10px 10px 10px 3px;padding:10px 12px}
+.chat-a .quote{margin-top:8px}
+.chat-src{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.chat-new{animation:rise .34s var(--ease) both}
+.typing{display:inline-flex;align-items:center;gap:4px;padding:10px 13px}
+.typing i{width:5px;height:5px;border-radius:50%;background:var(--faint);animation:tdot 1.1s ease-in-out infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes tdot{0%,60%,100%{opacity:.35;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+.chat-input{
+  margin:2px 16px 16px;display:flex;align-items:center;gap:10px;
+  border:1px solid var(--border-2);border-radius:9px;padding:3px 4px 3px 12px;background:var(--surface);
+  transition:border-color var(--dur-1),box-shadow var(--dur-1);
+}
+.chat-input:focus-within{border-color:var(--primary-300);box-shadow:0 0 0 3px var(--primary-50)}
+.chat-input input{flex:1;border:0;outline:0;background:none;font-size:13px;color:var(--ink)}
+.chat-input .send{width:27px;height:27px;border-radius:7px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;transition:background-color var(--dur-1)}
+.chat-input .send:hover{background:var(--primary-700)}
+
+.lrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--surface-2);font-size:13px}
+.lrow:last-child{border-bottom:0}
+
+/* Segmented mit gleitendem Thumb */
+.seg{position:relative;display:inline-flex;border:1px solid var(--border);border-radius:9px;padding:2px;background:var(--surface);gap:2px}
+.seg .thumb{position:absolute;top:2px;left:2px;height:calc(100% - 4px);border-radius:7px;background:var(--primary-50);transition:transform .24s var(--ease),width .24s var(--ease)}
+.seg button{position:relative;z-index:1;border-radius:7px;padding:4px 14px;font-size:13px;color:var(--muted);transition:color var(--dur-1)}
+.seg button.on{color:var(--primary-700);font-weight:600}
+
+/* Agent-Schritte */
+.astep{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--surface-2);font-size:13px;color:var(--muted)}
+.astep:last-child{border-bottom:0}
+.astep .ok{width:16px;height:16px;border-radius:50%;background:var(--success-bg);border:1px solid var(--success-bd);color:var(--success);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.astep .ok svg{width:9px;height:9px}
+.ablock{margin:0 16px 14px;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.ablock .abh{padding:8px 13px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.ablock .abb{padding:11px 13px;font-size:13px;color:var(--text)}
+.ablock .abb .quote{margin-top:8px}
+
+/* Integrationen */
+.int-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.int{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:7px;box-shadow:var(--sh-card);transition:transform var(--dur-2) var(--ease),box-shadow var(--dur-2) var(--ease),border-color var(--dur-2)}
+.int:hover{transform:translateY(-2px);box-shadow:var(--sh-lift);border-color:var(--border-2)}
+.int .i-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.int .i-name{font-size:14px;font-weight:600;color:var(--ink)}
+.int p{font-size:12.5px;color:var(--muted)}
+.int .i-foot{margin-top:5px;padding-top:9px;border-top:1px solid var(--surface-2);display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint)}
+.int.off{opacity:.55}
+.int.off:hover{transform:none;box-shadow:var(--sh-card)}
+
+/* ── Neue Studie ──────────────────────────────────────────────────── */
+.startgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.startcard{position:relative;border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:18px 20px;cursor:pointer;transition:all var(--dur-2) var(--ease);box-shadow:var(--sh-card)}
+.startcard:hover{transform:translateY(-2px);box-shadow:var(--sh-lift)}
+.startcard.rec{border-color:var(--primary-200);background:linear-gradient(180deg,var(--primary-50),var(--surface) 80%)}
+.startcard .sc-badge{position:absolute;top:14px;right:14px}
+.startcard h3{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:600;color:var(--ink)}
+.startcard h3 svg{color:var(--primary)}
+.startcard p{margin-top:5px;font-size:13px;color:var(--muted);max-width:46ch}
+.startcard .sc-foot{margin-top:10px;font-size:12.5px;font-weight:600;color:var(--primary-700)}
+
+.formsteps{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:12.5px;color:var(--faint)}
+.formsteps .fs{display:flex;align-items:center;gap:7px}
+.formsteps .fs i{display:inline-flex;width:18px;height:18px;border-radius:50%;border:1px solid var(--border-2);font-size:10.5px;font-family:var(--mono);align-items:center;justify-content:center}
+.formsteps .fs.on{color:var(--primary-700);font-weight:600}
+.formsteps .fs.on i{background:var(--primary);border-color:var(--primary);color:#fff}
+.formsteps .ln{width:26px;height:1px;background:var(--border)}
+
+.uc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.uc{position:relative;border:1px solid var(--border);border-radius:10px;padding:13px 14px;background:var(--surface);cursor:pointer;transition:all var(--dur-2) var(--ease)}
+.uc:hover{border-color:var(--border-2);transform:translateY(-1px);box-shadow:var(--sh-card)}
+.uc.on{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
+.uc b{display:block;font-size:13px;font-weight:600;color:var(--ink);padding-right:18px}
+.uc span{display:block;margin-top:3px;font-size:11.5px;color:var(--muted);line-height:1.45}
+.uc .stim{display:inline-flex;margin-top:7px}
+.uc .check{position:absolute;top:10px;right:10px;width:16px;height:16px;border-radius:50%;background:var(--primary);color:#fff;display:none;align-items:center;justify-content:center}
+.uc.on .check{display:flex;animation:kpi-pop .4s var(--ease)}
+.preset-hint{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:12.5px;color:var(--primary-700);background:var(--primary-50);border:1px solid var(--primary-200);border-radius:8px;padding:8px 12px}
+
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+.fgrid .wide{grid-column:1/-1}
+.fld label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:5px}
+.fld .hint2{font-weight:400;color:var(--faint);font-size:12px;margin-left:6px}
+.fld input,.fld textarea{
+  width:100%;border:1px solid var(--border);border-radius:8px;background:var(--surface);
+  padding:8px 11px;font-size:13.5px;color:var(--ink);outline:0;
+  transition:border-color var(--dur-1),box-shadow var(--dur-1);
+}
+.fld input:focus,.fld textarea:focus{border-color:var(--primary-300);box-shadow:0 0 0 3px var(--primary-50)}
+.fld textarea{resize:vertical;min-height:58px}
+
+.upload{
+  display:flex;align-items:center;gap:14px;border:1.5px dashed var(--border-2);border-radius:10px;
+  padding:14px 16px;transition:border-color var(--dur-2),background-color var(--dur-2);
+}
+.upload.donestate{border-style:solid;border-color:var(--border)}
+.upload .thumb{
+  width:64px;height:44px;border-radius:7px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--primary-200),var(--primary-50) 60%,#fff);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--primary-700);
+}
+.upload .umain{flex:1;min-width:0}
+.upload .umain b{display:block;font-size:13px;font-weight:600;color:var(--ink);font-family:var(--mono);font-weight:500}
+.upload .umain span{display:block;margin-top:2px;font-size:12px;color:var(--muted)}
+.aichips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.aichips .pill{animation:rise .3s var(--ease) both}
+.aichips .pill:nth-child(2){animation-delay:50ms}.aichips .pill:nth-child(3){animation-delay:100ms}
+.aichips .pill:nth-child(4){animation-delay:150ms}.aichips .pill:nth-child(5){animation-delay:200ms}
+
+.formfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* Einstellungen-Index */
+.set-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+/* ── Drawer (Interview) ───────────────────────────────────────────── */
+.scrim{position:fixed;inset:0;z-index:90;background:rgba(24,24,27,.35);opacity:0;pointer-events:none;transition:opacity var(--dur-2)}
+.scrim.show{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;z-index:95;width:min(560px,94vw);
+  background:var(--surface);border-left:1px solid var(--border);box-shadow:var(--sh-pop);
+  transform:translateX(105%);visibility:hidden;
+  transition:transform var(--dur-3) var(--ease),visibility 0s linear var(--dur-3);
+  display:flex;flex-direction:column;
+}
+.drawer.open{transform:none;visibility:visible;transition:transform var(--dur-3) var(--ease),visibility 0s}
+.drawer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 22px 14px;border-bottom:1px solid var(--border)}
+.drawer-head .dh-main h2{font-size:16px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:9px}
+.drawer-head .dh-main .meta{margin-top:4px}
+.drawer-x{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:background-color var(--dur-1),color var(--dur-1)}
+.drawer-x:hover{background:var(--surface-2);color:var(--ink)}
+.drawer-body{flex:1;overflow-y:auto;padding:18px 22px}
+.drawer-sec{margin-bottom:20px}
+.drawer-sec h3{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+.turn{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
+.turn .who{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);display:flex;gap:8px;align-items:center}
+.turn .who .ts{font-family:var(--mono);font-weight:400;text-transform:none;letter-spacing:0}
+.turn.ki .bubble{background:var(--primary-50);border:1px solid var(--primary-100);color:var(--primary-800)}
+.turn .bubble{border:1px solid var(--border);background:var(--bg);border-radius:9px;padding:8px 12px;font-size:13px;color:var(--text);max-width:92%}
+.finding{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-radius:9px;padding:10px 13px;background:var(--bg)}
+.finding+.finding{margin-top:8px}
+.finding .fmain b{display:block;font-size:13px;font-weight:600;color:var(--ink)}
+.finding .fmain p{margin-top:2px;font-size:12.5px;color:var(--muted);font-style:italic}
+.drawer-foot{padding:13px 22px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+/* ── ⌘K ───────────────────────────────────────────────────────────── */
+.cmdk{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-start;justify-content:center;padding-top:14vh;background:rgba(24,24,27,.35);opacity:0;pointer-events:none;visibility:hidden;transition:opacity var(--dur-2),visibility 0s linear var(--dur-2)}
+.cmdk.open{opacity:1;pointer-events:auto;visibility:visible;transition:opacity var(--dur-2),visibility 0s}
+.cmdk-box{
+  width:min(540px,92vw);background:var(--surface);border-radius:12px;overflow:hidden;box-shadow:var(--sh-pop);
+  transform:translateY(-8px) scale(.985);transition:transform var(--dur-2) var(--ease);
+}
+.cmdk.open .cmdk-box{transform:none}
+.cmdk-box .cmdk-in{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);padding:0 16px}
+.cmdk-box .cmdk-in svg{color:var(--faint);flex-shrink:0}
+.cmdk-box input{flex:1;border:0;outline:0;background:transparent;padding:14px 0;font-size:14px;color:var(--ink)}
+.cmdk-list{padding:6px;max-height:320px;overflow:auto}
+.cmdk-h{padding:8px 12px 3px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.cmdk-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13.5px;color:var(--text);cursor:pointer}
+.cmdk-item svg{color:var(--faint);flex-shrink:0}
+.cmdk-item .badge{margin-left:auto}
+.cmdk-item.sel{background:var(--primary-50);color:var(--primary-700)}
+.cmdk-item.sel svg{color:var(--primary)}
+.cmdk-empty{padding:22px 12px;text-align:center;font-size:13px;color:var(--faint)}
+.cmdk-foot{display:flex;gap:14px;padding:9px 16px;border-top:1px solid var(--border);font-size:11.5px;color:var(--faint)}
+.cmdk-foot b{font-family:var(--mono);font-weight:500;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-size:10.5px}
+
+/* ── Toasts ───────────────────────────────────────────────────────── */
+.toasts{position:fixed;right:18px;bottom:64px;z-index:110;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.ntoast{
+  display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;box-shadow:var(--sh-lift);padding:10px 14px;font-size:13px;color:var(--ink);
+  position:relative;overflow:hidden;animation:toastin .32s var(--ease) both;max-width:340px;
+}
+.ntoast.out{animation:toastout .26s var(--ease) both}
+.ntoast .tic{width:18px;height:18px;border-radius:50%;background:var(--primary-50);color:var(--primary-700);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ntoast .tprog{position:absolute;left:0;bottom:0;height:2px;background:var(--primary-200);width:100%;transform-origin:left;animation:tprog 3.4s linear forwards}
+@keyframes toastin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes toastout{from{opacity:1}to{opacity:0;transform:translateY(6px)}}
+@keyframes tprog{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+
+/* ── Notizen-Modus ────────────────────────────────────────────────── */
+.note-dot{
+  display:none;width:18px;height:18px;border-radius:50%;background:var(--primary);color:#fff;
+  font-size:10.5px;font-weight:600;font-family:var(--mono);align-items:center;justify-content:center;
+  cursor:pointer;vertical-align:2px;margin-inline:5px;box-shadow:0 0 0 3px var(--primary-100);
+  flex-shrink:0;
+}
+body.notes .note-dot{display:inline-flex;animation:kpi-pop .4s var(--ease) both}
+.note-pop{
+  position:fixed;z-index:120;width:min(380px,92vw);background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;box-shadow:var(--sh-pop);padding:14px 16px;display:none;
+}
+.note-pop.show{display:block;animation:rise .22s var(--ease) both}
+.note-pop h4{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink)}
+.note-pop h4 .nn{width:18px;height:18px;border-radius:50%;background:var(--primary);color:#fff;font-size:10.5px;font-family:var(--mono);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.note-pop p{margin-top:6px;font-size:12.5px;color:var(--text)}
+.note-pop .map{margin-top:8px;padding-top:8px;border-top:1px solid var(--surface-2);font-size:11.5px;color:var(--faint)}
+.note-pop .map b{color:var(--muted);font-weight:600}
+
+/* ── Demo-Leiste (Mockup-Chrome, nicht Teil des Produkts) ─────────── */
+.demo-switch{
+  position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:80;
+  display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--border);
+  border-radius:11px;padding:3px;box-shadow:0 8px 24px -8px rgba(24,24,27,.18);
+}
+.demo-switch button{border-radius:8px;padding:5px 11px;font-size:12.5px;color:var(--muted);white-space:nowrap;transition:color var(--dur-1),background-color var(--dur-1)}
+.demo-switch button:hover{color:var(--ink)}
+.demo-switch button.on{background:var(--primary);color:#fff;font-weight:600}
+.demo-switch .dsep{width:1px;height:18px;background:var(--border);margin-inline:4px}
+.demo-switch button.notetoggle.on{background:var(--ink)}
+
+/* Skeleton-Block der Studienliste + Wiedereintritt nach dem Laden */
+.sk-block{display:none}
+.card.loading table{display:none}
+.card.loading .sk-block{display:block}
+.card.loading .tbl-empty{display:none!important}
+.sk-row{display:grid;grid-template-columns:2.2fr 1.1fr 1fr 1.5fr 1.1fr .9fr;gap:18px;align-items:center;padding:15px 20px;border-bottom:1px solid var(--surface-2)}
+.sk-row:last-child{border-bottom:0}
+tbody tr.reborn{animation:rise .34s var(--ease) both;animation-delay:calc(var(--i,0)*35ms)}
+
+/* Klickbare Breadcrumb-Glieder + hervorgehobener Transkript-Beleg */
+.crumbs [data-crumb]{cursor:pointer;transition:color var(--dur-1)}
+.crumbs [data-crumb]:hover{color:var(--ink)}
+.turn.hl .bubble{border-color:var(--primary-300);background:var(--primary-50)}
+
+/* ── Responsive (Vision-Dokument: Desktop zuerst, würdevoller Fallback) */
+@media(max-width:1180px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .synth-grid,.heute-grid{grid-template-columns:1fr}
+  .int-grid,.set-grid{grid-template-columns:1fr 1fr}
+  .uc-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:920px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .detail-grid{grid-template-columns:1fr}
+  .rail{position:static;flex-direction:row;flex-wrap:wrap;gap:4px;margin-bottom:14px}
+  .rail .eyebrow{display:none}
+  .startgrid,.tension-grid,.fgrid{grid-template-columns:1fr}
+  .content{padding:24px 20px 110px}
+}
+
+/* ── Reduced Motion: Endzustände sofort ───────────────────────────── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0ms!important;transition-duration:.001ms!important}
+  .bar b,.pool-bar b{width:var(--w,0%)}
+  .ring-fg{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ════ SIDEBAR ═════════════════════════════════════════════════ -->
+  <aside class="side">
+    <div class="side-brand">
+      <span class="brand">findr<i aria-hidden="true"></i></span>
+      <button class="kbd" id="kbdBtn" type="button" aria-label="Suche öffnen">⌘K</button>
+    </div>
+
+    <nav class="side-nav" id="sideNav" aria-label="Hauptnavigation">
+      <span class="nav-pill" id="navPill" aria-hidden="true"></span>
+
+      <div class="group">
+        <button class="item on" data-nav="heute" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h14v-9"/></svg>
+          Heute<span data-note="n1" class="note-dot">1</span>
+        </button>
+      </div>
+
+      <div class="group">
+        <div class="group-label">Market Research</div>
+        <button class="item" data-nav="studien" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+          Studien <span class="count">6</span><span data-note="n4" class="note-dot">4</span>
+        </button>
+        <button class="item" data-nav="pool" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6S13.9 16 14.5 19"/><path d="M15.5 5.6a3.2 3.2 0 1 1 .4 6.3M16.7 14.6c2.2.4 3.5 1.9 3.9 4.4"/></svg>
+          Teilnehmer-Pool <span class="count">148</span>
+        </button>
+      </div>
+
+      <div class="group">
+        <div class="group-label">Studienübergreifend</div>
+        <button class="item" data-nav="cross" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M7 17 12 7l5 10"/><path d="M4 21h16M9.2 13.5h5.6"/></svg>
+          Cross-Study
+        </button>
+      </div>
+
+      <div class="group">
+        <div class="group-label">Arbeitsbereich</div>
+        <button class="item" data-nav="quellen" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6"/></svg>
+          Datenquellen
+        </button>
+        <button class="item" data-nav="einstellungen" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.06-.4.1-.8.1-1.2Z"/></svg>
+          Einstellungen
+        </button>
+      </div>
+    </nav>
+
+    <div class="side-foot">
+      <div class="user">
+        <span class="avatar">AB</span>
+        <span><b>André Bäcker</b><span>NeuroForge GmbH</span></span>
+      </div>
+      <div class="side-compliance">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+        EU-Hosting · Frankfurt · DSGVO
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════ HAUPTBEREICH ════════════════════════════════════════════ -->
+  <div class="main">
+    <header class="top">
+      <div class="crumbs" id="crumbs"><b>Heute</b></div>
+      <div class="top-right">
+        <button class="searchpill" id="searchBtn" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          Suchen oder springen … <span class="kbd">⌘K</span>
+        </button>
+        <span class="lang">DE</span>
+        <span class="avatar">AB</span>
+      </div>
+    </header>
+
+    <!-- Sticky-Subbar: nur in der Studien-Detailansicht aktiv -->
+    <div class="subbar" id="subbar" aria-hidden="true">
+      <b>Meal-Planning DACH</b>
+      <span class="badge g"><i></i>Aktiv</span>
+      <span class="mono" style="font-size:12px;color:var(--muted)">47 / 200</span>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost btn-sm" type="button" data-copy>Link teilen</button>
+      <button class="btn btn-primary btn-sm" data-go="synthese" type="button">Zur Synthese</button>
+    </div>
+
+    <div class="content" id="content">
+      <div class="content-inner">
+<!-- ════ 1 · HEUTE (neue Startseite) ══════════════════════════ -->
+        <section class="view on" id="view-heute">
+          <div class="greet st" style="--i:0">
+            <div class="greet-wash" aria-hidden="true"></div>
+            <div class="greet-row">
+              <div>
+                <div class="date">Mittwoch, 10. Juni 2026</div>
+                <h1>Guten Morgen, André.</h1>
+                <p class="digest">Seit gestern: <b>12 neue Interviews</b><span class="sep">·</span><b>1 Synthese</b> wartet auf ein Update<span class="sep">·</span>Screening bei <b>Abo-Konzept v2</b> läuft eng.<span data-note="n2" class="note-dot">2</span></p>
+              </div>
+              <div class="actions">
+                <button class="btn btn-ghost" data-go="studien" type="button">Alle Studien</button>
+                <button class="btn btn-primary" data-go="neu" type="button">+ Neue Studie</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpis st" style="--i:1">
+            <div class="kpi"><div class="l">Aktive Studien</div><div class="v mono cu" data-v="3">3</div><div class="s">1 Entwurf · 2 abgeschlossen</div></div>
+            <div class="kpi"><div class="l">Interviews diese Woche</div><div class="v mono cu" data-v="31" id="kpiWeek">31</div><div class="s">+12 seit gestern</div></div>
+            <div class="kpi"><div class="l">Synthesen bereit</div><div class="v mono acc cu" data-v="2">2</div><div class="s">warten auf Review / Update</div></div>
+            <div class="kpi"><div class="l">Teilnehmer-Pool</div><div class="v mono cu" data-v="148">148</div><div class="s">pseudonymisierte Profile</div></div>
+          </div>
+
+          <div class="card next st" style="--i:2">
+            <div class="card-head">
+              <h2>Nächste Schritte</h2>
+              <span class="hint">abgeleitet aus Status &amp; Zeitstempeln<span data-note="n3" class="note-dot">3</span></span>
+            </div>
+            <div class="nrow">
+              <span class="ndot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></span>
+              <span class="nmain"><b>Synthese aktualisieren — Meal-Planning DACH</b><span>3 neue Interviews seit der letzten Verdichtung vor 2 Stunden.</span></span>
+              <button class="btn btn-ghost btn-sm" data-go="synthese" type="button">Zur Synthese</button>
+            </div>
+            <div class="nrow">
+              <span class="ndot warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg></span>
+              <span class="nmain"><b>Screening prüfen — Abo-Konzept v2</b><span>17 von 120 nach 20 Tagen im Feld · nur 38&nbsp;% bestehen das Screening.</span></span>
+              <button class="btn btn-ghost btn-sm" data-go="studien" type="button">Studie öffnen</button>
+            </div>
+            <div class="nrow">
+              <span class="ndot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+              <span class="nmain"><b>Entwurf fertigstellen — Spot „Abendchaos“ 20s</b><span>Creative Test mit Stimulus, seit 16. Mai im Entwurf.</span></span>
+              <button class="btn btn-ghost btn-sm" data-go="neu" type="button">Entwurf öffnen</button>
+            </div>
+          </div>
+
+          <div class="heute-grid">
+            <div class="card st" style="--i:3">
+              <div class="card-head"><h2>Läuft gerade</h2><button class="btn btn-ghost btn-sm" data-go="studien" type="button">Alle Studien</button></div>
+              <div class="runrow" data-go="studie">
+                <span class="ringwrap">
+                  <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="ring-bg" cx="22" cy="22" r="19"/><circle class="ring-fg" cx="22" cy="22" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4" data-off="91.3"/></svg>
+                  <span class="pct">24%</span>
+                </span>
+                <span class="rmain"><b>Meal-Planning DACH</b><span class="meta">Allgemeine Befragung · Voice · Screening aktiv</span></span>
+                <span class="rnum"><span class="n">47 / 200</span><span class="d">+6 heute</span></span>
+                <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m9 6 6 6-6 6"/></svg>
+              </div>
+              <div class="runrow" data-go-toast="Im Mockup exemplarisch ausgeführt: Meal-Planning DACH">
+                <span class="ringwrap">
+                  <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="ring-bg" cx="22" cy="22" r="19"/><circle class="ring-fg" cx="22" cy="22" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4" data-off="45.4"/></svg>
+                  <span class="pct">62%</span>
+                </span>
+                <span class="rmain"><b>Marken-Check Q3</b><span class="meta">Brand Research · Text · Screening aktiv</span></span>
+                <span class="rnum"><span class="n">93 / 150</span><span class="d">+5 heute</span></span>
+                <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m9 6 6 6-6 6"/></svg>
+              </div>
+              <div class="runrow" data-go-toast="Im Mockup exemplarisch ausgeführt: Meal-Planning DACH">
+                <span class="ringwrap">
+                  <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="ring-bg" cx="22" cy="22" r="19"/><circle class="ring-fg" cx="22" cy="22" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4" data-off="102.4"/></svg>
+                  <span class="pct">14%</span>
+                </span>
+                <span class="rmain"><b>Abo-Konzept v2</b><span class="meta">Konzept-Test · Stimulus hinterlegt</span></span>
+                <span class="rnum"><span class="n">17 / 120</span><span class="d">+1 heute</span></span>
+                <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m9 6 6 6-6 6"/></svg>
+              </div>
+            </div>
+
+            <div class="card st" style="--i:4">
+              <div class="card-head"><h2>Zuletzt abgeschlossen</h2><span class="hint"><span data-note="n5" class="note-dot">5</span></span></div>
+              <div id="liveList">
+                <div class="liverow"><span class="pseudo">P-058</span><span class="lmain"><b>Meal-Planning DACH</b><span>Voice · Screening bestanden</span></span><span class="dur">7:54</span><span class="ago">vor 14 min</span></div>
+                <div class="liverow"><span class="pseudo">P-152</span><span class="lmain"><b>Marken-Check Q3</b><span>Text</span></span><span class="dur">11:20</span><span class="ago">vor 38 min</span></div>
+                <div class="liverow"><span class="pseudo">P-057</span><span class="lmain"><b>Meal-Planning DACH</b><span>Voice · Screening bestanden</span></span><span class="dur">9:03</span><span class="ago">vor 1 h</span></div>
+                <div class="liverow"><span class="pseudo">P-151</span><span class="lmain"><b>Marken-Check Q3</b><span>Text</span></span><span class="dur">8:47</span><span class="ago">vor 2 h</span></div>
+                <div class="liverow"><span class="pseudo">P-056</span><span class="lmain"><b>Meal-Planning DACH</b><span>Voice · Screening bestanden</span></span><span class="dur">10:12</span><span class="ago">vor 2 h</span></div>
+              </div>
+              <div class="card-foot">
+                <span class="livefoot"><span class="pulse"></span>Aktualisiert sich automatisch · zuletzt gerade eben</span>
+                <span></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════ 2 · STUDIEN (MR-Übersicht + Liste, zusammengeführt) ══ -->
+        <section class="view" id="view-studien">
+          <div class="pagehead st" style="--i:0">
+            <div>
+              <h1>Market Research</h1>
+              <p class="sub">Qualitative Studien mit KI-geführten Tiefeninterviews — jede Erkenntnis am Transkript belegt.</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-ghost" data-go="pool" type="button">Teilnehmer-Pool</button>
+              <button class="btn btn-primary" data-go="neu" type="button">+ Neue Studie</button>
+            </div>
+          </div>
+
+          <div class="kpis st" style="--i:1">
+            <div class="kpi"><div class="l">Studien</div><div class="v mono cu" data-v="6">6</div><div class="s">über alle Status</div></div>
+            <div class="kpi"><div class="l">Abgeschl. Interviews</div><div class="v mono cu" data-v="317">317</div><div class="s">über alle Studien</div></div>
+            <div class="kpi"><div class="l">Aktiv im Feld</div><div class="v mono cu" data-v="3">3</div><div class="s">davon 1 mit engem Screening</div></div>
+            <div class="kpi"><div class="l">Synthesen bereit</div><div class="v mono acc cu" data-v="2">2</div><div class="s">warten auf Review / Update</div></div>
+          </div>
+
+          <div class="filterrow st" style="--i:2">
+            <button class="chip on" data-filter="alle" type="button">Alle <span class="n">6</span></button>
+            <button class="chip" data-filter="aktiv" type="button">Aktiv <span class="n">3</span></button>
+            <button class="chip" data-filter="entwurf" type="button">Entwurf <span class="n">1</span></button>
+            <button class="chip" data-filter="abgeschlossen" type="button">Abgeschlossen <span class="n">2</span></button>
+            <span class="grow"></span>
+            <label class="tsearch">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input id="tableSearch" placeholder="Studie suchen …" aria-label="Studie suchen" />
+            </label>
+            <button class="btn btn-ghost btn-sm" id="refreshBtn" type="button">Aktualisieren</button>
+            <span data-note="n6" class="note-dot">6</span>
+          </div>
+
+          <div class="card st" style="--i:3" id="studienCard">
+            <table aria-label="Studien">
+              <thead><tr>
+                <th>Studie</th><th>Methode</th><th>Status</th><th>Fortschritt</th><th>Synthese</th><th class="r">Erstellt</th>
+              </tr></thead>
+              <tbody id="studienBody">
+                <tr class="click srow" data-status="aktiv" data-name="meal-planning dach" data-go="studie">
+                  <td><span class="title">Meal-Planning DACH</span><span class="meta">3 Themen · Voice · Screening aktiv</span></td>
+                  <td><span class="pill">Allgemeine Befragung</span></td>
+                  <td><span class="badge g live"><i></i>Aktiv</span></td>
+                  <td><span class="prog"><span class="bar"><b style="--w:23.5%"></b></span><span class="n">47 / 200</span></span></td>
+                  <td><span class="badge a"><i></i>Veraltet · 3 neue</span></td>
+                  <td class="r mono">02.06.26 <svg class="rowgo" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:-2px"><path d="m9 6 6 6-6 6"/></svg></td>
+                </tr>
+                <tr class="click srow" data-status="aktiv" data-name="marken-check q3" data-go-toast="Im Mockup exemplarisch ausgeführt: Meal-Planning DACH">
+                  <td><span class="title">Marken-Check Q3</span><span class="meta">4 Themen · Screening aktiv</span></td>
+                  <td><span class="pill">Brand Research</span></td>
+                  <td><span class="badge g live"><i></i>Aktiv</span></td>
+                  <td><span class="prog"><span class="bar"><b style="--w:62%"></b></span><span class="n">93 / 150</span></span></td>
+                  <td><span class="badge"><i></i>—</span></td>
+                  <td class="r mono">28.05.26 <svg class="rowgo" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:-2px"><path d="m9 6 6 6-6 6"/></svg></td>
+                </tr>
+                <tr class="click srow" data-status="aktiv" data-name="abo-konzept v2" data-go-toast="Im Mockup exemplarisch ausgeführt: Meal-Planning DACH">
+                  <td><span class="title">Abo-Konzept v2</span><span class="meta">2 Themen · Stimulus hinterlegt</span></td>
+                  <td><span class="pill">Konzept-Test</span></td>
+                  <td><span class="badge a"><i></i>Screening eng</span></td>
+                  <td><span class="prog"><span class="bar"><b style="--w:14.2%"></b></span><span class="n">17 / 120</span></span></td>
+                  <td><span class="badge"><i></i>—</span></td>
+                  <td class="r mono">21.05.26 <svg class="rowgo" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:-2px"><path d="m9 6 6 6-6 6"/></svg></td>
+                </tr>
+                <tr class="click srow" data-status="entwurf" data-name="spot abendchaos 20s" data-go="neu">
+                  <td><span class="title">Spot „Abendchaos“ 20s</span><span class="meta">2 Themen · Stimulus hinterlegt</span></td>
+                  <td><span class="pill">Creative Test</span></td>
+                  <td><span class="badge"><i></i>Entwurf</span></td>
+                  <td><span class="prog"><span class="bar"><b style="--w:0%"></b></span><span class="n">0 / 80</span></span></td>
+                  <td><span class="badge"><i></i>—</span></td>
+                  <td class="r mono">16.05.26 <svg class="rowgo" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:-2px"><path d="m9 6 6 6-6 6"/></svg></td>
+                </tr>
+                <tr class="click srow" data-status="abgeschlossen" data-name="packaging relaunch" data-go-toast="Im Mockup exemplarisch ausgeführt: Meal-Planning DACH">
+                  <td><span class="title">Packaging Relaunch</span><span class="meta">3 Themen</span></td>
+                  <td><span class="pill">Konzept-Test</span></td>
+                  <td><span class="badge"><i></i>Abgeschlossen</span></td>
+                  <td><span class="prog done"><span class="bar"><b style="--w:100%"></b></span><span class="n">100 / 100</span></span></td>
+                  <td><span class="badge p"><i></i>Bereit</span></td>
+                  <td class="r mono">02.05.26 <svg class="rowgo" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:-2px"><path d="m9 6 6 6-6 6"/></svg></td>
+                </tr>
+                <tr class="click srow" data-status="abgeschlossen" data-name="pricing-wahrnehmung" data-go-toast="Im Mockup exemplarisch ausgeführt: Meal-Planning DACH">
+                  <td><span class="title">Pricing-Wahrnehmung</span><span class="meta">3 Themen</span></td>
+                  <td><span class="pill">Allgemeine Befragung</span></td>
+                  <td><span class="badge"><i></i>Abgeschlossen</span></td>
+                  <td><span class="prog done"><span class="bar"><b style="--w:100%"></b></span><span class="n">60 / 60</span></span></td>
+                  <td><span class="badge"><i></i>Geteilt</span></td>
+                  <td class="r mono">18.04.26 <svg class="rowgo" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:-2px"><path d="m9 6 6 6-6 6"/></svg></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="sk-block" aria-hidden="true">
+              <div class="sk-row"><span class="sk" style="width:70%"></span><span class="sk" style="width:80%"></span><span class="sk" style="width:55%"></span><span class="sk" style="width:90%"></span><span class="sk" style="width:50%"></span><span class="sk" style="width:60%"></span></div>
+              <div class="sk-row"><span class="sk" style="width:60%"></span><span class="sk" style="width:70%"></span><span class="sk" style="width:55%"></span><span class="sk" style="width:85%"></span><span class="sk" style="width:40%"></span><span class="sk" style="width:60%"></span></div>
+              <div class="sk-row"><span class="sk" style="width:75%"></span><span class="sk" style="width:60%"></span><span class="sk" style="width:65%"></span><span class="sk" style="width:80%"></span><span class="sk" style="width:45%"></span><span class="sk" style="width:60%"></span></div>
+              <div class="sk-row"><span class="sk" style="width:65%"></span><span class="sk" style="width:75%"></span><span class="sk" style="width:50%"></span><span class="sk" style="width:88%"></span><span class="sk" style="width:55%"></span><span class="sk" style="width:60%"></span></div>
+              <div class="sk-row"><span class="sk" style="width:72%"></span><span class="sk" style="width:65%"></span><span class="sk" style="width:60%"></span><span class="sk" style="width:82%"></span><span class="sk" style="width:48%"></span><span class="sk" style="width:60%"></span></div>
+              <div class="sk-row"><span class="sk" style="width:68%"></span><span class="sk" style="width:78%"></span><span class="sk" style="width:52%"></span><span class="sk" style="width:86%"></span><span class="sk" style="width:42%"></span><span class="sk" style="width:60%"></span></div>
+            </div>
+            <div class="tbl-empty" id="tableEmpty" style="display:none;padding:28px 20px;text-align:center;font-size:13px;color:var(--faint)">Keine Studie passt zu Filter und Suche.</div>
+          </div>
+        </section>
+<!-- ════ 3 · STUDIE (Detail mit gruppierter Rail) ═════════════ -->
+        <section class="view" id="view-studie">
+          <span class="backlink st" style="--i:0" data-go="studien">← Studien</span>
+          <div class="pagehead st" style="--i:0;margin-bottom:0">
+            <div>
+              <div class="headrow">
+                <h1>Meal-Planning DACH</h1>
+                <span class="pill">Allgemeine Befragung</span>
+                <span class="badge g live"><i></i>Aktiv</span>
+              </div>
+              <p class="sub">Erstellt am 2. Juni 2026 · Interviews auf Deutsch · Voice mit Sprachausgabe</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-ghost" data-toast="Test-Modus: synthetische Interviews — zählen nicht in Pool &amp; Synthese" type="button">Studie testen</button>
+              <button class="btn btn-ghost" data-copy type="button">Link teilen</button>
+              <button class="btn btn-primary" data-go="synthese" type="button">Zur Synthese</button>
+            </div>
+          </div>
+
+          <div class="steps st" style="--i:1" aria-label="Status">
+            <span class="st2 done"><i></i>Entwurf</span><span class="ln done"></span>
+            <span class="st2 on"><i></i>Aktiv</span><span class="ln"></span>
+            <span class="st2"><i></i>Abgeschlossen</span><span class="ln"></span>
+            <span class="st2"><i></i>Archiviert</span>
+          </div>
+
+          <div class="detail-grid">
+            <nav class="rail st" style="--i:2" aria-label="Sektionen">
+              <span class="eyebrow" style="padding-top:2px">Überblick<span data-note="n7" class="note-dot">7</span></span>
+              <button class="on" data-sec="s-pool" type="button">Ziel-Pool</button>
+              <span class="eyebrow">Einrichtung</span>
+              <button data-sec="s-ziel" type="button">Ziel &amp; Stichprobe</button>
+              <button data-sec="s-leitfaden" type="button">Leitfaden</button>
+              <span class="eyebrow">Feld</span>
+              <button data-sec="s-feld" type="button">Feldzugang</button>
+              <button data-sec="s-teilnehmer" type="button">Teilnehmer</button>
+              <span class="eyebrow">Auswertung</span>
+              <button data-sec="s-auswertung" type="button">Auswertung</button>
+            </nav>
+
+            <div>
+              <div class="card st" style="--i:3" id="s-pool">
+                <div class="card-head"><h2>Ziel-Pool</h2><span class="hint">Nur abgeschlossene Interviews zählen</span></div>
+                <div class="card-body">
+                  <div class="pool">
+                    <span class="ringwrap">
+                      <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="ring-bg" cx="22" cy="22" r="19"/><circle class="ring-fg" cx="22" cy="22" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4" data-off="91.3"/></svg>
+                      <span class="pct">24%</span>
+                    </span>
+                    <div class="big mono">47 <small>/ 200</small></div>
+                    <div class="pool-right">
+                      <div class="pool-bar"><b style="--w:23.5%"></b></div>
+                      <div class="pool-meta"><span>+6 heute · Ø 8:42 min je Interview</span><span>Prognose bei aktuellem Tempo: Ziel Mitte August</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card section st" style="--i:4" id="s-ziel">
+                <div class="card-head"><h2>Ziel &amp; Stichprobe</h2><button class="btn btn-ghost btn-sm" data-toast="Bearbeiten öffnet das bestehende Formular — unverändert" type="button">Bearbeiten</button></div>
+                <div class="card-body">
+                  <dl class="def">
+                    <dt>Forschungsziel</dt>
+                    <dd>Verstehen, wie Haushalte in DACH ihre Abendessen-Entscheidungen treffen — und woran bestehende Planungs-Lösungen scheitern.</dd>
+                    <dt>Ziel-Persona</dt>
+                    <dd>Berufstätige 28–45, Haushaltsgröße 2+, kocht mindestens 3× pro Woche selbst.</dd>
+                    <dt>Stichprobenziel</dt>
+                    <dd>200 abgeschlossene Interviews</dd>
+                  </dl>
+                </div>
+              </div>
+
+              <div class="card section st" style="--i:5" id="s-leitfaden">
+                <div class="card-head"><h2>Leitfaden</h2><span class="hint">3 Themen — die KI bohrt je Thema nach</span></div>
+                <div class="topic">
+                  <h3><span class="tn">1</span>Entscheidungsmoment am Abend</h3>
+                  <p>Den konkreten Moment rekonstruieren, in dem entschieden wird, was gekocht wird — Auslöser, Dauer, Gefühl.</p>
+                  <div class="hyp">
+                    <span class="h-label">Private Hypothesen — Teilnehmende sehen das nie</span>
+                    <span>Die Entscheidung ist anstrengender als das Kochen selbst.</span>
+                    <span>Wochenend-Planung zerfällt unter der Woche.</span>
+                  </div>
+                </div>
+                <div class="topic">
+                  <h3><span class="tn">2</span>Ausweich-Verhalten</h3>
+                  <p>Was passiert, wenn keine Entscheidung fällt — Bestellen, Reste, Ausfall — und wie es sich anfühlt.</p>
+                </div>
+                <div class="topic">
+                  <h3><span class="tn">3</span>Bisherige Lösungsversuche</h3>
+                  <p>Welche Apps und Methoden probiert wurden — und an welchem Punkt sie aufgegeben wurden.</p>
+                </div>
+              </div>
+
+              <div class="card section st" style="--i:6" id="s-feld">
+                <div class="card-head"><h2>Feldzugang</h2><span class="badge g"><i></i>Offen für Teilnahmen</span></div>
+                <div class="frow">
+                  <span class="fr-main">
+                    <b>Offener Studien-Link</b>
+                    <span class="urlbox">findr.de/s/meal-planning-dach-x7f2 <button data-copy type="button">Kopieren</button></span>
+                  </span>
+                  <span class="fr-side">Kontingent 250 · gültig bis 31.07.</span>
+                  <span class="badge g"><i></i>Aktiv</span>
+                </div>
+                <div class="frow">
+                  <span class="fr-main"><b>Screening</b><span>2 Fragen vorgeschaltet · 64&nbsp;% bestehen<span data-note="n8" class="note-dot">8</span></span></span>
+                  <button class="btn btn-ghost btn-sm" data-toast="Screening-Fragen: bestehendes Panel, unverändert" type="button">Fragen bearbeiten</button>
+                </div>
+                <div class="frow">
+                  <span class="fr-main"><b>Prolific</b><span>Draft angelegt (unveröffentlicht) · Completion-URLs eingerichtet.</span></span>
+                  <span class="badge g"><i></i>Verbunden</span>
+                </div>
+                <div class="frow">
+                  <span class="fr-main"><b>Quote „Vielbesteller“</b><span>Mindestanteil in der Stichprobe.</span></span>
+                  <span class="prog" style="min-width:130px"><span class="bar"><b style="--w:60%"></b></span><span class="n">12 / 20</span></span>
+                </div>
+              </div>
+
+              <div class="card section st" style="--i:7" id="s-teilnehmer">
+                <div class="card-head">
+                  <h2>Teilnehmer</h2>
+                  <div class="right">
+                    <span class="privacy-hint">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                      Pseudonymisiert<span data-note="n9" class="note-dot">9</span>
+                    </span>
+                    <button class="btn btn-primary btn-sm" data-toast="Einladen: Einzeln · CSV · aus dem Pool — bestehende Formulare" type="button">Einladen</button>
+                  </div>
+                </div>
+                <table aria-label="Teilnehmer">
+                  <thead><tr><th>Teilnehmer:in</th><th>Kontakt</th><th>Modus</th><th>Termin</th><th>Status</th><th class="r">Interview</th></tr></thead>
+                  <tbody>
+                    <tr class="click" data-drawer>
+                      <td><span class="pseudo">P-044</span></td>
+                      <td><span class="masked">l.h•••@•••.de</span></td>
+                      <td><span class="pill">Voice</span></td>
+                      <td>—</td>
+                      <td><span class="badge g"><i></i>Abgeschlossen</span></td>
+                      <td class="r"><span style="font-size:12.5px;color:var(--primary-700);font-weight:600">Ansehen</span> <svg class="rowgo" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:-2px"><path d="m9 6 6 6-6 6"/></svg></td>
+                    </tr>
+                    <tr>
+                      <td><span class="pseudo">P-045</span></td>
+                      <td><span class="masked">p.y•••@•••.de</span></td>
+                      <td><span class="pill">Text</span></td>
+                      <td class="mono" style="font-size:12.5px">12.06., 14:00</td>
+                      <td><span class="badge a"><i></i>Terminiert</span></td>
+                      <td class="r"><button class="btn btn-ghost btn-sm" data-copy type="button">Link kopieren</button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="pseudo">P-046</span></td>
+                      <td><span class="masked">anonym · offener Link</span></td>
+                      <td><span class="pill">Voice</span></td>
+                      <td>—</td>
+                      <td><span class="badge g"><i></i>Abgeschlossen</span></td>
+                      <td class="r" style="color:var(--faint)">—</td>
+                    </tr>
+                    <tr>
+                      <td><span class="pseudo">P-047</span></td>
+                      <td><span class="masked">anonym · Prolific</span></td>
+                      <td><span class="pill">Voice</span></td>
+                      <td>—</td>
+                      <td><span class="badge g live"><i></i>Läuft</span></td>
+                      <td class="r" style="color:var(--faint)">—</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="card-foot">
+                  <span>44 weitere anonyme Teilnahmen über den offenen Link</span>
+                  <span>Kontaktdaten einblenden erfordert die Rolle „Owner“ und wird protokolliert</span>
+                </div>
+              </div>
+
+              <div class="card section st" style="--i:8" id="s-auswertung">
+                <div class="card-head"><h2>Auswertung</h2><span class="badge a"><i></i>3 neue Interviews</span></div>
+                <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+                  <p style="font-size:13px;color:var(--muted);max-width:52ch">Synthese, Spannungen, Chat mit den Daten und Exporte — zuletzt verdichtet vor 2 Stunden aus 44 Interviews.</p>
+                  <span style="display:flex;gap:8px">
+                    <button class="btn btn-ghost" data-toast="Highlight-Reel wird erzeugt — 5–8 wörtliche Zitate, nach Themen gruppiert" type="button">Highlight-Reel</button>
+                    <button class="btn btn-primary" data-go="synthese" type="button">Synthese öffnen</button>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════ 4 · SYNTHESE ═════════════════════════════════════════ -->
+        <section class="view" id="view-synthese">
+          <span class="backlink st" style="--i:0" data-go="studie">← Meal-Planning DACH</span>
+          <div class="pagehead st" style="--i:0">
+            <div>
+              <div class="headrow">
+                <h1>Synthese</h1>
+                <span class="privacy-hint">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                  Zitate pseudonymisiert
+                </span>
+              </div>
+              <p class="sub" id="synthSub">Stand: <b id="synthCount">44</b> von 47 Interviews einbezogen · verdichtet vor 2 Stunden · jede Zahl am Transkript belegt</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-ghost" data-toast="Geteilter Ergebnis-Link kopiert — anonymisiert, jederzeit widerrufbar" type="button">Teilen</button>
+              <button class="btn btn-ghost" data-toast="PPTX-Export gestartet — Themen, Zahlen &amp; Zitate als Folien" type="button">PPTX</button>
+              <button class="btn btn-primary" data-toast="PDF-Report wird erzeugt" type="button">PDF-Report</button>
+            </div>
+          </div>
+
+          <div class="notice st" style="--i:1" id="synthNotice">
+            <span id="synthNoticeText">3 neue Interviews seit der letzten Synthese<span data-note="n10" class="note-dot">10</span></span>
+            <button class="btn btn-primary btn-sm" id="synthUpdate" type="button">Jetzt aktualisieren</button>
+            <span class="nprog" aria-hidden="true"></span>
+          </div>
+
+          <div class="synth-grid">
+            <div>
+              <div class="card st" style="--i:2">
+                <div class="card-head"><h2>Überblick</h2><span class="hint">geschrieben von der Synthese-Engine</span></div>
+                <div class="card-body">
+                  <p class="overview-p">Die Hürde beim Abendessen ist nicht fehlendes Wissen, sondern die tägliche Entscheidungslast: Die meisten Haushalte besitzen Rezepte und Routinen, scheitern aber am Moment der Festlegung. Wo keine Entscheidung fällt, kippt der Abend in spontanes Bestellen — gegen den eigenen Vorsatz. Bestehende Planungs-Apps werden als zusätzlicher Pflegeaufwand erlebt und nach kurzer Zeit aufgegeben.</p>
+                </div>
+              </div>
+
+              <div class="card section st" style="--i:3">
+                <div class="card-head"><h2>Themen</h2><span class="hint" id="themesHint">Häufigkeit über 44 Interviews</span></div>
+
+                <div class="theme open">
+                  <button class="theme-head" type="button" aria-expanded="true">
+                    <span class="chev">▶</span>
+                    <span>
+                      <h3>Entscheidungslast, nicht Rezeptmangel</h3>
+                      <p>Die Hürde ist das tägliche Entscheiden — nicht fehlende Rezepte.</p>
+                    </span>
+                    <span class="theme-freq"><span class="n" data-after="31 von 47">29 von 44</span><span class="bar"><b style="--w:65%" data-wafter="66%"></b></span></span>
+                  </button>
+                  <div class="theme-body"><div><div class="inner">
+                    <p class="quote">„Ich stand jeden Abend planlos vor dem Kühlschrank.“<span class="src"><span class="pseudo">P-001</span> · Interview · 02:14</span></p>
+                    <p class="quote">„Mir fehlt nicht die Idee — mir fehlt die Kraft, mich zu entscheiden.“<span class="src"><span class="pseudo">P-044</span> · Interview · 05:48 <button class="open-ev" data-drawer type="button">Beleg öffnen</button></span></p>
+                  </div></div></div>
+                </div>
+
+                <div class="theme">
+                  <button class="theme-head" type="button" aria-expanded="false">
+                    <span class="chev">▶</span>
+                    <span>
+                      <h3>Impulsives Ausweichen aufs Bestellen</h3>
+                      <p>Geplantes Kochen kippt abends in spontanes Bestellen — gegen den eigenen Vorsatz.</p>
+                    </span>
+                    <span class="theme-freq"><span class="n" data-after="22 von 47">21 von 44</span><span class="bar"><b style="--w:48%" data-wafter="47%"></b></span></span>
+                  </button>
+                  <div class="theme-body"><div><div class="inner">
+                    <p class="quote">„Meistens bestelle ich einfach was, obwohl ich’s mir anders vorgenommen hatte.“<span class="src"><span class="pseudo">P-001</span> · Interview · 04:02</span></p>
+                  </div></div></div>
+                </div>
+
+                <div class="theme">
+                  <button class="theme-head" type="button" aria-expanded="false">
+                    <span class="chev">▶</span>
+                    <span>
+                      <h3>Bedien-Hürden bestehender Apps</h3>
+                      <p>Vorhandene Lösungen scheitern am Pflegeaufwand.</p>
+                    </span>
+                    <span class="theme-freq"><span class="n" data-after="12 von 47">11 von 44</span><span class="bar"><b style="--w:25%" data-wafter="26%"></b></span></span>
+                  </button>
+                  <div class="theme-body"><div><div class="inner">
+                    <p class="quote">„Das ewige Eintippen war mir zu mühsam.“<span class="src"><span class="pseudo">P-007</span> · Interview · 03:31</span></p>
+                  </div></div></div>
+                </div>
+              </div>
+
+              <div class="card section st" style="--i:4">
+                <div class="card-head"><h2>Spannungen</h2><span class="hint">wo sich Teilnehmende widersprechen<span data-note="n11" class="note-dot">11</span></span></div>
+                <div class="tension">
+                  <div class="tension-head">
+                    <h3>Planung: Entlastung oder Einengung?</h3>
+                    <span class="hint" style="font-size:12px;color:var(--faint)">23 Interviews beziehen Position</span>
+                  </div>
+                  <div class="tension-grid">
+                    <div class="tside">
+                      <div class="tl"><span>Plan entlastet</span><span class="n">14</span></div>
+                      <p>„Wenn der Plan einmal steht, ist mein Kopf frei.“</p>
+                    </div>
+                    <div class="tside">
+                      <div class="tl"><span>Plan engt ein</span><span class="n">9</span></div>
+                      <p>„Sobald es feststeht, hab ich abends keine Lust mehr drauf.“</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card st" style="--i:3">
+                <div class="card-head"><h2>Chat mit den Daten</h2><span class="hint">Antworten nur mit Beleg</span></div>
+                <div class="chat-body" id="chatBody">
+                  <div class="chat-q">Welche Rolle spielt der Preis beim Ausweichen aufs Bestellen?</div>
+                  <div class="chat-a">
+                    Preis wird in <b>9 von 21</b> Bestell-Nennungen als Reue-Faktor genannt — <b>nach</b> der Entscheidung, nie als Auslöser.
+                    <p class="quote">„Hinterher ärgere ich mich über die 30 Euro.“<span class="src"><span class="pseudo">P-033</span> · Interview · 06:12</span></p>
+                  </div>
+                </div>
+                <div class="chat-input">
+                  <input placeholder="Frag den Studien-Korpus …" id="chatInput" aria-label="Frage an den Studien-Korpus" />
+                  <button class="send" id="chatSend" aria-label="Senden" type="button">↑</button>
+                </div>
+              </div>
+
+              <div class="card section st" style="--i:4">
+                <div class="card-head"><h2>Weitergeben</h2></div>
+                <div class="lrow"><span>Geteilter Ergebnis-Link</span><span style="display:flex;align-items:center;gap:8px"><span class="hint" style="font-size:12px;color:var(--faint)">2 aktiv · anonymisiert</span><button class="btn btn-ghost btn-sm" data-copy type="button">Kopieren</button></span></div>
+                <div class="lrow"><span>PDF-Report</span><button class="btn btn-ghost btn-sm" data-toast="PDF-Report wird erzeugt" type="button">Export</button></div>
+                <div class="lrow"><span>PPTX-Export</span><button class="btn btn-ghost btn-sm" data-toast="PPTX-Export gestartet" type="button">Export</button></div>
+                <div class="lrow"><span>Highlight-Reel</span><button class="btn btn-ghost btn-sm" data-toast="Highlight-Reel wird erzeugt — 5–8 wörtliche Zitate" type="button">Erzeugen</button></div>
+              </div>
+            </div>
+          </div>
+        </section>
+<!-- ════ 5 · CROSS-STUDY ══════════════════════════════════════ -->
+        <section class="view" id="view-cross">
+          <div class="pagehead st" style="--i:0">
+            <div>
+              <h1>Cross-Study</h1>
+              <p class="sub">Frag über alle Studien hinweg — exakt gezählt, jede Zahl mit einem Beleg je Studie.</p>
+            </div>
+            <div class="seg" role="tablist" id="crossSeg">
+              <span class="thumb" aria-hidden="true"></span>
+              <button class="on" data-seg="chat" type="button" role="tab" aria-selected="true">Chat</button>
+              <button data-seg="agent" type="button" role="tab" aria-selected="false">Agent</button>
+            </div>
+          </div>
+
+          <div class="synth-grid">
+            <div>
+              <div class="card st" style="--i:1" id="crossChat">
+                <div class="card-head"><h2>Chat</h2><span class="hint">Korpus: 3 Synthesen · 207 Interviews</span></div>
+                <div class="chat-body">
+                  <div class="chat-q">In wie vielen Studien taucht Preis-Sensibilität als Thema auf?</div>
+                  <div class="chat-a">
+                    Preis-Sensibilität erscheint in <b>3 von 3</b> synthetisierten Studien:
+                    <div class="chat-src"><span class="pill">Meal-Planning DACH</span>Reue-Faktor nach Bestellungen</div>
+                    <p class="quote">„Hinterher ärgere ich mich über die 30 Euro.“<span class="src"><span class="pseudo">P-033</span> · Markt-Studie</span></p>
+                    <div class="chat-src"><span class="pill">Pricing-Wahrnehmung</span>Schwelle bei 9,99 € im Abo</div>
+                    <p class="quote">„Unter zehn Euro denke ich nicht nach.“<span class="src"><span class="pseudo">P-012</span> · Markt-Studie</span></p>
+                    <div class="chat-src"><span class="pill">Packaging Relaunch</span>Preis-Optik schlägt Regalpreis</div>
+                  </div>
+                </div>
+                <div class="chat-input">
+                  <input placeholder="Frag alle Studien …" aria-label="Frage über alle Studien" />
+                  <button class="send" aria-label="Senden" data-toast="Cross-Study-Antwort — im Mockup nur die Beispiel-Antwort oben" type="button">↑</button>
+                </div>
+              </div>
+
+              <div class="card st" id="crossAgent" style="--i:1;display:none">
+                <div class="card-head"><h2>Agent</h2><span class="hint">mehrstufig · langsamer · gründlicher</span></div>
+                <div class="astep"><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg></span>3 Synthesen geladen — Meal-Planning, Packaging, Pricing</div>
+                <div class="astep"><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg></span>Exakte Zählung je Studie durchgeführt</div>
+                <div class="astep" style="margin-bottom:12px"><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg></span>Belege geprüft — 1 Zitat je Studie angeheftet</div>
+                <div class="ablock">
+                  <div class="abh">Belegte Aussagen</div>
+                  <div class="abb">
+                    Preis taucht in allen 3 synthetisierten Studien auf, aber nie als primäres Entscheidungskriterium — immer nachgelagert (Reue, Schwelle, Optik).
+                    <p class="quote">„Unter zehn Euro denke ich nicht nach.“<span class="src"><span class="pseudo">P-012</span> · Pricing-Wahrnehmung</span></p>
+                  </div>
+                </div>
+                <div class="ablock">
+                  <div class="abh">Interpretation — klar getrennt</div>
+                  <div class="abb">Preis-Kommunikation dürfte stärker über Verpackungs-Wahrnehmung wirken als über den Zahlwert. Als Hypothese für einen Konzept-Test geeignet, nicht als belegtes Ergebnis.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card st" style="--i:2">
+              <div class="card-head"><h2>Quellen dieser Antwort</h2><span class="hint"><span data-note="n12" class="note-dot">12</span></span></div>
+              <div class="lrow"><span><span class="title" style="font-size:13px">Meal-Planning DACH</span><span class="meta">44 Interviews einbezogen · vor 2 h verdichtet</span></span><span class="badge p"><i></i>Zitiert</span></div>
+              <div class="lrow"><span><span class="title" style="font-size:13px">Pricing-Wahrnehmung</span><span class="meta">60 Interviews · abgeschlossen</span></span><span class="badge p"><i></i>Zitiert</span></div>
+              <div class="lrow"><span><span class="title" style="font-size:13px">Packaging Relaunch</span><span class="meta">100 Interviews · abgeschlossen</span></span><span class="badge p"><i></i>Zitiert</span></div>
+              <div class="lrow"><span class="hint" style="font-size:12.5px;color:var(--faint)">3 Studien ohne Synthese — nicht im Korpus</span><span></span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════ 6 · TEILNEHMER-POOL ══════════════════════════════════ -->
+        <section class="view" id="view-pool">
+          <div class="pagehead st" style="--i:0">
+            <div>
+              <h1>Teilnehmer-Pool</h1>
+              <p class="sub">Wiederverwendbare, pseudonymisierte Profile deiner Organisation — mit Rollen, Segmenten und Tags.</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-ghost" data-toast="CSV-Import: bestehender Bulk-Flow, unverändert" type="button">CSV-Import</button>
+              <button class="btn btn-primary" data-toast="Profil anlegen — bestehendes Formular" type="button">+ Profil</button>
+            </div>
+          </div>
+
+          <div class="kpis st" style="--i:1;grid-template-columns:repeat(3,1fr)">
+            <div class="kpi"><div class="l">Profile</div><div class="v mono cu" data-v="148">148</div><div class="s">davon 96 mit E-Mail</div></div>
+            <div class="kpi"><div class="l">Segmente</div><div class="v mono cu" data-v="12">12</div><div class="s">aus Screening &amp; Import</div></div>
+            <div class="kpi"><div class="l">In aktiven Studien</div><div class="v mono cu" data-v="36">36</div><div class="s">eingeladen oder abgeschlossen</div></div>
+          </div>
+
+          <div class="filterrow st" style="--i:2">
+            <label class="tsearch">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input placeholder="Name, Rolle oder Segment …" aria-label="Pool durchsuchen" />
+            </label>
+            <span data-note="n15" class="note-dot">15</span>
+            <span class="grow"></span>
+            <button class="chip on" type="button">Alle <span class="n">148</span></button>
+            <button class="chip" type="button">Vielbesteller <span class="n">31</span></button>
+            <button class="chip" type="button">Familienhaushalt <span class="n">54</span></button>
+            <button class="chip" type="button">Single-Haushalt <span class="n">38</span></button>
+          </div>
+
+          <div class="card st" style="--i:3">
+            <table aria-label="Pool-Profile">
+              <thead><tr><th>Profil</th><th>Kontakt</th><th>Rolle</th><th>Segment</th><th>Tags</th><th class="r">Zuletzt eingeladen</th></tr></thead>
+              <tbody>
+                <tr><td><span class="pseudo">P-001</span></td><td><span class="masked">m.k•••@•••.de</span></td><td>Vielbesteller</td><td>Familienhaushalt</td><td><span class="pill">DACH</span> <span class="pill">App-affin</span></td><td class="r mono">02.06.26</td></tr>
+                <tr><td><span class="pseudo">P-007</span></td><td><span class="masked">s.b•••@•••.at</span></td><td>Wocheneinkäufer:in</td><td>Familienhaushalt</td><td><span class="pill">Bio-Fokus</span></td><td class="r mono">28.05.26</td></tr>
+                <tr><td><span class="pseudo">P-012</span></td><td><span class="masked">t.w•••@•••.de</span></td><td>Preis-bewusst</td><td>Single-Haushalt</td><td><span class="pill">Abo-Nutzer</span></td><td class="r mono">21.05.26</td></tr>
+                <tr><td><span class="pseudo">P-033</span></td><td><span class="masked">anonym · offener Link</span></td><td>Vielbesteller</td><td>Single-Haushalt</td><td><span class="pill">Re-Kontakt ok</span></td><td class="r mono">12.05.26</td></tr>
+                <tr><td><span class="pseudo">P-044</span></td><td><span class="masked">l.h•••@•••.de</span></td><td>Wocheneinkäufer:in</td><td>Familienhaushalt</td><td><span class="pill">DACH</span></td><td class="r mono">02.06.26</td></tr>
+              </tbody>
+            </table>
+            <div class="card-foot"><span>143 weitere Profile</span><span>Export &amp; Löschung je Profil: Einstellungen → Daten</span></div>
+          </div>
+
+          <div class="card section st" style="--i:4">
+            <div class="card-head"><h2>Rollen-Quoten aktiver Studien</h2><span class="hint">getrennt vom Ziel-Pool</span></div>
+            <div class="frow">
+              <span class="fr-main"><b>Vielbesteller — Abo-Konzept v2</b><span>Mindestanteil in der Stichprobe</span></span>
+              <span class="prog" style="min-width:150px"><span class="bar"><b style="--w:60%"></b></span><span class="n">12 / 20</span></span>
+            </div>
+            <div class="frow">
+              <span class="fr-main"><b>Wocheneinkäufer:innen — Meal-Planning DACH</b><span>Mindestanteil in der Stichprobe</span></span>
+              <span class="prog" style="min-width:150px"><span class="bar"><b style="--w:52%"></b></span><span class="n">31 / 60</span></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════ 7 · DATENQUELLEN ═════════════════════════════════════ -->
+        <section class="view" id="view-quellen">
+          <div class="pagehead st" style="--i:0">
+            <div>
+              <h1>Datenquellen</h1>
+              <p class="sub">Verbundene Dienste für Rekrutierung, Versand und Benachrichtigungen.<span data-note="n16" class="note-dot">16</span></p>
+            </div>
+            <button class="btn btn-ghost" data-toast="Verbindung hinzufügen — bestehende Integrations-Flows" type="button">Verbindung hinzufügen</button>
+          </div>
+
+          <div class="int-grid st" style="--i:1">
+            <div class="int">
+              <div class="i-top"><span class="i-name">Prolific</span><span class="badge g live"><i></i>Verbunden</span></div>
+              <p>Panel-Rekrutierung — Drafts direkt aus dem offenen Studien-Link.</p>
+              <div class="i-foot"><span>Token gültig</span><span>Geprüft vor 12 min</span></div>
+            </div>
+            <div class="int">
+              <div class="i-top"><span class="i-name">E-Mail-Versand</span><span class="badge g"><i></i>Aktiv</span></div>
+              <p>Einladungs- und Erinnerungs-Mails für geplante Interviews.</p>
+              <div class="i-foot"><span>Eigene Domain</span><span>238 zugestellt</span></div>
+            </div>
+            <div class="int">
+              <div class="i-top"><span class="i-name">Slack</span><span class="badge g"><i></i>Verbunden</span></div>
+              <p>Benachrichtigungen bei abgeschlossenen Interviews und Synthesen.</p>
+              <div class="i-foot"><span>#research</span><span>Geprüft vor 1 h</span></div>
+            </div>
+            <div class="int off">
+              <div class="i-top"><span class="i-name">Gong</span><span class="badge"><i></i>Inaktiv</span></div>
+              <p>Call-Import — gehört zu den derzeit deaktivierten Modulen.</p>
+              <div class="i-foot"><span>Modul offline</span><span></span></div>
+            </div>
+            <div class="int off">
+              <div class="i-top"><span class="i-name">HubSpot</span><span class="badge"><i></i>Inaktiv</span></div>
+              <p>CRM-Sync — gehört zu den derzeit deaktivierten Modulen.</p>
+              <div class="i-foot"><span>Modul offline</span><span></span></div>
+            </div>
+            <div class="int">
+              <div class="i-top"><span class="i-name">Datenschutz</span><span class="badge g"><i></i>EU · Frankfurt</span></div>
+              <p>Pseudonymisierung, Export und Löschung pro Studie — Betroffenenrechte in den Einstellungen.</p>
+              <div class="i-foot"><span>DSGVO</span><span>Einstellungen → Daten</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════ 8 · NEUE STUDIE (Konzept) ════════════════════════════ -->
+        <section class="view" id="view-neu">
+          <span class="backlink st" style="--i:0" data-go="studien">← Studien</span>
+          <div class="pagehead st" style="--i:0">
+            <div>
+              <h1>Neue Studie</h1>
+              <p class="sub">In drei Schritten ins Feld — die KI übernimmt den ersten Leitfaden-Entwurf, du behältst die Kontrolle.</p>
+            </div>
+          </div>
+
+          <div class="startgrid st" style="--i:1">
+            <div class="startcard rec" data-toast="KI-Schnellstart: nutzt den bestehenden Leitfaden-Generator — als sichtbarer Einstieg statt Button im Formular">
+              <span class="sc-badge badge p"><i></i>Empfohlen</span>
+              <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+                Schnellstart mit KI-Leitfaden<span data-note="n13" class="note-dot">13</span>
+              </h3>
+              <p>Use-Case und Ziel angeben — findr entwirft 5–10 Hauptfragen plus Screening. Danach bearbeitest du alles im Leitfaden-Editor.</p>
+              <div class="sc-foot">Leitfaden entwerfen →</div>
+            </div>
+            <div class="startcard" data-toast="Manuell anlegen: das bestehende Formular, unverändert">
+              <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17Z"/><path d="m13.5 6.5 3 3"/></svg>
+                Manuell anlegen
+              </h3>
+              <p>Themen, Intents und private Hypothesen selbst formulieren — volle Kontrolle von der ersten Zeile an.</p>
+              <div class="sc-foot" style="color:var(--muted)">Leeres Formular öffnen →</div>
+            </div>
+          </div>
+
+          <div class="formsteps st" style="--i:2">
+            <span class="fs on"><i>1</i>Grundlagen</span><span class="ln"></span>
+            <span class="fs"><i>2</i>Leitfaden</span><span class="ln"></span>
+            <span class="fs"><i>3</i>Feldzugang</span>
+            <span class="hint" style="margin-left:8px;font-size:12px;color:var(--faint)">Gruppierung, kein Zwang — weiterhin ein Formular</span>
+          </div>
+
+          <div class="card st" style="--i:3">
+            <div class="card-head"><h2>Use-Case</h2><span class="hint">Voreinstellungen, kein Korsett</span></div>
+            <div class="card-body">
+              <div class="uc-grid">
+                <div class="uc" role="radio" aria-checked="false" tabindex="0">
+                  <span class="check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="m5 12 5 5 9-10"/></svg></span>
+                  <b>Allgemeine Befragung</b>
+                  <span>Offene Exploration — Alltag, Bedürfnisse, Verhalten.</span>
+                </div>
+                <div class="uc" role="radio" aria-checked="false" tabindex="0">
+                  <span class="check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="m5 12 5 5 9-10"/></svg></span>
+                  <b>Brand Research</b>
+                  <span>Assoziationen, Markenbild, Markenkern.</span>
+                </div>
+                <div class="uc" role="radio" aria-checked="false" tabindex="0">
+                  <span class="check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="m5 12 5 5 9-10"/></svg></span>
+                  <b>Creative Test</b>
+                  <span>Erster Eindruck, Botschaft, Erinnerung.</span>
+                  <span class="stim pill">braucht Stimulus</span>
+                </div>
+                <div class="uc on" role="radio" aria-checked="true" tabindex="0">
+                  <span class="check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="m5 12 5 5 9-10"/></svg></span>
+                  <b>Konzept-Test</b>
+                  <span>Konzept in eigenen Worten, Präferenzen, Varianten.</span>
+                  <span class="stim pill">braucht Stimulus</span>
+                </div>
+              </div>
+              <div class="preset-hint">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m5 12 5 5 9-10"/></svg>
+                Voreinstellungen übernommen: Voice mit Sprachausgabe · Stichprobenziel 30 · 3 Start-Themen — alles änderbar.
+              </div>
+            </div>
+          </div>
+
+          <div class="card section st" style="--i:4">
+            <div class="card-head"><h2>Grundlagen</h2></div>
+            <div class="card-body">
+              <div class="fgrid">
+                <div class="fld wide">
+                  <label>Titel</label>
+                  <input value="Abo-Konzept v3 — Familienpaket" />
+                </div>
+                <div class="fld wide">
+                  <label>Objective <span class="hint2">Ein Satz: Was wollen wir lernen?</span></label>
+                  <textarea>Verstehen, ob das Familienpaket-Konzept als Entlastung oder als Bindung wahrgenommen wird — und welche Variante trägt.</textarea>
+                </div>
+                <div class="fld">
+                  <label>Ziel-Persona <span class="hint2">optional</span></label>
+                  <input value="Familienhaushalte, 2+ Kinder, bestellt 1–2× pro Woche" />
+                </div>
+                <div class="fld">
+                  <label>Stichprobenziel <span class="hint2">abgeschlossene Interviews</span></label>
+                  <input value="30" class="mono" style="max-width:120px" />
+                </div>
+                <div class="fld wide">
+                  <label>Interaktion</label>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="chip on" type="button">Voice</button>
+                    <button class="chip on" type="button">Sprachausgabe der KI</button>
+                    <button class="chip" type="button">Bildschirmaufnahme</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card section st" style="--i:5">
+            <div class="card-head"><h2>Stimulus</h2><span class="hint">wird den Teilnehmenden im Interview gezeigt<span data-note="n14" class="note-dot">14</span></span></div>
+            <div class="card-body">
+              <div class="upload donestate" id="uploadBox">
+                <span class="thumb">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m5 17 4.5-4 3.5 3 2.5-2L19 17"/></svg>
+                </span>
+                <span class="umain">
+                  <b>familienpaket-konzept-v3.png</b>
+                  <span>1,8 MB · hochgeladen gerade eben</span>
+                  <span class="aichips" id="aiChips" style="display:none">
+                    <span class="pill">Layout: 3 Karten</span><span class="pill">Farbwelt: Warm/Grün</span><span class="pill">Claim erkannt</span><span class="pill">2 Preisanker</span><span class="pill">7 Frageansätze</span>
+                  </span>
+                </span>
+                <span class="badge a" id="stimStatus"><i></i>KI liest das Material …</span>
+              </div>
+              <div class="fld" style="margin-top:14px">
+                <label>Beschreibung <span class="hint2">optional, nur für die KI — Teilnehmende sehen sie nie</span></label>
+                <input value="Konzeptkarte Variante C, Fokus auf Wochenrhythmus" />
+              </div>
+            </div>
+          </div>
+
+          <div class="formfoot st" style="--i:6">
+            <button class="btn btn-ghost" data-toast="Als Entwurf gespeichert — erscheint in der Studienliste" type="button">Als Entwurf speichern</button>
+            <button class="btn btn-primary" data-toast="Schritt 2 (Leitfaden) — im Mockup nicht ausgeführt" type="button">Weiter zum Leitfaden</button>
+          </div>
+        </section>
+
+        <!-- ════ 9 · EINSTELLUNGEN (Index) ════════════════════════════ -->
+        <section class="view" id="view-einstellungen">
+          <div class="pagehead st" style="--i:0">
+            <div>
+              <h1>Einstellungen</h1>
+              <p class="sub">Profil, Organisation, Team, Daten &amp; Abrechnung — die bestehenden Bereiche, als ruhiger Einstieg.</p>
+            </div>
+          </div>
+          <div class="set-grid st" style="--i:1">
+            <div class="int">
+              <div class="i-top"><span class="i-name">Profil</span></div>
+              <p>Name, Sprache (DE/EN), Anmeldung.</p>
+              <div class="i-foot"><span>André Bäcker</span><button class="btn btn-ghost btn-sm" data-toast="Bestehende Settings-Seite — unverändert" type="button">Öffnen</button></div>
+            </div>
+            <div class="int">
+              <div class="i-top"><span class="i-name">Organisation</span></div>
+              <p>Name, Mitgliedschaften, Workspace-Daten.</p>
+              <div class="i-foot"><span>NeuroForge GmbH</span><button class="btn btn-ghost btn-sm" data-toast="Bestehende Settings-Seite — unverändert" type="button">Öffnen</button></div>
+            </div>
+            <div class="int">
+              <div class="i-top"><span class="i-name">Team</span></div>
+              <p>Mitglieder einladen, Rollen verwalten.</p>
+              <div class="i-foot"><span>4 Mitglieder</span><button class="btn btn-ghost btn-sm" data-toast="Bestehende Settings-Seite — unverändert" type="button">Öffnen</button></div>
+            </div>
+            <div class="int">
+              <div class="i-top"><span class="i-name">Daten &amp; Datenschutz</span><span class="badge g"><i></i>DSGVO</span></div>
+              <p>Export, Löschung, Betroffenenrechte — pro Studie und Organisation.</p>
+              <div class="i-foot"><span>EU · Frankfurt</span><button class="btn btn-ghost btn-sm" data-toast="Bestehende Settings-Seite — unverändert" type="button">Öffnen</button></div>
+            </div>
+            <div class="int">
+              <div class="i-top"><span class="i-name">Abrechnung</span></div>
+              <p>Aktueller Plan und Leistungsumfang.</p>
+              <div class="i-foot"><span>Design Partner</span><button class="btn btn-ghost btn-sm" data-toast="Bestehende Settings-Seite — unverändert" type="button">Öffnen</button></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ════ OVERLAYS ══════════════════════════════════════════════════ -->
+
+<!-- Scrim + Interview-Drawer -->
+<div class="scrim" id="scrim" aria-hidden="true"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Interview P-044">
+  <div class="drawer-head">
+    <div class="dh-main">
+      <h2><span class="pseudo" style="font-size:13px">P-044</span> Interview <span class="badge g"><i></i>Abgeschlossen</span></h2>
+      <p class="meta">Meal-Planning DACH · <span class="pill" style="font-size:11px">Voice</span> · <span class="mono">9:12</span> min · vor 2 Stunden</p>
+    </div>
+    <button class="drawer-x" id="drawerX" aria-label="Schließen" type="button">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-sec">
+      <h3>Transkript — Auszug</h3>
+      <div class="turn ki"><span class="who">findr <span class="ts">00:32</span></span><span class="bubble">Erzähl mir von gestern Abend — wie kam die Entscheidung zustande, was es zu essen gibt?</span></div>
+      <div class="turn"><span class="who">P-044 <span class="ts">00:58</span></span><span class="bubble">Ehrlich? Ich stand vorm Kühlschrank und hab fünf Minuten reingestarrt. Am Ende gab’s Nudeln. Wie immer.</span></div>
+      <div class="turn ki"><span class="who">findr <span class="ts">01:41</span></span><span class="bubble">Du sagst „wie immer“ — was macht diesen Moment so zäh?</span></div>
+      <div class="turn"><span class="who">P-044 <span class="ts">02:10</span></span><span class="bubble">Dass ich nach dem Arbeitstag noch mal entscheiden muss. Kochen ist okay — das Entscheiden nervt.</span></div>
+      <div class="turn ki"><span class="who">findr <span class="ts">05:21</span></span><span class="bubble">Vorhin klang es, als wären Ideen nicht das Problem. Was fehlt dann?</span></div>
+      <div class="turn hl"><span class="who">P-044 <span class="ts">05:48 · zitiert in der Synthese</span></span><span class="bubble">Mir fehlt nicht die Idee — mir fehlt die Kraft, mich zu entscheiden.</span></div>
+    </div>
+    <div class="drawer-sec">
+      <h3>Belege aus diesem Interview</h3>
+      <div class="finding">
+        <span class="fmain"><b>Entscheidungslast, nicht Rezeptmangel</b><p>„Mir fehlt nicht die Idee — mir fehlt die Kraft, mich zu entscheiden.“ · 05:48</p></span>
+      </div>
+      <div class="finding">
+        <span class="fmain"><b>Impulsives Ausweichen aufs Bestellen</b><p>„Donnerstags bestell ich fast immer — da ist die Woche zu lang.“ · 03:40</p></span>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <span class="privacy-hint">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+      Klarnamen nur mit Berechtigung · Zugriff wird protokolliert
+    </span>
+    <button class="btn btn-ghost btn-sm" data-toast="Transkript-Export vorbereitet" type="button">Transkript exportieren</button>
+  </div>
+</aside>
+
+<!-- ⌘K Befehls-Palette -->
+<div class="cmdk" id="cmdk" role="dialog" aria-modal="true" aria-label="Suchen und springen">
+  <div class="cmdk-box">
+    <div class="cmdk-in">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input placeholder="Studien, Seiten, Aktionen …" id="cmdkInput" />
+    </div>
+    <div class="cmdk-list" id="cmdkList">
+      <div class="cmdk-h" data-grp="studien">Studien</div>
+      <button class="cmdk-item" data-grp="studien" data-go="studie" type="button">Meal-Planning DACH <span class="badge g"><i></i>Aktiv</span></button>
+      <button class="cmdk-item" data-grp="studien" data-go-toast="Im Mockup exemplarisch ausgeführt: Meal-Planning DACH" type="button">Marken-Check Q3 <span class="badge g"><i></i>Aktiv</span></button>
+      <button class="cmdk-item" data-grp="studien" data-go-toast="Im Mockup exemplarisch ausgeführt: Meal-Planning DACH" type="button">Abo-Konzept v2 <span class="badge a"><i></i>Screening eng</span></button>
+      <button class="cmdk-item" data-grp="studien" data-go="neu" type="button">Spot „Abendchaos“ 20s <span class="badge"><i></i>Entwurf</span></button>
+      <div class="cmdk-h" data-grp="gehe">Gehe zu</div>
+      <button class="cmdk-item" data-grp="gehe" data-go="heute" type="button">Heute</button>
+      <button class="cmdk-item" data-grp="gehe" data-go="studien" type="button">Studien</button>
+      <button class="cmdk-item" data-grp="gehe" data-go="pool" type="button">Teilnehmer-Pool</button>
+      <button class="cmdk-item" data-grp="gehe" data-go="cross" type="button">Cross-Study</button>
+      <button class="cmdk-item" data-grp="gehe" data-go="quellen" type="button">Datenquellen</button>
+      <button class="cmdk-item" data-grp="gehe" data-go="einstellungen" type="button">Einstellungen</button>
+      <div class="cmdk-h" data-grp="aktionen">Aktionen</div>
+      <button class="cmdk-item" data-grp="aktionen" data-go="neu" type="button">Neue Studie anlegen</button>
+      <button class="cmdk-item" data-grp="aktionen" data-go="synthese" type="button">Synthese öffnen — Meal-Planning DACH</button>
+      <button class="cmdk-item" data-grp="aktionen" data-copy type="button">Offenen Studien-Link kopieren</button>
+      <div class="cmdk-empty" id="cmdkEmpty" style="display:none">Kein Treffer — Enter sucht in allen Transkripten.</div>
+    </div>
+    <div class="cmdk-foot"><span><b>↑↓</b> wählen</span><span><b>⏎</b> öffnen</span><span><b>esc</b> schließen</span></div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<!-- Notizen-Popover -->
+<div class="note-pop" id="notePop" role="dialog" aria-label="Design-Notiz">
+  <h4><span class="nn" id="npNum">1</span><span id="npTitle"></span></h4>
+  <p id="npText"></p>
+  <div class="map" id="npMap"></div>
+</div>
+
+<!-- Mockup-Leiste (Demo-Chrome, nicht Teil des Produkts) -->
+<div class="demo-switch" role="tablist" aria-label="Demo-Ansichten">
+  <button class="on" data-go="heute" type="button">Heute</button>
+  <button data-go="studien" type="button">Studien</button>
+  <button data-go="studie" type="button">Studie</button>
+  <button data-go="synthese" type="button">Synthese</button>
+  <button data-go="cross" type="button">Cross-Study</button>
+  <button data-go="pool" type="button">Pool</button>
+  <button data-go="quellen" type="button">Quellen</button>
+  <button data-go="neu" type="button">Neu</button>
+  <span class="dsep" aria-hidden="true"></span>
+  <button class="notetoggle" id="noteToggle" type="button" aria-pressed="false">Notizen</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function $(s, c) { return (c || document).querySelector(s); }
+  function $$(s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); }
+
+  var content = $("#content");
+  var current = "heute";
+
+  /* ── Breadcrumbs je View ─────────────────────────────────────────── */
+  var CRUMBS = {
+    heute: '<b>Heute</b>',
+    studien: '<span>Market Research</span><span class="sep">/</span><b>Studien</b>',
+    studie: '<span>Market Research</span><span class="sep">/</span><span data-crumb="studien">Studien</span><span class="sep">/</span><b>Meal-Planning DACH</b>',
+    synthese: '<span>Market Research</span><span class="sep">/</span><span data-crumb="studie">Meal-Planning DACH</span><span class="sep">/</span><b>Synthese</b>',
+    cross: '<span>Studienübergreifend</span><span class="sep">/</span><b>Cross-Study</b>',
+    pool: '<span>Market Research</span><span class="sep">/</span><b>Teilnehmer-Pool</b>',
+    quellen: '<span>Arbeitsbereich</span><span class="sep">/</span><b>Datenquellen</b>',
+    neu: '<span>Market Research</span><span class="sep">/</span><span data-crumb="studien">Studien</span><span class="sep">/</span><b>Neue Studie</b>',
+    einstellungen: '<span>Arbeitsbereich</span><span class="sep">/</span><b>Einstellungen</b>'
+  };
+  var NAVMAP = { heute: "heute", studien: "studien", studie: "studien", synthese: "studien", cross: "cross", pool: "pool", quellen: "quellen", neu: "studien", einstellungen: "einstellungen" };
+
+  /* ── Toasts ──────────────────────────────────────────────────────── */
+  var toastsEl = $("#toasts");
+  function toast(msg) {
+    while (toastsEl.children.length >= 3) toastsEl.removeChild(toastsEl.firstChild);
+    var t = document.createElement("div");
+    t.className = "ntoast";
+    t.innerHTML = '<span class="tic"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg></span><span>' + msg + '</span><span class="tprog" aria-hidden="true"></span>';
+    toastsEl.appendChild(t);
+    setTimeout(function () {
+      t.classList.add("out");
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 280);
+    }, 3400);
+  }
+
+  /* ── Zahlen zählen ein (de-DE, tabular) ──────────────────────────── */
+  function countUp(el) {
+    var target = parseInt(el.getAttribute("data-v"), 10) || 0;
+    if (RM) { el.textContent = target.toLocaleString("de-DE"); return; }
+    var t0 = null, DUR = 650;
+    function frame(ts) {
+      if (!t0) t0 = ts;
+      var p = Math.min(1, (ts - t0) / DUR);
+      var e = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * e).toLocaleString("de-DE");
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ── Ringe füllen ────────────────────────────────────────────────── */
+  function fillRings(view) {
+    $$(".ring-fg", view).forEach(function (r) {
+      var off = r.getAttribute("data-off");
+      if (RM) { r.style.strokeDashoffset = off; return; }
+      r.style.transition = "none";
+      r.style.strokeDashoffset = "119.4";
+      void r.getBoundingClientRect();
+      r.style.transition = "";
+      requestAnimationFrame(function () { r.style.strokeDashoffset = off; });
+    });
+  }
+
+  /* ── Sidebar-Pille gleitet zur aktiven Route ─────────────────────── */
+  var pill = $("#navPill");
+  function movePill(instant) {
+    var act = $(".side-nav .item.on");
+    if (!act) { pill.style.opacity = "0"; return; }
+    if (instant) pill.style.transition = "none";
+    pill.style.transform = "translateY(" + act.offsetTop + "px)";
+    pill.style.height = act.offsetHeight + "px";
+    pill.classList.add("ready");
+    if (instant) { void pill.getBoundingClientRect(); pill.style.transition = ""; }
+  }
+
+  /* ── View-Wechsel mit Eintritts-Choreografie ─────────────────────── */
+  var subbar = $("#subbar");
+  function show(view) {
+    if (!CRUMBS[view]) view = "heute";
+    current = view;
+    $$(".view").forEach(function (v) {
+      var on = v.id === "view-" + view;
+      v.classList.remove("go");
+      v.classList.toggle("on", on);
+    });
+    var active = $("#view-" + view);
+    setTimeout(function () { active.classList.add("go"); }, 60);
+    fillRings(active);
+    $$(".cu", active).forEach(countUp);
+
+    $$(".demo-switch button[data-go]").forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-go") === view);
+    });
+    $$(".side-nav .item").forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-nav") === NAVMAP[view]);
+    });
+    movePill(false);
+    $("#crumbs").innerHTML = CRUMBS[view];
+    content.scrollTop = 0;
+    subbar.classList.remove("show");
+    closeNote();
+    try { if (history.replaceState) history.replaceState(null, "", "#" + view); } catch (err) { /* file:// Sandbox */ }
+
+    if (view === "cross") requestAnimationFrame(initSeg);
+    if (view === "neu") stimulusDemo();
+    if (view === "heute") liveDemo();
+  }
+
+  /* ── Scroll: Sticky-Subbar + Sektions-Spy (Studie) ───────────────── */
+  var RAIL_SECS = ["s-pool", "s-ziel", "s-leitfaden", "s-feld", "s-teilnehmer", "s-auswertung"];
+  function secTop(el) {
+    return el.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop;
+  }
+  content.addEventListener("scroll", function () {
+    if (current !== "studie") { subbar.classList.remove("show"); return; }
+    subbar.classList.toggle("show", content.scrollTop > 170);
+    var st = content.scrollTop, cur = RAIL_SECS[0];
+    RAIL_SECS.forEach(function (id) {
+      var el = $("#" + id);
+      if (el && secTop(el) - 130 <= st) cur = id;
+    });
+    $$(".rail button").forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-sec") === cur);
+    });
+  }, { passive: true });
+
+  /* ── Studienliste: Filter + Suche + Aktualisieren-Demo ───────────── */
+  var fState = { f: "alle", q: "" };
+  function applyFilter() {
+    var any = false;
+    $$("#studienBody .srow").forEach(function (r) {
+      var okF = fState.f === "alle" || r.getAttribute("data-status") === fState.f;
+      var okQ = !fState.q || r.getAttribute("data-name").indexOf(fState.q) !== -1;
+      var vis = okF && okQ;
+      r.style.display = vis ? "" : "none";
+      if (vis) any = true;
+    });
+    $("#tableEmpty").style.display = any ? "none" : "block";
+  }
+  var search = $("#tableSearch");
+  if (search) search.addEventListener("input", function () {
+    fState.q = search.value.trim().toLowerCase();
+    applyFilter();
+  });
+  $("#refreshBtn").addEventListener("click", function () {
+    var card = $("#studienCard");
+    if (card.classList.contains("loading")) return;
+    card.classList.add("loading");
+    setTimeout(function () {
+      card.classList.remove("loading");
+      var i = 0;
+      $$("#studienBody .srow").forEach(function (r) {
+        if (r.style.display === "none") return;
+        r.classList.remove("reborn");
+        void r.offsetWidth;
+        r.style.setProperty("--i", i++);
+        r.classList.add("reborn");
+      });
+      toast("Stand aktualisiert — gerade eben");
+    }, RM ? 80 : 800);
+  });
+
+  /* ── Themen-Akkordeon ────────────────────────────────────────────── */
+  $$(".theme-head").forEach(function (h) {
+    h.addEventListener("click", function () {
+      var open = h.parentElement.classList.toggle("open");
+      h.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  });
+
+  /* ── Segmented Chat | Agent ──────────────────────────────────────── */
+  var seg = $("#crossSeg");
+  function initSeg() {
+    var act = $("button.on", seg);
+    var thumb = $(".thumb", seg);
+    if (!act || !act.offsetWidth) return;
+    thumb.style.width = act.offsetWidth + "px";
+    thumb.style.transform = "translateX(" + (act.offsetLeft - 2) + "px)";
+  }
+  seg.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-seg]");
+    if (!b) return;
+    $$("button[data-seg]", seg).forEach(function (x) {
+      var on = x === b;
+      x.classList.toggle("on", on);
+      x.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    initSeg();
+    var agent = b.getAttribute("data-seg") === "agent";
+    $("#crossChat").style.display = agent ? "none" : "";
+    $("#crossAgent").style.display = agent ? "" : "none";
+  });
+
+  /* ── Synthese: Async-Muster (Arbeiten → Erfolg → Toast) ──────────── */
+  var synthDone = false;
+  $("#synthUpdate").addEventListener("click", function () {
+    if (synthDone) return;
+    synthDone = true;
+    var btn = this, notice = $("#synthNotice");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin" aria-hidden="true"></span> Verdichtet …';
+    notice.classList.add("working");
+    setTimeout(function () {
+      notice.classList.remove("working");
+      notice.classList.add("ok");
+      $("#synthNoticeText").textContent = "Synthese aktualisiert — alle 47 Interviews einbezogen.";
+      btn.style.display = "none";
+      var sc = $("#synthCount");
+      sc.setAttribute("data-v", "47");
+      sc.classList.add("cu");
+      countUp(sc);
+      $("#themesHint").textContent = "Häufigkeit über 47 Interviews";
+      $$(".theme-freq .n").forEach(function (n) {
+        var after = n.getAttribute("data-after");
+        if (after) n.textContent = after;
+      });
+      $$(".theme-freq .bar b").forEach(function (b) {
+        var w = b.getAttribute("data-wafter");
+        if (w) b.style.setProperty("--w", w);
+      });
+      toast("Synthese aktualisiert — Themen &amp; Zahlen neu verdichtet");
+    }, RM ? 120 : 1600);
+  });
+
+  /* ── Chat-Demo (Synthese): Frage → Tippen → belegte Antwort ──────── */
+  var chatBusy = false;
+  function chatDemo() {
+    if (chatBusy) return;
+    chatBusy = true;
+    var body = $("#chatBody"), input = $("#chatInput");
+    var q = input.value.trim() || "Wie wichtig ist Bio-Qualität bei der Auswahl?";
+    input.value = "";
+    var qe = document.createElement("div");
+    qe.className = "chat-q chat-new";
+    qe.textContent = q;
+    body.appendChild(qe);
+    var ty = document.createElement("div");
+    ty.className = "chat-a typing chat-new";
+    ty.innerHTML = "<i></i><i></i><i></i>";
+    body.appendChild(ty);
+    body.scrollTop = body.scrollHeight;
+    setTimeout(function () {
+      ty.outerHTML = '<div class="chat-a chat-new">Bio wird in <b>6 von 44</b> Interviews erwähnt — als Einkaufs-Vorsatz, nie als Kriterium am Abend.<p class="quote">„Beim Einkaufen ja, abends zählt nur: schnell.“<span class="src"><span class="pseudo">P-021</span> · Interview · 03:05</span></p></div>';
+      body.scrollTop = body.scrollHeight;
+      chatBusy = false;
+    }, RM ? 100 : 1200);
+  }
+  $("#chatSend").addEventListener("click", chatDemo);
+  $("#chatInput").addEventListener("keydown", function (e) { if (e.key === "Enter") chatDemo(); });
+
+  /* ── „Heute“: Live-Zeile gleitet ein (Polling-Konzept) ───────────── */
+  var liveDone = false, livePending = false;
+  function liveDemo() {
+    if (liveDone || livePending) return;
+    livePending = true;
+    setTimeout(function () {
+      livePending = false;
+      if (current !== "heute") return; /* beim nächsten Besuch erneut planen */
+      liveDone = true;
+      var list = $("#liveList");
+      var row = document.createElement("div");
+      row.className = "liverow new";
+      row.innerHTML = '<span class="pseudo">P-059</span><span class="lmain"><b>Meal-Planning DACH</b><span>Voice · Screening bestanden</span></span><span class="dur">8:21</span><span class="ago">gerade eben</span>';
+      list.insertBefore(row, list.firstChild);
+      if (list.children.length > 6) list.removeChild(list.lastChild);
+      setTimeout(function () { row.classList.add("settle"); }, 1300);
+      var k = $("#kpiWeek");
+      k.setAttribute("data-v", "32");
+      k.textContent = "32";
+      k.classList.add("pop");
+      setTimeout(function () { k.classList.remove("pop"); }, 600);
+    }, RM ? 1200 : 4500);
+  }
+
+  /* ── „Neu“: Stimulus-Analyse-Zustand läuft → fertig ──────────────── */
+  var stimDone = false;
+  function stimulusDemo() {
+    if (stimDone) return;
+    stimDone = true;
+    setTimeout(function () {
+      var s = $("#stimStatus");
+      s.className = "badge g";
+      s.innerHTML = "<i></i>Analyse fertig";
+      $("#aiChips").style.display = "flex";
+    }, RM ? 200 : 1900);
+  }
+
+  /* ── Drawer ──────────────────────────────────────────────────────── */
+  var drawer = $("#drawer"), scrim = $("#scrim");
+  function openDrawer() {
+    drawer.classList.add("open");
+    scrim.classList.add("show");
+    $("#drawerX").focus();
+  }
+  function closeDrawer() {
+    drawer.classList.remove("open");
+    scrim.classList.remove("show");
+  }
+  $("#drawerX").addEventListener("click", closeDrawer);
+  scrim.addEventListener("click", closeDrawer);
+
+  /* ── ⌘K Palette ──────────────────────────────────────────────────── */
+  var cmdk = $("#cmdk"), cmdkInput = $("#cmdkInput");
+  var cmdkItems = $$(".cmdk-item");
+  var sel = 0;
+  function visibleItems() {
+    return cmdkItems.filter(function (i) { return i.style.display !== "none"; });
+  }
+  function renderSel() {
+    var vis = visibleItems();
+    if (sel >= vis.length) sel = Math.max(0, vis.length - 1);
+    cmdkItems.forEach(function (i) { i.classList.remove("sel"); });
+    if (vis[sel]) {
+      vis[sel].classList.add("sel");
+      vis[sel].scrollIntoView({ block: "nearest" });
+    }
+  }
+  function filterK() {
+    var q = cmdkInput.value.trim().toLowerCase();
+    cmdkItems.forEach(function (i) {
+      i.style.display = i.textContent.toLowerCase().indexOf(q) !== -1 ? "" : "none";
+    });
+    $$(".cmdk-h").forEach(function (h) {
+      var grp = h.getAttribute("data-grp");
+      var any = cmdkItems.some(function (i) { return i.getAttribute("data-grp") === grp && i.style.display !== "none"; });
+      h.style.display = any ? "" : "none";
+    });
+    $("#cmdkEmpty").style.display = visibleItems().length ? "none" : "block";
+    sel = 0;
+    renderSel();
+  }
+  function openK() {
+    cmdk.classList.add("open");
+    cmdkInput.value = "";
+    filterK();
+    setTimeout(function () { cmdkInput.focus(); }, 30);
+  }
+  function closeK() { cmdk.classList.remove("open"); }
+  cmdkInput.addEventListener("input", filterK);
+  $("#searchBtn").addEventListener("click", openK);
+  $("#kbdBtn").addEventListener("click", openK);
+  cmdk.addEventListener("click", function (e) { if (e.target === cmdk) closeK(); });
+
+  /* ── Notizen-Modus ───────────────────────────────────────────────── */
+  var NOTES = {
+    n1: ["„Heute“ als Startseite", "Der Einstieg beantwortet in fünf Sekunden: Was ist passiert, was ist der nächste Schritt? Ersetzt die Modul-Einstiegskarten.", "Heute: ModuleLandingPage auf /dashboard · Daten: bestehende Zähl- und Status-Queries"],
+    n2: ["Ehrlicher Digest", "Jede Zahl ist aus heutigen Quellen ableitbar: abgeschlossene Sessions, Synthese-Zeitstempel, Screening-Quote. Keine erfundene Telemetrie.", "Heute: countCompletedSessionsForPlan, loadOrgSyntheses — nur neu komponiert"],
+    n3: ["Nächste Schritte, regelbasiert", "Priorisierung ist deterministisch: Synthese veraltet → Screening eng → alter Entwurf. Kein Magie-Score, jede Karte nennt ihren Grund.", "Heute: Statusfelder + Zeitstempel, reine Ableitung"],
+    n4: ["Eine Studien-Seite statt zwei", "MR-Übersicht und Studienliste sind zusammengelegt: KPI-Band oben, Liste darunter — ein Klick weniger, ein Ort der Wahrheit.", "Heute: /market-research (KPIs + Tabelle) bleibt die Datenbasis"],
+    n5: ["Leise Live-Updates", "Die Liste aktualisiert sich per Polling (~30 s): neue Zeile gleitet ein, Zähler tickt hoch. Kein Reload, kein Streaming nötig.", "Heute: Seite ist statisch bis zum Reload — größte Übersichts-Lücke"],
+    n6: ["Lade-Sprache", "„Aktualisieren“ zeigt das verbindliche Muster: Skeleton → gestaffelter Wiedereintritt → Toast. Gleiches Muster für alle Listen.", "Heute: loading.tsx-Skeletons existieren, aber ohne Eintritts-Choreografie"],
+    n7: ["Gruppierte Rail statt 13-Sektionen-Scroll", "Alle heutigen Panels bleiben — gruppiert in Überblick · Einrichtung · Feld · Auswertung, mit Scroll-Spy und Sticky-Subbar.", "Heute: market-research/[id] = lange Einspalten-Seite · Plan-E4 „Umzug ohne Umbau“"],
+    n8: ["Abgeleitete Feld-Gesundheit", "„64 % bestehen“ kommt aus vorhandenen Screening-Ergebnissen — ehrlich gerechnet, nicht geschätzt.", "Heute: Screening-Antworten liegen je Session vor"],
+    n9: ["Interview-Drawer", "Transkript + Belege öffnen sich ohne Seitenwechsel. Neue, rein lesende Ansicht — die Daten existieren bereits.", "Neu (kleine eigene Etappe): liest interview_sessions + Insights, kein Backend-Umbau"],
+    n10: ["Async-Muster, verbindlich", "Lang laufende Aktionen sprechen immer gleich: Arbeiten-Zustand → Fortschritts-Hairline → Erfolgszustand → Toast.", "Heute: UpdateSynthesisButton ohne Fortschritts-Feedback"],
+    n11: ["Spannungen & Überblick sichtbar", "Beides liefert die Synthese-Engine heute schon — v4 zeigte es nicht. Widerspruch ist ein Ergebnis, kein Fehler.", "Heute: Stage-2-Synthese (Themen, Spannungen, Überblick) · UI: SynthesisThemeCard"],
+    n12: ["Korpus-Transparenz", "Jede Antwort zeigt ihre Quellen je Studie — und ehrlich, welche Studien mangels Synthese nicht im Korpus sind.", "Heute: MissionControlPanel zählt deterministisch „in X von Y Studien“"],
+    n13: ["KI-Start sichtbar", "Der Leitfaden-Generator existiert, ist aber ein Button tief im Formular. Hier ist er gleichberechtigter Einstieg — Kontrolle bleibt beim Menschen.", "Heute: „Leitfaden mit KI generieren“ in ResearchPlanForm"],
+    n14: ["Stimulus-Analyse erlebbar", "Der echte Analyse-Status (läuft → fertig) wird sichtbar: Chips zeigen, was die KI im Material erkannt hat — das fließt in jedes Interview.", "Heute: Stimulus-KI-Analyse Etappe 1+2 (Status-Badge + Analyse-Sektion)"],
+    n15: ["Pool-Suche", "Volltext über Name, Rolle, Segment — heute gibt es nur Attribut-Filter. Bei 148+ Profilen ist Suche Pflicht.", "Heute: ParticipantPoolManager filtert nur nach Rolle/Segment/Tag"],
+    n16: ["Karten = bestehende Panels", "Jede Kachel ist nur eine neue Hülle um das vorhandene Settings-Panel. Abgeschaltete Module bleiben ehrlich „Modul offline“.", "Heute: data-sources + 4 Integrations-Routen, ENABLED_MODULES-Gating"]
+  };
+  var notePop = $("#notePop");
+  function closeNote() { notePop.classList.remove("show"); }
+  function openNote(dot) {
+    var id = dot.getAttribute("data-note");
+    var n = NOTES[id];
+    if (!n) return;
+    $("#npNum").textContent = id.replace("n", "");
+    $("#npTitle").textContent = n[0];
+    $("#npText").textContent = n[1];
+    $("#npMap").innerHTML = "<b>Bezug:</b> " + n[2];
+    notePop.classList.add("show");
+    var r = dot.getBoundingClientRect();
+    var w = Math.min(380, window.innerWidth * 0.92);
+    var left = Math.min(Math.max(12, r.left - 20), window.innerWidth - w - 12);
+    notePop.style.left = left + "px";
+    notePop.style.top = "0px";
+    var h = notePop.offsetHeight;
+    var top = r.bottom + 10 + h > window.innerHeight ? r.top - h - 10 : r.bottom + 10;
+    notePop.style.top = Math.max(10, top) + "px";
+  }
+  $("#noteToggle").addEventListener("click", function () {
+    var on = document.body.classList.toggle("notes");
+    this.classList.toggle("on", on);
+    this.setAttribute("aria-pressed", on ? "true" : "false");
+    closeNote();
+    if (on) toast("Notizen-Modus: nummerierte Punkte erklären die Entscheidungen");
+  });
+
+  /* ── Zentrale Klick-Delegation ───────────────────────────────────── */
+  document.addEventListener("click", function (e) {
+    var t;
+    if ((t = e.target.closest(".note-dot"))) { e.stopPropagation(); openNote(t); return; }
+    if (!e.target.closest("#notePop")) closeNote();
+    if ((t = e.target.closest("[data-copy]"))) {
+      e.stopPropagation();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText("https://findr.de/s/meal-planning-dach-x7f2").catch(function () {});
+      }
+      toast("Link kopiert — findr.de/s/meal-planning-dach-x7f2");
+      closeK();
+      return;
+    }
+    if ((t = e.target.closest("[data-toast]"))) { e.stopPropagation(); toast(t.getAttribute("data-toast")); return; }
+    if ((t = e.target.closest("[data-drawer]"))) { e.stopPropagation(); openDrawer(); return; }
+    if ((t = e.target.closest("[data-sec]"))) {
+      var el = $("#" + t.getAttribute("data-sec"));
+      if (el) content.scrollTo({ top: Math.max(0, secTop(el) - 96), behavior: RM ? "auto" : "smooth" });
+      return;
+    }
+    if ((t = e.target.closest("[data-filter]"))) {
+      fState.f = t.getAttribute("data-filter");
+      $$("[data-filter]").forEach(function (c) { c.classList.toggle("on", c === t); });
+      applyFilter();
+      return;
+    }
+    if ((t = e.target.closest("[data-go-toast]"))) { toast(t.getAttribute("data-go-toast")); return; }
+    if ((t = e.target.closest("[data-crumb]"))) { show(t.getAttribute("data-crumb")); return; }
+    if ((t = e.target.closest("[data-go]"))) { show(t.getAttribute("data-go")); closeK(); return; }
+    if ((t = e.target.closest("[data-nav]"))) { show(t.getAttribute("data-nav")); return; }
+  });
+
+  /* ── Tastatur ────────────────────────────────────────────────────── */
+  document.addEventListener("keydown", function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      cmdk.classList.contains("open") ? closeK() : openK();
+      return;
+    }
+    if (e.key === "Escape") {
+      if (notePop.classList.contains("show")) { closeNote(); return; }
+      if (cmdk.classList.contains("open")) { closeK(); return; }
+      if (drawer.classList.contains("open")) { closeDrawer(); return; }
+      return;
+    }
+    if (cmdk.classList.contains("open")) {
+      var vis = visibleItems();
+      if (e.key === "ArrowDown") { e.preventDefault(); sel = Math.min(vis.length - 1, sel + 1); renderSel(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(0, sel - 1); renderSel(); }
+      else if (e.key === "Enter") { e.preventDefault(); if (vis[sel]) { closeK(); vis[sel].click(); } }
+    }
+  });
+
+  window.addEventListener("resize", function () { movePill(true); initSeg(); });
+
+  /* ── Start ───────────────────────────────────────────────────────── */
+  var initial = (location.hash || "#heute").replace("#", "");
+  show(CRUMBS[initial] ? initial : "heute");
+  movePill(true);
+})();
+</script>
+</body>
+</html>
