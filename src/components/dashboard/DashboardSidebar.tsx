@@ -91,6 +91,9 @@ const MODULES: Array<NavGroupDef & { module: DashboardModuleKey }> = [
     module: "marketResearch",
     items: [
       { href: "/dashboard/market-research", labelKey: "item.marketResearch" },
+      // Org-weiter Teilnehmer-Pool — Route bleibt /research-plans/pool;
+      // isActive() trennt ihn bereits vom researchPlans-Eintrag (PD-Gruppe).
+      { href: "/dashboard/research-plans/pool", labelKey: "item.participantPool" },
     ],
   },
   {
@@ -354,6 +357,17 @@ export default function DashboardSidebar() {
 
       {/* Primary nav — grouped by product module, each group collapsible */}
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+        {/* „Heute“ — die Startseite (Konsole-v5, O9). Top-level und ohne
+            Gruppe: der Einstieg bleibt immer sichtbar, nie hinter einem
+            Akkordeon. Nur solange Sales Intelligence aus ist — bei
+            aktiviertem Sales-Modul gehört /dashboard wieder dessen
+            Pipeline-Eintrag (kein Doppel-Highlight auf derselben Route). */}
+        {!ENABLED_MODULES.salesIntelligence && (
+          <NavLinkList
+            items={[{ href: "/dashboard", labelKey: "item.heute" }]}
+            pathname={pathname}
+          />
+        )}
         {VISIBLE_MODULES.map((group) => {
           const section = (
             <NavSection

@@ -232,6 +232,7 @@
   },
   "nav": {
     "group": {
+      "start": "Start",
       "salesIntelligence": "Sales Intelligence",
       "customer": "Customer",
       "productDiscovery": "Product Discovery",
@@ -243,6 +244,7 @@
       "externalResearch": "Externe Forschung"
     },
     "item": {
+      "heute": "Heute",
       "pipeline": "Pipeline",
       "forecast": "Forecast",
       "lossAnalysis": "Verlustanalyse",
@@ -251,7 +253,8 @@
       "health": "Gesundheitsübersicht",
       "productDiscovery": "Aus Gesprächen",
       "researchPlans": "Research-Pläne",
-      "marketResearch": "Übersicht",
+      "marketResearch": "Studien",
+      "newStudy": "Neue Studie",
       "participantPool": "Teilnehmer-Pool",
       "crossStudy": "Cross-Study",
       "dataSources": "Datenquellen",
