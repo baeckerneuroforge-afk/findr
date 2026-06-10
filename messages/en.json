@@ -1482,6 +1482,8 @@
       "basedOnInterviews": "{count, plural, one {# interview} other {# interviews}}",
       "asOf": "As of {date}",
       "newSinceLast": "{count, plural, one {# new interview} other {# new interviews}} since the last synthesis",
+      "newSinceLastNotice": "{count, plural, one {# new interview} other {# new interviews}} since the last synthesis — “Update synthesis” will include {count, plural, one {it} other {them}}.",
+      "updatedToast": "Synthesis updated — overview, themes and tensions re-synthesized",
       "slotNeverComputed": "Synthesis slot exists but was never computed.",
       "noSynthesisYet": "No synthesis yet — {count, plural, one {# interview available} other {# interviews available}}.",
       "emptyTitle": "No synthesis created yet",

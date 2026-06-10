@@ -4,6 +4,8 @@ import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { useToast } from "@/components/ui/Toast";
+
 /**
  * Trigger button for re-running / creating the Stage-2 study synthesis.
  * Posts to /api/research/plans/[id]/synthesis and refreshes the page on
@@ -27,6 +29,7 @@ export function UpdateSynthesisButton({
   const router = useRouter();
   const t = useTranslations("research.synthesis");
   const tc = useTranslations("research.common");
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +60,9 @@ export function UpdateSynthesisButton({
         );
         return;
       }
+      // Async-Muster (Konsole-v5 E5): Erfolg wird global bestätigt — die
+      // Seite refresht still, der Toast sagt, DASS sich etwas getan hat.
+      toast(t("updatedToast"));
       router.refresh();
     } catch (err) {
       setError(t("errSynthesisNetwork"));
@@ -78,8 +84,14 @@ export function UpdateSynthesisButton({
         type="button"
         onClick={handleClick}
         disabled={loading}
-        className="rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:opacity-50"
       >
+        {loading && (
+          <span
+            aria-hidden="true"
+            className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white motion-reduce:animate-none"
+          />
+        )}
         {label}
       </button>
       {error && (

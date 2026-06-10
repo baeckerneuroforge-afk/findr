@@ -133,7 +133,10 @@ export default async function ResearchPlanSynthesisPage({
       </div>
 
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div
+        className="st-rise flex flex-wrap items-start justify-between gap-4"
+        style={{ "--st": 0 } as React.CSSProperties}
+      >
         <div className="min-w-0">
           <h1 className="text-display text-neutral-900">{t("title")}</h1>
           <p className="mt-1 text-body text-neutral-500">{plan.title}</p>
@@ -153,14 +156,6 @@ export default async function ResearchPlanSynthesisPage({
                       date: formatDate(synthesis.synthesized_at, locale),
                     })}
                   </span>
-                  {newInsightCount > 0 && (
-                    <>
-                      {" · "}
-                      <span className="font-medium text-primary-700">
-                        {t("newSinceLast", { count: newInsightCount })}
-                      </span>
-                    </>
-                  )}
                 </>
               ) : (
                 <>{t("slotNeverComputed")}</>
@@ -202,6 +197,29 @@ export default async function ResearchPlanSynthesisPage({
         />
       ) : (
         <>
+          {/* „X neue seit letzter Synthese“ — als eigener Hinweis-Banner statt
+              Meta-Nebensatz (Konsole-v5 E5): die eine Information, die eine
+              Handlung verlangt, bekommt die eine hervorgehobene Fläche. */}
+          {newInsightCount > 0 && (
+            <div
+              className="st-rise rounded-lg border border-primary-200 bg-primary-50 px-4 py-3 text-small text-primary-800"
+              style={{ "--st": 1 } as React.CSSProperties}
+            >
+              {t("newSinceLastNotice", { count: newInsightCount })}
+            </div>
+          )}
+
+          {/* E5 (Konsole-v5): ab lg zweispaltig — links die Lese-Strecke
+              (Überblick, Themen, Spannungen), rechts die Werkzeuge (Chat,
+              Agent, Highlight-Reel, Teilen). Alle Panels behalten identische
+              Props — reine Anordnung; die Sektions-Einrückung darunter bleibt
+              unangetastet (diff-schonend). */}
+          <div
+            className="st-rise lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8"
+            style={{ "--st": 2 } as React.CSSProperties}
+          >
+            <div className="space-y-8">
+
           {/* Overview */}
           {synthesis.overview && (
             <Card>
@@ -297,6 +315,9 @@ export default async function ResearchPlanSynthesisPage({
               {t("model", { model: synthesis.model })}
             </p>
           )}
+            </div>
+
+            <div className="mt-8 space-y-8 lg:mt-0">
 
           {/* Chat-with-data — only when the synthesis actually exists. The
               engine would short-circuit a zero-insight study server-side,
@@ -327,6 +348,8 @@ export default async function ResearchPlanSynthesisPage({
             initialShares={shares}
             baseUrl={appBaseUrl()}
           />
+            </div>
+          </div>
         </>
       )}
     </div>
@@ -358,9 +381,9 @@ async function TensionSidePanel({
           {side.quotes.map((q, i) => (
             <li
               key={i}
-              className="border-l-2 border-neutral-200 pl-3 text-small italic text-neutral-600"
+              className="border-l-2 border-primary-200 pl-3 text-small italic text-neutral-600"
             >
-              „{q}"
+              „{q}“
             </li>
           ))}
         </ul>
