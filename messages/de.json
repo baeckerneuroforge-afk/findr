@@ -303,12 +303,14 @@
     "dialogLabel": "Plattform durchsuchen",
     "inputPlaceholder": "Deals, Accounts, Seiten durchsuchen …",
     "inputPlaceholderPages": "Seiten durchsuchen …",
+    "inputPlaceholderStudies": "Studien und Seiten durchsuchen …",
     "loading": "Index wird geladen …",
     "error": "Suchindex konnte nicht geladen werden — {error}.",
     "empty": "Keine Treffer.",
     "group": {
       "deals": "Deals",
       "accounts": "Accounts",
+      "studies": "Studien",
       "goTo": "Wechseln zu"
     }
   },

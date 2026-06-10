@@ -35,8 +35,19 @@ export interface SearchableAccount {
   status: string;
 }
 
+/** Markt-Studie in der Palette (Konsole-v5): id + Titel + Status-Label —
+ *  dieselbe Lean-Shape-Disziplin wie Deals/Accounts. */
+export interface SearchableStudy {
+  id: string;
+  title: string;
+  /** Plan-Status (draft / active / completed / archived) — Kontext-Label
+   *  rechts in der Zeile, übersetzt im Client. */
+  status: string;
+}
+
 /** The hydration endpoint's response shape — flat per entity, no nesting. */
 export interface SearchIndex {
   deals: SearchableDeal[];
   accounts: SearchableAccount[];
+  studies: SearchableStudy[];
 }

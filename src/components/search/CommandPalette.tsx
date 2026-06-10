@@ -69,6 +69,30 @@ function AccountIcon() {
   );
 }
 
+function StudyIcon() {
+  return (
+    <svg
+      className="h-4 w-4 shrink-0 text-neutral-400"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" d="M4 5h16M4 12h16M4 19h10" />
+    </svg>
+  );
+}
+
+/** Status-Label-Keys der Studien-Zeilen — bewusst eine geschlossene Map mit
+ *  Raw-Fallback, damit ein unbekannter Status nie einen i18n-Throw auslöst. */
+const STUDY_STATUS_KEY: Record<string, string> = {
+  draft: "research.plans.status.draft",
+  active: "research.plans.status.active",
+  completed: "research.plans.status.completed",
+  archived: "research.plans.status.archived",
+};
+
 function RouteIcon() {
   return (
     <svg
@@ -135,8 +159,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     ENABLED_MODULES.salesIntelligence && (index?.deals.length ?? 0) > 0;
   const hasAccounts =
     ENABLED_MODULES.csHealth && (index?.accounts.length ?? 0) > 0;
+  const hasStudies =
+    ENABLED_MODULES.marketResearch && (index?.studies?.length ?? 0) > 0;
   const routeOnlySearch =
-    !ENABLED_MODULES.salesIntelligence && !ENABLED_MODULES.csHealth;
+    !ENABLED_MODULES.salesIntelligence &&
+    !ENABLED_MODULES.csHealth &&
+    !ENABLED_MODULES.marketResearch;
+  // MR-only-Setup (heutiger Zustand): der Placeholder nennt Studien statt
+  // Deals/Accounts — sonst verspräche er Inhalte, die das Gating ausblendet.
+  const studyOnlySearch =
+    !ENABLED_MODULES.salesIntelligence &&
+    !ENABLED_MODULES.csHealth &&
+    ENABLED_MODULES.marketResearch;
 
   return (
     <Command.Dialog
@@ -151,7 +185,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         placeholder={
           routeOnlySearch
             ? t("command.inputPlaceholderPages")
-            : t("command.inputPlaceholder")
+            : studyOnlySearch
+              ? t("command.inputPlaceholderStudies")
+              : t("command.inputPlaceholder")
         }
         className="h-12 w-full border-b border-neutral-200 bg-transparent px-4 text-body text-neutral-900 outline-none placeholder:text-neutral-400"
       />
@@ -226,6 +262,29 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 </span>
                 <span className="shrink-0 text-caption uppercase tracking-wider text-neutral-400">
                   {account.status}
+                </span>
+              </Command.Item>
+            ))}
+          </Command.Group>
+        )}
+
+        {hasStudies && index && (
+          <Command.Group heading={t("command.group.studies")}>
+            {index.studies.map((study) => (
+              <Command.Item
+                key={study.id}
+                value={`${study.id} ${study.title} ${study.status}`}
+                onSelect={() => go(`/dashboard/market-research/${study.id}`)}
+                className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-body text-neutral-700 data-[selected=true]:bg-neutral-100 data-[selected=true]:text-neutral-900"
+              >
+                <StudyIcon />
+                <span className="min-w-0 flex-1 truncate font-medium text-neutral-900">
+                  {study.title}
+                </span>
+                <span className="shrink-0 text-caption uppercase tracking-wider text-neutral-400">
+                  {STUDY_STATUS_KEY[study.status]
+                    ? t(STUDY_STATUS_KEY[study.status])
+                    : study.status}
                 </span>
               </Command.Item>
             ))}

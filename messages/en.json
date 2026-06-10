@@ -303,12 +303,14 @@
     "dialogLabel": "Search the platform",
     "inputPlaceholder": "Search deals, accounts, pages…",
     "inputPlaceholderPages": "Search pages…",
+    "inputPlaceholderStudies": "Search studies and pages…",
     "loading": "Loading index…",
     "error": "Couldn’t load search index — {error}.",
     "empty": "No matches.",
     "group": {
       "deals": "Deals",
       "accounts": "Accounts",
+      "studies": "Studies",
       "goTo": "Go to"
     }
   },

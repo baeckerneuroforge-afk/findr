@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { getAccounts } from "@/lib/accounts/service";
+import { listResearchPlans } from "@/lib/research/plans-service";
+import { ENABLED_MODULES } from "@/config/modules";
 import type { SearchIndex } from "@/lib/search/types";
 
 /**
@@ -25,9 +27,14 @@ export async function GET(): Promise<NextResponse> {
   if ("error" in orgOrError) return orgOrError.error;
   const { orgId } = orgOrError;
 
-  const [deals, accounts] = await Promise.all([
+  // Studien (Konsole-v5): nur lesen, wenn das Modul überhaupt an ist —
+  // gleiche Gating-Quelle wie Sidebar/Palette-Routen.
+  const [deals, accounts, plans] = await Promise.all([
     getDealsByOrg(orgId),
     getAccounts(orgId),
+    ENABLED_MODULES.marketResearch
+      ? listResearchPlans(orgId, "market_research")
+      : Promise.resolve([]),
   ]);
 
   const payload: SearchIndex = {
@@ -42,6 +49,11 @@ export async function GET(): Promise<NextResponse> {
       companyName: a.companyName,
       sponsorName: a.sponsorName,
       status: a.status,
+    })),
+    studies: plans.map((p) => ({
+      id: p.id,
+      title: p.title,
+      status: p.status,
     })),
   };
 
