@@ -11,6 +11,8 @@ import { getProlificCredentialSummary } from "@/lib/panel/service";
 import {
   countCompletedSessionsForPlan,
   getResearchPlan,
+  listSessionsForPlan,
+  type PlanSessionStatus,
 } from "@/lib/research/plans-service";
 import { getOpenLinkForPlan } from "@/lib/research/open-links";
 import { listInvitesForPlan } from "@/lib/research/scheduling";
@@ -87,6 +89,15 @@ const MODE_LABEL: Record<string, string> = {
   video: "Video",
 };
 
+// Sessions sind feiner als Pläne: open=läuft gerade (default), completed=
+// fertig (success), abandoned=abgebrochen (default — kein Alarm, ein
+// abgebrochenes Interview ist Alltag, kein Fehlerzustand).
+const SESSION_STATUS_VARIANT: Record<PlanSessionStatus, BadgeVariant> = {
+  open: "default",
+  completed: "success",
+  abandoned: "default",
+};
+
 function formatDate(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -94,6 +105,19 @@ function formatDate(iso: string, locale: string): string {
     year: "numeric",
     month: "short",
     day: "numeric",
+  });
+}
+
+// Mit Uhrzeit — mehrere Interviews am selben Tag sind der Normalfall.
+function formatDateTime(iso: string, locale: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString(toBcp47(locale), {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -146,6 +170,7 @@ export default async function MarketCampaignDetailPage({
     openLink,
     completed,
     prolificCredential,
+    sessions,
   ] = await Promise.all([
     listPoolMembers(orgId),
     listInvitedPoolMemberIds(orgId, planId),
@@ -153,6 +178,7 @@ export default async function MarketCampaignDetailPage({
     getOpenLinkForPlan(orgId, planId),
     countCompletedSessionsForPlan(orgId, planId),
     getProlificCredentialSummary(orgId),
+    listSessionsForPlan(orgId, planId),
   ]);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
@@ -869,6 +895,76 @@ export default async function MarketCampaignDetailPage({
               disabled={plan.status === "archived"}
             />
           </CardBody>
+        </Card>
+      </section>
+
+      {/* Interviews (Voice Phase 2 E2) — die geführten Sessions dieser Studie,
+          neueste zuerst, serverseitig auf 50 gecappt (listSessionsForPlan).
+          Reine Lese-Ansicht; jede Zeile verlinkt auf die Transkript-Subroute.
+          Sitzt bewusst direkt VOR der Auswertung: die Interviews sind das
+          Material, das die Synthese speist. */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">{tm("sessionsTitle")}</h2>
+          <p className="text-small text-neutral-500">{tm("sessionsDesc")}</p>
+        </div>
+        <Card>
+          {sessions.length === 0 ? (
+            <CardBody>
+              <p className="py-4 text-center text-body text-neutral-500">
+                {tm("sessionsEmpty")}
+              </p>
+            </CardBody>
+          ) : (
+            <ul className="divide-y divide-neutral-100">
+              {sessions.map((session) => (
+                <li key={session.id}>
+                  <Link
+                    href={`/dashboard/market-research/${plan.id}/sessions/${session.id}`}
+                    className="block px-4 py-3 transition-colors hover:bg-neutral-50"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={SESSION_STATUS_VARIANT[session.status]}>
+                        {tm(`sessionStatus.${session.status}`)}
+                      </Badge>
+                      {session.mode === "voice" && (
+                        <Badge variant="default">
+                          <svg
+                            className="h-3 w-3 shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                            <line x1="12" x2="12" y1="19" y2="22" />
+                          </svg>
+                          {tm("sessionVoiceBadge")}
+                        </Badge>
+                      )}
+                      <span className="text-small text-neutral-500">
+                        {tm("sessionTurnCount", { count: session.turnCount })}
+                      </span>
+                      <span className="ml-auto text-small text-neutral-400">
+                        {formatDateTime(session.createdAt, locale)}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 truncate text-small text-neutral-700">
+                      {session.preview ?? (
+                        <span className="text-neutral-400">
+                          {tm("sessionNoPreview")}
+                        </span>
+                      )}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </section>
 

@@ -1394,7 +1394,25 @@
       "colSynthesis": "Synthese",
       "synthesisReady": "Bereit",
       "prolificTitle": "Prolific-Studie aufsetzen",
-      "prolificDesc": "Findr nutzt automatisch den aktiven Open-Link als Teilnehmer-URL. Nach dem Anlegen erscheint der Draft in Prolific — dort veröffentlichen, Sample einstellen und funden."
+      "prolificDesc": "Findr nutzt automatisch den aktiven Open-Link als Teilnehmer-URL. Nach dem Anlegen erscheint der Draft in Prolific — dort veröffentlichen, Sample einstellen und funden.",
+      "sessionsTitle": "Interviews",
+      "sessionsDesc": "Geführte Gespräche dieser Studie — neueste zuerst, maximal 50.",
+      "sessionsEmpty": "Noch keine Interviews geführt. Sobald Teilnehmer den Link öffnen, erscheinen die Gespräche hier.",
+      "sessionStatus": {
+        "open": "Aktiv",
+        "completed": "Abgeschlossen",
+        "abandoned": "Abgebrochen"
+      },
+      "sessionVoiceBadge": "Voice",
+      "sessionTurnCount": "{count, plural, one {# Gesprächsbeitrag} other {# Gesprächsbeiträge}}",
+      "sessionNoPreview": "Noch keine Antwort des Teilnehmers.",
+      "transcriptBack": "← Zurück zur Studie",
+      "transcriptTitle": "Interview-Transkript",
+      "transcriptStartedAt": "Gestartet am {date}",
+      "transcriptCompletedAt": "Abgeschlossen am {date}",
+      "transcriptEmpty": "Dieses Gespräch enthält noch keine Beiträge.",
+      "transcriptInterviewerLabel": "Interviewer",
+      "transcriptParticipantLabel": "Teilnehmer"
     },
     "synthesis": {
       "backToPlan": "← Zurück zum Plan",
