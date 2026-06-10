@@ -332,6 +332,7 @@ export function VoiceInterviewView({
   /** `lk.agent.state` attribute value; null until the agent publishes one. */
   const [agentState, setAgentState] = useState<AgentState | null>(null);
   const [showLastQuestion, setShowLastQuestion] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
   const roomRef = useRef<Room | null>(null);
   const phaseRef = useRef<Phase>(phase);
@@ -446,6 +447,7 @@ export function VoiceInterviewView({
     setAgentSpeaking(false);
     setAgentState(null);
     setShowLastQuestion(false);
+    setConfirmEnd(false);
     setMuted(false);
     setAudioBlocked(false);
     setReconnecting(false);
@@ -604,6 +606,18 @@ export function VoiceInterviewView({
         if (phaseRef.current === "connecting") fail("agent");
       }, AGENT_JOIN_TIMEOUT_MS);
     }
+  }
+
+  /** Participant-initiated end — the exact disconnect path the agent-left
+   *  handler uses, so the ended-phase status polling (and thus the agent's
+   *  complete flow) runs identically. No new backend involved. */
+  function endInterview() {
+    const room = roomRef.current;
+    intentionalCloseRef.current = true;
+    roomRef.current = null;
+    if (room) void room.disconnect();
+    setConfirmEnd(false);
+    setPhase("ended");
   }
 
   async function toggleMute() {
@@ -791,16 +805,52 @@ export function VoiceInterviewView({
           </div>
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-2 pb-2">
-          <button
-            type="button"
-            onClick={() => void toggleMute()}
-            aria-pressed={muted}
-            className="inline-flex h-[38px] items-center gap-2 rounded-full border border-[#E8E4F2] bg-[#FAFAFE] px-4 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:bg-[#F4F1FD]"
-          >
-            <MicGlyph size={14} muted={muted} />
-            {muted ? t("voiceLive.live.unmute") : t("voiceLive.live.mute")}
-          </button>
+        <div className="mt-2 flex flex-col items-center gap-3 pb-2">
+          {confirmEnd ? (
+            <div className="w-full max-w-md rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-4 text-center">
+              <p className="text-[14px] font-semibold text-[#0E0A1F]">
+                {t("voiceLive.end.confirmTitle")}
+              </p>
+              <p className="mt-1 text-[12px] text-[#6B6680]">
+                {t("voiceLive.end.confirmBody")}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={endInterview}
+                  className="h-[38px] rounded-lg bg-[var(--brand-accent)] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+                >
+                  {t("voiceLive.end.confirm")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmEnd(false)}
+                  className="h-[38px] rounded-lg border border-[#D9D4E8] bg-white px-4 text-[13px] font-medium text-[#0E0A1F] transition-colors hover:bg-[#F4F1FD]"
+                >
+                  {t("voiceLive.end.cancel")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => void toggleMute()}
+                aria-pressed={muted}
+                className="inline-flex h-[38px] items-center gap-2 rounded-full border border-[#E8E4F2] bg-[#FAFAFE] px-4 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:bg-[#F4F1FD]"
+              >
+                <MicGlyph size={14} muted={muted} />
+                {muted ? t("voiceLive.live.unmute") : t("voiceLive.live.mute")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmEnd(true)}
+                className="inline-flex h-[38px] items-center rounded-full border border-[#D9D4E8] bg-white px-4 text-[12px] font-medium text-[#6B6680] transition-colors hover:bg-[#F4F1FD] hover:text-[#0E0A1F]"
+              >
+                {t("voiceLive.end.button")}
+              </button>
+            </div>
+          )}
         </div>
 
         <p className="mt-6 pb-6 text-center text-[11px] text-[#9B9BA3]">

@@ -83,6 +83,13 @@
         "hide": "Hide last question",
         "empty": "No question has come through yet."
       },
+      "end": {
+        "button": "End interview",
+        "confirmTitle": "Really end the interview?",
+        "confirmBody": "Your answers so far are saved.",
+        "confirm": "Yes, end it",
+        "cancel": "Keep talking"
+      },
       "ended": {
         "checking": "Wrapping up the interview …"
       },

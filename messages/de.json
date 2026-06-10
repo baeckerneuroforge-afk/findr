@@ -83,6 +83,13 @@
         "hide": "Letzte Frage ausblenden",
         "empty": "Es wurde noch keine Frage übertragen."
       },
+      "end": {
+        "button": "Interview beenden",
+        "confirmTitle": "Interview wirklich beenden?",
+        "confirmBody": "Ihre bisherigen Antworten bleiben gespeichert.",
+        "confirm": "Ja, beenden",
+        "cancel": "Weiter im Gespräch"
+      },
       "ended": {
         "checking": "Das Interview wird abgeschlossen …"
       },
