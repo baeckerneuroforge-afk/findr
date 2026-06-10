@@ -3,12 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { callClaudeStructured } from "@/lib/anthropic/structured";
 import {
   analyzeStimulusImage,
+  analyzeStimulusVideo,
   coerceStimulusAnalysis,
   coerceStimulusAnalysisStatus,
   DEFAULT_STIMULUS_ANALYSIS_MODEL,
   MAX_TEXT_BLOCK_CHARS,
   renderStimulusAnalysisTextBlock,
   type StimulusAnalysis,
+  type StimulusVideoFrameInput,
 } from "./stimulus-analysis";
 
 vi.mock("@/lib/anthropic/structured", async (importOriginal) => {
@@ -70,6 +72,39 @@ describe("renderStimulusAnalysisTextBlock", () => {
     expect(block).not.toContain("Text im Bild");
   });
 
+  it("renders verlauf before and szenen AFTER the question angles (cap-safe order, O2)", () => {
+    const block = renderStimulusAnalysisTextBlock({
+      ...ANALYSIS,
+      verlauf: "Beginnt mit Produkt-Close-up, endet auf Logo mit Claim.",
+      szenen: [
+        { zeit: "00:02", beschreibung: "Close-up der Verpackung" },
+        { zeit: "00:14", beschreibung: "Logo auf weißem Grund mit Claim" },
+      ],
+    });
+
+    expect(block).toContain(
+      "Zeitlicher Verlauf: Beginnt mit Produkt-Close-up",
+    );
+    expect(block).toContain("Szenen (Zeitverlauf):");
+    expect(block).toContain("[00:02] Close-up der Verpackung");
+    // Frageansätze stehen VOR den Szenen: die End-Kappung darf im Grenzfall
+    // Szenen-Detail fressen, nie die Frageansätze.
+    expect(block.indexOf("Mögliche Frageansätze")).toBeLessThan(
+      block.indexOf("Szenen (Zeitverlauf):"),
+    );
+    expect(block.indexOf("Zeitlicher Verlauf:")).toBeLessThan(
+      block.indexOf("Mögliche Frageansätze"),
+    );
+  });
+
+  it("renders an image analysis (no verlauf/szenen) byte-identical to the pre-video format", () => {
+    const block = renderStimulusAnalysisTextBlock(ANALYSIS);
+    expect(block).not.toContain("Zeitlicher Verlauf");
+    expect(block).not.toContain("Szenen (Zeitverlauf)");
+    // Frageansätze bleiben die letzte Sektion.
+    expect(block.trimEnd().endsWith(ANALYSIS.frageansaetze[2])).toBe(true);
+  });
+
   it("hard-caps the rendered block at MAX_TEXT_BLOCK_CHARS", () => {
     const block = renderStimulusAnalysisTextBlock({
       ...ANALYSIS,
@@ -98,6 +133,21 @@ describe("coerceStimulusAnalysis (fail-open read mapper)", () => {
 
   it("accepts a well-formed envelope", () => {
     expect(coerceStimulusAnalysis(payload)).toEqual(payload);
+  });
+
+  it("accepts a video envelope carrying the additive verlauf/szenen fields", () => {
+    const video = {
+      ...payload,
+      analysis: {
+        ...ANALYSIS,
+        verlauf: "Vom Close-up zum Logo.",
+        szenen: [
+          { zeit: "00:02", beschreibung: "Close-up" },
+          { zeit: "00:14", beschreibung: "Logo mit Claim" },
+        ],
+      },
+    };
+    expect(coerceStimulusAnalysis(video)).toEqual(video);
   });
 
   it.each([
@@ -194,6 +244,107 @@ describe("analyzeStimulusImage", () => {
         mediaType: "image/jpeg",
         study: STUDY,
       }),
+    ).rejects.toThrow("transport down");
+  });
+});
+
+describe("analyzeStimulusVideo", () => {
+  const VIDEO_ANALYSIS: StimulusAnalysis = {
+    ...ANALYSIS,
+    verlauf: "Beginnt mit Produkt-Close-up, endet auf Logo mit Claim.",
+    szenen: [
+      { zeit: "00:02", beschreibung: "Close-up der Verpackung" },
+      { zeit: "00:14", beschreibung: "Logo auf weißem Grund" },
+    ],
+  };
+
+  const FRAMES: StimulusVideoFrameInput[] = [
+    {
+      index: 0,
+      timestampSeconds: 2.5,
+      mediaType: "image/jpeg",
+      data: "aGFsbG8=",
+    },
+    {
+      index: 1,
+      timestampSeconds: 74,
+      mediaType: "image/jpeg",
+      data: "d2VsdDIy",
+    },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCallClaudeStructured.mockResolvedValue(VIDEO_ANALYSIS);
+  });
+
+  afterEach(() => {
+    delete process.env.STIMULUS_ANALYSIS_MODEL;
+  });
+
+  it("sends the study context plus one timestamped text+image pair per frame", async () => {
+    const payload = await analyzeStimulusVideo({
+      frames: FRAMES,
+      study: STUDY,
+    });
+
+    expect(mockCallClaudeStructured).toHaveBeenCalledTimes(1);
+    const call = mockCallClaudeStructured.mock.calls[0][0];
+    expect(call.model).toBe(DEFAULT_STIMULUS_ANALYSIS_MODEL);
+    expect(call.maxTokens).toBe(3000);
+    expect(call.toolName).toBe("emit_stimulus_analysis");
+
+    const content = call.messages[0].content as unknown as Array<
+      Record<string, unknown>
+    >;
+    // 1 Studienkontext + 2 × (Zeitstempel-Text + Bild).
+    expect(content).toHaveLength(5);
+    expect(String(content[0].text)).toContain("Creative-Test Kampagne Q3");
+    expect(String(content[0].text)).toContain("Stimulus-Video");
+    expect(content[1]).toEqual({ type: "text", text: "Frame 1, ca. [00:02]" });
+    expect(content[2]).toEqual({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: "image/jpeg",
+        data: "aGFsbG8=",
+      },
+    });
+    expect(content[3]).toEqual({ type: "text", text: "Frame 2, ca. [01:14]" });
+
+    expect(payload.version).toBe(1);
+    expect(payload.analysis).toEqual(VIDEO_ANALYSIS);
+    expect(payload.textBlock).toBe(
+      renderStimulusAnalysisTextBlock(VIDEO_ANALYSIS),
+    );
+  });
+
+  it("honors the STIMULUS_ANALYSIS_MODEL env override", async () => {
+    process.env.STIMULUS_ANALYSIS_MODEL = "claude-sonnet-4-6";
+
+    const payload = await analyzeStimulusVideo({
+      frames: FRAMES,
+      study: STUDY,
+    });
+
+    expect(mockCallClaudeStructured.mock.calls[0][0].model).toBe(
+      "claude-sonnet-4-6",
+    );
+    expect(payload.model).toBe("claude-sonnet-4-6");
+  });
+
+  it("rejects an empty frame list before any model call", async () => {
+    await expect(
+      analyzeStimulusVideo({ frames: [], study: STUDY }),
+    ).rejects.toThrow("at least one frame");
+    expect(mockCallClaudeStructured).not.toHaveBeenCalled();
+  });
+
+  it("propagates analyzer failures to the caller (the route maps them to 'failed')", async () => {
+    mockCallClaudeStructured.mockRejectedValue(new Error("transport down"));
+
+    await expect(
+      analyzeStimulusVideo({ frames: FRAMES, study: STUDY }),
     ).rejects.toThrow("transport down");
   });
 });

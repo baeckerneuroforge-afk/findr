@@ -286,6 +286,16 @@ export default async function MarketCampaignDetailPage({
                     alt={t("stimulusThumbAlt")}
                     className="h-20 w-20 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
                   />
+                ) : plan.stimulusType === "video" ? (
+                  // Abspielbare Vorschau des Video-Stimulus (Etappe 3).
+                  <video
+                    src={plan.stimulusUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    aria-label={t("stimulusThumbAlt")}
+                    className="h-28 w-44 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
+                  />
                 ) : (
                   <a
                     href={plan.stimulusUrl}
@@ -299,7 +309,9 @@ export default async function MarketCampaignDetailPage({
                 <Badge variant="default">
                   {plan.stimulusType === "image"
                     ? t("stimulusModeImage")
-                    : t("stimulusModeLink")}
+                    : plan.stimulusType === "video"
+                      ? t("stimulusModeVideo")
+                      : t("stimulusModeLink")}
                 </Badge>
                 {/* Analyse-Status — derselbe Stand wie im Formular (DB-Read).
                     'pending' ist hier nur nach einem abgebrochenen Status-Write

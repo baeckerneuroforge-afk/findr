@@ -15,14 +15,26 @@ import {
   topicDraftsToResearchTopics,
   type TopicDraft,
 } from "./TopicEditor";
+import {
+  extractVideoFrames,
+  VideoDecodeError,
+} from "@/lib/research/extract-video-frames";
 
 /** Client mirror of the server's stimulus-route limits (bucket
  *  research-stimuli). Kept in sync with
  *  app/api/research/plans/[id]/stimulus/route.ts — the route re-validates type,
  *  size and magic-byte signature; this only buys a fast, precise message before
- *  the upload round-trip. */
-const STIMULUS_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+ *  the upload round-trip.
+ *  4 MB (nicht 5): das Bild reist als multipart DURCH die Route, und
+ *  Vercel-Functions kappen Request-Bodies bei 4,5 MB. */
+const STIMULUS_MAX_BYTES = 4 * 1024 * 1024; // 4 MB
 const STIMULUS_ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+/** Video-Stimulus (Etappe 3): das Video reist per Signed-Upload DIREKT in den
+ *  Bucket (nicht durch die Route) → 100-MB-Cap (Bucket erzwingt MIME + Größe
+ *  zusätzlich serverseitig). v1 bewusst nur H.264-MP4 — die Frame-Extraktion
+ *  passiert im Browser, und webm/HEVC sind dort nicht überall dekodierbar. */
+const STIMULUS_VIDEO_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
+const STIMULUS_VIDEO_TYPE = "video/mp4";
 
 /** Status der einmaligen KI-Vision-Analyse eines Bild-Stimulus. Client-Spiegel
  *  von StimulusAnalysisStatus (stimulus-analysis.ts ist server-only und kann
@@ -563,10 +575,19 @@ export function ResearchPlanForm({
     return form.title.trim().length >= 3 && form.objective.trim().length >= 3;
   }
 
-  /** Image branch: validate type + size locally (mirrors the route), ensure a
-   *  draft plan exists, then POST the file to /[id]/stimulus. The route returns
-   *  { stimulus_url, stimulus_type }; we mirror them into form-state for the
-   *  preview. The description is NOT sent here — it rides the normal submit. */
+  /** File branch (image OR video): validate type + size locally (mirrors the
+   *  route), ensure a draft plan exists, then hand the asset to the server.
+   *
+   *  Bild: multipart-POST der Datei an /[id]/stimulus (unverändert; Cap 4 MB,
+   *  weil die Datei DURCH die Route reist — 4,5-MB-Body-Limit der
+   *  Vercel-Functions).
+   *
+   *  Video (Etappe 3): Keyframes werden ZUERST clientseitig extrahiert (wirft
+   *  VideoDecodeError vor jedem Server-Write), dann geht das Video per
+   *  Signed-Upload DIREKT in den Bucket, und ein JSON-POST meldet
+   *  storagePath + Frames an dieselbe Stimulus-Route. Die KI-Analyse läuft
+   *  dort synchron — Response-Handling identisch zum Bild-Zweig. Die Frames
+   *  sind ein reines Transport-Artefakt und werden nie persistiert. */
   async function handleStimulusFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -576,13 +597,18 @@ export function ResearchPlanForm({
       if (stimulusFileRef.current) stimulusFileRef.current.value = "";
     };
 
-    if (!STIMULUS_ACCEPTED_TYPES.includes(file.type)) {
+    const isVideo = file.type === STIMULUS_VIDEO_TYPE;
+    if (!isVideo && !STIMULUS_ACCEPTED_TYPES.includes(file.type)) {
       setStimulusError(t("errStimulusType"));
       clearInput();
       return;
     }
-    if (file.size > STIMULUS_MAX_BYTES) {
-      setStimulusError(t("errStimulusSize"));
+    if (
+      file.size > (isVideo ? STIMULUS_VIDEO_MAX_BYTES : STIMULUS_MAX_BYTES)
+    ) {
+      setStimulusError(
+        t(isVideo ? "errStimulusVideoSize" : "errStimulusSize"),
+      );
       clearInput();
       return;
     }
@@ -599,13 +625,65 @@ export function ResearchPlanForm({
     const previousAnalysisStatus = stimulusAnalysisStatus;
     setStimulusAnalysisStatus("pending");
     try {
-      const id = await ensureDraftPlanId();
-      const body = new FormData();
-      body.append("file", file);
-      const res = await fetch(
-        `/api/research/plans/${encodeURIComponent(id)}/stimulus`,
-        { method: "POST", body },
-      );
+      let res: Response;
+      if (isVideo) {
+        // 1) Frames zuerst — ein nicht dekodierbares Video scheitert hier,
+        //    bevor irgendetwas den Server erreicht.
+        const frames = await extractVideoFrames(file);
+        const id = await ensureDraftPlanId();
+
+        // 2) Signed-Upload-URL minten (auth-gleich zur Stimulus-Route) und
+        //    das Video direkt in den Bucket PUTten — nie durch die Function.
+        const urlRes = await fetch(
+          `/api/research/plans/${encodeURIComponent(id)}/stimulus/upload-url`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contentType: STIMULUS_VIDEO_TYPE,
+              sizeBytes: file.size,
+            }),
+          },
+        );
+        const urlData = (await urlRes.json().catch(() => ({}))) as {
+          path?: string;
+          signed_url?: string;
+          error?: string;
+        };
+        if (!urlRes.ok || !urlData.path || !urlData.signed_url) {
+          throw new Error(urlData.error ?? t("errStimulusUpload"));
+        }
+        const putRes = await fetch(urlData.signed_url, {
+          method: "PUT",
+          headers: {
+            "Content-Type": STIMULUS_VIDEO_TYPE,
+            "x-upsert": "false",
+          },
+          body: file,
+        });
+        if (!putRes.ok) {
+          throw new Error(t("errStimulusUpload"));
+        }
+
+        // 3) Pfad + Frames an die Stimulus-Route — dort läuft die Analyse
+        //    synchron, die Response trägt den finalen Status.
+        res = await fetch(
+          `/api/research/plans/${encodeURIComponent(id)}/stimulus`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ storagePath: urlData.path, frames }),
+          },
+        );
+      } else {
+        const id = await ensureDraftPlanId();
+        const body = new FormData();
+        body.append("file", file);
+        res = await fetch(
+          `/api/research/plans/${encodeURIComponent(id)}/stimulus`,
+          { method: "POST", body },
+        );
+      }
       const data = (await res.json().catch(() => ({}))) as {
         stimulus_url?: string;
         stimulus_type?: string;
@@ -627,7 +705,11 @@ export function ResearchPlanForm({
     } catch (err) {
       setStimulusAnalysisStatus(previousAnalysisStatus);
       setStimulusError(
-        err instanceof Error ? err.message : t("errStimulusUpload"),
+        err instanceof VideoDecodeError
+          ? t("errStimulusVideoFormat")
+          : err instanceof Error
+            ? err.message
+            : t("errStimulusUpload"),
       );
     } finally {
       setStimulusBusy(false);
@@ -1086,6 +1168,17 @@ export function ResearchPlanForm({
                     alt={t("stimulusThumbAlt")}
                     className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
                   />
+                ) : form.stimulusType === "video" ? (
+                  // Stumme Mini-Vorschau (erstes Frame via preload) — die
+                  // volle Wiedergabe gibt es in der Studien-Detail-Ansicht.
+                  <video
+                    src={form.stimulusUrl}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    aria-label={t("stimulusThumbAlt")}
+                    className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
+                  />
                 ) : (
                   <a
                     href={form.stimulusUrl}
@@ -1099,7 +1192,9 @@ export function ResearchPlanForm({
                 <span className="shrink-0 rounded-full bg-neutral-200 px-2 py-0.5 text-caption font-medium leading-none text-neutral-600">
                   {form.stimulusType === "image"
                     ? t("stimulusModeImage")
-                    : t("stimulusModeLink")}
+                    : form.stimulusType === "video"
+                      ? t("stimulusModeVideo")
+                      : t("stimulusModeLink")}
                 </span>
                 <button
                   type="button"
@@ -1112,12 +1207,13 @@ export function ResearchPlanForm({
               </div>
             )}
 
-            {/* KI-Analyse-Status (Etappe 2) — nur für Bild-Stimuli. Die Analyse
-                läuft synchron im Upload-Request; 'pending' ist der optimistische
-                Stand WÄHREND des Uploads, die Response liefert final done/failed.
-                Bei null (kein Bild, Link, entfernt): nichts. failed ist bewusst
-                dezent (neutral, kein Alarm) — der Stimulus funktioniert im
-                Interview auch ohne Analyse; erneutes Hochladen analysiert neu. */}
+            {/* KI-Analyse-Status (Etappe 2/3) — für Bild- UND Video-Stimuli.
+                Die Analyse läuft synchron im Upload-Request; 'pending' ist der
+                optimistische Stand WÄHREND des Uploads, die Response liefert
+                final done/failed. Bei null (kein Asset, Link, entfernt): nichts.
+                failed ist bewusst dezent (neutral, kein Alarm) — der Stimulus
+                funktioniert im Interview auch ohne Analyse; erneutes Hochladen
+                analysiert neu. */}
             {stimulusAnalysisStatus === "pending" && (
               <p className="mt-2 inline-flex items-center gap-2 text-caption text-neutral-500">
                 <span
@@ -1181,7 +1277,7 @@ export function ResearchPlanForm({
                   }`}
                 >
                   {mode === "image"
-                    ? t("stimulusModeImage")
+                    ? t("stimulusModeUpload")
                     : t("stimulusModeLink")}
                 </button>
               ))}
@@ -1201,13 +1297,15 @@ export function ResearchPlanForm({
                 >
                   {stimulusBusy
                     ? t("stimulusImageUploading")
-                    : form.stimulusType === "image" && form.stimulusUrl
+                    : (form.stimulusType === "image" ||
+                          form.stimulusType === "video") &&
+                        form.stimulusUrl
                       ? t("stimulusReplace")
                       : t("stimulusImageUpload")}
                   <input
                     ref={stimulusFileRef}
                     type="file"
-                    accept="image/png,image/jpeg,image/webp"
+                    accept="image/png,image/jpeg,image/webp,video/mp4"
                     disabled={stimulusBusy || submitting || generating}
                     onChange={handleStimulusFile}
                     className="sr-only"

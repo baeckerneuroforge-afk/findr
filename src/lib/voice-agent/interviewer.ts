@@ -918,9 +918,11 @@ function formatStimulus(plan: ResearchPlanContext): string | null {
   const typeLabel =
     type === "image"
       ? "Bild"
-      : type === "link"
-        ? "Prototyp-Link"
-        : type || null;
+      : type === "video"
+        ? "Video"
+        : type === "link"
+          ? "Prototyp-Link"
+          : type || null;
 
   // Kopfzeile byte-identisch zum bisherigen Block, wenn eine Beschreibung
   // existiert; nur ohne Beschreibung (Bild ohne Forscher-Text, aber mit
