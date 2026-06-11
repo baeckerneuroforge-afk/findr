@@ -141,12 +141,9 @@ export type PublicOpenEntry =
   | { mode: "needs_screening"; screening: NeedsScreeningView }
   | { mode: "ready"; ready: OpenLinkReady };
 
-// Offene Links tragen (noch) keine eigene language-Spalte — der Walk-in-Chrome
-// defaultet auf dieselbe Locale, auf die research_invites.language defaultet
-// (DEFAULT 'de', 20260621000000). Eine per-Link-Sprache ist eine spätere,
-// additive Option. Lokal definiert, damit dieses leichte Resolver-Modul nicht
-// den schweren interviewer-Runtime (Anthropic-SDK) zur Laufzeit zieht.
-const OPEN_LINK_DEFAULT_LANGUAGE: InterviewLanguage = "de";
+// F2 — open links have no own language column; the walk-in chrome + the
+// lazily-created session inherit the STUDY's language (plan.language), which the
+// resolver already loads below. (Previously hardcoded to 'de'.)
 
 /**
  * Screening-aware entry resolution für die (E3-)Teilnehmer-Page — KLON-Logik von
@@ -192,7 +189,7 @@ export async function resolvePublicOpenEntry(
         orgId: link.org_id,
         planId: link.plan_id,
         planTitle: plan.title,
-        language: OPEN_LINK_DEFAULT_LANGUAGE,
+        language: plan.language,
         questions,
       },
     };
@@ -208,7 +205,7 @@ export async function resolvePublicOpenEntry(
       orgId: link.org_id,
       planId: link.plan_id,
       planTitle: plan.title,
-      language: OPEN_LINK_DEFAULT_LANGUAGE,
+      language: plan.language,
     },
   };
 }

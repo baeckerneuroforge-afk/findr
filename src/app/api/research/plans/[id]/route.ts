@@ -81,6 +81,7 @@ const UpdatePlanBodySchema = z
       .nullable()
       .optional()
       .transform((v) => (v === "" ? null : v)),
+    language: z.enum(["de", "en"]).optional(),
   })
   .refine(
     (data) =>
@@ -97,7 +98,8 @@ const UpdatePlanBodySchema = z
       data.useCase !== undefined ||
       data.stimulusUrl !== undefined ||
       data.stimulusType !== undefined ||
-      data.stimulusDescription !== undefined,
+      data.stimulusDescription !== undefined ||
+      data.language !== undefined,
     { message: "At least one field must be present in the update body." },
   );
 
@@ -145,6 +147,7 @@ export async function PATCH(
       ttsEnabled: parsed.data.ttsEnabled,
       signalsEnabled: parsed.data.signalsEnabled,
       useCase: parsed.data.useCase,
+      language: parsed.data.language,
       stimulusUrl: parsed.data.stimulusUrl,
       stimulusType: parsed.data.stimulusType,
       stimulusDescription: parsed.data.stimulusDescription,

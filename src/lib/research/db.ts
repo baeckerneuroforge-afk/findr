@@ -225,6 +225,10 @@ export type ResearchPlanRow = {
   // coerceStudyType) defaultet undefined→'product_discovery', sodass der Code
   // auch pre-migration byte-identisch bleibt.
   study_type: ResearchPlanStudyType;
+  // F2 — per-study interview language (de/en). NOT NULL DEFAULT 'de'. Before the
+  // migration lands select("*") omits it; the read mapper (coerceLanguage)
+  // defaults undefined→'de', so existing studies stay German byte-identically.
+  language: Language;
   created_at: string;
 };
 
@@ -251,6 +255,7 @@ type ResearchPlanInsert = {
   // Optional beim Insert — wird heute NIE gesetzt (kein Write-Pfad in M0); der
   // DB-DEFAULT vergibt 'product_discovery'. Verdrahtung kommt in M1/M3.
   study_type?: ResearchPlanStudyType;
+  language?: Language;
   created_at?: string;
 };
 
@@ -275,6 +280,7 @@ type ResearchPlanUpdate = {
   stimulus_analysis?: Json | null;
   stimulus_analysis_status?: string | null;
   study_type?: ResearchPlanStudyType;
+  language?: Language;
   created_at?: string;
 };
 
