@@ -85,7 +85,9 @@ describe("settings delete-org route", () => {
     });
     mockOrganizationLookup("Acme GmbH");
     mockDeleteOrganizationData.mockResolvedValue({
-      deleted_tables: ["deals", "risk_scores"],
+      org_data_deleted: true,
+      clerk_org_deleted: true,
+      storage_objects_removed: 3,
     });
 
     const response = await POST(
@@ -99,10 +101,13 @@ describe("settings delete-org route", () => {
     expect(response.status).toBe(200);
     expect(body).toEqual({
       success: true,
-      deleted_tables: ["deals", "risk_scores"],
+      org_data_deleted: true,
+      clerk_org_deleted: true,
+      storage_objects_removed: 3,
     });
     expect(mockDeleteOrganizationData).toHaveBeenCalledWith({
       orgId: "org_1",
+      clerkOrgId: "org_clerk_1",
       organizationName: "Acme GmbH",
       confirmationName: "Acme GmbH",
     });

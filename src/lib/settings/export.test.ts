@@ -1,165 +1,90 @@
-import { describe, expect, it } from "vitest";
-import { buildDataExportPayload, type DataExportRows } from "./export";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildDataExport } from "./export";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
-function createRows(
-  overrides: Partial<Record<keyof DataExportRows, unknown>> = {},
-): DataExportRows {
-  return {
-    organization: {
-      id: "org_1",
-      clerk_org_id: "org_clerk_1",
-      name: "Acme GmbH",
-      plan: "design_partner",
-      created_at: "2026-05-01T00:00:00.000Z",
-      updated_at: "2026-05-02T00:00:00.000Z",
-    },
-    users: [],
-    deals: [],
-    calls: [],
-    call_speakers: [],
-    transcript_segments: [],
-    call_segments: [],
-    risk_scores: [],
-    findings: [],
-    interviews: [],
-    loss_reasons: [],
-    loss_reports: [],
-    slack_alerts: [],
-    slack_alert_preferences: [],
-    slack_integrations: [],
-    alert_history: [],
-    hubspot_integrations: [],
-    gong_integrations: [],
-    gong_users: [],
-    crm_connections: [],
-    ...overrides,
-  } as unknown as DataExportRows;
+vi.mock("@/lib/supabase/server", () => ({
+  createAdminSupabaseClient: vi.fn(),
+}));
+
+const mockCreate = vi.mocked(createAdminSupabaseClient);
+
+function makeSupabase(opts: {
+  org: Record<string, unknown> | null;
+  rpcData?: unknown;
+  rpcError?: unknown;
+}) {
+  const single = vi.fn().mockResolvedValue({
+    data: opts.org,
+    error: opts.org ? null : new Error("not found"),
+  });
+  const eq = vi.fn(() => ({ single }));
+  const select = vi.fn(() => ({ eq }));
+  const from = vi.fn(() => ({ select }));
+  const rpc = vi
+    .fn()
+    .mockResolvedValue({ data: opts.rpcData ?? null, error: opts.rpcError ?? null });
+  mockCreate.mockReturnValue({ from, rpc } as never);
+  return { from, select, eq, single, rpc };
 }
 
-describe("buildDataExportPayload", () => {
-  it("exports organization metadata and org-scoped business data", () => {
-    const payload = buildDataExportPayload(
-      createRows({
-        deals: [
-          {
-            id: "deal_1",
-            org_id: "org_1",
-            name: "Nordbank Expansion",
-            amount: 120000,
-          },
-        ],
-        risk_scores: [
-          {
-            id: "risk_1",
-            org_id: "org_1",
-            deal_id: "deal_1",
-            risk_score: 72,
-          },
-        ],
-      }),
-      "2026-05-21T10:00:00.000Z",
-    );
+const ORG = {
+  id: "uuid-1",
+  clerk_org_id: "org_clerk_1",
+  name: "Acme GmbH",
+  plan: "design_partner",
+  created_at: "2026-05-01T00:00:00.000Z",
+  updated_at: "2026-05-02T00:00:00.000Z",
+  // a column the export must NOT surface in the picked metadata
+  some_internal_flag: true,
+};
 
-    expect(payload.exported_at).toBe("2026-05-21T10:00:00.000Z");
-    expect(payload.organization).toEqual({
-      id: "org_1",
+describe("buildDataExport", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns picked org metadata plus the dynamic per-table dump", async () => {
+    const sb = makeSupabase({
+      org: ORG,
+      rpcData: {
+        deals: [{ id: "deal_1", org_id: "uuid-1" }],
+        research_invites: [{ id: "inv_1", org_id: "uuid-1" }],
+        interview_sessions: [{ id: "sess_1", conversation: [] }],
+      },
+    });
+
+    const result = await buildDataExport("uuid-1");
+
+    expect(sb.rpc).toHaveBeenCalledWith("export_organization_data", {
+      p_org_id: "uuid-1",
+    });
+    // Only the six whitelisted org fields — not some_internal_flag.
+    expect(result.organization).toEqual({
+      id: "uuid-1",
       clerk_org_id: "org_clerk_1",
       name: "Acme GmbH",
       plan: "design_partner",
       created_at: "2026-05-01T00:00:00.000Z",
       updated_at: "2026-05-02T00:00:00.000Z",
     });
-    expect(payload.deals).toHaveLength(1);
-    expect(payload.risk_scores).toHaveLength(1);
+    // The research layer that the old curated export silently dropped.
+    expect(result.data.research_invites).toHaveLength(1);
+    expect(result.data.interview_sessions).toHaveLength(1);
+    expect(result.data.deals).toHaveLength(1);
+    expect(typeof result.exported_at).toBe("string");
   });
 
-  it("removes Slack webhook URLs from integration exports", () => {
-    const payload = buildDataExportPayload(
-      createRows({
-        slack_integrations: [
-          {
-            id: "slack_1",
-            org_id: "org_1",
-            webhook_url: "https://hooks.slack.com/services/T/B/SECRET",
-            channel_name: "#sales",
-          },
-        ],
-      }),
-    );
-
-    expect(payload.integrations.slack[0]).toEqual({
-      id: "slack_1",
-      org_id: "org_1",
-      channel_name: "#sales",
-    });
-    expect(payload.integrations.slack[0]).not.toHaveProperty("webhook_url");
+  it("defaults to an empty dump when the function returns nothing", async () => {
+    makeSupabase({ org: ORG, rpcData: null });
+    const result = await buildDataExport("uuid-1");
+    expect(result.data).toEqual({});
   });
 
-  it("removes OAuth tokens from Hubspot, Gong, and CRM connection exports", () => {
-    const payload = buildDataExportPayload(
-      createRows({
-        hubspot_integrations: [
-          {
-            id: "hubspot_1",
-            org_id: "org_1",
-            access_token: "hubspot_access",
-            refresh_token: "hubspot_refresh",
-            portal_id: "123",
-          },
-        ],
-        gong_integrations: [
-          {
-            id: "gong_1",
-            org_id: "org_1",
-            access_token: "gong_access",
-            refresh_token: "gong_refresh",
-            instance_url: "https://api.gong.io",
-          },
-        ],
-        crm_connections: [
-          {
-            id: "crm_1",
-            org_id: "org_1",
-            provider: "hubspot",
-            access_token: "crm_access",
-            refresh_token: "crm_refresh",
-          },
-        ],
-      }),
-    );
-
-    expect(payload.integrations.hubspot[0]).not.toHaveProperty("access_token");
-    expect(payload.integrations.hubspot[0]).not.toHaveProperty("refresh_token");
-    expect(payload.integrations.gong[0]).not.toHaveProperty("access_token");
-    expect(payload.integrations.gong[0]).not.toHaveProperty("refresh_token");
-    expect(payload.integrations.crm_connections[0]).not.toHaveProperty(
-      "access_token",
-    );
-    expect(payload.integrations.crm_connections[0]).not.toHaveProperty(
-      "refresh_token",
-    );
+  it("throws when the organization is missing", async () => {
+    makeSupabase({ org: null });
+    await expect(buildDataExport("nope")).rejects.toThrow();
   });
 
-  it("sanitizes secrets from alert history payloads", () => {
-    const payload = buildDataExportPayload(
-      createRows({
-        alert_history: [
-          {
-            id: "alert_1",
-            org_id: "org_1",
-            payload: {
-              visible: "keep",
-              webhook_url: "https://hooks.slack.com/services/T/B/SECRET",
-              token: "secret",
-              api_key: "secret",
-              access_token: "secret",
-              refresh_token: "secret",
-            },
-          },
-        ],
-      }),
-    );
-
-    expect(payload.alert_history[0].payload).toEqual({ visible: "keep" });
+  it("propagates an export-function error", async () => {
+    makeSupabase({ org: ORG, rpcData: null, rpcError: new Error("rpc boom") });
+    await expect(buildDataExport("uuid-1")).rejects.toThrow(/rpc boom/);
   });
 });
