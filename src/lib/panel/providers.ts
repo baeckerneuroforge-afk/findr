@@ -76,4 +76,11 @@ export interface PanelProvider {
     providerStudyId: string,
     options: { projected: boolean },
   ): Promise<PanelStudyCost>;
+  /** Studie live schalten (E7) — GELD-NAH: macht den Draft für Teilnehmer
+   *  sichtbar und finanziert ihn aus dem Provider-Guthaben des Accounts.
+   *  Wird NIE automatisch aufgerufen, nur auf explizite Nutzer-Bestätigung. */
+  publishStudy?(
+    apiToken: string,
+    providerStudyId: string,
+  ): Promise<PanelStudySnapshot>;
 }

@@ -17,6 +17,7 @@ import type {
 import {
   coerceSubmissionCounts,
   parseProlificCalculatedCost,
+  parseProlificErrorMessage,
   parseProlificStudyCost,
   parseProlificStudySnapshot,
   type PanelStudyCost,
@@ -35,6 +36,10 @@ export class ProlificApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    /** Wörtliche Provider-Meldung (title/detail aus dem dokumentierten
+     *  Fehler-Envelope) — für die UI, z. B. bei unzureichendem Guthaben
+     *  beim Publish. null, wenn die Antwort keinen Envelope trug. */
+    public providerMessage: string | null = null,
   ) {
     super(message);
     this.name = "ProlificApiError";
@@ -348,5 +353,49 @@ export const prolificProvider: PanelProvider = {
       );
     }
     return cost;
+  },
+
+  // ── E7: Publish ──────────────────────────────────────────────────────
+  // Endpoint verifiziert gegen docs.prolific.com (api-reference/studies/
+  // publish-study.md, 2026-06-11): POST /studies/{id}/transition/ mit
+  // {"action":"PUBLISH"} → 200 + aktualisiertes Study-Objekt (inkl.
+  // status). Fehler: 400 mit dokumentiertem Envelope { error: { title,
+  // detail, … } } — eine spezifische Insufficient-Funds-Form ist NICHT
+  // dokumentiert, deshalb wird title/detail wörtlich als providerMessage
+  // durchgereicht (die UI zeigt Prolifics eigene Begründung).
+
+  async publishStudy(
+    apiToken: string,
+    providerStudyId: string,
+  ): Promise<PanelStudySnapshot> {
+    const response = await prolificFetch(
+      apiToken,
+      `/studies/${encodeURIComponent(providerStudyId)}/transition/`,
+      {
+        method: "POST",
+        body: JSON.stringify({ action: "PUBLISH" }),
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+    if (!response.ok) {
+      const providerMessage = parseProlificErrorMessage(
+        await response.json().catch(() => null),
+      );
+      throw new ProlificApiError(
+        `Prolific publish failed with status ${response.status}`,
+        response.status,
+        providerMessage,
+      );
+    }
+    const snapshot = parseProlificStudySnapshot(
+      await response.json().catch(() => null),
+    );
+    if (!snapshot) {
+      throw new ProlificApiError(
+        "Prolific publish returned no status",
+        response.status,
+      );
+    }
+    return snapshot;
   },
 };

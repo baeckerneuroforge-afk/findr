@@ -129,3 +129,39 @@ export function parseProlificStudyCost(json: unknown): PanelStudyCost | null {
   if (!found) return null;
   return { totalCents: Math.round(total), currency };
 }
+
+// ── E7: Fehler-Envelope ───────────────────────────────────────────────────────
+// Prolific-Fehler kommen dokumentiert als { error: { status, error_code,
+// title, detail, additional_information, traceback } } (verifiziert gegen
+// api-reference/studies/publish-study.md, 2026-06-11). Eine spezifische
+// Insufficient-Funds-Form ist NICHT dokumentiert — deshalb reichen wir
+// title/detail wörtlich an die UI durch, statt Fehlercodes zu raten.
+
+const MAX_PROVIDER_MESSAGE_LENGTH = 500;
+
+function asMessageString(value: unknown): string | null {
+  if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  if (Array.isArray(value)) {
+    const parts = value
+      .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+      .map((v) => v.trim());
+    return parts.length > 0 ? parts.join("; ") : null;
+  }
+  return null;
+}
+
+/** { error: { title, detail } } → menschenlesbare Provider-Meldung ("title:
+ *  detail", gekappt) — oder null, wenn nichts Brauchbares drinsteht. */
+export function parseProlificErrorMessage(json: unknown): string | null {
+  if (!json || typeof json !== "object") return null;
+  const envelope = (json as Record<string, unknown>).error;
+  if (!envelope || typeof envelope !== "object") return null;
+  const title = asMessageString((envelope as Record<string, unknown>).title);
+  const detail = asMessageString((envelope as Record<string, unknown>).detail);
+  const combined =
+    title && detail ? `${title}: ${detail}` : (title ?? detail);
+  if (!combined) return null;
+  return combined.length > MAX_PROVIDER_MESSAGE_LENGTH
+    ? `${combined.slice(0, MAX_PROVIDER_MESSAGE_LENGTH)}…`
+    : combined;
+}

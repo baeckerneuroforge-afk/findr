@@ -130,10 +130,53 @@ export function ProlificDraftPanel({
   // Kostenvorschau (E6) — gilt nur für die Eingaben, mit denen sie berechnet
   // wurde; Reward-/Places-Änderungen verwerfen sie (Stale-Schutz).
   const [estimateCents, setEstimateCents] = useState<number | null>(null);
+  // E7: zweistufiger Publish — erst expliziter Confirm-Schritt (geld-nah!),
+  // dann POST. findr published nie ohne diese Bestätigung.
+  const [confirmingPublish, setConfirmingPublish] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const canCreate =
     !disabled && credentialStatus === "connected" && openLink?.status === "active";
   const formVisible = panelStudy === null || showCreateForm;
+
+  // E7: Publish — die geld-nahe Aktion. Server erzwingt alle Preconditions
+  // erneut (inkl. Live-Status-Check gegen Doppel-Publish); hier nur UI-Fluss.
+  // Fehlertexte: Prolifics wörtliche Begründung (detail) hat Vorrang — z. B.
+  // bei unzureichendem Workspace-Guthaben.
+  async function handlePublish() {
+    setError(null);
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/research/plans/${planId}/panel/publish`, {
+        method: "POST",
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        status?: string;
+        error?: string;
+        detail?: string | null;
+        providerStatus?: string;
+      };
+      if (!res.ok || data.success === false) {
+        setError(
+          data.detail ??
+            (data.error === "not_unpublished" && data.providerStatus
+              ? `Study is no longer unpublished (current status: ${data.providerStatus}).`
+              : (data.error ?? "Could not publish the study.")),
+        );
+        // Bei Status-Konflikt den echten Stand nachladen — Badge und
+        // Publish-Sichtbarkeit richten sich dann nach der Wahrheit.
+        if (data.error === "not_unpublished") router.refresh();
+        return;
+      }
+      setConfirmingPublish(false);
+      router.refresh();
+    } catch {
+      setError("Could not publish the study.");
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   // E6: Kostenvorschau über Prolifics Kalkulator (Fees/VAT aus den
   // Account-Einstellungen — nichts hartkodiert). Kennt nur reward × places;
@@ -369,10 +412,55 @@ export function ProlificDraftPanel({
             </p>
           )}
           {!disabled && (
-            <div className="mt-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <Button variant="ghost" onClick={handleSync} disabled={syncing}>
                 {syncing ? "Refreshing..." : "Refresh status"}
               </Button>
+              {panelStudy.status === "UNPUBLISHED" &&
+                canCreate &&
+                panelCompletionConfigured &&
+                !confirmingPublish && (
+                  <Button
+                    onClick={() => {
+                      // Confirm öffnen UND frisch syncen — der Bestätigungs-
+                      // text soll die aktuellen projizierten Kosten zeigen.
+                      setConfirmingPublish(true);
+                      void handleSync();
+                    }}
+                    disabled={syncing || publishing}
+                  >
+                    Publish on Prolific…
+                  </Button>
+                )}
+            </div>
+          )}
+
+          {confirmingPublish && panelStudy.status === "UNPUBLISHED" && !disabled && (
+            <div className="mt-3 rounded-md border border-warning-500/40 bg-warning-50 px-3 py-3">
+              <p className="text-small font-medium text-neutral-900">
+                Publish this study on Prolific?
+              </p>
+              <p className="mt-1 text-small text-neutral-700">
+                This makes the study live for participants and funds it from
+                your Prolific workspace balance
+                {panelStudy.totalCostCents !== null
+                  ? ` — projected cost ${formatCents(panelStudy.totalCostCents)} (in your account's currency, incl. fees & VAT)`
+                  : " — refresh status to see the projected cost"}
+                . findr never publishes automatically; this action cannot be
+                undone from findr.
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button onClick={handlePublish} disabled={publishing || syncing}>
+                  {publishing ? "Publishing..." : "Yes, publish & fund now"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setConfirmingPublish(false)}
+                  disabled={publishing}
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
         </div>

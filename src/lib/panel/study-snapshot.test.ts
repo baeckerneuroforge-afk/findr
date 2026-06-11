@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   coerceSubmissionCounts,
   parseProlificCalculatedCost,
+  parseProlificErrorMessage,
   parseProlificStudyCost,
   parseProlificStudySnapshot,
 } from "./study-snapshot";
@@ -149,5 +150,50 @@ describe("parseProlificStudyCost", () => {
     expect(parseProlificStudyCost({})).toBeNull();
     expect(parseProlificStudyCost({ rewards: { rewards: { amount: -5 } } })).toBeNull();
     expect(parseProlificStudyCost("x")).toBeNull();
+  });
+});
+
+describe("parseProlificErrorMessage", () => {
+  it("combines title and string detail from the documented envelope", () => {
+    expect(
+      parseProlificErrorMessage({
+        error: {
+          status: 400,
+          error_code: 100,
+          title: "Insufficient funds",
+          detail: "Your workspace balance does not cover the study cost.",
+        },
+      }),
+    ).toBe(
+      "Insufficient funds: Your workspace balance does not cover the study cost.",
+    );
+  });
+
+  it("handles title-only, detail-only and array details", () => {
+    expect(parseProlificErrorMessage({ error: { title: "Bad request" } })).toBe(
+      "Bad request",
+    );
+    expect(
+      parseProlificErrorMessage({ error: { detail: ["a is required", "b too small"] } }),
+    ).toBe("a is required; b too small");
+  });
+
+  it("returns null for object details, empty envelopes and non-objects", () => {
+    expect(
+      parseProlificErrorMessage({ error: { detail: { field: ["nested"] } } }),
+    ).toBeNull();
+    expect(parseProlificErrorMessage({ error: {} })).toBeNull();
+    expect(parseProlificErrorMessage({})).toBeNull();
+    expect(parseProlificErrorMessage(null)).toBeNull();
+    expect(parseProlificErrorMessage("boom")).toBeNull();
+  });
+
+  it("caps overlong provider messages", () => {
+    const msg = parseProlificErrorMessage({
+      error: { title: "T", detail: "x".repeat(600) },
+    });
+    expect(msg).not.toBeNull();
+    expect(msg!.length).toBeLessThanOrEqual(501);
+    expect(msg!.endsWith("…")).toBe(true);
   });
 });
