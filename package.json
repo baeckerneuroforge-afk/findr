@@ -20,6 +20,7 @@
     "eval:synthesis": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-synthesis/run.ts",
     "eval:market-research": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-market-research/run.ts",
     "eval:research-saturation": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-research-saturation/run.ts",
+    "eval:turn-signals": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-turn-signals/run.ts",
     "eval:chat-with-data": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/chat-with-data/run.ts",
     "eval:guide-generator": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/guide-generator/run.ts",
     "eval:bridge-cs-research": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals/bridge-cs-research/run.ts",
