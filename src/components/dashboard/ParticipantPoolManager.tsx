@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Field, FIELD_INPUT_CLASS, FIELD_TEXTAREA_CLASS } from "@/components/ui/Field";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
+import { PoolCsvImport } from "@/components/dashboard/PoolCsvImport";
 
 /**
  * Pflege-Surface für den org-weiten Teilnehmer-Pool. Hält die Liste nach dem
@@ -337,6 +338,17 @@ export function ParticipantPoolManager({ initialMembers }: { initialMembers: Poo
           />
         </CardBody>
       </Card>
+
+      {/* CSV-Import — Power-Pfad unter dem manuellen Anlegen. Erfolgreich
+          angelegte Personen kommen als volle Records zurück; reverse +
+          prepend hält den lokalen State konsistent mit created_at DESC
+          (der Server legt sequenziell an → letzte Zeile = neuester
+          Timestamp). Kein router.refresh — der State bleibt autoritativ. */}
+      <PoolCsvImport
+        onImported={(imported) =>
+          setMembers((cur) => [...[...imported].reverse(), ...cur])
+        }
+      />
 
       {/* Bearbeiten — erscheint als eigene Karte, sobald in einer Zeile
           „Bearbeiten“ geklickt wird. key pro Member, damit der Feld-State

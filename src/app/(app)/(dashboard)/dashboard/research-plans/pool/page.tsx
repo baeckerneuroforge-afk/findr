@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
+import { getProlificCredentialSummary } from "@/lib/panel/service";
 import { listPoolMembers } from "@/lib/research/participant-pool";
 import { ParticipantPoolManager } from "@/components/dashboard/ParticipantPoolManager";
+import { PoolPanelsSection } from "@/components/dashboard/PoolPanelsSection";
 import { ENABLED_MODULES } from "@/config/modules";
 
 /**
@@ -29,7 +31,12 @@ export default async function ParticipantPoolPage() {
     throw err;
   }
 
-  const members = await listPoolMembers(orgId);
+  // Pool + Prolific-Verbindungsstatus parallel lesen — die Panels-Sektion
+  // unten zeigt nur Status/Links, der Credential-Read degradiert zu null.
+  const [members, credential] = await Promise.all([
+    listPoolMembers(orgId),
+    getProlificCredentialSummary(orgId),
+  ]);
   const t = await getTranslations("research.pool");
   const backHref = ENABLED_MODULES.productDiscovery
     ? "/dashboard/research-plans"
@@ -51,6 +58,8 @@ export default async function ParticipantPoolPage() {
       </div>
 
       <ParticipantPoolManager initialMembers={members} />
+
+      <PoolPanelsSection credential={credential} studiesHref={backHref} />
     </div>
   );
 }
