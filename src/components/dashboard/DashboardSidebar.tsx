@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -166,6 +166,23 @@ function panelId(labelKey: string): string {
   return `nav-group-${labelKey.split(".").pop() ?? labelKey}`;
 }
 
+/** Live prefers-reduced-motion subscription. SSR-safe (server snapshot =
+ *  false). Gleiche private Hook-Form wie in InterviewChat — bewusst lokal
+ *  statt Import aus dem Marketing-Baum (andere Domäne). */
+function subscribeReducedMotion(callback: () => void): () => void {
+  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  mq.addEventListener("change", callback);
+  return () => mq.removeEventListener("change", callback);
+}
+
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
+}
+
 function ChevronDownIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -188,15 +205,24 @@ function ChevronDownIcon({ className }: { className?: string }) {
  *  drift. `id` lets the accordion attach its aria-controls panel id; the flat
  *  workspace block omits it. Item pills are `rounded-lg` for a softer edge —
  *  the active treatment (bg-primary-50 / text-primary-700 / font-medium) is
- *  unchanged from before this polish pass. */
+ *  unchanged from before this polish pass.
+ *
+ *  `pillCarriesBg` (Konsole-v5, V5-5): true, sobald die gleitende Sidebar-
+ *  Pille armiert ist — dann trägt SIE die primary-50-Fläche und der aktive
+ *  Link behält nur Textfarbe/Gewicht (sonst läge dieselbe Farbe doppelt da
+ *  und der Glide bliebe unsichtbar). SSR / vor Mount / Reduced-Motion /
+ *  Workspace-Footer: Prop bleibt false → exakt heutige Optik als Fallback.
+ *  `data-nav-active` markiert den aktiven Link als Mess-Ziel der Pille. */
 function NavLinkList({
   items,
   pathname,
   id,
+  pillCarriesBg = false,
 }: {
   items: NavItem[];
   pathname: string;
   id?: string;
+  pillCarriesBg?: boolean;
 }) {
   const t = useTranslations("nav");
   return (
@@ -208,9 +234,12 @@ function NavLinkList({
             <Link
               href={item.href}
               aria-current={active ? "page" : undefined}
+              data-nav-active={active ? "true" : undefined}
               className={`block rounded-lg px-3 py-1.5 text-body transition-colors ${
                 active
-                  ? "bg-primary-50 text-primary-700 font-medium"
+                  ? `text-primary-700 font-medium${
+                      pillCarriesBg ? "" : " bg-primary-50"
+                    }`
                   : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
               }`}
             >
@@ -247,11 +276,13 @@ function NavSection({
   pathname,
   expanded,
   onToggle,
+  pillCarriesBg,
 }: {
   group: NavGroupDef;
   pathname: string;
   expanded: boolean;
   onToggle: () => void;
+  pillCarriesBg: boolean;
 }) {
   const t = useTranslations("nav");
   const id = panelId(group.labelKey);
@@ -282,7 +313,12 @@ function NavSection({
             expanded ? "opacity-100" : "opacity-0"
           }`}
         >
-          <NavLinkList items={group.items} pathname={pathname} id={id} />
+          <NavLinkList
+            items={group.items}
+            pathname={pathname}
+            id={id}
+            pillCarriesBg={pillCarriesBg}
+          />
         </div>
       </div>
     </div>
@@ -292,6 +328,26 @@ function NavSection({
 export default function DashboardSidebar() {
   const pathname = usePathname();
   const t = useTranslations("nav");
+  const reducedMotion = usePrefersReducedMotion();
+
+  // Gleitende Aktiv-Pille (Konsole-v5, V5-5). Armierung in zwei Schritten,
+  // damit nie ein Frame ohne Markierung entsteht: (1) der Mess-Effekt unten
+  // setzt die Pille UNTER den noch per Item-Klasse gefüllten aktiven Link
+  // (gleiche Farbe → pixelidentisch, unsichtbar), (2) erst der rAF-Tick
+  // flippt `pillArmed` und nimmt dem Item die Fläche — ab da trägt die Pille.
+  // setState im rAF-Callback (asynchron), nicht im Effekt-Body — Repo-Lint
+  // verbietet synchrones setState in Effekten. Reduced-Motion armiert nie:
+  // Items behalten dauerhaft die heutige statische Markierung.
+  const navRef = useRef<HTMLElement>(null);
+  const pillRef = useRef<HTMLSpanElement>(null);
+  const pillPlacedRef = useRef(false);
+  const [pillMounted, setPillMounted] = useState(false);
+  const pillOn = pillMounted && !reducedMotion;
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setPillMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   // Open accordion sections, keyed by group.labelKey. Seeded with the group
   // that holds the active route so a deep-link never lands inside a collapsed
@@ -336,6 +392,73 @@ export default function DashboardSidebar() {
     });
   };
 
+  // Pille positionieren — rein imperativ (Style-Writes auf dem Ref, KEIN
+  // setState → kein Render-Churn, kein set-state-in-effect). Misst den
+  // [data-nav-active]-Link relativ zum scrollenden <nav> und schreibt
+  // Content-Koordinaten (Rect-Differenz + scrollTop), damit die absolute
+  // Pille mit dem Inhalt scrollt. Animiert wird NUR transform/opacity (Breite/
+  // Höhe springen — alle Items sind gleich groß, Differenzen gibt es nicht zu
+  // sehen). Die Erstplatzierung läuft transitionslos, sonst gliite beim
+  // Armieren ein Fleck quer durch die Sidebar. Akkordeon-Toggles verschieben
+  // Items über 200 ms (grid-rows-Transition): sofort grob nachführen, das
+  // bubbelnde transitionend korrigiert auf die Endlage. Kein aktives Ziel im
+  // nav (z. B. Workspace-Routen) → Pille blendet aus; der eingeklappte Fall
+  // ist über das inert-Attribut der Panels erkennbar.
+  useEffect(() => {
+    const nav = navRef.current;
+    const pill = pillRef.current;
+    if (!nav || !pill) return;
+    if (reducedMotion) {
+      // Live-Umschalten auf Reduced-Motion: die Items tragen ab sofort wieder
+      // selbst die Fläche (pillOn=false) — die Pille darf nicht als
+      // verwaister Fleck an ihrer letzten Position stehen bleiben.
+      pill.style.opacity = "0";
+      return;
+    }
+
+    const position = () => {
+      const target = nav.querySelector<HTMLElement>('[data-nav-active="true"]');
+      if (!target || target.closest("[inert]")) {
+        pill.style.opacity = "0";
+        return;
+      }
+      const navRect = nav.getBoundingClientRect();
+      const rect = target.getBoundingClientRect();
+      const instant = !pillPlacedRef.current;
+      if (instant) pill.style.transition = "none";
+      pill.style.width = `${rect.width}px`;
+      pill.style.height = `${rect.height}px`;
+      pill.style.left = `${rect.left - navRect.left + nav.scrollLeft}px`;
+      pill.style.transform = `translateY(${
+        rect.top - navRect.top + nav.scrollTop
+      }px)`;
+      pill.style.opacity = "1";
+      if (instant) {
+        // Reflow erzwingen, damit die transitionslose Platzierung committed
+        // ist, BEVOR die Klassen-Transition wieder greift.
+        void pill.offsetWidth;
+        pill.style.transition = "";
+        pillPlacedRef.current = true;
+      }
+    };
+
+    position();
+
+    const onTransitionEnd = (event: TransitionEvent) => {
+      // Nur die Akkordeon-Höhenanimation verschiebt Items — Hover-Farb- und
+      // Chevron-Transitions bubbeln hier ständig durch und sind irrelevant.
+      if (event.propertyName !== "grid-template-rows") return;
+      position();
+    };
+    const onResize = () => position();
+    nav.addEventListener("transitionend", onTransitionEnd);
+    window.addEventListener("resize", onResize);
+    return () => {
+      nav.removeEventListener("transitionend", onTransitionEnd);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [reducedMotion, pathname, openGroups]);
+
   return (
     <aside className="fixed inset-y-0 left-0 flex w-60 flex-col border-r border-neutral-200 bg-white">
       {/* Logo */}
@@ -355,8 +478,21 @@ export default function DashboardSidebar() {
         </Link>
       </div>
 
-      {/* Primary nav — grouped by product module, each group collapsible */}
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+      {/* Primary nav — grouped by product module, each group collapsible.
+          `relative` macht das scrollende nav zum Containing Block der
+          gleitenden Aktiv-Pille (erstes Kind, paintet hinter allen späteren
+          Siblings — kein z-index nötig). Der Workspace-Footer unten liegt
+          bewusst AUSSERHALB: eigener Scroll-Kontext, behält die statische
+          Markierung („different kind of thing", wie sein Divider sagt). */}
+      <nav
+        ref={navRef}
+        className="relative flex-1 space-y-5 overflow-y-auto px-3 py-4"
+      >
+        <span
+          ref={pillRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-0 rounded-lg bg-primary-50 opacity-0 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+        />
         {/* „Heute“ — die Startseite (Konsole-v5, O9). Top-level und ohne
             Gruppe: der Einstieg bleibt immer sichtbar, nie hinter einem
             Akkordeon. Nur solange Sales Intelligence aus ist — bei
@@ -366,6 +502,7 @@ export default function DashboardSidebar() {
           <NavLinkList
             items={[{ href: "/dashboard", labelKey: "item.heute" }]}
             pathname={pathname}
+            pillCarriesBg={pillOn}
           />
         )}
         {VISIBLE_MODULES.map((group) => {
@@ -376,6 +513,7 @@ export default function DashboardSidebar() {
               pathname={pathname}
               expanded={openGroups.has(group.labelKey)}
               onToggle={() => toggleGroup(group.labelKey)}
+              pillCarriesBg={pillOn}
             />
           );
           // Market Research is set apart as its own "department" — purely
