@@ -7,6 +7,11 @@ import type {
   PlanSessionStatus,
   PlanSessionTranscript,
 } from "@/lib/research/plans-service";
+import type {
+  AffectState,
+  DirectnessLevel,
+  TurnSignal,
+} from "@/lib/schemas/turn-signals";
 
 /**
  * E7b (Konsole-v5): gemeinsame Transkript-Darstellung — aus der
@@ -22,6 +27,31 @@ const SESSION_STATUS_VARIANT: Record<PlanSessionStatus, BadgeVariant> = {
   open: "default",
   completed: "success",
   abandoned: "default",
+};
+
+/**
+ * E2 Turn-Signale — Chip-Farben. COPY-REGEL (Plan §4.4): Signale sind
+ * „Hinweis aus dem Wortlaut", nie ein Urteil — deshalb bewusst KEIN
+ * `critical`-Rot, und `declined` bleibt NEUTRAL grau (nicht antworten zu
+ * wollen ist eine legitime Antwort, kein schlechtes Signal). `neutral` und
+ * `direct` werden gar nicht erst gechipt (Default-Zustand ist kein Befund) —
+ * das hält das Transkript ruhig und macht jeden Chip bedeutsam.
+ */
+const AFFECT_VARIANT: Record<Exclude<AffectState, "neutral">, BadgeVariant> = {
+  enthusiasm: "success",
+  interest: "default",
+  uncertainty: "medium",
+  frustration: "high",
+  discomfort: "high",
+};
+
+const DIRECTNESS_VARIANT: Record<
+  Exclude<DirectnessLevel, "direct">,
+  BadgeVariant
+> = {
+  partial: "medium",
+  evasive: "high",
+  declined: "default",
 };
 
 function formatDateTime(iso: string, locale: string): string {
@@ -89,14 +119,144 @@ export async function SessionMetaBadges({
   );
 }
 
+/** E2 — Signal-Chips + Beleg-Disclosure einer Teilnehmer-Antwort. Rendert
+ *  NUR Abweichungen vom Default (neutral/direct = chip-frei), das Beleg-Zitat
+ *  + Konfidenz hinter einem nativen details-Disclosure (kein Client-JS, kein
+ *  Hydration-Risiko in der Server-Komponente). */
+function TurnSignalChips({
+  signal,
+  labels,
+}: {
+  signal: TurnSignal;
+  labels: {
+    affect: (a: Exclude<AffectState, "neutral">) => string;
+    intensity: (i: TurnSignal["affectIntensity"]) => string;
+    directness: (d: Exclude<DirectnessLevel, "direct">) => string;
+    details: string;
+    evidence: string;
+    openAspect: (aspect: string) => string;
+    confidence: (pct: number) => string;
+  };
+}) {
+  // Ternary-Narrows statt boolean-Flags — TypeScript trägt das Narrowing
+  // einer Union nicht über ein separates boolean in den JSX-Zweig.
+  const affect = signal.affect === "neutral" ? null : signal.affect;
+  const directness =
+    signal.directness === "direct" ? null : signal.directness;
+  if (affect === null && directness === null) return null;
+
+  const hasDisclosure =
+    (affect !== null && signal.affectEvidence !== null) ||
+    signal.unansweredAspect !== null;
+
+  return (
+    <div className="mt-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {affect !== null && (
+          <Badge variant={AFFECT_VARIANT[affect]}>
+            {labels.affect(affect)}
+            <span className="font-normal opacity-70">
+              · {labels.intensity(signal.affectIntensity)}
+            </span>
+          </Badge>
+        )}
+        {directness !== null && (
+          <Badge variant={DIRECTNESS_VARIANT[directness]}>
+            {labels.directness(directness)}
+          </Badge>
+        )}
+      </div>
+      {hasDisclosure && (
+        <details className="mt-1.5">
+          <summary className="cursor-pointer select-none text-caption text-neutral-400 transition-colors hover:text-neutral-600">
+            {labels.details}
+          </summary>
+          <div className="mt-1 space-y-0.5 text-caption text-neutral-500">
+            {affect !== null && signal.affectEvidence !== null && (
+              <p>
+                {labels.evidence}: „{signal.affectEvidence}“
+              </p>
+            )}
+            {signal.unansweredAspect !== null && (
+              <p>{labels.openAspect(signal.unansweredAspect)}</p>
+            )}
+            <p>{labels.confidence(Math.round(signal.confidence * 100))}</p>
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+/** E2 — kompakter Signal-Block überm Transkript: Affektbogen + Zählzeile +
+ *  Hinweis-Copy. Rendert NUR, wenn die Session ein Sidecar-Ergebnis trägt —
+ *  ältere Sessions / Toggle aus → null → Seite byte-identisch zu vorher. */
+export async function SessionSignalsCard({
+  session,
+}: {
+  session: PlanSessionTranscript;
+}) {
+  const record = session.turnSignals;
+  if (!record || record.turns.length === 0) return null;
+  const tm = await getTranslations("research.market");
+
+  return (
+    <Card>
+      <CardBody>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 className="text-body-strong text-neutral-900">
+            {tm("signalsTitle")}
+          </h2>
+          <span className="text-caption text-neutral-500">
+            {tm("signalsSummary", {
+              direct: record.session.directCount,
+              evasive: record.session.evasiveCount,
+              total: record.turns.length,
+            })}
+          </span>
+        </div>
+        <p className="mt-2 text-body text-neutral-700">
+          {record.session.affectArc}
+        </p>
+        <p className="mt-2 text-caption text-neutral-400">
+          {tm("signalsDisclaimer")}
+        </p>
+      </CardBody>
+    </Card>
+  );
+}
+
 /** Der Gesprächsverlauf — Interviewer links (neutral), Teilnehmer rechts
- *  (primary-Fläche), gespiegelte Chat-Leserichtung der Teilnehmer-Ansicht. */
+ *  (primary-Fläche), gespiegelte Chat-Leserichtung der Teilnehmer-Ansicht.
+ *  E2: trägt die Session Turn-Signale, bekommen Teilnehmer-Antworten ihre
+ *  Chips + Beleg-Disclosure; ohne Signale ist das Markup byte-identisch. */
 export async function SessionConversationCard({
   session,
 }: {
   session: PlanSessionTranscript;
 }) {
   const tm = await getTranslations("research.market");
+
+  // index → Signal; der Sidecar garantiert customer-Turn-Indizes (seal).
+  const signalsByIndex = new Map<number, TurnSignal>(
+    (session.turnSignals?.turns ?? []).map((t) => [t.index, t]),
+  );
+  const chipLabels = {
+    affect: (a: Exclude<AffectState, "neutral">) => tm(`signalsAffect.${a}`),
+    intensity: (i: TurnSignal["affectIntensity"]) =>
+      tm(`signalsIntensity.${i}`),
+    directness: (d: Exclude<DirectnessLevel, "direct">) =>
+      tm(`signalsDirectness.${d}`),
+    details: tm("signalsDetails"),
+    evidence: tm("signalsEvidence"),
+    openAspect: (aspect: string) => tm("signalsOpenAspect", { aspect }),
+    confidence: (pct: number) => tm("signalsConfidence", { pct }),
+  };
+  // Fußnote nur, wenn mindestens ein Chip sichtbar ist (Abweichung vom
+  // Default) — die Copy-Regel begleitet die Signale, nicht das Transkript.
+  const hasVisibleSignal = [...signalsByIndex.values()].some(
+    (s) => s.affect !== "neutral" || s.directness !== "direct",
+  );
 
   return (
     <Card>
@@ -106,39 +266,53 @@ export async function SessionConversationCard({
             {tm("transcriptEmpty")}
           </p>
         ) : (
-          <ol className="space-y-4">
-            {session.conversation.map((turn, i) => (
-              <li
-                key={i}
-                className={`flex ${
-                  turn.role === "customer" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-lg px-4 py-2.5 md:max-w-[70%] ${
-                    turn.role === "customer"
-                      ? "bg-primary-50 text-neutral-900"
-                      : "bg-neutral-100 text-neutral-900"
-                  }`}
-                >
-                  <div
-                    className={`text-caption font-medium uppercase tracking-wider ${
-                      turn.role === "customer"
-                        ? "text-primary-700"
-                        : "text-neutral-400"
+          <>
+            <ol className="space-y-4">
+              {session.conversation.map((turn, i) => {
+                const signal =
+                  turn.role === "customer" ? signalsByIndex.get(i) : undefined;
+                return (
+                  <li
+                    key={i}
+                    className={`flex ${
+                      turn.role === "customer" ? "justify-end" : "justify-start"
                     }`}
                   >
-                    {turn.role === "customer"
-                      ? tm("transcriptParticipantLabel")
-                      : tm("transcriptInterviewerLabel")}
-                  </div>
-                  <p className="mt-0.5 whitespace-pre-wrap text-body text-neutral-700">
-                    {turn.text}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
+                    <div
+                      className={`max-w-[85%] rounded-lg px-4 py-2.5 md:max-w-[70%] ${
+                        turn.role === "customer"
+                          ? "bg-primary-50 text-neutral-900"
+                          : "bg-neutral-100 text-neutral-900"
+                      }`}
+                    >
+                      <div
+                        className={`text-caption font-medium uppercase tracking-wider ${
+                          turn.role === "customer"
+                            ? "text-primary-700"
+                            : "text-neutral-400"
+                        }`}
+                      >
+                        {turn.role === "customer"
+                          ? tm("transcriptParticipantLabel")
+                          : tm("transcriptInterviewerLabel")}
+                      </div>
+                      <p className="mt-0.5 whitespace-pre-wrap text-body text-neutral-700">
+                        {turn.text}
+                      </p>
+                      {signal && (
+                        <TurnSignalChips signal={signal} labels={chipLabels} />
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+            {hasVisibleSignal && (
+              <p className="mt-4 border-t border-neutral-100 pt-3 text-caption text-neutral-400">
+                {tm("signalsDisclaimer")}
+              </p>
+            )}
+          </>
         )}
       </CardBody>
     </Card>

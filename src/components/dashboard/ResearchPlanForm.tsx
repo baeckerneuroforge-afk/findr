@@ -112,6 +112,11 @@ interface FormState {
   // the mic gesture that unlocks browser autoplay): the switch is disabled in
   // Text mode and switching back to Text clears it.
   ttsEnabled: boolean;
+  // E2 Turn-Signale opt-in. Default OFF. Sent as `signalsEnabled` (exact key)
+  // in the create/update body — backend flag + Sidecar-Gates (E1) existieren;
+  // dieses Formular füllt nur den Wert. Unabhängig vom Interaktionsmodus
+  // (die Analyse liest den Transkript-TEXT, Text- wie Voice-Interviews).
+  signalsEnabled: boolean;
   topics: TopicDraft[];
 }
 
@@ -271,6 +276,9 @@ const INITIAL_FORM: FormState = {
   stimulusDescription: "",
   // Default OFF — read-aloud is opt-in and only enabled while voice is on.
   ttsEnabled: false,
+  // Default OFF — Turn-Signale sind opt-in pro Studie (Plan §3.2); ein
+  // unberührtes Formular sendet false.
+  signalsEnabled: false,
   // Start with one empty topic so the editor isn't blank — encourages the
   // user to fill at least one in. Empty topics are dropped at submit time.
   topics: [emptyTopicDraft()],
@@ -459,6 +467,7 @@ export function ResearchPlanForm({
           visualCaptureEnabled: form.visualCaptureEnabled,
           voiceEnabled: form.voiceEnabled,
           ttsEnabled: form.ttsEnabled,
+          signalsEnabled: form.signalsEnabled,
           ...useCasePayload,
           ...studyTypePayload,
         }),
@@ -884,6 +893,7 @@ export function ResearchPlanForm({
               visualCaptureEnabled: form.visualCaptureEnabled,
               voiceEnabled: form.voiceEnabled,
               ttsEnabled: form.ttsEnabled,
+              signalsEnabled: form.signalsEnabled,
               ...useCasePayload,
               ...stimulusDescriptionPayload,
             }),
@@ -911,6 +921,7 @@ export function ResearchPlanForm({
           visualCaptureEnabled: form.visualCaptureEnabled,
           voiceEnabled: form.voiceEnabled,
           ttsEnabled: form.ttsEnabled,
+          signalsEnabled: form.signalsEnabled,
           ...useCasePayload,
           ...studyTypePayload,
           ...stimulusDescriptionPayload,
@@ -1141,6 +1152,46 @@ export function ResearchPlanForm({
               </p>
             </div>
           )}
+        </div>
+
+        {/* E2 Turn-Signale opt-in (default OFF) — exakt das Visual-Capture-
+            Kartenmuster. Für BEIDE study types sichtbar: die Analyse hängt am
+            research-Completion-Pfad, nicht am Studientyp. Schreibt
+            `signalsEnabled` (exact key) in den Submit-Body; Backend-Flag +
+            Sidecar-Gates (signals_enabled, Consent-Stempel) existieren (E1). */}
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <span className="block text-body-strong text-neutral-900">
+                {t("fldSignals")}
+              </span>
+              <span className="mt-1 block text-caption text-neutral-500">
+                {t("signalsHint")}
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-caption text-neutral-500">
+                {form.signalsEnabled ? t("signalsOn") : t("signalsOff")}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.signalsEnabled}
+                aria-label={t("fldSignals")}
+                onClick={() => update("signalsEnabled", !form.signalsEnabled)}
+                disabled={submitting}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                  form.signalsEnabled ? "bg-primary-600" : "bg-neutral-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                    form.signalsEnabled ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Stimulus — NUR bei needsStimulus (creative_test / concept_test).

@@ -58,6 +58,7 @@ const UpdatePlanBodySchema = z
     visualCaptureEnabled: z.boolean().optional(),
     voiceEnabled: z.boolean().optional(),
     ttsEnabled: z.boolean().optional(),
+    signalsEnabled: z.boolean().optional(),
     useCase: UseCaseSchema.nullable().optional(),
     stimulusUrl: z
       .string()
@@ -92,6 +93,7 @@ const UpdatePlanBodySchema = z
       data.visualCaptureEnabled !== undefined ||
       data.voiceEnabled !== undefined ||
       data.ttsEnabled !== undefined ||
+      data.signalsEnabled !== undefined ||
       data.useCase !== undefined ||
       data.stimulusUrl !== undefined ||
       data.stimulusType !== undefined ||
@@ -141,6 +143,7 @@ export async function PATCH(
       visualCaptureEnabled: parsed.data.visualCaptureEnabled,
       voiceEnabled: parsed.data.voiceEnabled,
       ttsEnabled: parsed.data.ttsEnabled,
+      signalsEnabled: parsed.data.signalsEnabled,
       useCase: parsed.data.useCase,
       stimulusUrl: parsed.data.stimulusUrl,
       stimulusType: parsed.data.stimulusType,

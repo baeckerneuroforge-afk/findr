@@ -10,6 +10,7 @@ import {
 import {
   SessionConversationCard,
   SessionMetaBadges,
+  SessionSignalsCard,
 } from "@/components/dashboard/SessionTranscriptView";
 import { ENABLED_MODULES } from "@/config/modules";
 
@@ -79,6 +80,9 @@ export default async function MarketSessionTranscriptPage({
         <p className="mt-1 text-small text-neutral-400">{plan.title}</p>
         <SessionMetaBadges session={session} className="mt-3" />
       </div>
+
+      {/* E2 — Signal-Block überm Transkript; rendert nur mit Sidecar-Befund. */}
+      <SessionSignalsCard session={session} />
 
       {/* Gesprächsverlauf — geteilter Baustein mit dem Drawer (E7b). */}
       <SessionConversationCard session={session} />

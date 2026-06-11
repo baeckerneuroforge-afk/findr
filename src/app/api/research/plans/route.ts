@@ -46,6 +46,7 @@ const CreatePlanBodySchema = z.object({
   visualCaptureEnabled: z.boolean().optional().default(false),
   voiceEnabled: z.boolean().optional().default(false),
   ttsEnabled: z.boolean().optional().default(false),
+  signalsEnabled: z.boolean().optional().default(false),
   useCase: UseCaseSchema.nullable().optional(),
   stimulusUrl: z
     .string()
@@ -103,6 +104,7 @@ export async function POST(req: NextRequest) {
       visualCaptureEnabled: parsed.data.visualCaptureEnabled,
       voiceEnabled: parsed.data.voiceEnabled,
       ttsEnabled: parsed.data.ttsEnabled,
+      signalsEnabled: parsed.data.signalsEnabled,
       useCase: parsed.data.useCase ?? null,
       stimulusUrl: parsed.data.stimulusUrl ?? null,
       stimulusType: parsed.data.stimulusType ?? null,
