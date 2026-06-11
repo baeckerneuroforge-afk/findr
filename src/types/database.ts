@@ -1041,6 +1041,7 @@ export type Database = {
           auto_start_post_loss_interview: boolean
           brand_name: string | null
           created_at: string
+          interview_retention_days: number | null
           logo_url: string | null
           org_id: string
           product_name: string | null
@@ -1051,6 +1052,7 @@ export type Database = {
           auto_start_post_loss_interview?: boolean
           brand_name?: string | null
           created_at?: string
+          interview_retention_days?: number | null
           logo_url?: string | null
           org_id: string
           product_name?: string | null
@@ -1061,6 +1063,7 @@ export type Database = {
           auto_start_post_loss_interview?: boolean
           brand_name?: string | null
           created_at?: string
+          interview_retention_days?: number | null
           logo_url?: string | null
           org_id?: string
           product_name?: string | null
