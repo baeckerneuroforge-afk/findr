@@ -106,6 +106,9 @@ export async function updatePanelStudySync(params: {
   providerStudyId: string;
   status: string;
   submissionCounts: Record<string, number>;
+  /** Projizierte Gesamtkosten in Cents (E6) — undefined lässt den
+   *  bestehenden Wert unangetastet (Kosten-Fetch ist im Sync fail-soft). */
+  totalCostCents?: number;
 }): Promise<PanelStudySummary | null> {
   const supabase = createResearchSupabase();
   const { data, error } = await supabase
@@ -114,6 +117,9 @@ export async function updatePanelStudySync(params: {
       status: params.status,
       submission_counts: params.submissionCounts as Json,
       last_synced_at: new Date().toISOString(),
+      ...(params.totalCostCents !== undefined
+        ? { total_cost_cents: params.totalCostCents }
+        : {}),
     })
     .eq("org_id", params.orgId)
     .eq("provider", params.provider)

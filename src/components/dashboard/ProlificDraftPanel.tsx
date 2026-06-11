@@ -19,7 +19,16 @@ interface PersistedPanelStudy {
   createdAt: string;
   /** Provider-Buckets → Anzahl (E5-Sync); null = noch nie synchronisiert. */
   submissionCounts: Record<string, number> | null;
+  /** Projizierte Gesamtkosten in Cents (E6, via Sync); null = nie geholt. */
+  totalCostCents: number | null;
   lastSyncedAt: string | null;
+}
+
+/** Cents → "12.34" — bewusst toFixed statt toLocaleString (deterministisch
+ *  zwischen Server-Pass und Client, kein Hydration-Drift). Die Währung kennt
+ *  nur der Prolific-Account; die Copy sagt das explizit dazu. */
+function formatCents(cents: number): string {
+  return (cents / 100).toFixed(2);
 }
 
 /** Anzeige-Reihenfolge der dokumentierten Prolific-Buckets; unbekannte
@@ -117,10 +126,54 @@ export function ProlificDraftPanel({
   // "Create another draft" bleibt als bewusste Handlung möglich.
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [estimating, setEstimating] = useState(false);
+  // Kostenvorschau (E6) — gilt nur für die Eingaben, mit denen sie berechnet
+  // wurde; Reward-/Places-Änderungen verwerfen sie (Stale-Schutz).
+  const [estimateCents, setEstimateCents] = useState<number | null>(null);
 
   const canCreate =
     !disabled && credentialStatus === "connected" && openLink?.status === "active";
   const formVisible = panelStudy === null || showCreateForm;
+
+  // E6: Kostenvorschau über Prolifics Kalkulator (Fees/VAT aus den
+  // Account-Einstellungen — nichts hartkodiert). Kennt nur reward × places;
+  // das Screen-out-Budget ist nicht enthalten (Disclaimer in der Anzeige).
+  async function handleEstimate() {
+    setError(null);
+    setEstimateCents(null);
+    const totalAvailablePlaces = readPositiveInt(totalPlaces, "Places");
+    const reward = readPositiveInt(rewardCents, "Reward");
+    if (totalAvailablePlaces === null || reward === null) return;
+
+    setEstimating(true);
+    try {
+      const res = await fetch(
+        `/api/research/plans/${planId}/panel/cost-estimate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rewardCents: reward,
+            totalAvailablePlaces,
+          }),
+        },
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        totalCostCents?: number;
+        error?: string;
+      };
+      if (!res.ok || data.success === false || typeof data.totalCostCents !== "number") {
+        setError(data.error ?? "Could not estimate cost.");
+        return;
+      }
+      setEstimateCents(data.totalCostCents);
+    } catch {
+      setError("Could not estimate cost.");
+    } finally {
+      setEstimating(false);
+    }
+  }
 
   // E5: manueller Sync — Status + Submission-Zähler von Prolific holen; das
   // Ergebnis kommt über router.refresh() als frische panelStudy-Prop zurück
@@ -303,6 +356,12 @@ export function ProlificDraftPanel({
               Submissions: {formatSubmissionCounts(panelStudy.submissionCounts)}
             </p>
           )}
+          {panelStudy.totalCostCents !== null && (
+            <p className="mt-1 text-neutral-700">
+              Projected cost: {formatCents(panelStudy.totalCostCents)} (in your
+              Prolific account&apos;s currency, incl. fees &amp; VAT)
+            </p>
+          )}
           {panelStudy.lastSyncedAt && (
             <p className="mt-1 text-caption text-neutral-500">
               Last synced {panelStudy.lastSyncedAt.slice(0, 16).replace("T", " ")}{" "}
@@ -350,7 +409,10 @@ export function ProlificDraftPanel({
         <NumberField
           label="Places"
           value={totalPlaces}
-          onChange={setTotalPlaces}
+          onChange={(v) => {
+            setTotalPlaces(v);
+            setEstimateCents(null);
+          }}
           disabled={disabled || creating}
         />
         <NumberField
@@ -362,7 +424,10 @@ export function ProlificDraftPanel({
         <NumberField
           label="Reward cents"
           value={rewardCents}
-          onChange={setRewardCents}
+          onChange={(v) => {
+            setRewardCents(v);
+            setEstimateCents(null);
+          }}
           disabled={disabled || creating}
         />
         <NumberField
@@ -381,9 +446,27 @@ export function ProlificDraftPanel({
       )}
 
       {formVisible && !disabled && (
-        <Button onClick={handleCreate} disabled={!canCreate || creating}>
-          {creating ? "Creating..." : "Create Prolific draft"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={handleCreate} disabled={!canCreate || creating}>
+            {creating ? "Creating..." : "Create Prolific draft"}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleEstimate}
+            disabled={!canCreate || creating || estimating}
+          >
+            {estimating ? "Estimating..." : "Estimate cost"}
+          </Button>
+        </div>
+      )}
+
+      {formVisible && estimateCents !== null && (
+        <p className="text-small text-neutral-700">
+          Estimated total: {formatCents(estimateCents)} (in your Prolific
+          account&apos;s currency, incl. fees &amp; VAT). Excludes the
+          screen-out budget — the final amount is shown in Prolific before
+          you publish and fund.
+        </p>
       )}
 
       {!formVisible && !disabled && (

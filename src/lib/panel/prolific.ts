@@ -16,7 +16,10 @@ import type {
 } from "./providers";
 import {
   coerceSubmissionCounts,
+  parseProlificCalculatedCost,
+  parseProlificStudyCost,
   parseProlificStudySnapshot,
+  type PanelStudyCost,
   type PanelStudySnapshot,
 } from "./study-snapshot";
 
@@ -281,5 +284,69 @@ export const prolificProvider: PanelProvider = {
       );
     }
     return counts;
+  },
+
+  // ── E6: Kosten-Capabilities ──────────────────────────────────────────
+  // Endpoints verifiziert gegen docs.prolific.com (api-reference/studies/
+  // calculate-study-cost.md + get-study-cost.md, 2026-06-11):
+  //   POST /study-cost-calculator/ { reward, total_available_places }
+  //     → { total_cost } in Cents, INKL. Fees+VAT aus den Account-
+  //     Einstellungen (keine Prozente im Code), Account-Währung.
+  //   GET /studies/{id}/cost/?is_projected= → StudyTotalCost-Breakdown.
+
+  async estimateCost(
+    apiToken: string,
+    input: { rewardCents: number; totalAvailablePlaces: number },
+  ): Promise<number> {
+    const response = await prolificFetch(apiToken, "/study-cost-calculator/", {
+      method: "POST",
+      body: JSON.stringify({
+        reward: input.rewardCents,
+        total_available_places: input.totalAvailablePlaces,
+      }),
+    });
+    if (!response.ok) {
+      throw new ProlificApiError(
+        `Prolific cost calculation failed with status ${response.status}`,
+        response.status,
+      );
+    }
+    const total = parseProlificCalculatedCost(
+      await response.json().catch(() => null),
+    );
+    if (total === null) {
+      throw new ProlificApiError(
+        "Prolific cost calculation returned an unexpected shape",
+        response.status,
+      );
+    }
+    return total;
+  },
+
+  async getStudyCost(
+    apiToken: string,
+    providerStudyId: string,
+    options: { projected: boolean },
+  ): Promise<PanelStudyCost> {
+    const response = await prolificFetch(
+      apiToken,
+      `/studies/${encodeURIComponent(providerStudyId)}/cost/?is_projected=${
+        options.projected ? "true" : "false"
+      }`,
+    );
+    if (!response.ok) {
+      throw new ProlificApiError(
+        `Prolific study cost failed with status ${response.status}`,
+        response.status,
+      );
+    }
+    const cost = parseProlificStudyCost(await response.json().catch(() => null));
+    if (!cost) {
+      throw new ProlificApiError(
+        "Prolific study cost returned an unexpected shape",
+        response.status,
+      );
+    }
+    return cost;
   },
 };

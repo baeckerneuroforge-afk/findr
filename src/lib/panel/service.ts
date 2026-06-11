@@ -225,9 +225,19 @@ export async function syncProlificStudyForPlan(
     throw new ProlificSyncError("sync_failed");
   }
 
-  const [snapshot, counts] = await Promise.all([
+  // E6: projizierte Kosten laufen im Sync mit — aber FAIL-SOFT (null bei
+  // Fehler): Status+Zähler sind der Kern des Syncs und sollen nicht an
+  // einem optionalen Kosten-Read scheitern; total_cost_cents behält dann
+  // einfach seinen letzten Stand.
+  const { getStudyCost } = prolificProvider;
+  const [snapshot, counts, cost] = await Promise.all([
     getStudy(token, study.providerStudyId),
     listSubmissionCounts(token, study.providerStudyId),
+    getStudyCost
+      ? getStudyCost(token, study.providerStudyId, { projected: true }).catch(
+          () => null,
+        )
+      : Promise.resolve(null),
   ]);
 
   const updated = await updatePanelStudySync({
@@ -236,7 +246,40 @@ export async function syncProlificStudyForPlan(
     providerStudyId: study.providerStudyId,
     status: snapshot.status,
     submissionCounts: counts,
+    ...(cost ? { totalCostCents: cost.totalCents } : {}),
   });
   if (!updated) throw new ProlificSyncError("sync_failed");
   return updated;
+}
+
+// ── E6: Kostenvorschau ───────────────────────────────────────────────────────
+
+export type ProlificEstimateErrorCode = "missing_credentials" | "estimate_failed";
+
+export class ProlificEstimateError extends Error {
+  constructor(public code: ProlificEstimateErrorCode) {
+    super(code);
+    this.name = "ProlificEstimateError";
+  }
+}
+
+/**
+ * Kostenvorschau VOR der Draft-Anlage (POST /study-cost-calculator/):
+ * Gesamtkosten in Cents inkl. Fees+VAT laut Prolific-Account-Einstellungen,
+ * in der Account-Währung (die Antwort trägt keinen Währungscode — die UI
+ * sagt das ehrlich dazu). Der Kalkulator kennt nur reward × places; das
+ * Screen-out-Budget ist NICHT enthalten (Disclaimer in der UI).
+ * ProlificApiError läuft zum Aufrufer durch (Route mappt wie üblich).
+ */
+export async function estimateProlificStudyCost(
+  orgId: string,
+  input: { rewardCents: number; totalAvailablePlaces: number },
+): Promise<number> {
+  const token = await getPanelCredentialToken(orgId, PROVIDER);
+  if (!token) throw new ProlificEstimateError("missing_credentials");
+
+  const { estimateCost } = prolificProvider;
+  if (!estimateCost) throw new ProlificEstimateError("estimate_failed");
+
+  return estimateCost(token, input);
 }

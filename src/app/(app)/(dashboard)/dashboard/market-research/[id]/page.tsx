@@ -953,6 +953,7 @@ export default async function MarketCampaignDetailPage({
                       status: prolificStudy.status,
                       createdAt: prolificStudy.createdAt,
                       submissionCounts: prolificStudy.submissionCounts,
+                      totalCostCents: prolificStudy.totalCostCents,
                       lastSyncedAt: prolificStudy.lastSyncedAt,
                     }
                   : null

@@ -1,5 +1,5 @@
 import type { PanelCompletion } from "@/lib/research/panel";
-import type { PanelStudySnapshot } from "./study-snapshot";
+import type { PanelStudyCost, PanelStudySnapshot } from "./study-snapshot";
 
 export const PANEL_PROVIDER_KEYS = ["prolific"] as const;
 export type PanelProviderKey = (typeof PANEL_PROVIDER_KEYS)[number];
@@ -63,4 +63,17 @@ export interface PanelProvider {
     apiToken: string,
     providerStudyId: string,
   ): Promise<Record<string, number>>;
+  /** Kostenvorschau VOR Anlage (E6) — Gesamtkosten in Cents inkl. Fees/VAT
+   *  laut Provider-Account-Einstellungen, in der Account-Währung. */
+  estimateCost?(
+    apiToken: string,
+    input: { rewardCents: number; totalAvailablePlaces: number },
+  ): Promise<number>;
+  /** Kosten einer EXISTIERENDEN Studie (E6; projected = Hochrechnung für
+   *  noch nicht abgeschlossene/angelaufene Studien). */
+  getStudyCost?(
+    apiToken: string,
+    providerStudyId: string,
+    options: { projected: boolean },
+  ): Promise<PanelStudyCost>;
 }
