@@ -215,6 +215,82 @@ function runChecks(
     }
   }
 
+  // (f) E4 methodology-gate — HART für Cases ohne Rationales (Server-Guard
+  // sealSynthesisExtras muss nullen; LLM-unabhängig), WARN-Qualität für
+  // Cases mit Rationales (Modell soll liefern; null = Qualitätssignal).
+  const hadRationales = Boolean(
+    testCase.input.rationales && testCase.input.rationales.length > 0,
+  );
+  if (!hadRationales) {
+    if (result.methodology === null) {
+      ok("methodology-gate — null without a rationales block (guard holds)");
+      passed++;
+    } else {
+      bad("methodology-gate — methodology present WITHOUT a rationales block (guard breached)");
+      failed++;
+    }
+  } else if (testCase.expected.expectMethodology) {
+    if (result.methodology !== null) {
+      ok(
+        `methodology — present (${result.methodology.themes.length} theme line(s)${result.methodology.coverageNote ? ", coverage note set" : ""})`,
+      );
+      passed++;
+    } else {
+      warn("methodology — null despite supplied rationales (model quality)");
+      warned++;
+    }
+  }
+
+  // (g) E4 signal-observations-gate — spiegelbildlich: HART leer ohne
+  // Faktenblock; mit Block 1–3 erwartet + Zahlen-Treue als WARN-Heuristik
+  // (jede Zahl in einer Observation muss im Faktenblock vorkommen).
+  const hadSignals = Boolean(testCase.input.signals);
+  if (!hadSignals) {
+    if (result.signal_observations.length === 0) {
+      ok("signal-observations-gate — empty without a signals block (guard holds)");
+      passed++;
+    } else {
+      bad("signal-observations-gate — observations WITHOUT a signals block (guard breached)");
+      failed++;
+    }
+  } else if (testCase.expected.expectSignalObservations) {
+    const obs = result.signal_observations;
+    if (obs.length >= 1 && obs.length <= 3) {
+      const s = testCase.input.signals!.summary;
+      const allowedNumbers = new Set(
+        [
+          s.totalSessions,
+          s.signalSessions,
+          s.totalAnswers,
+          s.direct,
+          s.partial,
+          s.evasive,
+          s.declined,
+          s.whySessions,
+          ...Object.values(s.affects),
+        ].map(String),
+      );
+      const strayNumbers = obs.flatMap(
+        (o) => (o.match(/\d+/g) ?? []).filter((n) => !allowedNumbers.has(n)),
+      );
+      if (strayNumbers.length === 0) {
+        ok(`signal-observations — ${obs.length} observation(s), all counts verbatim from the facts block`);
+        passed++;
+      } else {
+        warn(
+          `signal-observations — ${obs.length} observation(s), but number(s) not in the facts block: ${strayNumbers.slice(0, 4).join(", ")}`,
+        );
+        warned++;
+      }
+      for (const o of obs) dim(`  ◦ ${o}`);
+    } else {
+      warn(
+        `signal-observations — got ${obs.length}, expected 1–3 despite supplied facts block (model quality)`,
+      );
+      warned++;
+    }
+  }
+
   return { passed, warned, failed };
 }
 

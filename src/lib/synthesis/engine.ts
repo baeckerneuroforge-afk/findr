@@ -31,6 +31,7 @@ import {
   type SynthesisInsightInput,
   type SynthesisPlanContext,
 } from "./prompts";
+import { loadSynthesisSignalInputs } from "./signals";
 
 /**
  * Stage-2 Study-Synthesis engine. Reads all product_discovery_insights of
@@ -111,6 +112,11 @@ type StudySynthesisRow = {
   synthesized_at: string | null;
   model: string | null;
   created_at: string;
+  // E4 (20260704000003) — additive, nullable; geschrieben nur vom
+  // best-effort Zweit-UPDATE in synthesizeStudy (pre-migration-safe).
+  methodology: Json | null;
+  signals_summary: Json | null;
+  signal_observations: Json | null;
 };
 
 type StudySynthesisInsert = {
@@ -124,6 +130,9 @@ type StudySynthesisInsert = {
   synthesized_at?: string | null;
   model?: string | null;
   created_at?: string;
+  methodology?: Json | null;
+  signals_summary?: Json | null;
+  signal_observations?: Json | null;
 };
 
 type StudySynthesisUpdate = Partial<StudySynthesisInsert>;
@@ -359,6 +368,27 @@ function applyAnchoredFilter(
     overview: raw.overview,
     emergent_themes: themes,
     tensions,
+    methodology: raw.methodology,
+    signal_observations: raw.signal_observations,
+  };
+}
+
+/**
+ * E4 — Server-Guard für die additiven Felder: was der Prompt nicht als Input
+ * trug, darf das Modell nicht behaupten. Ohne RATIONALES-Block wird
+ * methodology hart genullt, ohne SIGNALS-Block werden signal_observations
+ * hart geleert — kein Halluzinations-Fenster, unabhängig vom Modell.
+ * Pure Funktion, exported for unit tests.
+ */
+export function sealSynthesisExtras(
+  result: StudySynthesisResult,
+  hadSignals: boolean,
+  hadRationales: boolean,
+): StudySynthesisResult {
+  return {
+    ...result,
+    methodology: hadRationales ? result.methodology : null,
+    signal_observations: hadSignals ? result.signal_observations : [],
   };
 }
 
@@ -411,8 +441,14 @@ export async function synthesizeFromInputs(
 
   // Anchored-filter (UNCHANGED): drop quotes/themes the model didn't ground in
   // the supplied insights — the synthesis anti-hallucination calibration, not
-  // part of the transport change.
-  return applyAnchoredFilter(raw, anchors);
+  // part of the transport change. E4 layert den Extras-Guard darüber:
+  // methodology/signal_observations existieren nur, wenn ihre Input-Blöcke
+  // tatsächlich geliefert wurden.
+  return sealSynthesisExtras(
+    applyAnchoredFilter(raw, anchors),
+    Boolean(input.signals),
+    Boolean(input.rationales && input.rationales.length > 0),
+  );
 }
 
 // ── DB-driven entry ─────────────────────────────────────────────────────────
@@ -513,7 +549,22 @@ export async function synthesizeStudy(
     sentiment: r.sentiment,
   }));
 
-  const synthesis = await synthesizeFromInputs({ plan, insights }, model);
+  // E4 — Signal-/Rationale-Inputs (Turn-Signale E1 + WHY-Rationales E3).
+  // Fail-open im Loader: jeder Lesefehler ergibt null-Blöcke und die
+  // Kern-Synthese läuft byte-identisch zu vor E4 (Plan §4.7: „kein neues
+  // Datenmaterial, nur bereits abgeleitete Felder").
+  const signalInputs = await loadSynthesisSignalInputs(orgId, planId);
+
+  const synthesis = await synthesizeFromInputs(
+    {
+      plan,
+      insights,
+      signals: signalInputs.signals,
+      rationales: signalInputs.rationales,
+      rationaleCoverage: signalInputs.rationaleCoverage,
+    },
+    model,
+  );
 
   // Upsert on UNIQUE (org_id, plan_id) — re-run overwrites; no history.
   const synthesizedAt = new Date().toISOString();
@@ -536,6 +587,27 @@ export async function synthesizeStudy(
   if (upsertErr) {
     throw new StudySynthesisUnavailableError(
       `Failed to upsert study_synthesis: ${upsertErr.message}`,
+    );
+  }
+
+  // E4 — die additiven Felder als best-effort Zweit-UPDATE (Muster E0-
+  // Consent-Stempel): vor Anwendung der Migration 20260704000003 schlägt
+  // NUR dieses UPDATE fehl (geloggt) — der Kern-Upsert oben bleibt der
+  // unveränderte, harte Pfad. signals_summary trägt die SERVER-Zahlen
+  // (signalInputs), signal_observations/methodology die LLM-Formulierungen;
+  // die UI zeigt Kennzahlen ausschließlich aus signals_summary.
+  const { error: extrasErr } = await supabase
+    .from("study_synthesis")
+    .update({
+      methodology: synthesis.methodology as unknown as Json,
+      signals_summary: (signalInputs.signals?.summary ?? null) as unknown as Json,
+      signal_observations: synthesis.signal_observations as unknown as Json,
+    })
+    .eq("org_id", orgId)
+    .eq("plan_id", planId);
+  if (extrasErr) {
+    console.warn(
+      `[synthesis] E4 extras update failed (migration 20260704000003 applied?): ${extrasErr.message}`,
     );
   }
 

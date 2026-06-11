@@ -340,6 +340,88 @@ export default async function ResearchPlanSynthesisPage({
             )}
           </section>
 
+          {/* E4 — Antwort-Signale (Kennzahlen NUR aus signals_summary, dem
+              server-berechneten Block — nie aus LLM-Text) + Methodik-Abschnitt
+              („Warum wurde was gefragt?", aus den echten WHY-Rationales E3).
+              Beide rendern nur mit Befund — Bestands-Synthesen byte-identisch. */}
+          {synthesis.signals_summary && (
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-h2 text-neutral-900">
+                  {t("signalsTitle")}
+                </h2>
+                <p className="text-body text-neutral-500">
+                  {t("signalsSessions", {
+                    signalSessions: synthesis.signals_summary.signalSessions,
+                    totalSessions: synthesis.signals_summary.totalSessions,
+                  })}
+                </p>
+              </div>
+              <Card>
+                <CardBody className="space-y-3">
+                  <p className="text-body-strong text-neutral-900">
+                    {t("signalsAnswers", {
+                      total: synthesis.signals_summary.totalAnswers,
+                      direct: synthesis.signals_summary.direct,
+                      partial: synthesis.signals_summary.partial,
+                      evasive: synthesis.signals_summary.evasive,
+                      declined: synthesis.signals_summary.declined,
+                    })}
+                  </p>
+                  {synthesis.signal_observations.length > 0 && (
+                    <ul className="list-disc space-y-1 pl-5 text-body text-neutral-700">
+                      {synthesis.signal_observations.map((obs, i) => (
+                        <li key={`obs-${i}`}>{obs}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="text-caption text-neutral-400">
+                    {t("signalsDisclaimer")}
+                  </p>
+                </CardBody>
+              </Card>
+            </section>
+          )}
+
+          {synthesis.methodology && (
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-h2 text-neutral-900">
+                  {t("methodologyTitle")}
+                </h2>
+                <p className="text-body text-neutral-500">
+                  {t("methodologyDesc")}
+                </p>
+              </div>
+              <Card>
+                <CardBody className="space-y-3">
+                  <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-700">
+                    {synthesis.methodology.summary}
+                  </p>
+                  {synthesis.methodology.themes.length > 0 && (
+                    <dl className="space-y-2">
+                      {synthesis.methodology.themes.map((mt, i) => (
+                        <div key={`mtheme-${i}`}>
+                          <dt className="text-body-strong text-neutral-900">
+                            {mt.topic}
+                          </dt>
+                          <dd className="text-body text-neutral-700">
+                            {mt.rationale}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                  {synthesis.methodology.coverageNote && (
+                    <p className="text-caption text-neutral-400">
+                      {synthesis.methodology.coverageNote}
+                    </p>
+                  )}
+                </CardBody>
+              </Card>
+            </section>
+          )}
+
           {synthesis.model && (
             <p className="text-caption text-neutral-400">
               {t("model", { model: synthesis.model })}

@@ -190,6 +190,69 @@ export function normalizeTensions(value: unknown): Tension[] {
   });
 }
 
+// ── E4: Methodik-Abschnitt („Warum wurde was gefragt?") ────────────────────
+
+/** Eine thematische Fragelinie der Studie mit ihrer aggregierten Begründung —
+ *  aus den ECHTEN per-Frage-Rationales (E3 WHY-Header), nie post-hoc. */
+const MethodologyThemeSchema = z.object({
+  topic: z
+    .string()
+    .min(2)
+    .max(160)
+    .describe(
+      "Short label of one line of questioning (a plan topic or recurring probe focus) — NOT a single question.",
+    ),
+  rationale: z
+    .string()
+    .min(1)
+    .max(400)
+    .describe(
+      "1-2 sentences aggregating WHY this line was pursued, grounded ONLY in the supplied QUESTION RATIONALES. Method-focused, never a judgment about participants.",
+    ),
+});
+
+export const MethodologySchema = z.object({
+  summary: z
+    .string()
+    .min(1)
+    .max(800)
+    .describe(
+      "2-3 sentences for the researcher: how the interviewer steered this study overall, based ONLY on the supplied rationales.",
+    ),
+  themes: z.array(MethodologyThemeSchema).max(8).default([]),
+  coverageNote: z
+    .string()
+    .max(300)
+    .nullable()
+    .default(null)
+    .describe(
+      "Honest coverage statement when rationales are missing for some sessions (e.g. 'Begründungen lagen für 4 von 9 Interviews vor'). Null when all sessions carried rationales.",
+    ),
+});
+export type Methodology = z.infer<typeof MethodologySchema>;
+
+/** Lenienter Read-Mapper (Stil normalizeEmergentThemes): persistierte
+ *  methodology-JSONB → Methodology | null, niemals werfen. */
+export function normalizeMethodology(value: unknown): Methodology | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const m = value as Record<string, unknown>;
+  if (typeof m.summary !== "string" || m.summary.trim() === "") return null;
+  const themes = Array.isArray(m.themes)
+    ? m.themes.flatMap((t) => {
+        if (!t || typeof t !== "object" || Array.isArray(t)) return [];
+        const theme = t as Record<string, unknown>;
+        if (typeof theme.topic !== "string" || typeof theme.rationale !== "string")
+          return [];
+        return [{ topic: theme.topic, rationale: theme.rationale }];
+      })
+    : [];
+  return {
+    summary: m.summary,
+    themes,
+    coverageNote: typeof m.coverageNote === "string" ? m.coverageNote : null,
+  };
+}
+
 // ── Top-level synthesis result ──────────────────────────────────────────────
 
 export const StudySynthesisResultSchema = z.object({
@@ -207,6 +270,27 @@ export const StudySynthesisResultSchema = z.object({
    *  the correct answer. NEVER manufacture a counter-side to balance
    *  a theme; if every respondent agrees, tensions stays empty. */
   tensions: z.array(TensionSchema).max(6).default([]),
+  /** E4 — „Warum wurde was gefragt?" aus den echten WHY-Rationales (E3).
+   *  NULL ist der Pflicht-Default, wenn der User-Prompt keinen
+   *  QUESTION-RATIONALES-Block trägt; die Engine erzwingt das zusätzlich
+   *  server-seitig (sealSynthesisExtras) — kein Halluzinations-Fenster. */
+  methodology: MethodologySchema.nullable().default(null),
+  /** E4 — max. 3 Signal-Beobachtungen, formuliert AUSSCHLIESSLICH aus dem
+   *  server-berechneten TURN-SIGNALS-Faktenblock (Zahlen wörtlich; Hinweis-
+   *  Sprache, nie Personen-Urteile). Leer, wenn kein Block geliefert wurde —
+   *  auch das erzwingt die Engine server-seitig. */
+  signal_observations: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .max(400)
+        .describe(
+          "One observation grounded in the supplied TURN SIGNALS facts, e.g. 'Bei Preisfragen wichen 4 von 12 Antworten aus.' Copy counts verbatim from the facts; phrase as a text-derived hint, never a judgment about persons.",
+        ),
+    )
+    .max(3)
+    .default([]),
 });
 
 export type StudySynthesisResult = z.infer<typeof StudySynthesisResultSchema>;
