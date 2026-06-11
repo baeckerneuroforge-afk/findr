@@ -112,6 +112,10 @@ export interface VoiceTurnInput {
   index: number;
   role: "agent" | "customer";
   text: string;
+  /** E5 Frage-Rationale — die WHY-Schlusszeile des Voice-Agenten, vom
+   *  Route-Layer bereits auf Agent-Turns beschränkt und auf 300 Zeichen
+   *  gecappt. Optional: alte Agent-Versionen liefern das Feld nicht. */
+  why?: string;
 }
 
 export type AppendVoiceTurnsResult =
@@ -128,7 +132,8 @@ export type AppendVoiceTurnsResult =
  *   index <  länge  → bereits gespeichert → SKIP (Idempotenz bei Re-Delivery;
  *                     der erste Schreiber pro Index gewinnt, Inhalt wird nicht
  *                     überschrieben)
- *   index == länge  → APPEND als { role, text } (exakt die Text-Interview-Form)
+ *   index == länge  → APPEND als { role, text, why? } (exakt die Text-
+ *                     Interview-Form; why nur auf Agent-Turns, E5)
  *   index >  länge  → Lücke → Fehler mit expectedIndex, damit der Agent die
  *                     fehlenden Turns nachsendet (kein Lücken-Auffüllen)
  *
@@ -166,7 +171,14 @@ export async function appendVoiceTurns(
         turnCount: conversation.length,
       };
     }
-    conversation.push({ role: turn.role, text: turn.text });
+    // E5: why additiv am Agent-Turn — exakt die Form, die der Text-Pfad
+    // (advanceInterview, E3) schreibt; Forscher-UI und Synthese-Methodik
+    // lesen Voice-Turns damit ohne jede weitere Änderung.
+    conversation.push(
+      turn.role === "agent" && turn.why
+        ? { role: turn.role, text: turn.text, why: turn.why }
+        : { role: turn.role, text: turn.text },
+    );
     appended += 1;
   }
 
