@@ -7,15 +7,16 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 
 /**
- * Per-row "Löschen" button for the Participants table. Calls DELETE
- * /api/research/plans/[planId]/participants/[participantId], then
+ * Per-row participant actions for the Participants table: "Löschen"
+ * (remove from list, keep the interview as a research artifact) and
+ * "Daten löschen" (GDPR erasure — also wipes the transcript/analysis via
+ * DELETE …?erase=true). Both confirm, call the participant endpoint, then
  * router.refresh so the server-rendered table loses the row.
  *
  * Guardrails:
- *  - window.confirm dialog with the participant's display label and a
- *    note that completed-session data stays (FK is ON DELETE SET NULL,
- *    so the interview transcript is preserved even after the invite is
- *    gone — see route.ts header for the rationale).
+ *  - window.confirm dialog with the participant's display label. The
+ *    remove copy notes the session is preserved (FK ON DELETE SET NULL);
+ *    the erase copy warns the deletion is irreversible.
  *  - `disabled` mirrors what the surrounding row knows: archived plans
  *    lock all actions, so the delete-button gets locked too. Keeps the
  *    affordance honest about which rows are still mutable.
@@ -47,20 +48,26 @@ export function DeleteParticipantButton({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleDelete() {
-    // Native confirm is intentional — accessible, no design system
-    // dependency, and the destructive copy stays in one place. The
-    // German copy explicitly mentions the preserved-session edge case
-    // so the user isn't surprised later when they find an orphaned
-    // session.
-    const ok = window.confirm(t("confirmDelete", { name: contactLabel }));
+  // Shared handler for both actions. `erase` selects GDPR erasure
+  // (?erase=true, also wipes the interview sessions) vs. the default
+  // remove-from-list. Native confirm is intentional — accessible, no
+  // design-system dependency, destructive copy in one place.
+  async function runDelete(erase: boolean) {
+    const ok = window.confirm(
+      erase
+        ? t("confirmEraseData", { name: contactLabel })
+        : t("confirmDelete", { name: contactLabel }),
+    );
     if (!ok) return;
 
+    const errKey = erase ? "errEraseParticipant" : "errDeleteParticipant";
     setError(null);
     setSubmitting(true);
     try {
       const res = await fetch(
-        `/api/research/plans/${planId}/participants/${participantId}`,
+        `/api/research/plans/${planId}/participants/${participantId}${
+          erase ? "?erase=true" : ""
+        }`,
         { method: "DELETE" },
       );
       const data = (await res.json().catch(() => ({}))) as {
@@ -68,13 +75,11 @@ export function DeleteParticipantButton({
         success?: boolean;
       };
       if (!res.ok || !data.success) {
-        throw new Error(data.error ?? t("errDeleteParticipant"));
+        throw new Error(data.error ?? t(errKey));
       }
       router.refresh();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("errDeleteParticipant"),
-      );
+      setError(err instanceof Error ? err.message : t(errKey));
       setSubmitting(false);
     }
     // No setSubmitting(false) on success — the row disappears after
@@ -83,16 +88,28 @@ export function DeleteParticipantButton({
 
   return (
     <div className="space-y-1">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleDelete}
-        disabled={disabled || submitting}
-        aria-label={t("deleteAria", { name: contactLabel })}
-        className="text-danger-700 hover:bg-danger-50"
-      >
-        {submitting ? tc("deleting") : tc("deleteLabel")}
-      </Button>
+      <div className="flex flex-wrap gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => runDelete(false)}
+          disabled={disabled || submitting}
+          aria-label={t("deleteAria", { name: contactLabel })}
+          className="text-danger-700 hover:bg-danger-50"
+        >
+          {submitting ? tc("deleting") : tc("deleteLabel")}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => runDelete(true)}
+          disabled={disabled || submitting}
+          aria-label={t("eraseDataAria", { name: contactLabel })}
+          className="text-danger-700 hover:bg-danger-50"
+        >
+          {tc("eraseDataLabel")}
+        </Button>
+      </div>
       {error && (
         <div className="text-caption text-danger-700">{error}</div>
       )}

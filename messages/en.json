@@ -965,6 +965,7 @@
       "edit": "Edit",
       "remove": "Remove",
       "deleteLabel": "Delete",
+      "eraseDataLabel": "Erase data",
       "deleting": "Deleting…",
       "all": "All"
     },
@@ -1404,6 +1405,9 @@
       "confirmDelete": "Really delete participant \"{name}\"?\n\nInterviews already conducted (transcripts, analysis) are preserved – only the link to the plan is removed.",
       "errDeleteParticipant": "Could not delete the participant.",
       "deleteAria": "Delete participant {name}",
+      "eraseDataAria": "Erase all data for {name}",
+      "confirmEraseData": "Permanently erase all data for “{name}”?\\n\\nThe interview transcript and analysis will be irreversibly deleted (GDPR erasure). This cannot be undone.",
+      "errEraseParticipant": "Could not erase the participant's data.",
       "noLinkAria": "No link",
       "copyError": "Couldn't copy",
       "copyAria": "Copy interview link",

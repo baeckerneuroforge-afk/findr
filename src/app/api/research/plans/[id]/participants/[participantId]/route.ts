@@ -17,22 +17,26 @@ import { getResearchPlan } from "@/lib/research/plans-service";
  * *that* org), which is one more guardrail than the existing
  * /api/research/invites/[id]/* routes that scope only by orgId+inviteId.
  *
- * FK behavior on cascade: interview_sessions.research_invite_id has
- * ON DELETE SET NULL (migration 20260612), so deleting an invite that
- * already kicked off (or even completed) a session does NOT delete the
- * session — the session row stays and its research_invite_id becomes
- * null. That's the intended semantics: the conversation/analysis data is
- * preserved as a research artifact even if the inviter "removed the
- * participant" from the plan list. If a user actually wanted to wipe the
- * data too, they'd need to delete the session as well — out of scope for
- * this v1 endpoint.
+ * Two modes, selected by the `?erase=true` query flag:
+ *  - default ("remove from list"): hard-delete the research_invites row.
+ *    interview_sessions.invite_id is ON DELETE SET NULL, so a completed
+ *    session is PRESERVED as a research artifact — its invite_id just
+ *    becomes null.
+ *  - erase=true (GDPR right-to-erasure): additionally hard-delete the
+ *    participant's interview_sessions (transcript, analysis, screening
+ *    answers) BEFORE the invite — once the invite is gone the FK is nulled
+ *    and the link is lost, so order matters. The reusable participant_pool
+ *    identity (if any) is intentionally kept; erasing it is a pool-
+ *    management concern that can span other studies. Sessions orphaned by a
+ *    prior non-erase delete (invite_id already null) can't be targeted here
+ *    and are removed only by the org-level data deletion.
  *
  * Auth: requireOrgIdOrError + plan-ownership (mirrors POST /invites).
  * Returns 404 (not 403) for cross-org probes so the response doesn't
  * leak existence.
  */
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; participantId: string }> },
 ) {
   const t = await getTranslations("errors");
@@ -41,6 +45,7 @@ export async function DELETE(
   const { orgId } = orgOrError;
 
   const { id: planId, participantId } = await params;
+  const erase = new URL(req.url).searchParams.get("erase") === "true";
 
   // Step 1: confirm the plan belongs to this org. Returns 404 for
   // cross-org probes (consistent with POST /invites).
@@ -52,12 +57,38 @@ export async function DELETE(
     );
   }
 
-  // Step 2: scoped DELETE. The triple filter (id + plan_id + org_id) is
-  // belt-and-braces — RLS plus the explicit org_id eq plus the
-  // plan_id eq plus the id eq means we cannot accidentally hit another
-  // org's invite if some part of the chain is misconfigured. Returns
-  // 404 if no row matched (wrong plan, wrong org, or already deleted).
   const supabase = createResearchSupabase();
+
+  // Step 2 (erase=true only): GDPR erasure of the participant's interview
+  // sessions (transcript, analysis, screening answers). Done BEFORE the
+  // invite delete — interview_sessions.invite_id is ON DELETE SET NULL, so
+  // once the invite is gone the link is lost. Triple-filtered for safety.
+  let sessionsDeleted = 0;
+  if (erase) {
+    const { data: erasedSessions, error: eraseError } = await supabase
+      .from("interview_sessions")
+      .delete()
+      .eq("invite_id", participantId)
+      .eq("plan_id", planId)
+      .eq("org_id", orgId)
+      .select("id");
+    if (eraseError) {
+      console.error(
+        `[DELETE participant] session erase failed for invite ${participantId} on plan ${planId}:`,
+        eraseError.message,
+      );
+      return NextResponse.json(
+        { error: t("research.couldNotDeleteParticipant") },
+        { status: 500 },
+      );
+    }
+    sessionsDeleted = erasedSessions?.length ?? 0;
+  }
+
+  // Step 3: scoped DELETE of the invite. The triple filter (id + plan_id +
+  // org_id) is belt-and-braces — RLS plus the explicit eqs mean we cannot
+  // hit another org's invite if some part of the chain is misconfigured.
+  // Returns 404 if no row matched (wrong plan, wrong org, or already gone).
   const { data, error } = await supabase
     .from("research_invites")
     .delete()
@@ -87,7 +118,12 @@ export async function DELETE(
   // 200 with a small confirmation body (not 204) so the client can JSON-
   // parse uniformly and surface a single message on the toast/inline UI
   // without branching on status code.
-  return NextResponse.json({ success: true, participantId: data.id });
+  return NextResponse.json({
+    success: true,
+    participantId: data.id,
+    erased: erase,
+    sessionsDeleted,
+  });
 }
 
 /**

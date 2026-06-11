@@ -965,6 +965,7 @@
       "edit": "Bearbeiten",
       "remove": "Entfernen",
       "deleteLabel": "Löschen",
+      "eraseDataLabel": "Daten löschen",
       "deleting": "Lösche…",
       "all": "Alle"
     },
@@ -1404,6 +1405,9 @@
       "confirmDelete": "Teilnehmer „{name}\" wirklich löschen?\n\nBereits geführte Interviews (Transkripte, Auswertung) bleiben erhalten – nur die Verknüpfung zum Plan wird entfernt.",
       "errDeleteParticipant": "Konnte den Teilnehmer nicht löschen.",
       "deleteAria": "Teilnehmer {name} löschen",
+      "eraseDataAria": "Alle Daten von {name} löschen",
+      "confirmEraseData": "Alle Daten von „{name}“ endgültig löschen?\\n\\nAuch Gesprächstranskript und Auswertung werden unwiderruflich gelöscht (DSGVO-Löschung). Das kann nicht rückgängig gemacht werden.",
+      "errEraseParticipant": "Konnte die Teilnehmerdaten nicht löschen.",
       "noLinkAria": "Kein Link",
       "copyError": "Konnte nicht kopieren",
       "copyAria": "Interview-Link kopieren",
