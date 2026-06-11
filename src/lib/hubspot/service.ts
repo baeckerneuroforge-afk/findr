@@ -81,6 +81,15 @@ export async function getHubspotIntegration(
   return toIntegration(data);
 }
 
+export async function disconnectHubspotIntegration(orgId: string) {
+  const supabase = createAdminSupabaseClient();
+  const { error } = await supabase
+    .from("hubspot_integrations")
+    .delete()
+    .eq("org_id", orgId);
+  if (error) throw error;
+}
+
 export async function saveHubspotIntegration(
   orgId: string,
   data: {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { WithdrawDataLink } from "./WithdrawDataLink";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 
 type Status = "open" | "completed" | "abandoned";
@@ -1933,6 +1934,8 @@ export function InterviewChat({
           </span>
         </div>
       </header>
+
+      <WithdrawDataLink token={token} />
 
       {stimulus ? (
         // Split-View — Asset + Chat. Mobil: Asset oben (sticky, full-width,

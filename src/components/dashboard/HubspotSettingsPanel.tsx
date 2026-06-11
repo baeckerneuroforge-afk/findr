@@ -21,6 +21,7 @@ export function HubspotSettingsPanel({
   const router = useRouter();
   const locale = useLocale();
   const [syncing, setSyncing] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     msg: string;
@@ -65,6 +66,38 @@ export function HubspotSettingsPanel({
       });
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    if (
+      !window.confirm(
+        "Disconnect Hubspot? Synced deals stay; the connection and its stored OAuth tokens are removed.",
+      )
+    ) {
+      return;
+    }
+    setDisconnecting(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch("/api/integrations/hubspot/disconnect", {
+        method: "POST",
+      });
+      const data = (await res.json()) as { success: boolean; error?: string };
+      if (data.success) {
+        setFeedback({ type: "success", msg: "Hubspot disconnected." });
+        router.refresh();
+      } else {
+        setFeedback({ type: "error", msg: data.error ?? "Disconnect failed" });
+      }
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        msg: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setDisconnecting(false);
     }
   }
 
@@ -141,6 +174,15 @@ export function HubspotSettingsPanel({
           >
             Reconnect
           </a>
+
+          <Button
+            variant="ghost"
+            onClick={handleDisconnect}
+            disabled={disconnecting}
+            className="text-danger-700 hover:bg-danger-50"
+          >
+            {disconnecting ? "Disconnecting…" : "Disconnect"}
+          </Button>
         </div>
       </div>
 

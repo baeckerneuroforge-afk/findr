@@ -1,0 +1,35 @@
+import { NextResponse, type NextRequest } from "next/server";
+
+import { withdrawSessionByToken } from "@/lib/voice-agent/session-service";
+
+/**
+ * POST /api/interview/[token]/withdraw — DSGVO-Selbstwiderruf (G6).
+ *
+ * Der Teilnehmer löscht seine eigene Interview-Session über den unguessbaren
+ * 256-bit access_token. Haltung wie die übrigen /api/interview/[token]/* Routen:
+ *   - Capability-Auth: der Token IST die Berechtigung; kein Login, keine weitere
+ *     Identität.
+ *   - Body wird komplett IGNORIERT.
+ *   - Idempotent & kein Orakel: ob eine Session existierte oder nicht, die
+ *     Antwort ist 200 {success:true} — ein Dritter mit geratenem Token erfährt
+ *     nichts über Sessionzustand.
+ *   - Fehler (DB) → 500.
+ */
+export async function POST(
+  _req: NextRequest,
+  { params }: { params: Promise<{ token: string }> },
+) {
+  const { token } = await params;
+  try {
+    await withdrawSessionByToken(token);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: err instanceof Error ? err.message : "withdraw_failed",
+      },
+      { status: 500 },
+    );
+  }
+}
