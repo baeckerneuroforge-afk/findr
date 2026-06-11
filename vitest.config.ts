@@ -14,6 +14,14 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "server-only": path.resolve(__dirname, "./src/test/server-only.ts"),
+      // next-intl/server resolves to a throwing client stub outside the RSC
+      // `react-server` export condition (i.e. in Vitest's node env). Route
+      // handlers run only in the server graph in prod, so we stub the
+      // server-context helpers for tests. See src/test/next-intl-server.ts.
+      "next-intl/server": path.resolve(
+        __dirname,
+        "./src/test/next-intl-server.ts",
+      ),
     },
   },
 });
