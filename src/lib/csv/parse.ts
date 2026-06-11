@@ -50,7 +50,11 @@ export interface ParsedLine {
   contactEmail: string | null;
 }
 
-export type InviteIssueKey = "issueNoName" | "issueNameTooLong" | "issueInvalidEmail";
+export type InviteIssueKey =
+  | "issueNoName"
+  | "issueNameTooLong"
+  | "issueInvalidEmail"
+  | "issueEmailTooLong";
 
 export interface ParseIssue {
   raw: string;
@@ -126,11 +130,25 @@ export function parseBulkInput(input: string): ParseResult {
       });
       return;
     }
-    if (contactEmail && !EMAIL_RE.test(contactEmail)) {
+    // Validierung STRIKT (Server-Parität, siehe STRICT_EMAIL_RE unten) — die
+    // Erkennung oben bleibt lax, damit z. B. "jörg@müller.de" als E-Mail-
+    // Versuch GEMELDET wird, statt still ins Label zu wandern. Vorher
+    // validierte diese Stelle mit demselben laxen Regex wie die Erkennung
+    // (faktisch toter Code) — eine Umlaut-Adresse passierte die Vorschau und
+    // riss serverseitig den ganzen Batch (InviteItemSchema nutzt zod .email()).
+    if (contactEmail && !STRICT_EMAIL_RE.test(contactEmail)) {
       issues.push({
         raw: rawLine,
         lineNumber,
         messageKey: "issueInvalidEmail",
+      });
+      return;
+    }
+    if (contactEmail && contactEmail.length > MAX_POOL_EMAIL_LENGTH) {
+      issues.push({
+        raw: rawLine,
+        lineNumber,
+        messageKey: "issueEmailTooLong",
       });
       return;
     }
@@ -377,11 +395,21 @@ export function parseCsvInput(input: string): ParseResult {
       });
       continue;
     }
-    if (contactEmail && !EMAIL_RE.test(contactEmail)) {
+    // Strikte Validierung (Server-Parität) — Erkennung oben bleibt lax,
+    // siehe STRICT_EMAIL_RE.
+    if (contactEmail && !STRICT_EMAIL_RE.test(contactEmail)) {
       issues.push({
         raw: rawLine,
         lineNumber,
         messageKey: "issueInvalidEmail",
+      });
+      continue;
+    }
+    if (contactEmail && contactEmail.length > MAX_POOL_EMAIL_LENGTH) {
+      issues.push({
+        raw: rawLine,
+        lineNumber,
+        messageKey: "issueEmailTooLong",
       });
       continue;
     }
@@ -454,19 +482,24 @@ export const MAX_POOL_EMAIL_LENGTH = 320;
  *  Import-Route (Zod .max) und der Client-Vorschau. */
 export const MAX_POOL_IMPORT_ROWS = 200;
 
-/** Strikte E-Mail-Prüfung für Pool-Zeilen — wörtliche Kopie von Zods
- *  Default-Email-Regex (z.regexes.email; Parität wird in parse.test.ts per
- *  Test gegen die zod-Quelle gepinnt, ohne zod ins Client-Bundle zu ziehen).
- *  Das lockere EMAIL_RE oben bleibt bewusst für die Invite-Parser (gepinntes
- *  Bestandsverhalten); die Pool-Vorschau MUSS spiegeln, was PoolMemberSchema
- *  serverseitig akzeptiert — sonst weist der Server grün geprüfte Zeilen ab
- *  (z. B. Umlaut-Adressen wie "jörg@müller.de", die .email() ablehnt). */
-export const POOL_EMAIL_RE =
+/** Strikte E-Mail-VALIDIERUNG für Pool- UND Invite-Zeilen — wörtliche Kopie
+ *  von Zods Default-Email-Regex (z.regexes.email; Parität wird in
+ *  parse.test.ts per Test gegen die zod-Quelle gepinnt, ohne zod ins
+ *  Client-Bundle zu ziehen). Beide Server-Schemata (PoolMemberSchema,
+ *  InviteItemSchema) prüfen mit .email().max(320) — die Vorschau MUSS das
+ *  spiegeln, sonst weist der Server grün geprüfte Zeilen ab (Umlaut-
+ *  Adressen wie "jörg@müller.de" lehnt .email() ab).
+ *
+ *  Arbeitsteilung mit dem lockeren EMAIL_RE oben: EMAIL_RE bleibt die
+ *  ERKENNUNGs-Heuristik (welches Segment / welche Zelle ist die E-Mail —
+ *  großzügig, damit auch kaputte Adressen als E-Mail-Versuch erkannt und
+ *  GEMELDET statt still zum Namens-Label werden); STRICT_EMAIL_RE ist die
+ *  Validierung unmittelbar vor dem POST. */
+export const STRICT_EMAIL_RE =
   /^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
 
 export type PoolIssueKey =
   | InviteIssueKey
-  | "issueEmailTooLong"
   | "issueRoleTooLong"
   | "issueSegmentTooLong"
   | "issueTagsInvalid"
@@ -595,14 +628,14 @@ export function parsePoolCsv(input: string): PoolParseResult {
     // auch akzeptiert.
     if (contactLabel === "" && contactEmail === null && row.length === 1) {
       const only = row[0].trim();
-      if (POOL_EMAIL_RE.test(only)) {
+      if (STRICT_EMAIL_RE.test(only)) {
         contactLabel = only;
         contactEmail = only;
       } else {
         contactLabel = only;
       }
     }
-    if (contactLabel === "" && contactEmail && POOL_EMAIL_RE.test(contactEmail)) {
+    if (contactLabel === "" && contactEmail && STRICT_EMAIL_RE.test(contactEmail)) {
       contactLabel = contactEmail;
     }
 
@@ -617,7 +650,7 @@ export function parsePoolCsv(input: string): PoolParseResult {
       pushIssue("issueNameTooLong");
       continue;
     }
-    if (contactEmail && !POOL_EMAIL_RE.test(contactEmail)) {
+    if (contactEmail && !STRICT_EMAIL_RE.test(contactEmail)) {
       pushIssue("issueInvalidEmail");
       continue;
     }

@@ -9,10 +9,10 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Field, FIELD_INPUT_CLASS, FIELD_TEXTAREA_CLASS } from "@/components/ui/Field";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 // Tag-Split und E-Mail-Prüfung kommen aus der CSV-Lib: EINE Implementierung
-// für manuelle Eingabe und CSV-Import (POOL_EMAIL_RE spiegelt per gepinnter
+// für manuelle Eingabe und CSV-Import (STRICT_EMAIL_RE spiegelt per gepinnter
 // Parität exakt, was das Server-Schema akzeptiert — das lockere lokale Regex
 // ließ vorher Adressen durch, die die API ablehnt, z. B. Umlaut-Domains).
-import { parsePoolTagsCell, POOL_EMAIL_RE } from "@/lib/csv/parse";
+import { parsePoolTagsCell, STRICT_EMAIL_RE } from "@/lib/csv/parse";
 import { PoolCsvImport } from "@/components/dashboard/PoolCsvImport";
 
 /**
@@ -184,7 +184,7 @@ function PoolMemberForm({
       return;
     }
     const contactEmail = values.contactEmail.trim();
-    if (contactEmail !== "" && !POOL_EMAIL_RE.test(contactEmail)) {
+    if (contactEmail !== "" && !STRICT_EMAIL_RE.test(contactEmail)) {
       setError(tc("errEmailInvalid"));
       return;
     }

@@ -25,6 +25,10 @@ import { createResearchInvite } from "@/lib/research/research-orchestration";
  *  - Per-item validation (same Zod schema as single). An invalid item is
  *    reported with status="invalid" but doesn't fail the rest of the
  *    batch — partial success is the expected mode for paste-from-list UX.
+ *    (Bis zur Pool-Paritäts-Nachrüstung validierte der Code entgegen
+ *    dieser Doku den ganzen Batch auf einmal — EINE ungültige E-Mail
+ *    blockierte alle anderen Zeilen mit 400. Jetzt zweistufig wie
+ *    /api/research/pool/import: Envelope als Ganzes, Zeilen einzeln.)
  *  - Duplicate skip: items whose normalized email matches an existing
  *    invite on the same plan (case-insensitive, trimmed) get
  *    status="skipped_duplicate". The first item carrying that email in
@@ -56,8 +60,11 @@ const InviteItemSchema = z.object({
 
 const SingleBodySchema = InviteItemSchema;
 
+// Envelope bewusst mit z.unknown()-Items: too_big kann so NUR noch das
+// Zeilen-Cap sein (⇒ 413 ist wieder ehrlich); die Items selbst laufen
+// einzeln durch InviteItemSchema und werden als status="invalid" gemeldet.
 const BulkBodySchema = z.object({
-  invites: z.array(InviteItemSchema).min(1).max(200),
+  invites: z.array(z.unknown()).min(1).max(200),
 });
 
 type BulkResultItem = {
@@ -133,7 +140,36 @@ export async function POST(
     let skipped = 0;
     let errors = 0;
 
-    for (const item of parsed.data.invites) {
+    for (const raw of parsed.data.invites) {
+      // Zeilenweise validieren — eine schiefe Zeile (z. B. Umlaut-E-Mail,
+      // die zod .email() ablehnt) blockiert nicht mehr die restlichen 199.
+      // Best-effort-Echo von Label/E-Mail, damit die Zeile in der
+      // Ergebnisliste auffindbar bleibt.
+      const itemParsed = InviteItemSchema.safeParse(raw);
+      if (!itemParsed.success) {
+        const obj = (typeof raw === "object" && raw !== null ? raw : {}) as Record<
+          string,
+          unknown
+        >;
+        results.push({
+          contactLabel:
+            typeof obj.contactLabel === "string"
+              ? obj.contactLabel.slice(0, 200)
+              : "",
+          contactEmail:
+            typeof obj.contactEmail === "string"
+              ? obj.contactEmail.slice(0, 320)
+              : null,
+          status: "invalid",
+          message: t("research.bulkRowInvalid", {
+            field:
+              itemParsed.error.issues[0]?.path.map(String).join(".") || "?",
+          }),
+        });
+        errors++;
+        continue;
+      }
+      const item = itemParsed.data;
       const normalizedEmail = item.contactEmail?.trim().toLowerCase() ?? null;
 
       if (normalizedEmail && existingEmails.has(normalizedEmail)) {

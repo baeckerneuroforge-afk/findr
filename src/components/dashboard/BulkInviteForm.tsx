@@ -356,15 +356,23 @@ export function BulkInviteForm({ planId }: { planId: string }) {
             })}
           </div>
           <ul className="space-y-0.5">
-            {response.results.map((r, i) => (
-              <li key={i} className={STATUS_TEXT_CLASS[r.status]}>
-                <span className="font-medium">{t(STATUS_LABEL_KEY[r.status])}</span>
-                {" — "}
-                {r.contactLabel}
-                {r.contactEmail ? ` · ${r.contactEmail}` : ""}
-                {r.message ? ` (${r.message})` : ""}
-              </li>
-            ))}
+            {response.results.map((r, i) => {
+              // Deploy-Skew-Schutz (Muster aus PoolCsvImport): unbekannter
+              // Status aus einer neueren Server-Version fällt auf die
+              // Fehler-Optik zurück, statt dass t(undefined) den rohen
+              // Namespace rendert.
+              const status: ServerResultItem["status"] =
+                r.status in STATUS_LABEL_KEY ? r.status : "error";
+              return (
+                <li key={i} className={STATUS_TEXT_CLASS[status]}>
+                  <span className="font-medium">{t(STATUS_LABEL_KEY[status])}</span>
+                  {" — "}
+                  {r.contactLabel}
+                  {r.contactEmail ? ` · ${r.contactEmail}` : ""}
+                  {r.message ? ` (${r.message})` : ""}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
