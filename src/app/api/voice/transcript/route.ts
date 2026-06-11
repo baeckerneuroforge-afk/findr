@@ -42,6 +42,13 @@ const TurnSchema = z.object({
   role: z.enum(["agent", "assistant", "customer", "user", "participant"]),
   content: z.string().trim().min(1).max(8000),
   ts: z.string().trim().max(64).nullable().optional(),
+  // E5 Frage-Rationale — die echte Begründung der Frage zum Entscheidungs-
+  // zeitpunkt (WHY-Schlusszeile des Voice-Agenten, Gegenstück zum E3-Header
+  // des Text-Pfads). OPTIONAL + additiv: alte Agent-Versionen senden das
+  // Feld nicht (Body byte-identisch); Cap spiegelt WHY_VALUE_MAX_CHARS.
+  // Übernommen wird es NUR auf Agent-Turns (Mapping unten) — Rationales
+  // sind Interviewer-Methodik, nie Teilnehmer-Inhalt.
+  why: z.string().trim().min(1).max(300).nullable().optional(),
 });
 
 const TranscriptBodySchema = z.object({
@@ -74,11 +81,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const turns: VoiceTurnInput[] = parsed.data.turns.map((turn) => ({
-    index: turn.index,
-    role: toConversationRole(turn.role),
-    text: turn.content,
-  }));
+  const turns: VoiceTurnInput[] = parsed.data.turns.map((turn) => {
+    const role = toConversationRole(turn.role);
+    // E5: why nur auf Agent-Turns durchreichen (s. TurnSchema-Kommentar).
+    return role === "agent" && turn.why
+      ? { index: turn.index, role, text: turn.content, why: turn.why }
+      : { index: turn.index, role, text: turn.content };
+  });
 
   try {
     const result = await appendVoiceTurns(parsed.data.sessionId, turns);
