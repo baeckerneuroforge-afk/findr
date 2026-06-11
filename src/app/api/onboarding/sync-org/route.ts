@@ -12,7 +12,7 @@ const SyncOrgSchema = z.object({
 
 export async function POST(request: Request) {
   const t = await getTranslations("errors");
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
   }
@@ -29,6 +29,18 @@ export async function POST(request: Request) {
     }
 
     const { clerk_org_id, name } = parsed.data;
+
+    // Authorize the tenant: a caller may only sync the org that is active in
+    // their verified Clerk session. Without this, any signed-in user could
+    // upsert an arbitrary clerk_org_id from the request body — overwriting
+    // another org's name (which feeds branding/PDF/email) or pre-seeding org
+    // rows with demo data. Both legitimate callers (onboarding: setActive →
+    // sync; settings: organization.update → sync) target the active org, so
+    // this never rejects a real flow.
+    if (!orgId || orgId !== clerk_org_id) {
+      return NextResponse.json({ error: t("unauthorized") }, { status: 403 });
+    }
+
     const supabase = createAdminSupabaseClient();
 
     const { data, error } = await supabase

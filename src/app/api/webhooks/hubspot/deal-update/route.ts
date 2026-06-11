@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { maybeTriggerDealLost } from "@/lib/alerts/triggers";
@@ -69,11 +70,97 @@ export async function processClosedLost(
   return { processed: true };
 }
 
-export async function POST(request: Request) {
-  // TODO: verify Hubspot webhook signature before enabling public production use.
-  const body = await request.json().catch(() => null);
-  const parsed = HubspotWebhookSchema.safeParse(body);
+const HUBSPOT_SIGNATURE_MAX_AGE_MS = 5 * 60 * 1000;
 
+/**
+ * Reconstruct the public URL HubSpot POSTed to. HubSpot's v3 signature is
+ * computed over this exact URI; behind Vercel's proxy we rebuild it from the
+ * forwarded headers (falling back to the Host header). If HubSpot ever returns
+ * 401 in production, verify this reconstruction first.
+ */
+export function reconstructRequestUrl(request: Request): string {
+  const url = new URL(request.url);
+  const proto =
+    request.headers.get("x-forwarded-proto") ?? url.protocol.replace(/:$/, "");
+  const host =
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    url.host;
+  return `${proto}://${host}${url.pathname}${url.search}`;
+}
+
+/**
+ * Verify a HubSpot v3 webhook signature:
+ *   base64(HMAC-SHA256(clientSecret, method + uri + rawBody + timestamp))
+ * plus a 5-minute freshness window for replay protection, compared in constant
+ * time.
+ */
+function isValidHubspotSignature(params: {
+  secret: string;
+  signature: string | null;
+  timestamp: string | null;
+  method: string;
+  uri: string;
+  rawBody: string;
+}): boolean {
+  const { secret, signature, timestamp, method, uri, rawBody } = params;
+  if (!signature || !timestamp) return false;
+
+  const ts = Number(timestamp);
+  if (
+    !Number.isFinite(ts) ||
+    Math.abs(Date.now() - ts) > HUBSPOT_SIGNATURE_MAX_AGE_MS
+  ) {
+    return false;
+  }
+
+  const expected = createHmac("sha256", secret)
+    .update(method + uri + rawBody + timestamp, "utf8")
+    .digest("base64");
+
+  const expectedBuf = Buffer.from(expected);
+  const presentedBuf = Buffer.from(signature);
+  if (expectedBuf.length !== presentedBuf.length) return false;
+  return timingSafeEqual(expectedBuf, presentedBuf);
+}
+
+export async function POST(request: Request) {
+  const secret = process.env.HUBSPOT_CLIENT_SECRET;
+  if (!secret) {
+    // Fail closed: this public endpoint mutates deal state, spends LLM budget
+    // and fires Slack alerts — it must never run without its verification
+    // secret configured.
+    console.error(
+      "[hubspot webhook] HUBSPOT_CLIENT_SECRET is not set — rejecting request.",
+    );
+    return NextResponse.json(
+      { error: "Webhook verification is not configured" },
+      { status: 503 },
+    );
+  }
+
+  const rawBody = await request.text();
+  if (
+    !isValidHubspotSignature({
+      secret,
+      signature: request.headers.get("x-hubspot-signature-v3"),
+      timestamp: request.headers.get("x-hubspot-request-timestamp"),
+      method: "POST",
+      uri: reconstructRequestUrl(request),
+      rawBody,
+    })
+  ) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
+  let body: unknown = null;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  const parsed = HubspotWebhookSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
