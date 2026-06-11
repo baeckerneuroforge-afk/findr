@@ -9,6 +9,7 @@ import {
   type GongUser,
 } from "@/lib/schemas/gong";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { decryptSecret, encryptSecret } from "@/lib/crypto/secret-cipher";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { mapGongCallToDeal } from "./deal-mapping";
 import type { Database, Json } from "@/types/database";
@@ -95,8 +96,8 @@ function toIntegration(row: GongIntegrationRow): GongIntegration {
     org_id: row.org_id,
     gong_company_id: row.gong_company_id,
     api_base_url: row.api_base_url,
-    access_token: row.access_token,
-    refresh_token: row.refresh_token,
+    access_token: decryptSecret(row.access_token),
+    refresh_token: decryptSecret(row.refresh_token),
     token_expires_at: row.token_expires_at,
     scope: row.scope,
     last_synced_at: row.last_synced_at,
@@ -382,8 +383,8 @@ export async function saveGongIntegration(
       org_id: orgId,
       gong_company_id: companyId,
       api_base_url: tokens.api_base_url_for_customer.replace(/\/$/, ""),
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      access_token: encryptSecret(tokens.access_token),
+      refresh_token: encryptSecret(tokens.refresh_token),
       token_expires_at: expiresAt.toISOString(),
       scope: tokens.scope ?? null,
       enabled: true,
@@ -431,8 +432,8 @@ export async function refreshGongAccessToken(
   const { error } = await supabase
     .from("gong_integrations")
     .update({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      access_token: encryptSecret(tokens.access_token),
+      refresh_token: encryptSecret(tokens.refresh_token),
       token_expires_at: newExpiresAt.toISOString(),
       api_base_url: tokens.api_base_url_for_customer.replace(/\/$/, ""),
       scope: tokens.scope ?? integration.scope,

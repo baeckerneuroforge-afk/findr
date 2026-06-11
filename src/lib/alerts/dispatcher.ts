@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { decryptSecret } from "@/lib/crypto/secret-cipher";
 import { sendSlackMessage } from "@/lib/slack/client";
 import type { Json } from "@/types/database";
 import { formatSlackMessage } from "./formatter";
@@ -123,7 +124,10 @@ export async function dispatchAlert(
   }
 
   try {
-    await sendSlackMessage(integration.webhook_url, formatSlackMessage(payload));
+    await sendSlackMessage(
+      decryptSecret(integration.webhook_url),
+      formatSlackMessage(payload),
+    );
 
     const { error: logError } = await supabase.from("slack_alerts").insert({
       org_id: payload.context.org_id,

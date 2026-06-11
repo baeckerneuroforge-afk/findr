@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { decryptSecret, encryptSecret } from "@/lib/crypto/secret-cipher";
 import type { Database } from "@/types/database";
 import {
   SlackWebhookUrlSchema,
@@ -41,7 +42,7 @@ function toIntegration(row: SlackIntegrationRow): SlackIntegration {
     workspace_name: row.workspace_name,
     channel_id: row.channel_id,
     channel_name: row.channel_name,
-    webhook_url: row.webhook_url,
+    webhook_url: decryptSecret(row.webhook_url),
     alert_threshold: row.alert_threshold,
     alert_on_critical_only: row.alert_on_critical_only,
     enabled: row.enabled,
@@ -74,6 +75,7 @@ export async function upsertSlackIntegration(
       {
         org_id: orgId,
         ...config,
+        webhook_url: encryptSecret(config.webhook_url),
         updated_at: new Date().toISOString(),
       },
       { onConflict: "org_id" },

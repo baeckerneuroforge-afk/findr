@@ -13,6 +13,7 @@ import {
 import { maybeTriggerDealLost } from "@/lib/alerts/triggers";
 import { analyzeAndPersistLossReason } from "@/lib/loss/service";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { decryptSecret, encryptSecret } from "@/lib/crypto/secret-cipher";
 import type { Database, Json } from "@/types/database";
 
 const HUBSPOT_API_BASE = "https://api.hubapi.com";
@@ -42,8 +43,8 @@ function toIntegration(row: HubspotIntegrationRow): HubspotIntegration {
     org_id: row.org_id,
     hubspot_portal_id: row.hubspot_portal_id,
     hubspot_user_id: row.hubspot_user_id,
-    access_token: row.access_token,
-    refresh_token: row.refresh_token,
+    access_token: decryptSecret(row.access_token),
+    refresh_token: decryptSecret(row.refresh_token),
     token_expires_at: row.token_expires_at,
     last_synced_at: row.last_synced_at,
     sync_status: row.sync_status,
@@ -95,6 +96,8 @@ export async function saveHubspotIntegration(
     {
       org_id: orgId,
       ...data,
+      access_token: encryptSecret(data.access_token),
+      refresh_token: encryptSecret(data.refresh_token),
       hubspot_user_id: data.hubspot_user_id ?? null,
       enabled: true,
       sync_status: "idle",
@@ -143,8 +146,8 @@ export async function refreshAccessToken(
   const { error } = await supabase
     .from("hubspot_integrations")
     .update({
-      access_token: parsed.access_token,
-      refresh_token: parsed.refresh_token,
+      access_token: encryptSecret(parsed.access_token),
+      refresh_token: encryptSecret(parsed.refresh_token),
       token_expires_at: newExpiresAt.toISOString(),
       updated_at: new Date().toISOString(),
     })
