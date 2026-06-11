@@ -1567,6 +1567,7 @@ export type Database = {
     }
     Functions: {
       current_org_id: { Args: never; Returns: string }
+      export_organization_data: { Args: { p_org_id: string }; Returns: Json }
     }
     Enums: {
       finding_severity: "low" | "medium" | "high" | "critical"
