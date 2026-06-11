@@ -19,6 +19,7 @@ import type { PanelStudyDraft } from "./providers";
 import {
   getLatestPanelStudyForPlan,
   recordPanelStudyDraft,
+  updatePanelStudySync,
   type PanelStudySummary,
 } from "./studies";
 
@@ -180,4 +181,62 @@ export async function createProlificDraftForPlan(
   });
 
   return { draft, panelCompletionWritten: true, study };
+}
+
+// ── E5: Status- + Submissions-Sync ───────────────────────────────────────────
+
+export type ProlificSyncErrorCode =
+  | "missing_credentials"
+  | "study_not_found"
+  | "sync_failed";
+
+export class ProlificSyncError extends Error {
+  constructor(public code: ProlificSyncErrorCode) {
+    super(code);
+    this.name = "ProlificSyncError";
+  }
+}
+
+/**
+ * Jüngsten persistierten Prolific-Draft eines Plans gegen die Prolific-API
+ * abgleichen: Status (GET /studies/{id}/) + Submission-Zähler
+ * (GET /studies/{id}/submissions/counts/), Ergebnis auf panel_studies
+ * schreiben. Bewusst MANUELL angestoßen (Aktualisieren-Button) — kein Cron,
+ * kein Webhook (Plan-Entscheidung E5). ProlificApiError aus dem Provider
+ * (401/404/5xx) läuft unverändert zum Aufrufer durch; die Route mappt ihn
+ * wie beim Draft-Anlegen.
+ */
+export async function syncProlificStudyForPlan(
+  orgId: string,
+  planId: string,
+): Promise<PanelStudySummary> {
+  const [token, study] = await Promise.all([
+    getPanelCredentialToken(orgId, PROVIDER),
+    getLatestPanelStudyForPlan(orgId, planId, PROVIDER),
+  ]);
+  if (!token) throw new ProlificSyncError("missing_credentials");
+  if (!study) throw new ProlificSyncError("study_not_found");
+
+  // Capability-Guard (Interface-Methoden sind optional, E8-Seam): der
+  // Prolific-Provider implementiert beide; ein Provider ohne Sync-Fähigkeit
+  // landet hier kontrolliert statt in einem TypeError.
+  const { getStudy, listSubmissionCounts } = prolificProvider;
+  if (!getStudy || !listSubmissionCounts) {
+    throw new ProlificSyncError("sync_failed");
+  }
+
+  const [snapshot, counts] = await Promise.all([
+    getStudy(token, study.providerStudyId),
+    listSubmissionCounts(token, study.providerStudyId),
+  ]);
+
+  const updated = await updatePanelStudySync({
+    orgId,
+    provider: PROVIDER,
+    providerStudyId: study.providerStudyId,
+    status: snapshot.status,
+    submissionCounts: counts,
+  });
+  if (!updated) throw new ProlificSyncError("sync_failed");
+  return updated;
 }

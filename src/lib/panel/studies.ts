@@ -6,6 +6,7 @@ import {
 } from "@/lib/research/db";
 import type { Json } from "@/types/database";
 import type { PanelProviderKey } from "./providers";
+import { coerceSubmissionCounts } from "./study-snapshot";
 
 /**
  * Panel-E4 — persistierte Provider-Studien (panel_studies).
@@ -27,6 +28,9 @@ export interface PanelStudySummary {
   provider: PanelProviderKey;
   providerStudyId: string;
   status: string;
+  /** Provider-Status-Buckets → Anzahl (E5-Sync); null = nie synchronisiert.
+   *  Beim Lesen re-validiert (jsonb ist untypisiert). */
+  submissionCounts: Record<string, number> | null;
   totalCostCents: number | null;
   lastSyncedAt: string | null;
   createdAt: string;
@@ -38,6 +42,7 @@ function toSummary(row: PanelStudyRow): PanelStudySummary {
     provider: row.provider,
     providerStudyId: row.provider_study_id,
     status: row.status,
+    submissionCounts: coerceSubmissionCounts(row.submission_counts),
     totalCostCents: row.total_cost_cents,
     lastSyncedAt: row.last_synced_at,
     createdAt: row.created_at,
@@ -82,6 +87,42 @@ export async function recordPanelStudyDraft(params: {
   if (error || !data) {
     console.error(
       `recordPanelStudyDraft failed for plan ${params.planId} (study ${params.providerStudyId}):`,
+      error?.message ?? "no row returned",
+    );
+    return null;
+  }
+  return toSummary(data);
+}
+
+/**
+ * Sync-Ergebnis (E5) auf die persistierte Studie schreiben. Anders als der
+ * Draft-Write NICHT still: der Nutzer hat den Sync aktiv angestoßen — eine
+ * fehlende Zeile / ein Schreibfehler kommt als null zurück und wird vom
+ * Service in einen sichtbaren Fehler übersetzt.
+ */
+export async function updatePanelStudySync(params: {
+  orgId: string;
+  provider: PanelProviderKey;
+  providerStudyId: string;
+  status: string;
+  submissionCounts: Record<string, number>;
+}): Promise<PanelStudySummary | null> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("panel_studies")
+    .update({
+      status: params.status,
+      submission_counts: params.submissionCounts as Json,
+      last_synced_at: new Date().toISOString(),
+    })
+    .eq("org_id", params.orgId)
+    .eq("provider", params.provider)
+    .eq("provider_study_id", params.providerStudyId)
+    .select("*")
+    .maybeSingle();
+  if (error || !data) {
+    console.error(
+      `updatePanelStudySync failed for study ${params.providerStudyId}:`,
       error?.message ?? "no row returned",
     );
     return null;
