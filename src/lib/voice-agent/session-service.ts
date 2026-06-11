@@ -781,6 +781,33 @@ export async function markSessionConsentByToken(
 }
 
 /**
+ * DSGVO-Selbstwiderruf (G6) — der Teilnehmer löscht seine EIGENE Interview-
+ * Session über den unguessbaren access_token. Entfernt die Session-Row samt
+ * Gesprächstranskript (conversation), Auswertung (result), Screening-Antworten,
+ * Recording-/Visual-Capture-Referenzen, Consent-Stempel und Turn-Signalen.
+ * Token-scoped (Capability-Auth, kein Login) wie jede öffentliche Interview-
+ * Operation. Idempotent: ist keine Session (mehr) vorhanden → deleted=false.
+ *
+ * Scope-Grenze: dies löscht die Interview-DATEN des Teilnehmers. Die vom
+ * Forscher angelegte Invite-Zeile (Label/E-Mail) bleibt unberührt und wird über
+ * die org-seitige Teilnehmer-Erasure (DELETE …/participants/[id]?erase=true)
+ * oder die Org-Voll-Löschung entfernt.
+ */
+export async function withdrawSessionByToken(
+  accessToken: string,
+): Promise<{ deleted: boolean }> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .delete()
+    .eq("access_token", accessToken)
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  return { deleted: Boolean(data) };
+}
+
+/**
  * Perf-Etappe B2 — generate + persist the opening message for a session that
  * was created with skipOpening (empty conversation). Idempotent: if the
  * conversation already has content (a parallel request won, or the session
