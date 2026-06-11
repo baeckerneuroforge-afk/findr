@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getTranslations } from "next-intl/server";
-import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { createPoolMember } from "@/lib/research/participant-pool";
+import { PoolMemberSchema } from "@/lib/schemas/participant-pool";
 
 /**
  * POST /api/research/pool — neuen Pool-Eintrag anlegen.
@@ -15,45 +15,10 @@ import { createPoolMember } from "@/lib/research/participant-pool";
  * Dedup (Email case-insensitive unique pro Org) ist ein DB-Index; eine
  * Kollision kommt als status="duplicate_email" zurück und wird hier auf 409
  * gemappt — dieselbe 409-Posture wie die PATCH-/participants-Route.
+ *
+ * Das PoolMemberSchema lebt in lib/schemas/participant-pool.ts (geteilt mit
+ * der CSV-Import-Route).
  */
-
-const PoolMemberSchema = z.object({
-  contactLabel: z.string().trim().min(1).max(200),
-  contactEmail: z
-    .string()
-    .trim()
-    .email()
-    .max(320)
-    .nullable()
-    .optional()
-    .transform((v) => (v === "" ? null : v)),
-  role: z
-    .string()
-    .trim()
-    .max(80)
-    .nullable()
-    .optional()
-    .transform((v) => (v === "" || v === undefined ? null : v)),
-  segment: z
-    .string()
-    .trim()
-    .max(80)
-    .nullable()
-    .optional()
-    .transform((v) => (v === "" || v === undefined ? null : v)),
-  tags: z
-    .array(z.string().trim().min(1).max(40))
-    .max(30)
-    .optional()
-    .transform((arr) => (arr ? [...new Set(arr)] : [])),
-  notes: z
-    .string()
-    .trim()
-    .max(2000)
-    .nullable()
-    .optional()
-    .transform((v) => (v === "" || v === undefined ? null : v)),
-});
 
 export async function POST(req: NextRequest) {
   const t = await getTranslations("errors");

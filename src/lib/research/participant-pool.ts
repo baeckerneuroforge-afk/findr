@@ -253,6 +253,109 @@ export async function deletePoolMember(
   return !!data;
 }
 
+// ── CSV-Import ────────────────────────────────────────────────────────────────
+
+export type ImportPoolMemberStatus =
+  | "created"
+  | "duplicate_in_file"
+  | "duplicate_in_pool"
+  | "error";
+
+export interface ImportPoolMemberResult {
+  contactLabel: string;
+  contactEmail: string | null;
+  status: ImportPoolMemberStatus;
+  member?: PoolMemberRecord;
+  message?: string;
+}
+
+export interface ImportPoolResult {
+  results: ImportPoolMemberResult[];
+  summary: { created: number; skipped: number; errors: number; total: number };
+}
+
+/**
+ * Bulk-Anlage für den CSV-Import. Bewusst ein Per-Row-Loop über das
+ * bestehende `createPoolMember` statt eines Batch-Inserts: der Email-Dedup
+ * ist ein PARTIELLER FUNKTIONALER Unique-Index ((org_id, lower(contact_email))
+ * WHERE contact_email IS NOT NULL), den PostgREST-`onConflict` nicht
+ * adressieren kann — und ein nacktes Batch-`.insert([...])` bräche beim
+ * ersten 23505 komplett ab. Der Loop hält außerdem genau EINEN Schreibpfad
+ * (dieselbe 23505→duplicate_email-Übersetzung wie die Einzel-Anlage).
+ *
+ * Dedup-Semantik:
+ *   - DB-Index bleibt autoritativ (Races eingeschlossen) → duplicate_in_pool.
+ *   - seenEmails unterscheidet nur die MELDUNG: eine Email, die in dieser
+ *     Datei bereits erfolgreich angelegt wurde → duplicate_in_file (ohne
+ *     DB-Roundtrip). Mehrfach-Zeilen einer Email, die schon im Pool war,
+ *     melden konsistent duplicate_in_pool (aktionabler für den Nutzer).
+ *   - Zeilen ohne Email werden nie dedupliziert (Pool-Semantik, wie überall).
+ *
+ * Ergebnisse in Eingabe-Reihenfolge; created-Einträge tragen den vollen
+ * PoolMemberRecord, damit der Client sie ohne Refresh in seinen State mergen
+ * kann (das Manager-State-Modell ist nach Mount autoritativ).
+ */
+export async function importPoolMembers(
+  orgId: string,
+  inputs: PoolMemberInput[],
+): Promise<ImportPoolResult> {
+  const results: ImportPoolMemberResult[] = [];
+  const seenEmails = new Set<string>();
+  let created = 0;
+  let skipped = 0;
+  let errors = 0;
+
+  for (const input of inputs) {
+    const normalizedEmail = input.contactEmail?.trim().toLowerCase() ?? null;
+
+    if (normalizedEmail && seenEmails.has(normalizedEmail)) {
+      results.push({
+        contactLabel: input.contactLabel,
+        contactEmail: input.contactEmail ?? null,
+        status: "duplicate_in_file",
+      });
+      skipped++;
+      continue;
+    }
+
+    const result = await createPoolMember(orgId, input);
+    switch (result.status) {
+      case "created":
+        if (normalizedEmail) seenEmails.add(normalizedEmail);
+        results.push({
+          contactLabel: input.contactLabel,
+          contactEmail: input.contactEmail ?? null,
+          status: "created",
+          member: result.member,
+        });
+        created++;
+        break;
+      case "duplicate_email":
+        results.push({
+          contactLabel: input.contactLabel,
+          contactEmail: input.contactEmail ?? null,
+          status: "duplicate_in_pool",
+        });
+        skipped++;
+        break;
+      default:
+        results.push({
+          contactLabel: input.contactLabel,
+          contactEmail: input.contactEmail ?? null,
+          status: "error",
+          message: result.message,
+        });
+        errors++;
+        break;
+    }
+  }
+
+  return {
+    results,
+    summary: { created, skipped, errors, total: results.length },
+  };
+}
+
 // ── Aus Pool einladen ─────────────────────────────────────────────────────────
 
 export type InviteFromPoolItemStatus =
