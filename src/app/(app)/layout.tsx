@@ -98,8 +98,14 @@ export default async function RootLayout({
         },
       }}
     >
+      {/* data-scroll-behavior: Next 16 überschreibt scroll-behavior bei
+          Navigationen nur noch mit diesem Opt-in — ohne es animiert das
+          scroll-smooth der Klasse JEDEN Routenwechsel (träges Hochscrollen).
+          Mit Attribut: Routenwechsel springen sofort, Anker-Sprünge (z. B.
+          E6-Startkarten) bleiben smooth. Siehe upgrading/version-16.md. */}
       <html
         lang={locale}
+        data-scroll-behavior="smooth"
         className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full scroll-smooth antialiased`}
       >
         <body className="min-h-full flex flex-col bg-obsidian text-white">
