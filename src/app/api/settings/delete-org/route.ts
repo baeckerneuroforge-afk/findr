@@ -40,6 +40,7 @@ export async function POST(request: Request) {
   try {
     const result = await deleteOrganizationData({
       orgId: admin.orgId,
+      clerkOrgId: admin.clerkOrgId,
       organizationName: organization.name,
       confirmationName: parsed.data.confirmationName,
     });

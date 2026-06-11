@@ -33,6 +33,12 @@ export function DataPrivacyPanel({
       }
       setMessage(t("data.deleted"));
       setConfirmationName("");
+      // The org (and the active Clerk org) no longer exists — hard-redirect to
+      // root so Clerk re-evaluates the now-missing org and routes the user back
+      // into onboarding. Brief delay lets the confirmation render first.
+      setTimeout(() => {
+        window.location.assign("/");
+      }, 1500);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : t("data.deleteFailed"));
     } finally {

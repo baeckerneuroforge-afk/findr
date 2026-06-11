@@ -355,14 +355,14 @@
       "exportAdminOnly": "Nur Organisations-Admins können Daten exportieren.",
       "gdprHeading": "DSGVO / GDPR-Status",
       "gdprBody": "Findr ist für DACH-Vertriebsteams konzipiert: Organisationsdaten können exportiert, gelöscht und mandantengetrennt gehalten werden. Produktiv-Deployments sollten EU-gehostete Supabase-Infrastruktur nutzen, etwa Frankfurt, sofern der Kundenvertrag dies verlangt.",
-      "deleteHeading": "Organisationsdaten löschen",
-      "deleteDesc": "Dies löscht die Findr-Daten dieser Organisation: Deals, Calls, Risk-Scores, Verlustanalysen, Alerts und Integrations-Metadaten. Die Clerk-Organisation und Benutzerkonten werden nicht gelöscht.",
+      "deleteHeading": "Organisation löschen",
+      "deleteDesc": "Dies löscht diese Organisation unwiderruflich: alle Findr-Daten (Deals, Calls, Studien, Gesprächstranskripte, Synthesen, Teilnehmer, Integrationen) samt hochgeladener Dateien — und die Clerk-Organisation selbst. Benutzerkonten bleiben bestehen, verlieren aber den Zugriff auf diese Organisation.",
       "confirmLabel": "Geben Sie zur Bestätigung \"{org}\" ein",
       "deleting": "Wird gelöscht …",
-      "deleteButton": "Organisationsdaten löschen",
-      "deleted": "Organisationsdaten gelöscht. Die Clerk-Organisation bleibt aktiv.",
+      "deleteButton": "Organisation endgültig löschen",
+      "deleted": "Organisation und alle Daten gelöscht. Du wirst weitergeleitet …",
       "deleteFailed": "Löschen fehlgeschlagen",
-      "deleteAdminOnly": "Nur Organisations-Admins können Organisationsdaten löschen."
+      "deleteAdminOnly": "Nur Organisations-Admins können die Organisation löschen."
     },
     "billing": {
       "title": "Abrechnung",
