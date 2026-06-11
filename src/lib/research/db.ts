@@ -45,6 +45,13 @@ type InterviewSessionsRow = {
   // PanelContext (src/lib/research/panel.ts). Vor angewandter Migration liefert
   // select("*") die Spalte nicht → der Lese-Mapper defaultet undefined→null.
   panel_context: Json | null;
+  // E0 Recht & Offenlegung (20260704000001) — DSGVO-Art.-7(1)-Nachweis der
+  // Teilnehmer-Einwilligung. Server-gestempelt (nie client-geliefert), nur
+  // einmal gesetzt (WHERE … IS NULL). consent_version referenziert den git-
+  // historisierten i18n-Textstand. Vor angewandter Migration liefert
+  // select("*") beide Spalten nicht → Lese-Mapper defaultet undefined→null.
+  consent_accepted_at: string | null;
+  consent_version: string | null;
   account_id: string | null;
   completed_at: string | null;
   conversation: Json;
@@ -77,6 +84,8 @@ type InterviewSessionsInsert = {
   screening_answers?: Json | null;
   open_link_id?: string | null;
   panel_context?: Json | null;
+  consent_accepted_at?: string | null;
+  consent_version?: string | null;
   account_id?: string | null;
   completed_at?: string | null;
   conversation?: Json;
@@ -109,6 +118,8 @@ type InterviewSessionsUpdate = {
   screening_answers?: Json | null;
   open_link_id?: string | null;
   panel_context?: Json | null;
+  consent_accepted_at?: string | null;
+  consent_version?: string | null;
   account_id?: string | null;
   completed_at?: string | null;
   conversation?: Json;

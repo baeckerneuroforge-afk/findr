@@ -117,6 +117,10 @@ export interface InterviewSession {
    *  Teilnehmer-ID + Snapshot der Complete-Return-URL. Null für JEDE
    *  Nicht-Panel-Session (defensiv genarrowed via coercePanelContext). */
   panelContext: PanelContext | null;
+  /** E0 Recht & Offenlegung — Zeitpunkt der Teilnehmer-Einwilligung (Consent-
+   *  Gate), server-gestempelt. Null = Bestands-Session vor Einführung des
+   *  Gates ODER Einwilligung (noch) nicht erteilt. */
+  consentAcceptedAt: string | null;
 }
 
 /** Minimal, safe-to-expose view for the public chat page. */
@@ -154,6 +158,11 @@ export interface PublicInterviewView {
    *  byte-identischer Dank-Screen wie heute). Enthält NUR die eigene pseudonyme
    *  ID des Teilnehmers, KEINE org/internal-Daten. */
   panelCompleteRedirect: string | null;
+  /** E0 Recht & Offenlegung — Einwilligungs-Zeitstempel der Session (oder null).
+   *  Die Token-Page nutzt ihn SERVER-seitig, um das Consent-Gate nur Sessions
+   *  zu zeigen, die noch nicht eingewilligt haben und noch nicht begonnen
+   *  wurden. Ein ISO-Zeitstempel ohne Personenbezug — unkritisch im View. */
+  consentAcceptedAt: string | null;
 }
 
 function generateToken(): string {
@@ -191,6 +200,10 @@ function toSession(row: Row): InterviewSession {
     panelContext: coercePanelContext(
       (row as { panel_context?: unknown }).panel_context,
     ),
+    // E0: same defensive pattern — pre-migration select("*") omits the column.
+    consentAcceptedAt:
+      (row as { consent_accepted_at?: string | null }).consent_accepted_at ??
+      null,
   };
 }
 
@@ -248,6 +261,7 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
     planTitle,
     language: session.language,
     panelCompleteRedirect,
+    consentAcceptedAt: session.consentAcceptedAt,
   };
 }
 
@@ -705,6 +719,55 @@ export async function markInterviewInvited(
     .maybeSingle();
   if (error || !data) return null;
   return data.invited_at;
+}
+
+/**
+ * E0 Recht & Offenlegung — Version der Consent-/Offenlegungstexte. Wird beim
+ * Stempeln in consent_version persistiert und referenziert den git-
+ * historisierten Stand der i18n-Texte (interview.open.consent.* /
+ * interview.inviteConsent.*): der DSGVO-Art.-7(1)-Nachweis, WELCHEM Text
+ * zugestimmt wurde. Bei jeder inhaltlichen Änderung der Consent-Texte
+ * MITZIEHEN (neues Datum).
+ */
+export const CONSENT_TEXT_VERSION = "2026-06-11";
+
+/**
+ * E0 — stamp the participant's consent on a session (DSGVO Art. 7(1)
+ * accountability). Properties, in Reihenfolge ihrer Wichtigkeit:
+ *
+ *   - SERVER-side timestamp: the client only ever signals "the gate was
+ *     accepted"; the time itself is never client-supplied.
+ *   - Idempotent: `WHERE consent_accepted_at IS NULL` — only the FIRST accept
+ *     writes; refreshes/double-clicks/re-entries never overwrite the original
+ *     stamp (the original consent moment is the legally relevant one).
+ *   - Best-effort & pre-migration safe: before 20260704000001 is applied the
+ *     UPDATE fails on the unknown column — we LOG and swallow. The UI gate has
+ *     already enforced disclosure + active confirmation; a participant is
+ *     NEVER locked out of an interview because the stamp could not be written.
+ *   - Token-scoped (capability auth), like every public interview operation.
+ */
+export async function markSessionConsentByToken(
+  accessToken: string,
+  consentVersion: string,
+): Promise<void> {
+  try {
+    const supabase = createResearchSupabase();
+    const { error } = await supabase
+      .from("interview_sessions")
+      .update({
+        consent_accepted_at: new Date().toISOString(),
+        consent_version: consentVersion,
+      })
+      .eq("access_token", accessToken)
+      .is("consent_accepted_at", null);
+    if (error) {
+      console.warn(
+        `[consent] stamp failed (migration 20260704000001 applied?): ${error.message}`,
+      );
+    }
+  } catch (err) {
+    console.warn("[consent] stamp failed:", err);
+  }
 }
 
 /**

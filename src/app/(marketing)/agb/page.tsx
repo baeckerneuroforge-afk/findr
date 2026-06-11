@@ -64,7 +64,12 @@ export default function AgbPage() {
 
       <LegalSection heading="6. Pflichten der Nutzer:innen">
         <Placeholder>
-          Zulässige Nutzung, Mitwirkungspflichten und Nutzungsbeschränkungen
+          Zulässige Nutzung, Mitwirkungspflichten und Nutzungsbeschränkungen —
+          einschließlich Acceptable-Use-Klausel zum KI-Interviewer: kein Einsatz
+          zur Bewertung von Beschäftigten oder Bewerber:innen
+          (Arbeitsplatz-Kontext, Art. 5(1)(f) KI-VO), keine Koppelung von
+          Signal-Auswertungen an Vergütungs- oder Ablehnungsentscheidungen.
+          Ausformulierter Entwurf: docs/findr-e0-aup-klausel-entwurf.md
         </Placeholder>
       </LegalSection>
 

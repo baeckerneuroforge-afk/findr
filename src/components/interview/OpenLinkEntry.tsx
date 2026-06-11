@@ -91,7 +91,15 @@ export function OpenLinkEntry({
         // reads org_id + plan_id from the open-link row alone. PANEL E1: when this
         // is a panel entry, the validated inbound id rides along under `panel`;
         // the server RE-validates it before persisting (trust boundary).
-        body: JSON.stringify(panel ? { answers, panel } : { answers }),
+        // E0: consentAccepted ist hier IMMER true — der mandatory ConsentStep
+        // liegt strukturell vor diesem Submit (step machine). Das Flag
+        // signalisiert nur die Gate-Bestätigung; der Zeitstempel entsteht
+        // server-seitig bei Session-Creation.
+        body: JSON.stringify(
+          panel
+            ? { answers, panel, consentAccepted: true }
+            : { answers, consentAccepted: true },
+        ),
       });
       const data = (await res.json().catch(() => ({}))) as {
         qualified?: boolean;

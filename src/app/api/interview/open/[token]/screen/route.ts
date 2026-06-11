@@ -16,6 +16,10 @@ import { recordScreeningResponse } from "@/lib/research/screening-responses";
 import { coercePanelInbound, type PanelContext } from "@/lib/research/panel";
 import { evaluateScreening } from "@/lib/screening/evaluate";
 import { ScreeningAnswersSchema } from "@/lib/schemas/screening";
+import {
+  CONSENT_TEXT_VERSION,
+  markSessionConsentByToken,
+} from "@/lib/voice-agent/session-service";
 import type { Json } from "@/types/database";
 
 /**
@@ -81,6 +85,12 @@ const TokenSchema = z.string().min(20).max(200);
 const BodySchema = z.object({
   answers: ScreeningAnswersSchema,
   panel: z.unknown().optional(),
+  // E0: Gate-Signal des mandatory ConsentStep (OpenLinkEntry sendet immer true —
+  // der Step liegt strukturell vor dem Submit). Bestätigt nur die UI-Handlung;
+  // der Zeitstempel entsteht server-seitig. Optional, damit ältere gecachte
+  // Clients während eines Rollouts nicht auf 400 laufen (dann bleibt der
+  // Stempel schlicht leer — ehrlich statt erfunden).
+  consentAccepted: z.boolean().optional(),
 });
 
 export async function POST(
@@ -159,6 +169,15 @@ export async function POST(
       panelInbound.participantId,
     );
     if (existing) {
+      // E0: der Wiederkehrer hat soeben (erneut) den ConsentStep bestätigt —
+      // stempeln, falls die Session noch keinen Stempel trägt (idempotent:
+      // ein vorhandener ERST-Stempel wird nie überschrieben). Best-effort.
+      if (parsed.data.consentAccepted === true) {
+        await markSessionConsentByToken(
+          existing.accessToken,
+          CONSENT_TEXT_VERSION,
+        );
+      }
       return NextResponse.json({
         qualified: true,
         sessionToken: existing.accessToken,
@@ -235,6 +254,12 @@ export async function POST(
   });
 
   if (result.status === "created" && result.accessToken) {
+    // E0: Consent-Stempel auf die FRISCHE Session (server-seitiger Zeitstempel,
+    // best-effort, niemals pfad-blockierend). Der mandatory ConsentStep lag
+    // strukturell vor diesem Submit.
+    if (parsed.data.consentAccepted === true) {
+      await markSessionConsentByToken(result.accessToken, CONSENT_TEXT_VERSION);
+    }
     // Exactly one qualified row — written only when WE created the session.
     await recordScreeningResponse(link.org_id, link.plan_id, "qualified");
     // Hand back the FRESH session token; the client redirects to
@@ -264,6 +289,14 @@ export async function POST(
       panelInbound.participantId,
     );
     if (raced) {
+      // E0: gleiche Stempel-Logik wie am ④b-Dedup — der Verlierer des
+      // Insert-Race kam ebenfalls durchs Consent-Gate (idempotent, best-effort).
+      if (parsed.data.consentAccepted === true) {
+        await markSessionConsentByToken(
+          raced.accessToken,
+          CONSENT_TEXT_VERSION,
+        );
+      }
       return NextResponse.json({
         qualified: true,
         sessionToken: raced.accessToken,

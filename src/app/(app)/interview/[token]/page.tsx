@@ -1,8 +1,10 @@
 import { cache } from "react";
+import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { InterviewChat } from "@/components/interview/InterviewChat";
+import { InviteConsentGate } from "@/components/interview/InviteConsentGate";
 import { ScreeningGate } from "@/components/interview/ScreeningGate";
 import { VoiceInterviewView } from "@/components/interview/VoiceInterviewView";
 import { getResearchPlan } from "@/lib/research/plans-service";
@@ -107,14 +109,28 @@ export default async function InterviewPage({
         locale={s.language}
         messages={{ interview: MESSAGES[s.language].interview }}
       >
-        <ScreeningGate
+        {/* E0 — Consent + KI-Offenlegung VOR dem Screening (Parität zum
+            Open-Link-Pfad, dessen ConsentStep ebenfalls vor dem Screening
+            liegt). persist=false: es existiert noch keine Session-Row; das
+            Flag reist im screen-POST mit (consentAccepted-Prop) und wird bei
+            Session-Creation gestempelt. */}
+        <InviteConsentGate
           token={token}
-          questions={s.questions}
-          planTitle={s.planTitle}
+          persist={false}
           brandName={branding?.brandName ?? null}
           accentColor={branding?.accentColor ?? null}
           logoUrl={branding?.logoUrl ?? null}
-        />
+        >
+          <ScreeningGate
+            token={token}
+            questions={s.questions}
+            planTitle={s.planTitle}
+            brandName={branding?.brandName ?? null}
+            accentColor={branding?.accentColor ?? null}
+            logoUrl={branding?.logoUrl ?? null}
+            consentAccepted
+          />
+        </InviteConsentGate>
       </NextIntlClientProvider>
     );
   }
@@ -165,12 +181,43 @@ export default async function InterviewPage({
   // chat below renders byte-identically.
   const useVoiceView = voiceEnabled && search.mode !== "text";
 
+  // ── E0 — Consent + KI-Offenlegung für den Invite-Pfad (Session-Branch) ──
+  // Gezeigt NUR, wenn (a) die Session offen ist, (b) noch kein Consent
+  // gestempelt wurde und (c) der Teilnehmer noch nicht geantwortet hat. (c)
+  // schützt Bestands-Sessions, die VOR der Migration mitten im Gespräch sind:
+  // dort erscheint kein nachträgliches Gate (die laufende KI-Offenlegung
+  // übernehmen Chat-Subtitle/-Footer bzw. das Voice-Intro). Ein reiner
+  // Agent-Opening-Turn zählt nicht als begonnen. Accept → POST /consent
+  // (server-seitiger Zeitstempel) → Interview rendert; das Opening streamt
+  // erst DANACH (lazy via /stream bzw. Voice-Connect) — kein LLM-Turn und
+  // keine Teilnehmer-Äußerung vor erfolgter Offenlegung (Art. 50(1) KI-VO).
+  const needsConsent =
+    session.status === "open" &&
+    session.consentAcceptedAt === null &&
+    !session.conversation.some((turn) => turn.role === "customer");
+
+  const withConsentGate = (view: ReactNode) =>
+    needsConsent ? (
+      <InviteConsentGate
+        token={token}
+        persist
+        brandName={branding?.brandName ?? null}
+        accentColor={branding?.accentColor ?? null}
+        logoUrl={branding?.logoUrl ?? null}
+      >
+        {view}
+      </InviteConsentGate>
+    ) : (
+      view
+    );
+
   if (useVoiceView) {
     return (
       <NextIntlClientProvider
         locale={locale}
         messages={{ interview: MESSAGES[locale].interview }}
       >
+        {withConsentGate(
         <VoiceInterviewView
           token={token}
           initialConversation={session.conversation}
@@ -182,7 +229,8 @@ export default async function InterviewPage({
           panelCompleteRedirect={session.panelCompleteRedirect}
           stimulusUrl={stimulusUrl}
           stimulusType={stimulusType}
-        />
+        />,
+        )}
       </NextIntlClientProvider>
     );
   }
@@ -192,6 +240,7 @@ export default async function InterviewPage({
       locale={locale}
       messages={{ interview: MESSAGES[locale].interview }}
     >
+      {withConsentGate(
       <InterviewChat
         token={token}
         initialConversation={session.conversation}
@@ -220,7 +269,8 @@ export default async function InterviewPage({
         stimulusType={stimulusType}
         {...ttsProps}
         {...useCaseProps}
-      />
+      />,
+      )}
     </NextIntlClientProvider>
   );
 }
