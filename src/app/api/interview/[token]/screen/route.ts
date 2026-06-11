@@ -9,7 +9,11 @@ import { createResearchInterview } from "@/lib/research/research-orchestration";
 import { recordScreeningResponse } from "@/lib/research/screening-responses";
 import { evaluateScreening } from "@/lib/screening/evaluate";
 import { ScreeningAnswersSchema } from "@/lib/schemas/screening";
-import { loadByToken } from "@/lib/voice-agent/session-service";
+import {
+  CONSENT_TEXT_VERSION,
+  loadByToken,
+  markSessionConsentByToken,
+} from "@/lib/voice-agent/session-service";
 import type { Json } from "@/types/database";
 
 /**
@@ -38,7 +42,14 @@ import type { Json } from "@/types/database";
  */
 
 const TokenSchema = z.string().min(20).max(200);
-const BodySchema = z.object({ answers: ScreeningAnswersSchema });
+// E0: consentAccepted ist das ADDITIVE, OPTIONALE Gate-Signal des
+// InviteConsentGate (Page rendert es VOR dem ScreeningGate). Es bestätigt nur,
+// dass das UI-Gate passiert wurde — der Zeitstempel entsteht server-seitig
+// (markSessionConsentByToken). Ohne Flag bleibt der Pfad byte-identisch.
+const BodySchema = z.object({
+  answers: ScreeningAnswersSchema,
+  consentAccepted: z.boolean().optional(),
+});
 
 export async function POST(
   req: NextRequest,
@@ -96,6 +107,12 @@ export async function POST(
   });
 
   if (result.status === "created") {
+    // E0: die Session trägt bei Invites denselben access_token wie der Invite —
+    // der Consent-Stempel läuft daher über den Request-Token. Best-effort +
+    // idempotent (nur erster Accept schreibt); niemals pfad-blockierend.
+    if (parsed.data.consentAccepted === true) {
+      await markSessionConsentByToken(tokenParsed.data, CONSENT_TEXT_VERSION);
+    }
     // Exactly one qualified row — written only when WE created the session.
     await recordScreeningResponse(invite.org_id, invite.plan_id, "qualified");
     return NextResponse.json({ qualified: true });
@@ -105,6 +122,11 @@ export async function POST(
   // idempotent success, NO extra row) or a genuine failure.
   const existing = await loadByToken(tokenParsed.data);
   if (existing) {
+    // E0: auch der Race-/Re-Submit-Gewinner kam durchs Consent-Gate — stempeln,
+    // falls noch nicht geschehen (idempotent, best-effort).
+    if (parsed.data.consentAccepted === true) {
+      await markSessionConsentByToken(tokenParsed.data, CONSENT_TEXT_VERSION);
+    }
     return NextResponse.json({ qualified: true });
   }
 

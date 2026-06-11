@@ -33,6 +33,7 @@ export function ScreeningGate({
   accentColor = null,
   logoUrl = null,
   planTitle = null,
+  consentAccepted = false,
 }: {
   token: string;
   questions: ScreeningQuestion[];
@@ -40,6 +41,11 @@ export function ScreeningGate({
   accentColor?: string | null;
   logoUrl?: string | null;
   planTitle?: string | null;
+  /** E0: true, wenn die Page dieses Gate hinter dem InviteConsentGate rendert —
+   *  dann reist das Flag im screen-POST mit und wird bei Session-Creation
+   *  gestempelt (es existiert hier noch keine Session-Row). Default false →
+   *  Request-Body byte-identisch zu vorher. */
+  consentAccepted?: boolean;
 }) {
   const router = useRouter();
   const t = useTranslations("interview");
@@ -54,7 +60,12 @@ export function ScreeningGate({
       const res = await fetch(`/api/interview/${token}/screen`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers }),
+        // E0: consentAccepted signalisiert NUR die Gate-Bestätigung; der
+        // Zeitstempel entsteht server-seitig. Ohne Gate (Prop false) bleibt
+        // der Body byte-identisch zu vorher.
+        body: JSON.stringify(
+          consentAccepted ? { answers, consentAccepted: true } : { answers },
+        ),
       });
       const data = (await res.json().catch(() => ({}))) as {
         qualified?: boolean;

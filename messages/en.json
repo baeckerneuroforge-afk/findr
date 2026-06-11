@@ -9,15 +9,15 @@
       "titleResearch": "Research interview",
       "title": "A short conversation",
       "titleWithCompany": "A short conversation about {company}",
-      "subtitle": "Your honest answers help us learn — there are no wrong answers."
+      "subtitle": "This conversation is led by an AI interviewer. Your honest answers help us learn — there are no wrong answers."
     },
     "input": {
       "placeholder": "Type your reply…",
       "send": "Send"
     },
     "footer": {
-      "brandless": "Confidential research interview.",
-      "default": "Powered by findr. · Your response is confidential."
+      "brandless": "Confidential research interview · conducted by an AI interviewer.",
+      "default": "Powered by findr. · AI interview, your response is confidential."
     },
     "visualCapture": {
       "title": "Optional screen recording",
@@ -58,7 +58,7 @@
     "voiceLive": {
       "intro": {
         "title": "This is a voice interview",
-        "body": "You take this interview as a conversation — your interviewer asks questions, you simply answer out loud. For that we need access to your microphone.",
+        "body": "You take this interview as a conversation with an AI interviewer — the artificial intelligence asks questions, you simply answer out loud. For that we need access to your microphone.",
         "micNote": "When you start, your browser will ask for microphone permission.",
         "start": "Start interview",
         "fallback": "I'd rather answer in writing"
@@ -153,12 +153,20 @@
       "body": "This time you're not quite the profile we're looking for — but we appreciate you taking the time. One of our next studies may be a better match.",
       "retry": "Change answers"
     },
+    "inviteConsent": {
+      "title": "Before you begin",
+      "intro": "This conversation is conducted by an AI interviewer — you're talking to an artificial intelligence, not a human. Your participation is voluntary.",
+      "privacyTitle": "Privacy",
+      "privacyBody": "The conversation is handled confidentially and analyzed based on its content. This can include an automated assessment of sentiment and of how questions were answered — based solely on the text of your answers, never on your voice. Please share only what you're comfortable disclosing, and don't enter sensitive personal data. Your answers are never used for advertising.",
+      "agree": "I've read this notice and am taking part voluntarily.",
+      "continue": "Continue"
+    },
     "open": {
       "consent": {
         "title": "Before you begin",
-        "intro": "You're taking part anonymously in a short study. No sign-in is required, and we don't ask for any personal details up front.",
+        "intro": "You're taking part anonymously in a short study. The interview is conducted by an AI interviewer — you're talking to an artificial intelligence, not a human. No sign-in is required, and we don't ask for any personal details up front.",
         "privacyTitle": "Privacy",
-        "privacyBody": "This conversation is handled confidentially and used only for research. Please share only what you're comfortable disclosing — don't enter sensitive personal data. Your answers are never used for advertising.",
+        "privacyBody": "This conversation is handled confidentially and used only for research. Responses are analyzed automatically based on their content; this can include an assessment of sentiment and of how questions were answered — based solely on the text of your answers, never on your voice. Please share only what you're comfortable disclosing — don't enter sensitive personal data. Your answers are never used for advertising.",
         "agree": "I've read the privacy notice and am taking part voluntarily.",
         "continue": "Continue"
       },
