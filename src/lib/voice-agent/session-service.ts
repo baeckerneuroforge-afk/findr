@@ -960,26 +960,6 @@ export async function advanceInterview(
     const finished = done || forceCapClose;
 
     if (finished) {
-      // Persist the completed transcript as a calls row (account_id = null,
-      // deal_id = null — allowed under calls_single_parent_chk which says
-      // "not both set", not "exactly one") and feed it to the Product
-      // Discovery classifier. Any failure is logged but never thrown — the
-      // conversation must be saved no matter what.
-      try {
-        await persistResearchTranscriptAndDiscovery({
-          orgId: session.orgId,
-          planId: session.planId,
-          inviteId: session.inviteId,
-          transcript: conversationToTranscript(history),
-          visualCapture: session.visualCapture,
-        });
-      } catch (err) {
-        console.error(
-          "[research] discovery analysis failed (conversation still saved):",
-          err instanceof Error ? err.message : err,
-        );
-      }
-
       const { data, error } = await supabase
         .from("interview_sessions")
         .update({
@@ -995,6 +975,31 @@ export async function advanceInterview(
           `Failed to finalize research session: ${error?.message ?? "no row returned"}`,
         );
       }
+
+      // Persist the completed transcript as a calls row (account_id = null,
+      // deal_id = null — allowed under calls_single_parent_chk which says
+      // "not both set", not "exactly one") and run the Product Discovery
+      // classifier (Opus, ~10–40s) OFF the participant's critical path via
+      // after(): the conversation is already saved above, so the participant
+      // gets their completion response immediately instead of waiting on the
+      // classifier. Best-effort — any failure is logged, never thrown, and
+      // never blocks the response.
+      after(async () => {
+        try {
+          await persistResearchTranscriptAndDiscovery({
+            orgId: session.orgId,
+            planId: session.planId,
+            inviteId: session.inviteId,
+            transcript: conversationToTranscript(history),
+            visualCapture: session.visualCapture,
+          });
+        } catch (err) {
+          console.error(
+            "[research] discovery analysis failed (conversation still saved):",
+            err instanceof Error ? err.message : err,
+          );
+        }
+      });
 
       // E1 Turn-Signale — Signal-Sidecar NACH der Teilnehmer-Response (after()
       // = waitUntil-Muster der Post-Loss-Extraktion unten): ein Haiku-Call über
