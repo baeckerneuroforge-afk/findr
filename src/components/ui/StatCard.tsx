@@ -26,7 +26,7 @@ export function StatCard({
       <div className="mb-2 flex items-center gap-1.5 text-caption font-medium uppercase tracking-wider text-neutral-500">
         {label}
       </div>
-      <div className={`text-display ${STATUS_VALUE_STYLES[status]}`}>
+      <div className={`text-display tabular-nums ${STATUS_VALUE_STYLES[status]}`}>
         {value}
       </div>
       {subtitle && (
