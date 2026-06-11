@@ -588,6 +588,7 @@ export default async function ResearchPlanDetailPage({
                       status: prolificStudy.status,
                       createdAt: prolificStudy.createdAt,
                       submissionCounts: prolificStudy.submissionCounts,
+                      totalCostCents: prolificStudy.totalCostCents,
                       lastSyncedAt: prolificStudy.lastSyncedAt,
                     }
                   : null

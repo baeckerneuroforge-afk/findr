@@ -63,3 +63,69 @@ export function coerceSubmissionCounts(
   }
   return counts;
 }
+
+// ── E6: Kosten ────────────────────────────────────────────────────────────────
+// Endpoints verifiziert gegen docs.prolific.com (api-reference/studies/
+// calculate-study-cost.md + get-study-cost.md, 2026-06-11):
+//   POST /study-cost-calculator/          → { total_cost } in Cents, inkl.
+//     VAT + Fees aus den ACCOUNT-Einstellungen (nichts hartkodiert),
+//     Account-Währung, ohne Währungscode in der Antwort.
+//   GET /studies/{id}/cost/?is_projected= → StudyTotalCost: { rewards:
+//     {rewards|fees|tax: {amount, currency}}, bonuses: {…} }, amount in
+//     Subcurrency ("£1 will return 100").
+
+function getFiniteNonNegative(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
+}
+
+/** Antwort von POST /study-cost-calculator/ → Gesamtkosten in Cents. */
+export function parseProlificCalculatedCost(json: unknown): number | null {
+  if (!json || typeof json !== "object") return null;
+  const total = getFiniteNonNegative(
+    (json as Record<string, unknown>).total_cost,
+  );
+  return total === null ? null : Math.round(total);
+}
+
+export interface PanelStudyCost {
+  /** Summe aller Komponenten (rewards+fees+tax, inkl. Bonuses) in Subcurrency. */
+  totalCents: number;
+  /** Währungscode aus der Antwort (erste gefundene), null wenn keiner dabei. */
+  currency: string | null;
+}
+
+/** Antwort von GET /studies/{id}/cost/ → Gesamtsumme + Währung. Fehlende
+ *  Sektionen (z. B. bonuses bei Drafts) zählen als 0; ohne eine einzige
+ *  parsebare Komponente → null. */
+export function parseProlificStudyCost(json: unknown): PanelStudyCost | null {
+  if (!json || typeof json !== "object") return null;
+  let total = 0;
+  let found = false;
+  let currency: string | null = null;
+
+  for (const sectionKey of ["rewards", "bonuses"]) {
+    const section = (json as Record<string, unknown>)[sectionKey];
+    if (!section || typeof section !== "object") continue;
+    for (const partKey of ["rewards", "fees", "tax"]) {
+      const part = (section as Record<string, unknown>)[partKey];
+      if (!part || typeof part !== "object") continue;
+      const amount = getFiniteNonNegative(
+        (part as Record<string, unknown>).amount,
+      );
+      if (amount === null) continue;
+      total += amount;
+      found = true;
+      if (!currency) {
+        const cur = (part as Record<string, unknown>).currency;
+        if (typeof cur === "string" && cur.trim().length > 0 && cur.length <= 8) {
+          currency = cur.trim();
+        }
+      }
+    }
+  }
+
+  if (!found) return null;
+  return { totalCents: Math.round(total), currency };
+}

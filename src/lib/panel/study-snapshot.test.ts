@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   coerceSubmissionCounts,
+  parseProlificCalculatedCost,
+  parseProlificStudyCost,
   parseProlificStudySnapshot,
 } from "./study-snapshot";
 
@@ -81,5 +83,71 @@ describe("coerceSubmissionCounts", () => {
     const coerced = coerceSubmissionCounts(many);
     expect(coerced).not.toBeNull();
     expect(Object.keys(coerced!)).toHaveLength(50);
+  });
+});
+
+describe("parseProlificCalculatedCost", () => {
+  it("reads the documented { total_cost } shape (cents)", () => {
+    expect(parseProlificCalculatedCost({ total_cost: 56 })).toBe(56);
+    expect(parseProlificCalculatedCost({ total_cost: 0 })).toBe(0);
+    expect(parseProlificCalculatedCost({ total_cost: 1249.6 })).toBe(1250);
+  });
+
+  it("rejects missing/invalid totals and non-objects", () => {
+    expect(parseProlificCalculatedCost({})).toBeNull();
+    expect(parseProlificCalculatedCost({ total_cost: "56" })).toBeNull();
+    expect(parseProlificCalculatedCost({ total_cost: -1 })).toBeNull();
+    expect(parseProlificCalculatedCost({ total_cost: Number.NaN })).toBeNull();
+    expect(parseProlificCalculatedCost(null)).toBeNull();
+    expect(parseProlificCalculatedCost(56)).toBeNull();
+  });
+});
+
+describe("parseProlificStudyCost", () => {
+  it("sums the documented StudyTotalCost breakdown and picks the currency", () => {
+    expect(
+      parseProlificStudyCost({
+        rewards: {
+          rewards: { amount: 100, currency: "USD" },
+          fees: { amount: 100, currency: "USD" },
+          tax: { amount: 100, currency: "USD" },
+        },
+        bonuses: {
+          rewards: { amount: 100, currency: "USD" },
+          fees: { amount: 100, currency: "USD" },
+          tax: { amount: 100, currency: "USD" },
+        },
+        _links: {},
+      }),
+    ).toEqual({ totalCents: 600, currency: "USD" });
+  });
+
+  it("treats missing sections/parts as 0 (draft without bonuses)", () => {
+    expect(
+      parseProlificStudyCost({
+        rewards: {
+          rewards: { amount: 5000, currency: "GBP" },
+          fees: { amount: 1500 },
+        },
+      }),
+    ).toEqual({ totalCents: 6500, currency: "GBP" });
+  });
+
+  it("skips invalid amounts instead of failing the whole parse", () => {
+    expect(
+      parseProlificStudyCost({
+        rewards: {
+          rewards: { amount: "100", currency: "EUR" },
+          fees: { amount: 200, currency: "EUR" },
+        },
+      }),
+    ).toEqual({ totalCents: 200, currency: "EUR" });
+  });
+
+  it("returns null when nothing is parseable", () => {
+    expect(parseProlificStudyCost(null)).toBeNull();
+    expect(parseProlificStudyCost({})).toBeNull();
+    expect(parseProlificStudyCost({ rewards: { rewards: { amount: -5 } } })).toBeNull();
+    expect(parseProlificStudyCost("x")).toBeNull();
   });
 });
