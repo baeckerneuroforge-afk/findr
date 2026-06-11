@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { WithdrawDataLink } from "./WithdrawDataLink";
 import type { Room } from "livekit-client";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 
@@ -890,6 +891,8 @@ export function VoiceInterviewView({
           </span>
         </div>
       </header>
+
+      <WithdrawDataLink token={token} />
 
       {stimulus ? (
         // Split-view — same responsive frame as the text interview: mobile

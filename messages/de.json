@@ -11,6 +11,12 @@
       "titleWithCompany": "Ein kurzes Gespräch über {company}",
       "subtitle": "Dieses Gespräch führt ein KI-Interviewer. Ihre ehrlichen Antworten helfen uns weiter — es gibt keine falschen Antworten."
     },
+    "withdraw": {
+      "link": "Meine Daten löschen",
+      "confirm": "Deine Interview-Daten (Transkript und Auswertung) endgültig löschen? Das kann nicht rückgängig gemacht werden.",
+      "working": "Wird gelöscht …",
+      "done": "Deine Daten wurden gelöscht."
+    },
     "input": {
       "placeholder": "Antwort eingeben …",
       "send": "Senden"
