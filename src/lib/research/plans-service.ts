@@ -54,6 +54,11 @@ export interface ResearchPlanRecord {
   /** Per-study TTS switch. Defaults false for legacy rows and pre-migration
    *  reads, so generated audio playback stays opt-in per study. */
   ttsEnabled: boolean;
+  /** E1 Turn-Signale: per-study Opt-in für die nachgelagerte Affekt-/
+   *  Direktheits-Analyse (Sidecar am Session-Ende). Defaults false for legacy
+   *  rows and pre-migration reads — ohne explizites Opt-in läuft der Sidecar
+   *  nie (Plan §3.2: default OFF, kein Backfill). */
+  signalsEnabled: boolean;
   /** Lightweight Market-Research use-case. Null means no use-case focus block
    *  and therefore unchanged interviewer behavior. */
   useCase: ResearchPlanUseCase | null;
@@ -168,6 +173,10 @@ function coerceTtsEnabled(raw: unknown): boolean {
   return raw === true;
 }
 
+function coerceSignalsEnabled(raw: unknown): boolean {
+  return raw === true;
+}
+
 function coerceNullableString(raw: unknown): string | null {
   return typeof raw === "string" ? raw : null;
 }
@@ -190,6 +199,9 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     ),
     ttsEnabled: coerceTtsEnabled(
       (row as { tts_enabled?: unknown }).tts_enabled,
+    ),
+    signalsEnabled: coerceSignalsEnabled(
+      (row as { signals_enabled?: unknown }).signals_enabled,
     ),
     useCase: coerceUseCase((row as { use_case?: unknown }).use_case),
     stimulusUrl: coerceNullableString(
@@ -577,6 +589,7 @@ export interface CreateResearchPlanInput {
   visualCaptureEnabled?: boolean;
   voiceEnabled?: boolean;
   ttsEnabled?: boolean;
+  signalsEnabled?: boolean;
   useCase?: ResearchPlanUseCase | null;
   stimulusUrl?: string | null;
   stimulusType?: string | null;
@@ -617,6 +630,7 @@ export async function createResearchPlan(
       visual_capture_enabled: input.visualCaptureEnabled ?? false,
       voice_enabled: input.voiceEnabled ?? false,
       tts_enabled: input.ttsEnabled ?? false,
+      signals_enabled: input.signalsEnabled ?? false,
       use_case: input.useCase ?? null,
       stimulus_url: input.stimulusUrl ?? null,
       stimulus_type: input.stimulusType ?? null,
@@ -651,6 +665,7 @@ export interface UpdateResearchPlanInput {
   visualCaptureEnabled?: boolean;
   voiceEnabled?: boolean;
   ttsEnabled?: boolean;
+  signalsEnabled?: boolean;
   useCase?: ResearchPlanUseCase | null;
   stimulusUrl?: string | null;
   stimulusType?: string | null;
@@ -690,6 +705,7 @@ export async function updateResearchPlan(
     visual_capture_enabled?: boolean;
     voice_enabled?: boolean;
     tts_enabled?: boolean;
+    signals_enabled?: boolean;
     use_case?: ResearchPlanUseCase | null;
     stimulus_url?: string | null;
     stimulus_type?: string | null;
@@ -711,6 +727,8 @@ export async function updateResearchPlan(
     update.visual_capture_enabled = input.visualCaptureEnabled;
   if (input.voiceEnabled !== undefined) update.voice_enabled = input.voiceEnabled;
   if (input.ttsEnabled !== undefined) update.tts_enabled = input.ttsEnabled;
+  if (input.signalsEnabled !== undefined)
+    update.signals_enabled = input.signalsEnabled;
   if (input.useCase !== undefined) update.use_case = input.useCase;
   if (input.stimulusUrl !== undefined) update.stimulus_url = input.stimulusUrl;
   if (input.stimulusType !== undefined) update.stimulus_type = input.stimulusType;

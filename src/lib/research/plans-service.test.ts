@@ -36,6 +36,7 @@ function plan(overrides: Partial<ResearchPlanRecord>): ResearchPlanRecord {
     visualCaptureEnabled: false,
     voiceEnabled: false,
     ttsEnabled: false,
+    signalsEnabled: false,
     useCase: "creative_test",
     stimulusUrl: "https://storage.example/stimulus.png",
     stimulusType: "image",

@@ -1,11 +1,14 @@
 import "server-only";
 
+import { after } from "next/server";
+
 import type { Json } from "@/types/database";
 import { createResearchSupabase } from "@/lib/research/db";
 import {
   conversationToTranscript,
   persistResearchTranscriptAndDiscovery,
 } from "@/lib/research/transcript-service";
+import { runTurnSignalsSidecar } from "@/lib/research/turn-signals";
 import type {
   InterviewLanguage,
   InterviewTurn,
@@ -276,6 +279,16 @@ export async function completeVoiceResearchSession(
       err instanceof Error ? err.message : err,
     );
   }
+
+  // E1 Turn-Signale — derselbe Signal-Sidecar wie im Text-Finish
+  // (advanceInterview, session-service.ts): NACH der Agent-Response via
+  // after() (die /api/voice/complete-Route ist der Request-Kontext),
+  // UNABHÄNGIG vom Discovery-Ausgang (eigener Befund, eigene Fehlerbehandlung).
+  // Nur der Gewinner des atomaren open→completed-Übergangs erreicht diese
+  // Zeile — der Sidecar läuft at-most-once pro Session (plus turn_signals IS
+  // NULL als Write-Guard). Alle Gates (signals_enabled, Consent-Stempel,
+  // Teilnehmer-Turns) liegen im Sidecar selbst.
+  after(() => runTurnSignalsSidecar(session.id));
 
   return { ok: true, alreadyCompleted: false, discoveryRan };
 }

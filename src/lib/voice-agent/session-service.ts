@@ -17,6 +17,7 @@ import {
 } from "@/lib/research/panel";
 import { findInviteByAccessToken } from "@/lib/research/scheduling";
 import { persistResearchTranscriptAndDiscovery } from "@/lib/research/transcript-service";
+import { runTurnSignalsSidecar } from "@/lib/research/turn-signals";
 import {
   DEFAULT_INTERVIEW_LANGUAGE,
   DEFAULT_VOICE_MODEL,
@@ -972,6 +973,15 @@ export async function advanceInterview(
           `Failed to finalize research session: ${error?.message ?? "no row returned"}`,
         );
       }
+
+      // E1 Turn-Signale — Signal-Sidecar NACH der Teilnehmer-Response (after()
+      // = waitUntil-Muster der Post-Loss-Extraktion unten): ein Haiku-Call über
+      // das soeben final persistierte Transkript, gated im Sidecar selbst auf
+      // plan.signals_enabled (Opt-in, default OFF) + consent_accepted_at
+      // (E0-Kopplung) + turn_signals IS NULL (Idempotenz). Fehler bleiben im
+      // Sidecar (geloggt, nie geworfen) — dieser Pfad ist davon unberührbar.
+      after(() => runTurnSignalsSidecar(session.id));
+
       return toPublicView(toSession(data));
     }
 

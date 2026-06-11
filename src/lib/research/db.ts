@@ -52,6 +52,12 @@ type InterviewSessionsRow = {
   // select("*") beide Spalten nicht → Lese-Mapper defaultet undefined→null.
   consent_accepted_at: string | null;
   consent_version: string | null;
+  // E1 Turn-Signale (20260704000002) — Ergebnis des Signal-Sidecars
+  // (TurnSignalsRecord, src/lib/schemas/turn-signals.ts). NULL für jede nie
+  // analysierte Session (Toggle aus, kein Consent, Bestand). Vor angewandter
+  // Migration liefert select("*") die Spalte nicht → Reads unverändert; der
+  // Sidecar-Write schlägt fehl und wird geloggt (best-effort).
+  turn_signals: Json | null;
   account_id: string | null;
   completed_at: string | null;
   conversation: Json;
@@ -86,6 +92,7 @@ type InterviewSessionsInsert = {
   panel_context?: Json | null;
   consent_accepted_at?: string | null;
   consent_version?: string | null;
+  turn_signals?: Json | null;
   account_id?: string | null;
   completed_at?: string | null;
   conversation?: Json;
@@ -120,6 +127,7 @@ type InterviewSessionsUpdate = {
   panel_context?: Json | null;
   consent_accepted_at?: string | null;
   consent_version?: string | null;
+  turn_signals?: Json | null;
   account_id?: string | null;
   completed_at?: string | null;
   conversation?: Json;
@@ -189,6 +197,11 @@ export type ResearchPlanRow = {
   // Vor angewandter Migration liefert select("*") die Spalte nicht; der
   // Lese-Mapper defaultet undefined→false.
   tts_enabled: boolean;
+  // E1 Turn-Signale (20260704000002): per-Studie-Opt-in für die nachgelagerte
+  // Affekt-/Direktheits-Analyse. DB: NOT NULL DEFAULT false; kein Backfill.
+  // Vor angewandter Migration liefert select("*") die Spalte nicht; der
+  // Lese-Mapper defaultet undefined→false → der Sidecar läuft nie.
+  signals_enabled: boolean;
   // Market-Research-Use-Case. Nullable, no DB default/backfill. Before the
   // migration lands select("*") omits it; plans-service coerceUseCase maps that
   // to null so existing behavior stays unchanged.
@@ -228,6 +241,7 @@ type ResearchPlanInsert = {
   visual_capture_enabled?: boolean;
   voice_enabled?: boolean;
   tts_enabled?: boolean;
+  signals_enabled?: boolean;
   use_case?: ResearchPlanUseCase | null;
   stimulus_url?: string | null;
   stimulus_type?: string | null;
@@ -253,6 +267,7 @@ type ResearchPlanUpdate = {
   visual_capture_enabled?: boolean;
   voice_enabled?: boolean;
   tts_enabled?: boolean;
+  signals_enabled?: boolean;
   use_case?: ResearchPlanUseCase | null;
   stimulus_url?: string | null;
   stimulus_type?: string | null;
