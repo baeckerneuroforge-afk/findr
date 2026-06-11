@@ -121,6 +121,45 @@ interface HeuteNextStep {
  * Fail-open wie auf der MR-Seite: ein Lesefehler degradiert Zahlen zu „—“
  * bzw. lässt Schritte weg — nie die Seite.
  */
+/** Fortschritts-Ring der „Läuft gerade“-Zeilen (v5-Mockup .ringwrap): 52px,
+ *  r=19 im 44er-ViewBox → Umfang 2π·19 ≈ 119,38. Server-gerendert am
+ *  statischen Endstand (keine Animation, kein JS); rein dekorativ — die
+ *  zugänglichen Zahlen stehen als Text rechts in der Zeile. Bei 0 % entfällt
+ *  der Vordergrund-Kreis, sonst malte der runde Linecap einen Punkt. */
+function ProgressRing({ pct }: { pct: number }) {
+  const CIRC = 119.38;
+  return (
+    <span className="relative h-[52px] w-[52px] shrink-0" aria-hidden="true">
+      <svg viewBox="0 0 44 44" className="h-[52px] w-[52px] -rotate-90">
+        <circle
+          cx="22"
+          cy="22"
+          r="19"
+          fill="none"
+          strokeWidth="5"
+          className="stroke-neutral-100"
+        />
+        {pct > 0 && (
+          <circle
+            cx="22"
+            cy="22"
+            r="19"
+            fill="none"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeDasharray={CIRC}
+            strokeDashoffset={CIRC * (1 - pct / 100)}
+            className="stroke-primary-600"
+          />
+        )}
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center font-mono text-[11px] font-medium text-primary-700">
+        {pct}%
+      </span>
+    </span>
+  );
+}
+
 async function HeuteDashboard({ orgId }: { orgId: string }) {
   const t = await getTranslations("heute");
   const tm = await getTranslations("research.market");
@@ -376,9 +415,13 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
               return (
                 <div
                   key={plan.id}
-                  className="flex items-center justify-between gap-4 border-b border-neutral-100 px-5 py-4 last:border-b-0"
+                  className="flex items-center gap-4 border-b border-neutral-100 px-5 py-4 last:border-b-0"
                 >
-                  <div className="min-w-0">
+                  {/* Fortschritts-Ring links (v5-Mockup .runrow) statt des
+                      früheren Mini-Balkens — die Zahlen rechts bleiben die
+                      zugängliche Quelle, der Ring ist dekorativ. */}
+                  {pct !== null && <ProgressRing pct={pct} />}
+                  <div className="min-w-0 flex-1">
                     <Link
                       href={`/dashboard/market-research/${plan.id}`}
                       className="text-body-strong text-neutral-900 hover:text-primary-700 hover:underline"
@@ -402,14 +445,6 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
                             })
                           : completed}
                     </p>
-                    {pct !== null && (
-                      <div className="mt-1.5 h-1.5 w-28 overflow-hidden rounded-full bg-neutral-100">
-                        <div
-                          className="h-full rounded-full bg-primary-600"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    )}
                     {recent > 0 && (
                       <p className="mt-1 text-caption text-neutral-400">
                         {t("sinceYesterday", { count: recent })}

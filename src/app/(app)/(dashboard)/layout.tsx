@@ -15,7 +15,11 @@ export default function DashboardLayout({
         <DashboardSidebar />
         <div className="pl-60">
           <DashboardHeader />
-          <main className="px-8 py-8 max-w-[1400px] mx-auto">{children}</main>
+          {/* 1120px-Mittelspalte (v5-Mockup .content-inner): die ruhige,
+              fokussierte Lesespalte ist der größte Einzelhebel für den
+              aufgeräumten Eindruck — vorher 1400px, auf denen sich die
+              Karten zerdehnten. */}
+          <main className="px-8 py-8 max-w-[1120px] mx-auto">{children}</main>
         </div>
       </div>
     </ToastProvider>
