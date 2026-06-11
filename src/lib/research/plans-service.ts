@@ -492,8 +492,12 @@ const SESSION_PREVIEW_MAX_CHARS = 140;
  * niemals werfen, Einträge ohne die zwei Pflichtfelder fallen weg. Die
  * Schreibseite (advanceInterview / Voice-Bridge) ist wohlgeformt; das hier
  * schützt nur Lese-Ansichten vor Legacy-/Hand-editierten Zeilen.
+ *
+ * E3: das optionale `why` (Frage-Rationale, nur auf Agent-Turns geschrieben)
+ * reist in FORSCHER-Ansichten mit — dies ist ein Forscher-Lesepfad; die
+ * Teilnehmer-Seite strippt das Feld in toPublicView. Exported for unit tests.
  */
-function coerceConversation(raw: unknown): InterviewTurn[] {
+export function coerceConversation(raw: unknown): InterviewTurn[] {
   if (!Array.isArray(raw)) return [];
   const out: InterviewTurn[] = [];
   for (const entry of raw) {
@@ -501,7 +505,15 @@ function coerceConversation(raw: unknown): InterviewTurn[] {
     const e = entry as Record<string, unknown>;
     if (e.role !== "agent" && e.role !== "customer") continue;
     if (typeof e.text !== "string") continue;
-    out.push({ role: e.role, text: e.text });
+    const why =
+      e.role === "agent" && typeof e.why === "string" && e.why.trim() !== ""
+        ? e.why
+        : undefined;
+    out.push(
+      why !== undefined
+        ? { role: e.role, text: e.text, why }
+        : { role: e.role, text: e.text },
+    );
   }
   return out;
 }

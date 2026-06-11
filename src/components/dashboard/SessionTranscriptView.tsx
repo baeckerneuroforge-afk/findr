@@ -302,6 +302,21 @@ export async function SessionConversationCard({
                       {signal && (
                         <TurnSignalChips signal={signal} labels={chipLabels} />
                       )}
+                      {/* E3 Frage-Rationale — die echte Begründung des Agenten
+                          zum Entscheidungszeitpunkt (WHY:-Header), nur an
+                          Agent-Turns und nur in dieser FORSCHER-Ansicht
+                          (Teilnehmer-Payloads strippen das Feld). Dezentes
+                          natives Disclosure, Optik der Signal-Details. */}
+                      {turn.role === "agent" && turn.why && (
+                        <details className="mt-1.5">
+                          <summary className="cursor-pointer select-none text-caption text-neutral-400 transition-colors hover:text-neutral-600">
+                            {tm("whyDisclosure")}
+                          </summary>
+                          <p className="mt-1 text-caption text-neutral-500">
+                            {turn.why}
+                          </p>
+                        </details>
+                      )}
                     </div>
                   </li>
                 );

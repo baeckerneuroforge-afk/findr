@@ -5,6 +5,7 @@ import {
   buildResearchSystemPrompt,
   buildTurnMessages,
   createDoneHeaderParser,
+  stripTurnInternals,
   type InterviewTurn,
   type ResearchInput,
 } from "./interviewer";
@@ -160,6 +161,7 @@ describe("done-header stream parser (B1 plain-text turn contract)", () => {
     expect(parser.finish()).toEqual({
       done: false,
       message: "Hallo! Wie geht es Ihnen?",
+      why: null,
     });
   });
 
@@ -169,6 +171,7 @@ describe("done-header stream parser (B1 plain-text turn contract)", () => {
     expect(parser.finish()).toEqual({
       done: true,
       message: "Danke für das Gespräch!",
+      why: null,
     });
   });
 
@@ -181,6 +184,7 @@ describe("done-header stream parser (B1 plain-text turn contract)", () => {
     expect(parser.finish()).toEqual({
       done: false,
       message: "Vielen Dank für Ihre Zeit — eine Frage noch: Was war der Auslöser?",
+      why: null,
     });
   });
 
@@ -194,21 +198,146 @@ describe("done-header stream parser (B1 plain-text turn contract)", () => {
   it("handles a bare DONE header with no message as empty (caller retries)", () => {
     const parser = createDoneHeaderParser();
     parser.push("DONE: true");
-    expect(parser.finish()).toEqual({ done: true, message: "" });
+    expect(parser.finish()).toEqual({ done: true, message: "", why: null });
   });
 
   it("tolerates blank lines BEFORE the header (review finding)", () => {
     const parser = createDoneHeaderParser();
     parser.push("\n");
     parser.push("\nDONE: true\n\nDanke!");
-    expect(parser.finish()).toEqual({ done: true, message: "Danke!" });
+    expect(parser.finish()).toEqual({ done: true, message: "Danke!", why: null });
   });
 
   it("emits nothing for the header even when everything arrives in one chunk", () => {
     const parser = createDoneHeaderParser();
     const emitted = parser.push("DONE: true\n\nAuf Wiedersehen!");
     expect(emitted).toBe("Auf Wiedersehen!");
-    expect(parser.finish()).toEqual({ done: true, message: "Auf Wiedersehen!" });
+    expect(parser.finish()).toEqual({ done: true, message: "Auf Wiedersehen!", why: null });
+  });
+});
+
+describe("WHY header line (E3 Frage-Rationale)", () => {
+  it("parses DONE + WHY + body in one chunk — WHY never reaches the deltas", () => {
+    const parser = createDoneHeaderParser();
+    const emitted = parser.push(
+      "DONE: false\nWHY: Vertiefung zu Thema 2 — Preis wurde erstmals erwähnt\n\nWas genau war zu teuer?",
+    );
+    expect(emitted).toBe("Was genau war zu teuer?");
+    expect(parser.finish()).toEqual({
+      done: false,
+      message: "Was genau war zu teuer?",
+      why: "Vertiefung zu Thema 2 — Preis wurde erstmals erwähnt",
+    });
+  });
+
+  it("parses the WHY line across character-level chunks without leaking it", () => {
+    const parser = createDoneHeaderParser();
+    const raw = "DONE: true\nWHY: Alle Themen gesättigt\n\nVielen Dank!";
+    let emitted = "";
+    for (const ch of raw) emitted += parser.push(ch);
+    expect(emitted).toBe("Vielen Dank!");
+    expect(parser.finish()).toEqual({
+      done: true,
+      message: "Vielen Dank!",
+      why: "Alle Themen gesättigt",
+    });
+  });
+
+  it("stays byte-identical for the legacy contract without a WHY line", () => {
+    const parser = createDoneHeaderParser();
+    const emitted = parser.push("DONE: false\n\nWie lief das ab?");
+    expect(emitted).toBe("Wie lief das ab?");
+    expect(parser.finish()).toEqual({
+      done: false,
+      message: "Wie lief das ab?",
+      why: null,
+    });
+  });
+
+  it("streams a body starting with 'Why' instead of swallowing it as a header", () => {
+    const parser = createDoneHeaderParser();
+    parser.push("DONE: false\n\n");
+    const emitted =
+      parser.push("Why was that ") + parser.push("frustrating for you?");
+    expect(emitted).toBe("Why was that frustrating for you?");
+    expect(parser.finish()).toEqual({
+      done: false,
+      message: "Why was that frustrating for you?",
+      why: null,
+    });
+  });
+
+  it("treats a bare DONE + WHY with no body as empty message (caller retries)", () => {
+    const parser = createDoneHeaderParser();
+    parser.push("DONE: true\nWHY: Teilnehmer bat um Abschluss");
+    expect(parser.finish()).toEqual({
+      done: true,
+      message: "",
+      why: "Teilnehmer bat um Abschluss",
+    });
+  });
+
+  it("caps a runaway WHY value at persistence-safe length", () => {
+    const parser = createDoneHeaderParser();
+    parser.push(`DONE: false\nWHY: ${"x".repeat(350)}\n\nFrage?`);
+    const result = parser.finish();
+    expect(result.why?.length).toBe(300);
+    expect(result.message).toBe("Frage?");
+  });
+
+  it("fails open to body when a WHY-looking line never ends", () => {
+    const parser = createDoneHeaderParser();
+    parser.push("DONE: false\n");
+    const emitted = parser.push(`WHY: ${"y".repeat(450)}`);
+    // Über dem Zeilen-Cap ohne Newline → war keine Headerzeile, alles Body.
+    expect(emitted.startsWith("WHY: ")).toBe(true);
+    expect(parser.finish().why).toBeNull();
+  });
+
+  it("swallows a mangled WHY line (prefix garbage) instead of leaking it", () => {
+    // Im Opus-Abnahmelauf beobachtet: "WRY-CHECK WHY: …" — die Interna dürfen
+    // den Teilnehmer trotzdem NIE erreichen (Müll-Präfix-Toleranz ≤24 Zeichen).
+    const parser = createDoneHeaderParser();
+    const emitted = parser.push(
+      "DONE: false\nWRY-CHECK WHY: Onboarding ohne Signal, wechsle zu Reporting\n\nVerstehe. Lassen Sie uns wechseln.",
+    );
+    expect(emitted).toBe("Verstehe. Lassen Sie uns wechseln.");
+    expect(parser.finish()).toEqual({
+      done: false,
+      message: "Verstehe. Lassen Sie uns wechseln.",
+      why: "Onboarding ohne Signal, wechsle zu Reporting",
+    });
+  });
+
+  it("streams a no-separator body once it cannot be a WHY line", () => {
+    // Lenient-Altfall: Body direkt nach der DONE-Zeile ohne Leerzeile. Sobald
+    // Zeile 2 zu lang für ein WHY-Präfix ist, fließt sie live als Body.
+    const parser = createDoneHeaderParser();
+    parser.push("DONE: false\n");
+    const emitted = parser.push(
+      "Können Sie mir das bitte genauer beschreiben?",
+    );
+    expect(emitted).toBe("Können Sie mir das bitte genauer beschreiben?");
+    expect(parser.finish().why).toBeNull();
+  });
+});
+
+describe("stripTurnInternals (E3 — Teilnehmer-Payload-Hygiene)", () => {
+  it("removes why from agent turns and leaves plain turns untouched", () => {
+    const conversation: InterviewTurn[] = [
+      { role: "agent", text: "Frage?", why: "Einstieg ins leichteste Thema" },
+      { role: "customer", text: "Antwort." },
+      { role: "agent", text: "Nachfrage?" },
+    ];
+    expect(stripTurnInternals(conversation)).toEqual([
+      { role: "agent", text: "Frage?" },
+      { role: "customer", text: "Antwort." },
+      { role: "agent", text: "Nachfrage?" },
+    ]);
+    // Nie ein why-Schlüssel in der Teilnehmer-Form — auch nicht als undefined.
+    expect(stripTurnInternals(conversation).some((t) => "why" in t)).toBe(
+      false,
+    );
   });
 });
 
