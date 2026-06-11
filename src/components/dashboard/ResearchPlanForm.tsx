@@ -960,8 +960,13 @@ export function ResearchPlanForm({
         <>
           {/* 1. Intent-first: das Forschungsziel als prominenter erster Input,
               gerahmt von einer ruhigen Leitfrage. Reiner Re-Use von
-              objectiveField — gleiches Feld, gleicher State, kein neues Feld. */}
-          <section className="space-y-3">
+              objectiveField — gleiches Feld, gleicher State, kein neues Feld.
+              id="grundlagen" ist das Anker-Ziel der "Manuell anlegen"-Karte
+              auf /market-research/new (E6) — Schritt-1-Gruppenstart. */}
+          <section id="grundlagen" className="scroll-mt-24 space-y-3">
+            <p className="text-caption font-medium uppercase tracking-wider text-neutral-400">
+              {t("groupStep1Caption")}
+            </p>
             <h2 className="text-h2 text-neutral-900">
               {t("marketGoalHeadline")}
             </h2>
@@ -1489,8 +1494,21 @@ export function ResearchPlanForm({
 
       {/* KI-Leitfaden-Generator — optional, ändert das Standard-Verhalten
           nicht, wenn nicht benutzt. Setzt sich VOR den Topic-Editor, damit
-          das Ergebnis direkt sichtbar in die Topic-Liste darunter fließt. */}
-      <section className="space-y-3 rounded-lg border border-primary-200 bg-primary-50/40 p-4">
+          das Ergebnis direkt sichtbar in die Topic-Liste darunter fließt.
+          Auf dem Market-Pfad trägt die Sektion id="leitfaden" als Anker-Ziel
+          der "KI-Schnellstart"-Karte auf /market-research/new (E6) plus eine
+          Schritt-2-Beschriftung; Discovery rendert byte-identisch weiter. */}
+      {isMarket && (
+        <p className="-mb-3 text-caption font-medium uppercase tracking-wider text-neutral-400">
+          {t("groupStep2Caption")}
+        </p>
+      )}
+      <section
+        id={isMarket ? "leitfaden" : undefined}
+        className={`space-y-3 rounded-lg border border-primary-200 bg-primary-50/40 p-4${
+          isMarket ? " scroll-mt-24" : ""
+        }`}
+      >
         <div>
           <h2 className="text-h3 text-neutral-900">{t("genTitle")}</h2>
           <p className="mt-0.5 text-small text-neutral-600">{t("genDesc")}</p>
@@ -1620,7 +1638,7 @@ export function ResearchPlanForm({
                         {topic.label}
                       </p>
                       <p className="mt-1 text-small italic text-neutral-700">
-                        „{topic.mainQuestion}"
+                        „{topic.mainQuestion}“
                       </p>
                     </li>
                   ))}
