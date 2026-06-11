@@ -20,7 +20,7 @@ import {
   countRecentCompletedSessionsForPlans,
   listResearchPlans,
 } from "@/lib/research/plans-service";
-import { listPoolMembers } from "@/lib/research/participant-pool";
+import { countPoolMembers } from "@/lib/research/participant-pool";
 import { HeuteGreeting } from "@/components/dashboard/HeuteGreeting";
 import { AutoRefresh } from "@/components/dashboard/AutoRefresh";
 import { getDealsByOrg } from "@/lib/deals/service";
@@ -215,7 +215,7 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
 
   // Zwei READ-ONLY-Batches über vorhandene Queries, parallel — identisches
   // Muster (inkl. fail-open-Verhalten) wie /dashboard/market-research.
-  const [completedCounts, recentCounts, synthesisPlanIds, poolMembers] =
+  const [completedCounts, recentCounts, synthesisPlanIds, poolCount] =
     await Promise.all([
       countCompletedSessionsForPlans(
         orgId,
@@ -229,8 +229,9 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
       loadOrgSyntheses(orgId)
         .then((rows) => new Set(rows.map((row) => row.studyId)))
         .catch(() => new Set<string>()),
-      // listPoolMembers degradiert selbst zu [] — liest hier als „0 Profile“.
-      listPoolMembers(orgId).catch(() => []),
+      // Head-count statt den ganzen Pool zu laden — das Dashboard refresht
+      // alle 30s. Degradiert zu 0 = liest hier als „0 Profile“.
+      countPoolMembers(orgId).catch(() => 0),
     ]);
 
   const activePlans = plans.filter((p) => p.status === "active");
@@ -336,7 +337,7 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
         />
         <StatCard
           label={t("kpiPool")}
-          value={poolMembers.length}
+          value={poolCount}
           subtitle={t("kpiPoolSub")}
         />
       </div>

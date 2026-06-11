@@ -94,6 +94,32 @@ export async function listPoolMembers(
   return data.map(toMember);
 }
 
+/**
+ * Anzahl der Pool-Personen dieser Org (optional gefiltert) — head-count, OHNE
+ * die Rows zu laden. Für reine Zähler-Anzeigen (z.B. das alle 30s
+ * auto-refreshende Dashboard) statt listPoolMembers(...).length. 0 bei Fehler.
+ */
+export async function countPoolMembers(
+  orgId: string,
+  filter: PoolFilter = {},
+): Promise<number> {
+  const supabase = createResearchSupabase();
+  let query = supabase
+    .from("participant_pool")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId);
+
+  if (filter.role) query = query.eq("role", filter.role);
+  if (filter.segment) query = query.eq("segment", filter.segment);
+  if (filter.tags && filter.tags.length > 0) {
+    query = query.overlaps("tags", filter.tags);
+  }
+
+  const { count, error } = await query;
+  if (error || count === null) return 0;
+  return count;
+}
+
 export async function getPoolMember(
   orgId: string,
   memberId: string,
