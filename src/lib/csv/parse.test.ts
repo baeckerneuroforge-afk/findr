@@ -9,7 +9,7 @@ import {
   parseCsvInput,
   parsePoolCsv,
   POOL_CSV_TEMPLATES,
-  POOL_EMAIL_RE,
+  STRICT_EMAIL_RE,
 } from "./parse";
 
 /**
@@ -83,6 +83,25 @@ describe("parseBulkInput", () => {
         messageKey: "issueNameTooLong",
       },
     ]);
+  });
+
+  it("flags detected-but-server-invalid emails per row instead of folding them into the label", () => {
+    // Erkennung lax (das Segment IST ein E-Mail-Versuch), Validierung strikt
+    // (zod-Parität): Umlaut-Adressen werden gemeldet — vorher passierten sie
+    // die Vorschau und rissen serverseitig den ganzen Batch.
+    const { parsed, issues } = parseBulkInput(
+      "Jörg, jörg@müller.de\nOk, ok@x.de",
+    );
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].contactLabel).toBe("Ok");
+    expect(issues.map((i) => i.messageKey)).toEqual(["issueInvalidEmail"]);
+  });
+
+  it("flags emails over the server's 320-char cap", () => {
+    const longEmail = "a".repeat(310) + "@" + "b".repeat(8) + ".de";
+    const { parsed, issues } = parseBulkInput(`Jane, ${longEmail}`);
+    expect(parsed).toEqual([]);
+    expect(issues.map((i) => i.messageKey)).toEqual(["issueEmailTooLong"]);
   });
 });
 
@@ -195,6 +214,15 @@ describe("parseCsvInput", () => {
         messageKey: "issueInvalidEmail",
       },
     ]);
+  });
+
+  it("rejects emails the server would reject (umlauts, strict parity) per row", () => {
+    const { parsed, issues } = parseCsvInput(
+      "Name,Email\nJörg,jörg@müller.de\nOk,ok@x.de\n",
+    );
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].contactLabel).toBe("Ok");
+    expect(issues.map((i) => i.messageKey)).toEqual(["issueInvalidEmail"]);
   });
 
   it("returns empty results for an empty input", () => {
@@ -338,7 +366,7 @@ describe("parsePoolCsv", () => {
   it("skips rows whose email exceeds the server's length cap", () => {
     const longEmail = "a".repeat(310) + "@" + "b".repeat(8) + ".de";
     expect(longEmail.length).toBeGreaterThan(MAX_POOL_EMAIL_LENGTH);
-    expect(POOL_EMAIL_RE.test(longEmail)).toBe(true);
+    expect(STRICT_EMAIL_RE.test(longEmail)).toBe(true);
     const { parsed, issues } = parsePoolCsv(`Name,Email\nJane,${longEmail}\n`);
     expect(parsed).toEqual([]);
     expect(issues.map((i) => i.messageKey)).toEqual(["issueEmailTooLong"]);
@@ -425,9 +453,9 @@ describe("Erkennung bei führenden Leerzeilen", () => {
 
 // ── Server-Paritäts-Regex ─────────────────────────────────────────────────────
 
-describe("POOL_EMAIL_RE", () => {
+describe("STRICT_EMAIL_RE", () => {
   it("is byte-identical to zod's default email regex (the server schema's source)", () => {
-    expect(POOL_EMAIL_RE.source).toBe(z.regexes.email.source);
+    expect(STRICT_EMAIL_RE.source).toBe(z.regexes.email.source);
   });
 
   it("rejects what the server rejects and the loose invite regex let through", () => {
@@ -439,10 +467,10 @@ describe("POOL_EMAIL_RE", () => {
       "user@my_domain.com",
       "jane..doe@x.de",
     ]) {
-      expect(POOL_EMAIL_RE.test(bad), bad).toBe(false);
+      expect(STRICT_EMAIL_RE.test(bad), bad).toBe(false);
     }
     for (const ok of ["jane@x.de", "jane+tag@acme-corp.io", "j.doe@sub.acme.de"]) {
-      expect(POOL_EMAIL_RE.test(ok), ok).toBe(true);
+      expect(STRICT_EMAIL_RE.test(ok), ok).toBe(true);
     }
   });
 });
