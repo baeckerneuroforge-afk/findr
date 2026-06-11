@@ -53,6 +53,22 @@ export type InterviewRole = "agent" | "customer";
 export interface InterviewTurn {
   role: InterviewRole;
   text: string;
+  /** E3 Frage-Rationale — die echte Begründung des Agenten zum
+   *  Entscheidungszeitpunkt (WHY:-Header, nur Research-Turn-Pfad). OPTIONAL
+   *  und additiv: Bestands-Turns, Teilnehmer-Turns und alle Nicht-Research-
+   *  Pfade tragen das Feld nie. NUR für Forscher-Ansichten — jede
+   *  Teilnehmer-Payload läuft durch stripTurnInternals (toPublicView). */
+  why?: string;
+}
+
+/** E3 — entfernt interne Felder (heute: why) aus Turns. PFLICHT vor jeder
+ *  TEILNEHMER-Payload: Wer liest, *warum* gefragt wird, antwortet verzerrt
+ *  (Demand-Effekte, Plan §4.6/O1) — und die Begründung ist Forscher-Methodik,
+ *  nicht Gesprächsinhalt. Pure Funktion, exported for unit tests. */
+export function stripTurnInternals(
+  conversation: InterviewTurn[],
+): InterviewTurn[] {
+  return conversation.map(({ role, text }) => ({ role, text }));
 }
 
 /** Buyer-facing conversation language for a session. */
@@ -88,6 +104,12 @@ export interface NextMessage {
   /** false while still asking; true when wrapping up (message = closing). */
   done: boolean;
   message: string;
+  /** E3 — Begründung aus der optionalen `WHY:`-Headerzeile (nur der
+   *  Research-Turn-Prompt fordert sie an). Null, wenn das Modell keine
+   *  liefert (fail-open) oder der Pfad sie nicht kennt (post_loss/checkin,
+   *  JSON-Voice-Contract). Erreicht NIE den Teilnehmer: der Parser emittiert
+   *  die Zeile nicht als Delta, und toPublicView strippt das Feld. */
+  why: string | null;
 }
 
 const InterviewResultSchema = z.object({
@@ -145,6 +167,21 @@ First line: exactly \`DONE: false\` while you still want to ask another question
 Then one empty line.
 Then your next message to the ${audience}, or a short warm closing if done — plain text only.
 Wherever these instructions say to set "done": true or false, express it ONLY through this first DONE line. Never repeat the DONE line inside the message itself.`;
+}
+
+/** E3 Frage-Rationale — der Research-Turn-Flavor des Plain-Contracts: eine
+ *  zusätzliche `WHY:`-Headerzeile zwischen DONE-Zeile und Leerzeile trägt die
+ *  ECHTE Begründung zum Entscheidungszeitpunkt (kein Post-hoc-Narrativ; Plan
+ *  §4.3 Option A). Der Parser nimmt die Zeile fail-open entgegen und streamt
+ *  sie NIE als Teilnehmer-Delta; post_loss/checkin behalten plainOutputBlock
+ *  byte-identisch, ebenso der exportierte JSON-Flavor der Voice-Bridge (E5). */
+function plainOutputBlockWithWhy(audience: string): string {
+  return `OUTPUT FORMAT — reply as PLAIN TEXT, no JSON, no markdown, no preamble:
+First line: exactly \`DONE: false\` while you still want to ask another question, or \`DONE: true\` when wrapping up.
+Second line: exactly \`WHY: \` followed by ONE short sentence (max ~15 words) telling the RESEARCHER who reads the transcript later why you are asking THIS question now — e.g. which plan topic it serves, what in the previous answer you are deepening, or (when done) why you are closing. The line must start with exactly the four characters \`WHY:\` — never prefix or rename it (no labels, no self-check notes). Write it in the interview's required language. The ${audience} never sees this line; keep it factual and method-focused, never a judgment about the person.
+Then one empty line.
+Then your next message to the ${audience}, or a short warm closing if done — plain text only.
+Wherever these instructions say to set "done": true or false, express it ONLY through this first DONE line. Never repeat the DONE or WHY line inside the message itself.`;
 }
 
 const INTERVIEWER_CORE = `You are findr.'s post-loss interview agent. A B2B SaaS deal was just lost, and you are reaching out to the buyer (over text/chat) to learn the REAL reason it didn't go forward. This is research — you are NOT trying to win the deal back or sell anything.
@@ -324,12 +361,33 @@ export interface DoneHeaderParser {
 }
 
 const DONE_HEADER_RE = /^\s*done:\s*(true|false)\s*$/i;
+// E3 — optionale zweite Headerzeile (nur der Research-Turn-Prompt fordert sie
+// an): `WHY: <ein Satz Begründung>`. Fail-open wie die DONE-Zeile.
+// Müll-Präfix-Toleranz: so viele Zeichen dürfen VOR dem "why:" stehen
+// (beobachtet im Opus-Abnahmelauf: "WRY-CHECK WHY: …"), damit eine
+// verstümmelte Rationale-Zeile geschluckt statt zum Teilnehmer gestreamt wird.
+const WHY_PREFIX_SLACK = 24;
+// Eine WHY-Zeile, die ohne Zeilenumbruch über dieses Cap hinauswächst, ist
+// kein Header mehr — fail-open als Body, damit das Streaming nie hängt.
+const WHY_LINE_MAX_CHARS = 400;
+// Persistenz-Hygiene: die Begründung ist EIN kurzer Satz (Prompt: ~15 Wörter);
+// alles darüber wird hart gekappt, bevor es eine DB-Zeile erreicht.
+const WHY_VALUE_MAX_CHARS = 300;
 
 /** Incremental parser for the plain-text turn contract. Exported for unit
- *  tests — pure state machine, no I/O. */
+ *  tests — pure state machine, no I/O.
+ *
+ *  E3-Invariante: Der Inhalt der WHY-Zeile wird NIEMALS über push() als
+ *  sichtbares Delta emittiert — er ist Forscher-Methodik, kein Teilnehmer-
+ *  Text. Im lead-Zustand wird deshalb gepuffert, bis entschieden ist, ob die
+ *  Zeile ein WHY-Header ist; die Probe bricht nach maximal vier Zeichen
+ *  ("why:"-Präfix-Check) zugunsten des Live-Streamings ab, ein Body wie
+ *  "Why did …" verzögert sich also nicht messbar. */
 export function createDoneHeaderParser(): DoneHeaderParser {
-  let state: "header" | "lead" | "body" = "header";
+  // header → lead (Zeile 2: WHY-Kandidat) → sep (Separator/Body-Start) → body.
+  let state: "header" | "lead" | "sep" | "body" = "header";
   let done = false;
+  let why: string | null = null;
   let buffer = "";
   let message = "";
 
@@ -341,6 +399,27 @@ export function createDoneHeaderParser(): DoneHeaderParser {
     const out = buffer;
     buffer = "";
     return out;
+  }
+
+  // Der Rest des Puffers ist Body — emittieren und in den body-Zustand gehen.
+  function enterBody(rest: string): string {
+    state = "body";
+    buffer = "";
+    message = rest;
+    return rest;
+  }
+
+  // Findet einen WHY-Header in EINER Zeile — tolerant gegen kurze Müll-
+  // Präfixe ("WRY-CHECK WHY: …", "## WHY: …"): im Opus-Abnahmelauf hat das
+  // Modell die Rationale-Zeile genau so verstümmelt, und ein scharfer
+  // Präfix-Check hätte die Interna fail-open zum Teilnehmer gestreamt.
+  // Teilnehmer-Schutz schlägt hier Datenverlust-Paranoia: eine Zeile direkt
+  // nach dem DONE-Header, die in den ersten Zeichen "why:" trägt, ist mit an
+  // Sicherheit grenzender Wahrscheinlichkeit die Rationale, kein Body.
+  function extractWhy(line: string): string | null {
+    const idx = line.toLowerCase().indexOf("why:");
+    if (idx < 0 || idx > WHY_PREFIX_SLACK) return null;
+    return line.slice(idx + 4).trim() || null;
   }
 
   function push(chunk: string): string {
@@ -369,17 +448,45 @@ export function createDoneHeaderParser(): DoneHeaderParser {
       buffer = buffer.slice(nl + 1);
       state = "lead";
     }
-    // state === "lead" — skip the blank separator line (lenient: any run of
-    // leading newlines), then everything else is body.
+    if (state === "lead") {
+      // Direkt nach der DONE-Zeile. Contract-Disambiguierung über die
+      // Leerzeile: beginnt der Rest mit einem Zeilenumbruch, war die nächste
+      // Zeile LEER → es folgt der Body (WHY stünde VOR dem Separator). Der
+      // No-WHY-Pfad streamt dadurch exakt so früh wie vor E3.
+      if (buffer.startsWith("\n") || buffer.startsWith("\r")) {
+        state = "sep";
+      } else if (buffer !== "") {
+        // Zeile 2 trägt Text → WHY-Kandidat. Puffern (NIE emittieren), bis
+        // die Zeile endet oder klar ist, dass sie kein Header sein kann.
+        const nl = buffer.indexOf("\n");
+        if (nl === -1) {
+          const hasWhy = buffer.toLowerCase().includes("why:");
+          if (
+            (!hasWhy && buffer.length > WHY_PREFIX_SLACK + 4) ||
+            buffer.length > WHY_LINE_MAX_CHARS
+          ) {
+            return enterBody(buffer);
+          }
+          return "";
+        }
+        const line = buffer.slice(0, nl).trim();
+        const extracted = extractWhy(line);
+        if (extracted === null) return enterBody(buffer);
+        why = extracted;
+        buffer = buffer.slice(nl + 1);
+        state = "sep";
+      } else {
+        return "";
+      }
+    }
+    // state === "sep" — Leerzeilen-Separator (lenient: any run of newlines)
+    // überspringen, dann ist alles Body.
     const body = buffer.replace(/^[\r\n]+/, "");
     if (!body) {
       buffer = "";
       return "";
     }
-    state = "body";
-    buffer = "";
-    message = body;
-    return body;
+    return enterBody(body);
   }
 
   function finish(): NextMessage {
@@ -392,8 +499,23 @@ export function createDoneHeaderParser(): DoneHeaderParser {
       } else {
         message = buffer;
       }
+    } else if (state === "lead" && buffer) {
+      // Stream ended inside line 2: a complete bare `WHY: …` (auch mit
+      // Müll-Präfix) yields the rationale — message stays empty, the
+      // empty-message retry path treats it like a bare DONE header. A
+      // fragment without "why:" was body after all.
+      const extracted = extractWhy(buffer.trim());
+      if (extracted !== null) {
+        why = extracted;
+      } else {
+        message = buffer;
+      }
     }
-    return { done, message: message.trim() };
+    return {
+      done,
+      message: message.trim(),
+      why: why ? why.slice(0, WHY_VALUE_MAX_CHARS) : null,
+    };
   }
 
   return { push, finish };
@@ -808,10 +930,13 @@ export const RESEARCH_INTERVIEWER_SYSTEM_PROMPT = `${RESEARCH_INTERVIEWER_CORE}
 
 ${jsonOutputBlock("participant")}`;
 
-/** Turn-path flavor (plain-text contract) — see the contract note above. */
+/** Turn-path flavor (plain-text contract) — see the contract note above.
+ *  E3: der Research-Turn-Pfad nutzt die WHY-Variante des Contracts (Frage-
+ *  Rationale für Forscher); der exportierte JSON-Flavor darüber bleibt
+ *  byte-identisch (Voice-Bridge, WHY dort = E5). */
 const RESEARCH_INTERVIEWER_TURN_SYSTEM_PROMPT = `${RESEARCH_INTERVIEWER_CORE}
 
-${plainOutputBlock("participant")}`;
+${plainOutputBlockWithWhy("participant")}`;
 
 export const USE_CASE_FOCUS: Record<ResearchPlanUseCase, string> = {
   general_survey:

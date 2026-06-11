@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { planToAgentContext, type ResearchPlanRecord } from "./plans-service";
+import {
+  coerceConversation,
+  planToAgentContext,
+  type ResearchPlanRecord,
+} from "./plans-service";
 import type { StimulusAnalysisPayload } from "./stimulus-analysis";
 
 const PAYLOAD: StimulusAnalysisPayload = {
@@ -90,5 +94,24 @@ describe("planToAgentContext — stimulus analysis gating", () => {
 
     expect("stimulusAnalysis" in ctx).toBe(false);
     expect("stimulusDescription" in ctx).toBe(false);
+  });
+});
+
+describe("coerceConversation — why-Feld (E3 Frage-Rationale, Forscher-Lesepfad)", () => {
+  it("carries why on agent turns and drops it everywhere else", () => {
+    const conversation = coerceConversation([
+      { role: "agent", text: "Frage?", why: "Einstieg ins leichteste Thema" },
+      { role: "customer", text: "Antwort.", why: "darf hier nicht stehen" },
+      { role: "agent", text: "Nachfrage?", why: "   " },
+      { role: "agent", text: "Dritte Frage?", why: 42 },
+      { role: "agent", text: "Vierte Frage?" },
+    ]);
+    expect(conversation).toEqual([
+      { role: "agent", text: "Frage?", why: "Einstieg ins leichteste Thema" },
+      { role: "customer", text: "Antwort." },
+      { role: "agent", text: "Nachfrage?" },
+      { role: "agent", text: "Dritte Frage?" },
+      { role: "agent", text: "Vierte Frage?" },
+    ]);
   });
 });

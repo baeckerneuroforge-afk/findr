@@ -32,6 +32,7 @@ import {
   type InterviewTurn,
   type ResearchInput,
   type TurnDelta,
+  stripTurnInternals,
 } from "./interviewer";
 
 /**
@@ -254,7 +255,9 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
 
   return {
     status: session.status,
-    conversation: session.conversation,
+    // E3 — Teilnehmer-Payloads tragen NIE interne Turn-Felder (why): wer
+    // liest, warum gefragt wird, antwortet verzerrt (Demand-Effekte, O1).
+    conversation: stripTurnInternals(session.conversation),
     orgId: session.orgId,
     planId: session.planId,
     company,
@@ -384,8 +387,14 @@ export async function createInterviewSession(params: {
             language,
             model,
           );
+  // E3 — die Opening-Begründung (nur Research-Pfad liefert eine) reist
+  // additiv mit; post_loss/checkin geben why=null → Form unverändert.
   const conversation: InterviewTurn[] = opening
-    ? [{ role: "agent", text: opening.message }]
+    ? [
+        opening.why !== null
+          ? { role: "agent", text: opening.message, why: opening.why }
+          : { role: "agent", text: opening.message },
+      ]
     : [];
 
   const supabase = createResearchSupabase();
@@ -823,8 +832,11 @@ export async function ensureOpeningTurn(
             onDelta,
           );
 
+  // E3 — Opening-Begründung additiv mitschreiben (nur Research liefert eine).
   const conversation: InterviewTurn[] = [
-    { role: "agent", text: opening.message },
+    opening.why !== null
+      ? { role: "agent", text: opening.message, why: opening.why }
+      : { role: "agent", text: opening.message },
   ];
   const supabase = createResearchSupabase();
   const { data, error } = await supabase
@@ -923,7 +935,7 @@ export async function advanceInterview(
     // push.
     const wouldHitCap = history.length + 1 >= MAX_RESEARCH_TOTAL_TURNS;
 
-    const { done, message } = await nextResearchMessage(
+    const { done, message, why } = await nextResearchMessage(
       input,
       history,
       session.language,
@@ -934,7 +946,17 @@ export async function advanceInterview(
     const finalAgentText = forceCapClose
       ? RESEARCH_CAP_CLOSING_MESSAGE
       : message;
-    history.push({ role: "agent", text: finalAgentText });
+    // E3 — die echte Begründung zum Entscheidungszeitpunkt wandert additiv an
+    // den Agent-Turn ({role, text, why?}). NICHT beim Cap-Close: dort wurde
+    // die Modell-Nachricht durch die generische Closing-Message ersetzt, eine
+    // mitgelieferte Begründung gehörte zur verworfenen Frage. Alte Reader
+    // (Voice-Agent build_history, conversationToTranscript) lesen nur `text`;
+    // Teilnehmer-Payloads strippen das Feld in toPublicView.
+    history.push(
+      why !== null && !forceCapClose
+        ? { role: "agent", text: finalAgentText, why }
+        : { role: "agent", text: finalAgentText },
+    );
     const finished = done || forceCapClose;
 
     if (finished) {

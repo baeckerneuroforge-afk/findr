@@ -1511,6 +1511,7 @@
       "signalsEvidence": "Beleg",
       "signalsOpenAspect": "Offen blieb: {aspect}",
       "signalsConfidence": "Konfidenz: {pct} %",
+      "whyDisclosure": "Warum diese Frage?",
       "signalsAffect": {
         "enthusiasm": "Begeisterung",
         "interest": "Interesse",
