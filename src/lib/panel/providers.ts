@@ -1,4 +1,5 @@
 import type { PanelCompletion } from "@/lib/research/panel";
+import type { PanelStudySnapshot } from "./study-snapshot";
 
 export const PANEL_PROVIDER_KEYS = ["prolific"] as const;
 export type PanelProviderKey = (typeof PANEL_PROVIDER_KEYS)[number];
@@ -48,4 +49,18 @@ export interface PanelProvider {
     apiToken: string,
     input: CreatePanelStudyDraftInput,
   ): Promise<PanelStudyDraft>;
+  // ── Optionale Capabilities (E5+) ──────────────────────────────────────
+  // Bewusst optional: künftige Provider müssen nur den Draft-Kern können;
+  // der Service prüft die Capability vor Gebrauch (Architektur-Seam aus dem
+  // Panel-Plan — E6 estimateCost? / E7 publishStudy? folgen hier).
+  /** Aktuellen Studien-Stand abrufen (E5: Status). */
+  getStudy?(
+    apiToken: string,
+    providerStudyId: string,
+  ): Promise<PanelStudySnapshot>;
+  /** Submission-Zähler je Provider-Status-Bucket (E5). */
+  listSubmissionCounts?(
+    apiToken: string,
+    providerStudyId: string,
+  ): Promise<Record<string, number>>;
 }

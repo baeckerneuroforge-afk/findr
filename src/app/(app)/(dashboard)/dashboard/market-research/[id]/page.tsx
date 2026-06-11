@@ -952,6 +952,8 @@ export default async function MarketCampaignDetailPage({
                       providerStudyId: prolificStudy.providerStudyId,
                       status: prolificStudy.status,
                       createdAt: prolificStudy.createdAt,
+                      submissionCounts: prolificStudy.submissionCounts,
+                      lastSyncedAt: prolificStudy.lastSyncedAt,
                     }
                   : null
               }

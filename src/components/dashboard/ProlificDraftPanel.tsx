@@ -17,6 +17,38 @@ interface PersistedPanelStudy {
   providerStudyId: string;
   status: string;
   createdAt: string;
+  /** Provider-Buckets → Anzahl (E5-Sync); null = noch nie synchronisiert. */
+  submissionCounts: Record<string, number> | null;
+  lastSyncedAt: string | null;
+}
+
+/** Anzeige-Reihenfolge der dokumentierten Prolific-Buckets; unbekannte
+ *  künftige Buckets werden hinten angehängt, Null-Stände unterdrückt. */
+const COUNT_ORDER = [
+  "ACTIVE",
+  "APPROVED",
+  "AWAITING REVIEW",
+  "REJECTED",
+  "RESERVED",
+  "RETURNED",
+  "TIMED-OUT",
+  "PARTIALLY APPROVED",
+  "SCREENED OUT",
+];
+
+function formatSubmissionCounts(counts: Record<string, number>): string {
+  const parts = COUNT_ORDER.filter((k) => (counts[k] ?? 0) > 0).map(
+    (k) => `${counts[k]} ${k.toLowerCase()}`,
+  );
+  const known = new Set([...COUNT_ORDER, "TOTAL"]);
+  for (const [k, v] of Object.entries(counts)) {
+    if (!known.has(k) && v > 0) parts.push(`${v} ${k.toLowerCase()}`);
+  }
+  const total = typeof counts.TOTAL === "number" ? counts.TOTAL : null;
+  if (parts.length === 0) {
+    return total !== null ? `${total} total` : "none yet";
+  }
+  return total !== null ? `${parts.join(" · ")} · ${total} total` : parts.join(" · ");
 }
 
 interface ProlificDraftPanelProps {
@@ -84,10 +116,39 @@ export function ProlificDraftPanel({
   // der Default-Pfad zeigt die Studie statt zur Zweit-Anlage einzuladen.
   // "Create another draft" bleibt als bewusste Handlung möglich.
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const canCreate =
     !disabled && credentialStatus === "connected" && openLink?.status === "active";
   const formVisible = panelStudy === null || showCreateForm;
+
+  // E5: manueller Sync — Status + Submission-Zähler von Prolific holen; das
+  // Ergebnis kommt über router.refresh() als frische panelStudy-Prop zurück
+  // (Server liest panel_studies), kein lokales Zustands-Doppel.
+  async function handleSync() {
+    setError(null);
+    setSyncing(true);
+    try {
+      const res = await fetch(`/api/research/plans/${planId}/panel/sync`, {
+        method: "POST",
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        error?: string;
+      };
+      if (!res.ok || data.success === false) {
+        setError(data.error ?? "Could not refresh study status.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      // Netzwerk-Throw von fetch selbst (offline o. Ä.) — sichtbar machen
+      // statt als unhandled rejection zu verschwinden.
+      setError("Could not refresh study status.");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   function readPositiveInt(value: string, label: string): number | null {
     const n = Number(value.trim());
@@ -237,6 +298,24 @@ export function ProlificDraftPanel({
             Created {panelStudy.createdAt.slice(0, 10)}. Publish and fund it in
             Prolific — findr never publishes or funds automatically.
           </p>
+          {panelStudy.submissionCounts && (
+            <p className="mt-1 text-neutral-700">
+              Submissions: {formatSubmissionCounts(panelStudy.submissionCounts)}
+            </p>
+          )}
+          {panelStudy.lastSyncedAt && (
+            <p className="mt-1 text-caption text-neutral-500">
+              Last synced {panelStudy.lastSyncedAt.slice(0, 16).replace("T", " ")}{" "}
+              (UTC)
+            </p>
+          )}
+          {!disabled && (
+            <div className="mt-2">
+              <Button variant="ghost" onClick={handleSync} disabled={syncing}>
+                {syncing ? "Refreshing..." : "Refresh status"}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

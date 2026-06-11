@@ -14,6 +14,11 @@ import type {
   PanelProvider,
   PanelStudyDraft,
 } from "./providers";
+import {
+  coerceSubmissionCounts,
+  parseProlificStudySnapshot,
+  type PanelStudySnapshot,
+} from "./study-snapshot";
 
 export const PROLIFIC_API_BASE = "https://api.prolific.com/api/v1";
 const PROLIFIC_COMPLETION_BASE =
@@ -216,5 +221,65 @@ export const prolificProvider: PanelProvider = {
       externalStudyUrl: input.externalStudyUrl,
       completion,
     };
+  },
+
+  // ── E5: Sync-Capabilities ────────────────────────────────────────────
+  // Endpoints verifiziert gegen docs.prolific.com (api-reference/studies/
+  // get-study.md + count-study-submissions-by-status.md, 2026-06-11):
+  //   GET /studies/{id}/                      → u. a. status-Enum
+  //   GET /studies/{id}/submissions/counts/   → flaches Bucket→Zahl-Objekt
+  // total_cost/places_taken sind dort NICHT dokumentiert — Kosten bleiben
+  // E6 (eigener, dokumentierter Weg) vorbehalten.
+
+  async getStudy(
+    apiToken: string,
+    providerStudyId: string,
+  ): Promise<PanelStudySnapshot> {
+    const response = await prolificFetch(
+      apiToken,
+      `/studies/${encodeURIComponent(providerStudyId)}/`,
+    );
+    if (!response.ok) {
+      throw new ProlificApiError(
+        `Prolific study fetch failed with status ${response.status}`,
+        response.status,
+      );
+    }
+    const snapshot = parseProlificStudySnapshot(
+      await response.json().catch(() => null),
+    );
+    if (!snapshot) {
+      throw new ProlificApiError(
+        "Prolific study fetch returned no status",
+        response.status,
+      );
+    }
+    return snapshot;
+  },
+
+  async listSubmissionCounts(
+    apiToken: string,
+    providerStudyId: string,
+  ): Promise<Record<string, number>> {
+    const response = await prolificFetch(
+      apiToken,
+      `/studies/${encodeURIComponent(providerStudyId)}/submissions/counts/`,
+    );
+    if (!response.ok) {
+      throw new ProlificApiError(
+        `Prolific submission counts failed with status ${response.status}`,
+        response.status,
+      );
+    }
+    const counts = coerceSubmissionCounts(
+      await response.json().catch(() => null),
+    );
+    if (!counts) {
+      throw new ProlificApiError(
+        "Prolific submission counts returned an unexpected shape",
+        response.status,
+      );
+    }
+    return counts;
   },
 };
