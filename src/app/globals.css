@@ -171,6 +171,12 @@
   --color-risk-high: #f97316;
   --color-risk-critical: #ef4444;
 
+  /* Karten-Fläche der Konsole (v5-Mockup-Werte: 10px Radius + sehr weicher
+     Schatten). Als Theme-Tokens, damit Tailwind die Utilities rounded-card /
+     shadow-card generiert und jede Karte dieselbe Quelle liest. */
+  --radius-card: 0.625rem;
+  --shadow-card: 0 1px 2px rgba(24, 24, 27, 0.04);
+
   /* Animations (Tailwind v4 — exposed as utilities animate-*) */
   --animate-gradient-slow: gradient 15s ease infinite;
   --animate-shimmer: shimmer 3s linear infinite;

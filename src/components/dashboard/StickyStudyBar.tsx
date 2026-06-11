@@ -56,7 +56,9 @@ export function StickyStudyBar({
         show ? "translate-y-0" : "-translate-y-[110%]"
       }`}
     >
-      <div className="mx-auto flex h-12 max-w-[1400px] items-center gap-3 px-8">
+      {/* Muss der max-width der <main>-Spalte im (dashboard)-Layout folgen,
+          sonst fluchtet die Subbar nicht mit dem Seiteninhalt. */}
+      <div className="mx-auto flex h-12 max-w-[1120px] items-center gap-3 px-8">
         <span className="truncate text-body-strong text-neutral-900">
           {title}
         </span>

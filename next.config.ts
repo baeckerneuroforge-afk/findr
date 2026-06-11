@@ -1,7 +1,14 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
+  // Turbopack riet den Workspace-Root falsch (~/pnpm-lock.yaml im Home) und
+  // watchte/resolvte damit weit über das Repo hinaus — Dev-Server-Warnung
+  // "inferred your workspace root". Expliziter Root = dieses Repo.
+  turbopack: {
+    root: path.join(__dirname),
+  },
   // pdfkit ships .afm font-metric files that must be read from node_modules at
   // runtime. Keeping it external prevents the bundler from breaking those reads
   // on Vercel serverless.

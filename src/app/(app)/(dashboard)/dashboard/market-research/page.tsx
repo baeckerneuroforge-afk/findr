@@ -371,7 +371,7 @@ export default async function MarketResearchOverviewPage({
                             target: plan.sampleTarget,
                           })}
                         </span>
-                        <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100">
+                        <div className="h-1.5 w-36 overflow-hidden rounded-full bg-neutral-100">
                           <div
                             className={`h-full rounded-full ${
                               plan.status === "completed"

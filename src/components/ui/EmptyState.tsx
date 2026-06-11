@@ -27,7 +27,7 @@ export function EmptyState({
   const visibleAction = action ?? cta;
   const container =
     variant === "default"
-      ? "rounded-lg border border-dashed border-neutral-200 bg-white p-12 text-center"
+      ? "rounded-card border border-dashed border-neutral-200 bg-white p-12 text-center"
       : "p-8 text-center";
 
   return (

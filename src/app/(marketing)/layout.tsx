@@ -112,7 +112,13 @@ export const viewport: Viewport = {
  */
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="de" className="h-full scroll-smooth antialiased">
+    // data-scroll-behavior: Next-16-Opt-in — Routenwechsel springen sofort
+    // statt smooth hochzuscrollen; Anker-Sprünge bleiben smooth.
+    <html
+      lang="de"
+      data-scroll-behavior="smooth"
+      className="h-full scroll-smooth antialiased"
+    >
       <body className="min-h-full">
         <div
           className={`studio ${hanken.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
