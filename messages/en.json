@@ -368,7 +368,18 @@
       "deleteButton": "Permanently delete organization",
       "deleted": "Organization and all data deleted. Redirecting …",
       "deleteFailed": "Delete failed",
-      "deleteAdminOnly": "Only organization admins can delete the organization."
+      "deleteAdminOnly": "Only organization admins can delete the organization.",
+      "retentionHeading": "Retention period",
+      "retentionDesc": "Automatically delete participant interview data (transcripts, analyses) after a set period. Default: off.",
+      "retentionLabel": "Period in days",
+      "retentionOffPlaceholder": "Off",
+      "retentionHint": "Leave empty = off. Otherwise interviews older than this are deleted automatically every day — irreversible.",
+      "retentionSave": "Save",
+      "retentionSaving": "Saving…",
+      "retentionSaved": "Retention period saved.",
+      "retentionInvalid": "Enter a whole number between 1 and 3650 (or leave empty for off).",
+      "retentionFailed": "Save failed.",
+      "retentionAdminOnly": "Only organization admins can change the retention period."
     },
     "billing": {
       "title": "Billing",

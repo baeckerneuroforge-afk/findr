@@ -71,6 +71,44 @@ export async function upsertOrgSettings(
   };
 }
 
+/**
+ * DSGVO G5 — per-org interview-data retention period in DAYS, or null = OFF
+ * (default). Deliberately ISOLATED from getOrgSettings/upsertOrgSettings: a read
+ * of a column that doesn't exist yet would fail the whole select, so keeping
+ * retention in its own getter/setter means the existing settings read can never
+ * regress in the window between the code deploy and the migration apply.
+ */
+export async function getInterviewRetentionDays(
+  orgId: string,
+): Promise<number | null> {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("org_settings")
+    .select("interview_retention_days")
+    .eq("org_id", orgId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data.interview_retention_days ?? null;
+}
+
+export async function setInterviewRetentionDays(
+  orgId: string,
+  days: number | null,
+): Promise<void> {
+  const supabase = createAdminSupabaseClient();
+  const { error } = await supabase.from("org_settings").upsert(
+    {
+      org_id: orgId,
+      interview_retention_days: days,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "org_id" },
+  );
+  if (error) {
+    throw new Error(`Failed to save retention setting: ${error.message}`);
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * White-label branding (Phase-4-Baustein)
  *

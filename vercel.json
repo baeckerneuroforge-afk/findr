@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/research-reminders",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/retention",
+      "schedule": "0 4 * * *"
     }
   ]
 }

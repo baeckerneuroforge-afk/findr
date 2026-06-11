@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/org";
 import { isAdminRole } from "@/lib/settings/roles";
+import { getInterviewRetentionDays } from "@/lib/settings/org-settings";
 import { DataPrivacyPanel } from "@/components/settings/DataPrivacyPanel";
 
 export default async function DataPrivacySettingsPage() {
@@ -15,6 +16,7 @@ export default async function DataPrivacySettingsPage() {
     .select("name")
     .eq("id", orgId)
     .single();
+  const retentionDays = await getInterviewRetentionDays(orgId);
 
   return (
     <div className="space-y-5">
@@ -25,6 +27,7 @@ export default async function DataPrivacySettingsPage() {
       <DataPrivacyPanel
         isAdmin={isAdminRole(orgRole)}
         organizationName={org?.name ?? "Organization"}
+        initialRetentionDays={retentionDays}
       />
     </div>
   );

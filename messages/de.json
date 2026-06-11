@@ -368,7 +368,18 @@
       "deleteButton": "Organisation endgültig löschen",
       "deleted": "Organisation und alle Daten gelöscht. Du wirst weitergeleitet …",
       "deleteFailed": "Löschen fehlgeschlagen",
-      "deleteAdminOnly": "Nur Organisations-Admins können die Organisation löschen."
+      "deleteAdminOnly": "Nur Organisations-Admins können die Organisation löschen.",
+      "retentionHeading": "Aufbewahrungsfrist",
+      "retentionDesc": "Automatisches Löschen der Teilnehmer-Interviewdaten (Transkripte, Auswertungen) nach Ablauf einer Frist. Standard: aus.",
+      "retentionLabel": "Frist in Tagen",
+      "retentionOffPlaceholder": "Aus",
+      "retentionHint": "Leer lassen = aus. Sonst werden Interviews, die älter als die Frist sind, täglich automatisch und unwiderruflich gelöscht.",
+      "retentionSave": "Speichern",
+      "retentionSaving": "Speichern …",
+      "retentionSaved": "Aufbewahrungsfrist gespeichert.",
+      "retentionInvalid": "Bitte eine ganze Zahl zwischen 1 und 3650 eingeben (oder leer für aus).",
+      "retentionFailed": "Speichern fehlgeschlagen.",
+      "retentionAdminOnly": "Nur Organisations-Admins können die Frist ändern."
     },
     "billing": {
       "title": "Abrechnung",
