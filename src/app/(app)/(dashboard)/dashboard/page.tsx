@@ -277,11 +277,10 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
         className="st-rise grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
         style={{ "--st": 1 } as React.CSSProperties}
       >
-        <StatCard
-          label={t("kpiActive")}
-          value={activePlans.length}
-          status={activePlans.length > 0 ? "success" : "default"}
-        />
+        {/* Alle vier Kennzahlen bewusst in Tinte (kein status-Farbwechsel):
+            neutrale Bestandsgrößen, keine Bewertungen — Mockup führt sie
+            einheitlich ruhig (Andrés Prod-Feedback 2026-06-11). */}
+        <StatCard label={t("kpiActive")} value={activePlans.length} />
         <StatCard
           label={t("kpiCompleted")}
           value={completedDisplay}
@@ -295,7 +294,6 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
           label={t("kpiSyntheses")}
           value={plansWithSynthesis.length}
           subtitle={t("kpiSynthesesSub")}
-          status={plansWithSynthesis.length > 0 ? "primary" : "default"}
         />
         <StatCard
           label={t("kpiPool")}

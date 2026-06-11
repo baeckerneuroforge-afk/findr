@@ -111,6 +111,11 @@ export default async function RootLayout({
               command: MESSAGES[locale].command,
               settings: MESSAGES[locale].settings,
               common: MESSAGES[locale].common,
+              // "heute" wird von der Client-Begrüßung (HeuteGreeting) gelesen —
+              // fehlt der Namespace hier, rendert next-intl den rohen Keypfad
+              // ("heute.greetingMorning"), während die server-gerenderten Teile
+              // derselben Seite weiter funktionieren. Prod-Befund 2026-06-11.
+              heute: MESSAGES[locale].heute,
               sales: MESSAGES[locale].sales,
               health: MESSAGES[locale].health,
               research: MESSAGES[locale].research,

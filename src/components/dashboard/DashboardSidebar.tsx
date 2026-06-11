@@ -486,12 +486,17 @@ export default function DashboardSidebar() {
           Markierung („different kind of thing", wie sein Divider sagt). */}
       <nav
         ref={navRef}
-        className="relative flex-1 space-y-5 overflow-y-auto px-3 py-4"
+        className="isolate relative flex-1 space-y-5 overflow-y-auto px-3 py-4"
       >
+        {/* -z-10 + isolate auf dem nav: die Pille ist positioniert und würde
+            sonst ÜBER den nicht-positionierten Linktext painten (Paint-Order
+            stellt positionierte Elemente über In-Flow-Siblings, DOM-Reihenfolge
+            egal) — genau so sah der Prod-Bug aus: leerer primary-Fleck statt
+            "Heute". isolate hält den negativen z-index im nav gefangen. */}
         <span
           ref={pillRef}
           aria-hidden="true"
-          className="pointer-events-none absolute left-0 top-0 rounded-lg bg-primary-50 opacity-0 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+          className="pointer-events-none absolute left-0 top-0 -z-10 rounded-lg bg-primary-50 opacity-0 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
         />
         {/* „Heute“ — die Startseite (Konsole-v5, O9). Top-level und ohne
             Gruppe: der Einstieg bleibt immer sichtbar, nie hinter einem

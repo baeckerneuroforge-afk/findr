@@ -237,12 +237,10 @@ export default async function MarketResearchOverviewPage({
         className="st-rise grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         style={{ "--st": 1 } as React.CSSProperties}
       >
+        {/* Kennzahlen einheitlich in Tinte (kein status-Farbwechsel) — gleiche
+            Entscheidung wie auf der Heute-Seite (Andrés Prod-Feedback). */}
         <StatCard label={t("overviewStatStudies")} value={plans.length} />
-        <StatCard
-          label={t("overviewStatActive")}
-          value={activeStudies}
-          status={activeStudies > 0 ? "success" : "default"}
-        />
+        <StatCard label={t("overviewStatActive")} value={activeStudies} />
         <StatCard
           label={t("overviewStatCompletes")}
           value={completedDisplay}
@@ -252,7 +250,6 @@ export default async function MarketResearchOverviewPage({
           label={t("overviewStatSyntheses")}
           value={synthesizedStudies}
           subtitle={t("overviewStatSynthesesSub")}
-          status={synthesizedStudies > 0 ? "primary" : "default"}
         />
       </div>
 
