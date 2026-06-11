@@ -126,76 +126,87 @@ export async function GET(request: Request) {
 
       results.total_deals += activeDeals.length;
 
-      for (const deal of activeDeals) {
-        try {
-          const calls = await getCallsByDealId(org.id, deal.id);
+      // Bounded-concurrency batches instead of a fully sequential loop: the
+      // per-deal work is DB/IO-bound (heuristic detectors, no LLM), so a chunk
+      // in parallel cuts the cron's wall-clock ~Nx and keeps it well under the
+      // function timeout. results.* counters are plain-number mutations, safe
+      // under the single-threaded event loop; the per-org forecast bracket
+      // still holds because Promise.all awaits the whole chunk before the next.
+      const DEAL_CONCURRENCY = 8;
+      for (let i = 0; i < activeDeals.length; i += DEAL_CONCURRENCY) {
+        await Promise.all(
+          activeDeals.slice(i, i + DEAL_CONCURRENCY).map(async (deal) => {
+            try {
+              const calls = await getCallsByDealId(org.id, deal.id);
 
-          if (calls.length === 0) {
-            results.skipped++;
-            continue;
-          }
+              if (calls.length === 0) {
+                results.skipped++;
+                return;
+              }
 
-          const previousScore = await getPreviousScore(org.id, deal.id);
-          const analysis = await analyzeRisk(
-            buildDetectorInput({
-              orgId: org.id,
-              deal,
-              calls,
-            }),
-          );
-          const result = riskAnalysisToLegacyResult(analysis);
+              const previousScore = await getPreviousScore(org.id, deal.id);
+              const analysis = await analyzeRisk(
+                buildDetectorInput({
+                  orgId: org.id,
+                  deal,
+                  calls,
+                }),
+              );
+              const result = riskAnalysisToLegacyResult(analysis);
 
-          const { data: inserted, error: insertError } = await supabase
-            .from("risk_scores")
-            .insert({
-              org_id: org.id,
-              deal_id: deal.id,
-              risk_score: result.riskScore,
-              risk_level: result.riskLevel,
-              overall_reasoning: result.overallReasoning,
-              recommendations: result.recommendations ?? [],
-              signals: result.signals as unknown as Json,
-              // The scheduled re-analysis uses the rule-based detectors
-              // (analyzeRisk), not the LLM — mark it honestly.
-              analysis_method: "heuristic",
-            })
-            .select()
-            .single();
+              const { data: inserted, error: insertError } = await supabase
+                .from("risk_scores")
+                .insert({
+                  org_id: org.id,
+                  deal_id: deal.id,
+                  risk_score: result.riskScore,
+                  risk_level: result.riskLevel,
+                  overall_reasoning: result.overallReasoning,
+                  recommendations: result.recommendations ?? [],
+                  signals: result.signals as unknown as Json,
+                  // The scheduled re-analysis uses the rule-based detectors
+                  // (analyzeRisk), not the LLM — mark it honestly.
+                  analysis_method: "heuristic",
+                })
+                .select()
+                .single();
 
-          if (insertError || !inserted) {
-            results.failed++;
-            results.errors.push(
-              `${org.id}/${deal.id}: ${insertError?.message ?? "insert failed"}`,
-            );
-            continue;
-          }
+              if (insertError || !inserted) {
+                results.failed++;
+                results.errors.push(
+                  `${org.id}/${deal.id}: ${insertError?.message ?? "insert failed"}`,
+                );
+                return;
+              }
 
-          const alertResult = await maybeTriggerAlert(
-            org.id,
-            deal.id,
-            deal.name,
-            inserted.id,
-            result,
-            previousScore,
-            {
-              deal_amount: deal.amount,
-              deal_owner: deal.ownerName,
-              metadata: {
-                champion_name: deal.championName,
-              },
-            },
-          );
+              const alertResult = await maybeTriggerAlert(
+                org.id,
+                deal.id,
+                deal.name,
+                inserted.id,
+                result,
+                previousScore,
+                {
+                  deal_amount: deal.amount,
+                  deal_owner: deal.ownerName,
+                  metadata: {
+                    champion_name: deal.championName,
+                  },
+                },
+              );
 
-          if (alertResult.triggered) {
-            results.alerts_triggered++;
-          }
+              if (alertResult.triggered) {
+                results.alerts_triggered++;
+              }
 
-          results.successful++;
-        } catch (err) {
-          results.failed++;
-          const msg = err instanceof Error ? err.message : "unknown";
-          results.errors.push(`${org.id}/${deal.id}: ${msg}`);
-        }
+              results.successful++;
+            } catch (err) {
+              results.failed++;
+              const msg = err instanceof Error ? err.message : "unknown";
+              results.errors.push(`${org.id}/${deal.id}: ${msg}`);
+            }
+          }),
+        );
       }
 
       const newPipelineValue = (await getForecast(org.id))
