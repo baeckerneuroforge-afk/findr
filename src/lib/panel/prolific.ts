@@ -20,8 +20,10 @@ import {
   parseProlificErrorMessage,
   parseProlificStudyCost,
   parseProlificStudySnapshot,
+  parseProlificTestStudy,
   type PanelStudyCost,
   type PanelStudySnapshot,
+  type PanelTestStudy,
 } from "./study-snapshot";
 
 export const PROLIFIC_API_BASE = "https://api.prolific.com/api/v1";
@@ -128,6 +130,8 @@ function getString(value: unknown): string | null {
 
 export const prolificProvider: PanelProvider = {
   key: "prolific",
+
+  buildExternalStudyUrl: buildProlificExternalStudyUrl,
 
   async validateCredentials(
     apiToken: string,
@@ -397,5 +401,50 @@ export const prolificProvider: PanelProvider = {
       );
     }
     return snapshot;
+  },
+
+  // ── Test-Modus ───────────────────────────────────────────────────────
+  // Endpoint verifiziert gegen docs.prolific.com (api-reference/studies/
+  // create-test-study.md, 2026-06-11): POST /studies/{id}/test-study
+  // (leerer Body) → 200 { study_id, study_url }. Klont den Draft als
+  // eigene Test-Studie und published sie an die Test-Teilnehmer des
+  // Workspace — verbraucht KEINE Credits. Preconditions laut Doku:
+  // Draft-Status, ≥1 aktiver Test-Teilnehmer, Feature im Workspace
+  // freigeschaltet — Verstöße kommen als Fehler-Envelope zurück und
+  // laufen als providerMessage zur UI durch.
+
+  async createTestStudy(
+    apiToken: string,
+    providerStudyId: string,
+  ): Promise<PanelTestStudy> {
+    const response = await prolificFetch(
+      apiToken,
+      `/studies/${encodeURIComponent(providerStudyId)}/test-study`,
+      {
+        method: "POST",
+        body: JSON.stringify({}),
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+    if (!response.ok) {
+      const providerMessage = parseProlificErrorMessage(
+        await response.json().catch(() => null),
+      );
+      throw new ProlificApiError(
+        `Prolific test study failed with status ${response.status}`,
+        response.status,
+        providerMessage,
+      );
+    }
+    const testStudy = parseProlificTestStudy(
+      await response.json().catch(() => null),
+    );
+    if (!testStudy) {
+      throw new ProlificApiError(
+        "Prolific test study returned an unexpected shape",
+        response.status,
+      );
+    }
+    return testStudy;
   },
 };

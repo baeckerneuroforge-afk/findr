@@ -111,6 +111,7 @@ export default async function ResearchPlanDetailPage({
   }
 
   const t = await getTranslations("research.plans");
+  const tPanel = await getTranslations("research.panel");
   const locale = await getLocale();
 
   const { id: planId } = await params;
@@ -559,10 +560,8 @@ export default async function ResearchPlanDetailPage({
           kein Funding, keine Änderung am öffentlichen Empfangspfad. */}
       <section className="space-y-3">
         <div>
-          <h2 className="text-h3 text-neutral-900">Prolific panel</h2>
-          <p className="text-small text-neutral-500">
-            Create an unpublished Prolific draft for the active open link.
-          </p>
+          <h2 className="text-h3 text-neutral-900">{tPanel("sectionTitle")}</h2>
+          <p className="text-small text-neutral-500">{tPanel("sectionDesc")}</p>
         </div>
         <Card>
           <CardBody>

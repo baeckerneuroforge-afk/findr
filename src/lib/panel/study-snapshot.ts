@@ -130,6 +130,35 @@ export function parseProlificStudyCost(json: unknown): PanelStudyCost | null {
   return { totalCents: Math.round(total), currency };
 }
 
+// ── Test-Modus: Test-Studie ───────────────────────────────────────────────────
+// Endpoint verifiziert gegen docs.prolific.com (api-reference/studies/
+// create-test-study.md, 2026-06-11): POST /studies/{id}/test-study (leerer
+// Body) klont den Draft als eigene Test-Studie und published sie an die
+// Test-Teilnehmer des Workspace — verbraucht KEINE Credits. Antwort:
+// { study_id, study_url }.
+
+export interface PanelTestStudy {
+  /** ID der GEKLONTEN Test-Studie (nicht des Rekrutierungs-Drafts!). */
+  providerStudyId: string;
+  /** Teilnahme-URL der Test-Studie — nur http(s) wird akzeptiert. */
+  studyUrl: string;
+}
+
+export function parseProlificTestStudy(json: unknown): PanelTestStudy | null {
+  if (!json || typeof json !== "object") return null;
+  const row = json as Record<string, unknown>;
+  const providerStudyId = getString(row.study_id);
+  const studyUrl = getString(row.study_url);
+  if (!providerStudyId || !studyUrl) return null;
+  try {
+    const parsed = new URL(studyUrl);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+  } catch {
+    return null;
+  }
+  return { providerStudyId, studyUrl };
+}
+
 // ── E7: Fehler-Envelope ───────────────────────────────────────────────────────
 // Prolific-Fehler kommen dokumentiert als { error: { status, error_code,
 // title, detail, additional_information, traceback } } (verifiziert gegen

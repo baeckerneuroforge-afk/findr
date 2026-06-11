@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { getProlificCredentialSummary } from "@/lib/panel/service";
@@ -17,15 +18,16 @@ export default async function ProlificIntegrationPage() {
     throw err;
   }
 
-  const credential = await getProlificCredentialSummary(orgId);
+  const [credential, t] = await Promise.all([
+    getProlificCredentialSummary(orgId),
+    getTranslations("research.panel"),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <h1 className="text-display text-neutral-900">Prolific Integration</h1>
-        <p className="mt-1 text-body text-neutral-500">
-          Store the organization Prolific token for draft study creation.
-        </p>
+        <h1 className="text-display text-neutral-900">{t("integrationTitle")}</h1>
+        <p className="mt-1 text-body text-neutral-500">{t("integrationDesc")}</p>
       </div>
 
       <ProlificSettingsPanel initialCredential={credential} />
