@@ -3,13 +3,16 @@ import "server-only";
 import { createResearchSupabase } from "@/lib/research/db";
 import {
   normalizeEmergentThemes,
+  normalizeMethodology,
   normalizeTensions,
 } from "@/lib/schemas/synthesis";
 import type {
   EmergentTheme,
+  Methodology,
   Tension,
   TensionSide,
 } from "@/lib/schemas/synthesis";
+import { normalizeSignalsSummary, type SignalsSummary } from "./signals";
 
 /**
  * Read-side service for the study-synthesis UI. Two functions:
@@ -49,6 +52,14 @@ export interface StudySynthesisRecord {
   based_on_count: number;
   synthesized_at: string | null;
   model: string | null;
+  /** E4 — „Warum wurde was gefragt?" (WHY-Rationales thematisch aggregiert).
+   *  Null für Bestand / Synthesen ohne Rationale-Input / pre-migration. */
+  methodology: Methodology | null;
+  /** E4 — deterministische Server-Zahlen der Turn-Signale. Die UI zeigt
+   *  Kennzahlen NUR von hier (nie aus LLM-Text). Null unter Mindest-N. */
+  signals_summary: SignalsSummary | null;
+  /** E4 — max. 3 LLM-formulierte Beobachtungen aus dem Faktenblock. */
+  signal_observations: string[];
 }
 
 export type { EmergentTheme, Tension, TensionSide };
@@ -65,6 +76,14 @@ export async function getStudySynthesis(
     .eq("plan_id", planId)
     .maybeSingle();
   if (error || !data) return null;
+  // E4 — defensive Casts (Muster panel_context): pre-migration liefert
+  // select("*") die Spalten nicht → undefined → null/[] und die Ansicht
+  // bleibt byte-identisch zur signallosen Synthese.
+  const row = data as typeof data & {
+    methodology?: unknown;
+    signals_summary?: unknown;
+    signal_observations?: unknown;
+  };
   return {
     id: data.id,
     org_id: data.org_id,
@@ -75,6 +94,13 @@ export async function getStudySynthesis(
     based_on_count: data.based_on_count,
     synthesized_at: data.synthesized_at,
     model: data.model,
+    methodology: normalizeMethodology(row.methodology),
+    signals_summary: normalizeSignalsSummary(row.signals_summary),
+    signal_observations: Array.isArray(row.signal_observations)
+      ? (row.signal_observations as unknown[]).filter(
+          (x): x is string => typeof x === "string" && x.trim() !== "",
+        )
+      : [],
   };
 }
 

@@ -86,6 +86,15 @@ export interface SynthesisEvalCase {
     /** Optional: themes that should NOT exceed n respondents (anti-
      *  hallucination signal — frequency must match anchored sources). */
     maxThemeFrequency?: number;
+    /** E4: true → der Case liefert QUESTION RATIONALES und erwartet einen
+     *  gefüllten methodology-Abschnitt (null = WARN, Modellqualität).
+     *  Für Cases OHNE rationales prüft der Runner IMMER hart, dass
+     *  methodology null ist (Server-Guard, LLM-unabhängig). */
+    expectMethodology?: boolean;
+    /** E4: true → der Case liefert einen TURN-SIGNALS-Faktenblock und
+     *  erwartet 1–3 signal_observations (0 = WARN). Ohne Block prüft der
+     *  Runner IMMER hart auf leeres Array. */
+    expectSignalObservations?: boolean;
   };
 }
 
@@ -1007,6 +1016,121 @@ const synth10: SynthesisEvalCase = {
   expected: { minThemes: 1, maxThemes: 2, tensions: 0, maxThemeFrequency: 3 },
 };
 
+// ── synth_11 — E4: Turn-Signale + Frage-Rationales in der Synthese ──────────
+//
+// Liefert beide E4-Blöcke (server-berechneter Signal-Faktenblock + echte
+// WHY-Rationales aus 3 von 5 Sessions) zu einem kleinen Insight-Set.
+// Erwartung: methodology gefüllt (thematisch aggregiert, ehrliche
+// coverageNote) + 1–3 signal_observations, deren Zahlen wörtlich aus dem
+// Faktenblock stammen. Die Alt-Cases (synth_01–10, ohne Blöcke) prüfen
+// spiegelbildlich, dass methodology null und observations leer bleiben —
+// der Server-Guard (sealSynthesisExtras) macht das deterministisch.
+
+const synth11: SynthesisEvalCase = {
+  id: "synth_11",
+  description:
+    "E4 — signals facts + question rationales → methodology + grounded observations",
+  rationale:
+    "Proves the additive E4 surface: methodology aggregates the REAL per-question reasons by theme (not question-by-question) with an honest coverage note (3 of 5), and signal_observations copy counts verbatim from the server-computed facts block.",
+  input: {
+    plan: {
+      title: "Onboarding & Preisbereitschaft Q3",
+      objective:
+        "Verstehen, wo neue Nutzer im Onboarding hängen und welche Preisschwellen bestehen.",
+      persona: "Admin-User bei SMB SaaS",
+    },
+    insights: [
+      insight("insight_11_a", "Admin", "Onboarding-Probleme, Preis offen.", {
+        pain: [
+          {
+            category: "ONBOARDING",
+            title: "Anleitung veraltet",
+            description: "Die Anleitung passte nicht zum aktuellen Stand.",
+            severity: "high",
+            confidence: 0.9,
+            evidence: ["die Anleitung war an drei Stellen veraltet"],
+          },
+        ],
+      }),
+      insight("insight_11_b", "Admin", "Onboarding zäh, Preis genannt.", {
+        pain: [
+          {
+            category: "ONBOARDING",
+            title: "Kein Schulungsmaterial",
+            description: "Neue Kollegen saßen ohne Material vor dem Tool.",
+            severity: "medium",
+            confidence: 0.8,
+            evidence: ["kein Schulungsmaterial für die neuen Kollegen"],
+          },
+        ],
+      }),
+      insight("insight_11_c", "Teamlead", "Preisschwelle klar benannt.", {
+        feature: [
+          {
+            category: "PRICING",
+            title: "Preisgrenze 20 Euro",
+            description: "Über 20 Euro pro Seat wird es nicht genehmigt.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: ["über 20 Euro pro Seat genehmigt das niemand bei uns"],
+          },
+        ],
+      }),
+    ],
+    signals: {
+      summary: {
+        version: 1,
+        totalSessions: 5,
+        signalSessions: 4,
+        totalAnswers: 18,
+        direct: 11,
+        partial: 2,
+        evasive: 4,
+        declined: 1,
+        affects: { uncertainty: 5, enthusiasm: 2 },
+        whySessions: 3,
+      },
+      openAspects: [
+        "konkreter Preisrahmen",
+        "Budgetverantwortung",
+        "Zeitplan der Einführung",
+      ],
+    },
+    rationales: [
+      {
+        sessionLabel: "S1",
+        rationales: [
+          "Einstieg ins leichteste Thema Onboarding.",
+          "Vage Antwort — konkretes letztes Beispiel zum Onboarding suchen.",
+          "Preis wurde erstmals erwähnt; Preisschwelle vertiefen.",
+        ],
+      },
+      {
+        sessionLabel: "S2",
+        rationales: [
+          "Eröffnung mit Transparenz und Onboarding als Einstiegsthema.",
+          "Wechsel zu Preisbereitschaft, da Onboarding gesättigt.",
+        ],
+      },
+      {
+        sessionLabel: "S3",
+        rationales: [
+          "Onboarding lieferte kein Signal; Wechsel zum Preis-Thema.",
+          "Abschluss: beide Themen gesättigt.",
+        ],
+      },
+    ],
+    rationaleCoverage: { withRationales: 3, totalSessions: 5 },
+  },
+  expected: {
+    minThemes: 1,
+    maxThemes: 3,
+    tensions: 0,
+    expectMethodology: true,
+    expectSignalObservations: true,
+  },
+};
+
 export const SYNTHESIS_EVAL_CASES: SynthesisEvalCase[] = [
   synth01,
   synth02,
@@ -1018,4 +1142,5 @@ export const SYNTHESIS_EVAL_CASES: SynthesisEvalCase[] = [
   synth08,
   synth09,
   synth10,
+  synth11,
 ];

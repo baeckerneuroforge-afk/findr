@@ -19,6 +19,12 @@ import type {
   ResearchPlanStudyType,
   ResearchPlanUseCase,
 } from "@/lib/research/db";
+// Type-only (erased) — zieht signals.ts' `server-only` NICHT in dieses pure
+// String-Modul; der Eval-Harness kann prompts.ts weiterhin direkt importieren.
+import type {
+  SessionRationales,
+  SignalsPromptBlock,
+} from "./signals";
 
 /** Input row for the synthesizer — one per Stage-1 insight that belongs
  *  to the study being synthesized. The engine assembles these from
@@ -74,6 +80,16 @@ export interface SynthesisPlanContext {
 export interface SynthesisInput {
   plan: SynthesisPlanContext;
   insights: SynthesisInsightInput[];
+  /** E4 — SERVER-berechneter Turn-Signal-Faktenblock (E1). Optional/null →
+   *  der Prompt trägt keinen Signal-Block und die Engine erzwingt leere
+   *  signal_observations. Nur ≥ Mindest-N geliefert (signals.ts). */
+  signals?: SignalsPromptBlock | null;
+  /** E4 — echte WHY-Begründungen (E3) je Session, Frage-Reihenfolge.
+   *  Optional/null → kein Methodik-Block, methodology wird null erzwungen. */
+  rationales?: SessionRationales[] | null;
+  /** E4 — Coverage für die ehrliche Methodik-Note („Begründungen lagen für
+   *  X von Y Interviews vor"). Nur gesetzt, wenn rationales gesetzt ist. */
+  rationaleCoverage?: { withRationales: number; totalSessions: number } | null;
 }
 
 export const STUDY_SYNTHESIS_SYSTEM_PROMPT = `You are a senior B2B research analyst synthesizing the FINDINGS of a multi-interview study. Your inputs are the per-interview verdichtungen (NOT the raw transcripts — they already exist downstream) produced by a Stage-1 classifier. Your job is to find what is true ACROSS interviews — emergent themes and real tensions — and to write a short overview.
@@ -274,6 +290,55 @@ function formatInsight(insight: SynthesisInsightInput): string {
   return lines.join("\n");
 }
 
+/** E4 — rendert den Turn-Signal-Faktenblock (server-berechnete Zahlen) samt
+ *  der Formulierungs-Regeln für signal_observations. Pure string-building. */
+function formatSignalsBlock(signals: SignalsPromptBlock): string {
+  const s = signals.summary;
+  const affects = Object.entries(s.affects)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(", ");
+  const aspects =
+    signals.openAspects.length > 0
+      ? signals.openAspects.map((a) => `"${a}"`).join(", ")
+      : "(none recorded)";
+  return `TURN SIGNALS (SERVER-COMPUTED FACTS — text-derived conversational hints, never judgments about persons):
+- sessions with signal data: ${s.signalSessions} of ${s.totalSessions} completed interviews
+- answers labeled: ${s.totalAnswers} total — direct=${s.direct}, partial=${s.partial}, evasive=${s.evasive}, declined=${s.declined}
+- non-neutral affect counts: ${affects || "(none)"}
+- aspects left open in non-direct answers: ${aspects}
+
+RULES for "signal_observations" (max 3):
+- Ground every observation EXCLUSIVELY in the facts above; copy counts verbatim — never recompute, never extrapolate.
+- Phrase as text-derived hints ("Bei Preisfragen wichen 4 von ${s.totalAnswers} Antworten aus"), never as judgments about persons. 'declined' is a legitimate answer, not a deficiency.
+- Skip observations the facts don't clearly support — fewer, well-grounded observations beat three stretched ones.`;
+}
+
+/** E4 — rendert die echten Frage-Begründungen (E3 WHY) je Session samt der
+ *  Aggregations-Regeln für den methodology-Abschnitt. */
+function formatRationalesBlock(
+  rationales: SessionRationales[],
+  coverage: { withRationales: number; totalSessions: number } | null,
+): string {
+  const sessions = rationales
+    .map(
+      (r) =>
+        `${r.sessionLabel}: ${r.rationales.map((x, i) => `(${i + 1}) ${x}`).join(" ")}`,
+    )
+    .join("\n");
+  const coverageLine = coverage
+    ? `coverage: rationales recorded for ${coverage.withRationales} of ${coverage.totalSessions} completed interviews`
+    : "";
+  return `QUESTION RATIONALES (the interviewer's REAL per-question reasons, recorded at decision time — E3 WHY header; per session, in asking order):
+${sessions}
+${coverageLine}
+
+RULES for "methodology" („Warum wurde was gefragt?"):
+- Aggregate the rationales THEMATICALLY (lines of questioning), never question-by-question; ground every statement ONLY in the rationales above.
+- summary: 2-3 sentences on how the interviewer steered the study. themes: up to 8 {topic, rationale} lines.
+- coverageNote: when rationales are missing for some interviews, state it honestly in the synthesis language (e.g. "Begründungen lagen für ${coverage ? coverage.withRationales : "X"} von ${coverage ? coverage.totalSessions : "Y"} Interviews vor — ältere Sessions wurden vor Einführung der Begründungen geführt."). Null when coverage is complete.
+- Method-focused, never judgments about participants.`;
+}
+
 export function buildSynthesisUserPrompt(input: SynthesisInput): string {
   const planLines = [
     `STUDY PLAN`,
@@ -289,11 +354,26 @@ export function buildSynthesisUserPrompt(input: SynthesisInput): string {
       ? "(no insights to synthesize — return empty themes + empty tensions + a one-sentence overview that says so)"
       : input.insights.map(formatInsight).join("\n\n");
 
+  // E4 — beide Blöcke sind strikt additiv: fehlen sie (null/undefined), ist
+  // der Prompt byte-identisch zu vor E4 und die Engine erzwingt
+  // methodology=null + signal_observations=[].
+  const extraBlocks: string[] = [];
+  if (input.signals) {
+    extraBlocks.push(formatSignalsBlock(input.signals));
+  }
+  if (input.rationales && input.rationales.length > 0) {
+    extraBlocks.push(
+      formatRationalesBlock(input.rationales, input.rationaleCoverage ?? null),
+    );
+  }
+  const extras =
+    extraBlocks.length > 0 ? `\n\n${extraBlocks.join("\n\n")}` : "";
+
   return `${planLines.join("\n")}
 
 INPUT INSIGHTS (${input.insights.length}):
 
-${insightsBlock}
+${insightsBlock}${extras}
 
 Return your synthesis as JSON only.`;
 }
