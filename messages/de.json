@@ -1105,6 +1105,10 @@
       "visualCaptureHint": "Wenn aktiviert, kann der Teilnehmer seinen Bildschirm teilen, und Findr wertet aus, wo es im Produkt flüssig lief und wo es hakte. Sinnvoll, wenn Teilnehmer etwas vorführen (App, Prototyp, Feature) — nicht bei reinen Konzept-Gesprächen. Der Teilnehmer wird zu Beginn des Interviews um Einwilligung gebeten, bevor er antworten kann. Standard: aus.",
       "visualCaptureOn": "An",
       "visualCaptureOff": "Aus",
+      "fldSignals": "Antwort-Signale – Stimmung & Direktheit",
+      "signalsHint": "Wenn aktiviert, ordnet Findr nach Abschluss jedes Interviews automatisch ein, wie Antworten formuliert waren (z. B. begeistert, zögerlich) und ob Fragen direkt beantwortet wurden — ausschließlich aus dem Text der Antworten, nie aus der Stimme. Die Einordnung ist ein Hinweis mit Beleg-Zitat, kein Urteil über die Person, nur für Ihr Team sichtbar und läuft nur bei dokumentierter Einwilligung der Teilnehmenden. Standard: aus.",
+      "signalsOn": "An",
+      "signalsOff": "Aus",
       "visualCaptureRecLabel": "Für dieses Modul empfohlen",
       "visualCaptureRecHint": "Aktivieren Sie die Bildschirmaufnahme, wenn Sie ein visuelles Asset zeigen — Anzeige, Mockup oder Prototyp.",
       "fldInteractionMode": "Interaktionsmodus",
@@ -1499,7 +1503,31 @@
       "transcriptCompletedAt": "Abgeschlossen am {date}",
       "transcriptEmpty": "Dieses Gespräch enthält noch keine Beiträge.",
       "transcriptInterviewerLabel": "Interviewer",
-      "transcriptParticipantLabel": "Teilnehmer"
+      "transcriptParticipantLabel": "Teilnehmer",
+      "signalsTitle": "Antwort-Signale",
+      "signalsSummary": "{direct} von {total} Antworten direkt beantwortet · {evasive} ausweichend",
+      "signalsDisclaimer": "Automatische Einordnung aus dem Text der Antworten — ein Hinweis mit Beleg, kein Urteil über die Person.",
+      "signalsDetails": "Einordnung anzeigen",
+      "signalsEvidence": "Beleg",
+      "signalsOpenAspect": "Offen blieb: {aspect}",
+      "signalsConfidence": "Konfidenz: {pct} %",
+      "signalsAffect": {
+        "enthusiasm": "Begeisterung",
+        "interest": "Interesse",
+        "uncertainty": "Unsicherheit",
+        "frustration": "Frustration",
+        "discomfort": "Unbehagen"
+      },
+      "signalsIntensity": {
+        "low": "leicht",
+        "medium": "deutlich",
+        "high": "stark"
+      },
+      "signalsDirectness": {
+        "partial": "teilweise beantwortet",
+        "evasive": "nicht direkt beantwortet",
+        "declined": "möchte nicht antworten"
+      }
     },
     "synthesis": {
       "backToPlan": "← Zurück zum Plan",

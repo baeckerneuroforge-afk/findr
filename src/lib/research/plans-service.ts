@@ -22,6 +22,10 @@ import {
   type StimulusAnalysisPayload,
   type StimulusAnalysisStatus,
 } from "./stimulus-analysis";
+import {
+  coerceTurnSignalsRecord,
+  type TurnSignalsRecord,
+} from "@/lib/schemas/turn-signals";
 
 /**
  * Read + write helpers for the research layer. Mirrors the pattern of
@@ -472,6 +476,11 @@ export interface PlanSessionTranscript {
   conversation: InterviewTurn[];
   createdAt: string;
   completedAt: string | null;
+  /** E2 Turn-Signale — das gehärtete Sidecar-Ergebnis (E1) für die
+   *  Forscher-Ansicht. Null = nie analysiert (Toggle aus, kein Consent,
+   *  Bestand, fremde Version) → Chips/Signal-Block rendern nicht, die
+   *  Ansicht bleibt byte-identisch. NIE in Teilnehmer-Views durchreichen. */
+  turnSignals: TurnSignalsRecord | null;
 }
 
 /** Server-seitiges Cap der Interviews-Liste (keine Pagination, E2-Scope). */
@@ -562,7 +571,9 @@ export async function getSessionWithTranscript(
   const supabase = createResearchSupabase();
   const { data, error } = await supabase
     .from("interview_sessions")
-    .select("id, status, mode, conversation, created_at, completed_at")
+    .select(
+      "id, status, mode, conversation, created_at, completed_at, turn_signals",
+    )
     .eq("org_id", orgId)
     .eq("plan_id", planId)
     .eq("id", sessionId)
@@ -575,6 +586,12 @@ export async function getSessionWithTranscript(
     conversation: coerceConversation(data.conversation),
     createdAt: data.created_at,
     completedAt: data.completed_at,
+    // E2: lenient (coerceTurnSignalsRecord glättet Bestand/fremde Versionen/
+    // Müll zu null). Die Spalte existiert seit Migration 20260704000002 —
+    // in Prod angewandt+verifiziert, daher darf sie im Narrow-Select stehen.
+    turnSignals: coerceTurnSignalsRecord(
+      (data as { turn_signals?: unknown }).turn_signals,
+    ),
   };
 }
 

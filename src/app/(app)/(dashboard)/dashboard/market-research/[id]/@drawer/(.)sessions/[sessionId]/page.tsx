@@ -9,6 +9,7 @@ import {
 import {
   SessionConversationCard,
   SessionMetaBadges,
+  SessionSignalsCard,
 } from "@/components/dashboard/SessionTranscriptView";
 import { TranscriptDrawer } from "@/components/dashboard/TranscriptDrawer";
 import { ENABLED_MODULES } from "@/config/modules";
@@ -59,6 +60,8 @@ export default async function InterceptedSessionDrawerPage({
       fullHref={`/dashboard/market-research/${planId}/sessions/${sessionId}`}
     >
       <SessionMetaBadges session={session} />
+      {/* E2 — Signal-Block; identische Reihenfolge wie die Voll-Seite. */}
+      <SessionSignalsCard session={session} />
       <SessionConversationCard session={session} />
     </TranscriptDrawer>
   );

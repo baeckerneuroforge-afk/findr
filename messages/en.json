@@ -1105,6 +1105,10 @@
       "visualCaptureHint": "When enabled, the participant can share their screen and Findr analyzes where the product flowed smoothly and where it stalled. Useful when participants demonstrate something (app, prototype, feature) — not for pure concept conversations. The participant is asked for consent at the start of the interview, before they can answer. Default: off.",
       "visualCaptureOn": "On",
       "visualCaptureOff": "Off",
+      "fldSignals": "Response signals – sentiment & directness",
+      "signalsHint": "When enabled, Findr automatically annotates each completed interview with how answers were worded (e.g. enthusiastic, hesitant) and whether questions were answered directly — based solely on the text of the answers, never on the voice. The annotation is a hint with a verbatim quote, not a judgment about the person, visible to your team only, and runs only for sessions with documented participant consent. Default: off.",
+      "signalsOn": "On",
+      "signalsOff": "Off",
       "visualCaptureRecLabel": "Recommended for this module",
       "visualCaptureRecHint": "Enable screen capture if you're showing a visual asset — an ad, mockup or prototype.",
       "fldInteractionMode": "Interaction mode",
@@ -1499,7 +1503,31 @@
       "transcriptCompletedAt": "Completed on {date}",
       "transcriptEmpty": "This conversation has no turns yet.",
       "transcriptInterviewerLabel": "Interviewer",
-      "transcriptParticipantLabel": "Participant"
+      "transcriptParticipantLabel": "Participant",
+      "signalsTitle": "Response signals",
+      "signalsSummary": "{direct} of {total} answers answered directly · {evasive} evasive",
+      "signalsDisclaimer": "Automated reading of the answer text — a hint with evidence, not a judgment about the person.",
+      "signalsDetails": "Show reading",
+      "signalsEvidence": "Evidence",
+      "signalsOpenAspect": "Left open: {aspect}",
+      "signalsConfidence": "Confidence: {pct}%",
+      "signalsAffect": {
+        "enthusiasm": "Enthusiasm",
+        "interest": "Interest",
+        "uncertainty": "Uncertainty",
+        "frustration": "Frustration",
+        "discomfort": "Discomfort"
+      },
+      "signalsIntensity": {
+        "low": "slight",
+        "medium": "clear",
+        "high": "strong"
+      },
+      "signalsDirectness": {
+        "partial": "partially answered",
+        "evasive": "not answered directly",
+        "declined": "preferred not to answer"
+      }
     },
     "synthesis": {
       "backToPlan": "← Back to plan",

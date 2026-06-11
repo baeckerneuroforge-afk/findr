@@ -119,6 +119,38 @@ export type TurnSignalsExtraction = z.infer<typeof TurnSignalsExtractionSchema>;
 
 export const TURN_SIGNALS_VERSION = 1;
 
+/** Lese-Schema der persistierten Form — der Read-Normalizer, der mit dem
+ *  ersten Consumer landet (E2 Forscher-UI; Muster market-research M0).
+ *  `version` ist ein LITERAL: eine künftige v2 schlägt hier bewusst fehl und
+ *  wird vom Coercer zu null geglättet — eine v1-UI rendert dann schlicht
+ *  keine Signale statt halbverstandener Daten. */
+export const TurnSignalsRecordSchema = z.object({
+  version: z.literal(TURN_SIGNALS_VERSION),
+  analyzedAt: z.string(),
+  model: z.string(),
+  turns: z.array(TurnSignalSchema),
+  session: z.object({
+    affectArc: z.string(),
+    evasiveCount: z.number().int().min(0),
+    directCount: z.number().int().min(0),
+  }),
+});
+
+/**
+ * Lenienter Read-Mapper für interview_sessions.turn_signals (jsonb) — Stil
+ * coerceConversation/coerceTopics in plans-service: niemals werfen.
+ * Null/undefined (nie analysiert, Spalte fehlt), fremde Versionen und jede
+ * nicht schema-konforme Zeile lesen sich als "keine Signale" → die
+ * Forscher-UI bleibt byte-identisch zur signallosen Ansicht.
+ */
+export function coerceTurnSignalsRecord(
+  raw: unknown,
+): TurnSignalsRecord | null {
+  if (raw === null || raw === undefined) return null;
+  const parsed = TurnSignalsRecordSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
 export interface TurnSignalsRecord {
   version: typeof TURN_SIGNALS_VERSION;
   /** Server-Zeitstempel der Analyse (ISO). */
