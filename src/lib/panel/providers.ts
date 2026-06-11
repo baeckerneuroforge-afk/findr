@@ -1,5 +1,9 @@
 import type { PanelCompletion } from "@/lib/research/panel";
-import type { PanelStudyCost, PanelStudySnapshot } from "./study-snapshot";
+import type {
+  PanelStudyCost,
+  PanelStudySnapshot,
+  PanelTestStudy,
+} from "./study-snapshot";
 
 export const PANEL_PROVIDER_KEYS = ["prolific"] as const;
 export type PanelProviderKey = (typeof PANEL_PROVIDER_KEYS)[number];
@@ -45,6 +49,9 @@ export interface PanelProvider {
     completeCode: string;
     screenoutCode: string;
   }): PanelCompletion;
+  /** Open-Link-URL um die provider-spezifischen Tracking-Platzhalter
+   *  erweitern (E8: vorher Prolific-Spezialfall im Service). */
+  buildExternalStudyUrl(openLinkUrl: string): string;
   createStudyDraft(
     apiToken: string,
     input: CreatePanelStudyDraftInput,
@@ -83,4 +90,10 @@ export interface PanelProvider {
     apiToken: string,
     providerStudyId: string,
   ): Promise<PanelStudySnapshot>;
+  /** Test-Studie aus dem Draft klonen + an die Test-Teilnehmer des
+   *  Workspace publizieren — verbraucht laut Provider-Doku KEINE Credits. */
+  createTestStudy?(
+    apiToken: string,
+    providerStudyId: string,
+  ): Promise<PanelTestStudy>;
 }

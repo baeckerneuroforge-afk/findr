@@ -6,6 +6,7 @@ import {
   parseProlificErrorMessage,
   parseProlificStudyCost,
   parseProlificStudySnapshot,
+  parseProlificTestStudy,
 } from "./study-snapshot";
 
 describe("parseProlificStudySnapshot", () => {
@@ -195,5 +196,32 @@ describe("parseProlificErrorMessage", () => {
     expect(msg).not.toBeNull();
     expect(msg!.length).toBeLessThanOrEqual(501);
     expect(msg!.endsWith("…")).toBe(true);
+  });
+});
+
+describe("parseProlificTestStudy", () => {
+  it("reads the documented { study_id, study_url } shape", () => {
+    expect(
+      parseProlificTestStudy({
+        study_id: "64f1a2b3c4d5e6f7a8b9c0d1",
+        study_url: "https://app.prolific.com/studies/64f1a2b3c4d5e6f7a8b9c0d1",
+      }),
+    ).toEqual({
+      providerStudyId: "64f1a2b3c4d5e6f7a8b9c0d1",
+      studyUrl: "https://app.prolific.com/studies/64f1a2b3c4d5e6f7a8b9c0d1",
+    });
+  });
+
+  it("rejects missing fields, non-http(s) urls and non-objects", () => {
+    expect(parseProlificTestStudy({ study_id: "x" })).toBeNull();
+    expect(parseProlificTestStudy({ study_url: "https://x.de" })).toBeNull();
+    expect(
+      parseProlificTestStudy({ study_id: "x", study_url: "javascript:alert(1)" }),
+    ).toBeNull();
+    expect(
+      parseProlificTestStudy({ study_id: "x", study_url: "not a url" }),
+    ).toBeNull();
+    expect(parseProlificTestStudy(null)).toBeNull();
+    expect(parseProlificTestStudy("x")).toBeNull();
   });
 });
