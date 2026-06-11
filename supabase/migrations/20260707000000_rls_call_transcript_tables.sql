@@ -2,17 +2,21 @@
 -- Security fix — enable RLS on call_speakers + transcript_segments
 --
 -- Sprint 3 (20260519000000_calls_pipeline.sql) created these two tables WITHOUT
--- enabling row level security and WITHOUT an org_id column. The header there
--- claimed org-scoping "is preserved via the inherited org_id column" — but no
--- such column exists. Every other tenant table enables RLS with an
--- `org_id = current_org_id()` policy; these two were the only live tables left
--- without one, so a request to the public PostgREST/anon surface
--- (`GET /rest/v1/transcript_segments?select=*`) would return every org's
--- transcript text + speaker PII.
+-- a `create policy` and WITHOUT an org_id column, even though every other tenant
+-- table ships an `org_id = current_org_id()` policy. This migration adds the
+-- missing org-scoped policy so authenticated reads are correctly tenant-scoped
+-- via the parent call instead of silently empty.
 --
--- The app reads these tables exclusively via the service-role client, which
--- bypasses RLS — so enabling RLS does NOT change application behaviour. It only
--- closes the anon/authenticated edge.
+-- On the live Prod DB the picture was milder than the file lineage suggests:
+-- its baseline already had RLS ENABLED on both tables (just with NO policy =
+-- default-deny), so anon/authenticated already saw nothing — there was no live
+-- leak. But a fresh environment built purely from these migration files would
+-- have RLS OFF here (no file ever enabled it), and a
+-- `GET /rest/v1/transcript_segments?select=*` over the anon key WOULD return
+-- every org's transcript + speaker PII. So `enable row level security` below is
+-- idempotent (a no-op where already on) and closes that gap for fresh/local DBs
+-- while normalizing the policy everywhere. The app reads via the service-role
+-- client (bypasses RLS), so behaviour is unchanged either way.
 --
 -- Neither table has org_id; both reference calls(id), which carries org_id and
 -- is already RLS-protected. The policy therefore scopes via an EXISTS join to
