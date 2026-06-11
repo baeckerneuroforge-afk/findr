@@ -242,6 +242,13 @@ interface CaseResult {
   uncategorizedAgentQuestions: number;
   totalTurns: number;
   history: InterviewTurn[];
+  /** E3 — wie viele Agent-Turns eine WHY-Rationale trugen (Präsenz-Messung;
+   *  fail-open heißt: fehlt sie, gibt es keinen Fehler, aber auch keinen
+   *  Wert — genau das muss sichtbar sein). */
+  whyCount: number;
+  /** E3 — Teilnehmer-NACHRICHTEN, die ein "why:"-Muster enthalten. Muss 0
+   *  sein: das wäre ein Leak der Interviewer-Interna (harte Assertion). */
+  whyLeaks: number;
 }
 
 async function runCase(
@@ -262,19 +269,30 @@ async function runCase(
   const perTopic: Record<string, number> = {};
   let uncategorized = 0;
   let closedByModel = false;
+  let whyCount = 0;
+  let whyLeaks = 0;
 
   // First iteration produces the agent's OPENING message (history is empty).
   // The simulator then replies and the loop continues until done or cap.
   while (
     history.filter((t) => t.role === "agent").length < EVAL_AGENT_QUESTION_CAP
   ) {
-    const { done, message } = await nextResearchMessage(
+    const { done, message, why } = await nextResearchMessage(
       PLAN_INPUT,
       history,
       language,
       model,
     );
-    history.push({ role: "agent", text: message });
+    // E3 — Rationale-Telemetrie + Leak-Assertion: `message` ist exakt der
+    // Text, den ein Teilnehmer sähe; ein "why:"-Muster darin wäre ein Leak
+    // der Interna (Parser-Härtung umgangen) und macht den Case hart rot.
+    if (why !== null) whyCount += 1;
+    if (/why\s*:/i.test(message)) whyLeaks += 1;
+    history.push(
+      why !== null
+        ? { role: "agent", text: message, why }
+        : { role: "agent", text: message },
+    );
 
     // Tag this agent turn against a plan topic (best-effort heuristic).
     // Opening + closing messages typically won't match any topic — that's
@@ -302,6 +320,8 @@ async function runCase(
     uncategorizedAgentQuestions: uncategorized,
     totalTurns: history.length,
     history,
+    whyCount,
+    whyLeaks,
   };
 }
 
@@ -370,6 +390,24 @@ function checkTopicCoverage(r: CaseResult): Check {
   };
 }
 
+/** E3 — Präsenz der WHY-Rationale. Fail-open macht fehlende Zeilen lautlos;
+ *  unter 80 % Abdeckung ist das Feature praktisch löchrig → WARN (Prompt
+ *  nachschärfen), kein Hard-Fail (eine einzelne Auslassung ist Modell-Varianz). */
+function checkWhyCoverage(r: CaseResult): Check {
+  const rate =
+    r.agentQuestionCount === 0 ? 0 : r.whyCount / r.agentQuestionCount;
+  const note = `${r.whyCount}/${r.agentQuestionCount} agent turns carried a rationale`;
+  return rate >= 0.8 ? { ok: true, note } : { ok: false, note };
+}
+
+/** E3 — Leak-Assertion: KEINE Teilnehmer-Nachricht darf ein "why:"-Muster
+ *  tragen (Interna). Hartes Kriterium — ein Leak ist nie akzeptabel. */
+function checkNoWhyLeak(r: CaseResult): Check {
+  return r.whyLeaks === 0
+    ? { ok: true, note: "no participant-visible message contains a why: pattern" }
+    : { ok: false, note: `${r.whyLeaks} message(s) leaked a why: pattern` };
+}
+
 // ── printing ───────────────────────────────────────────────────────────────
 
 function printCase(
@@ -388,6 +426,14 @@ function printCase(
     const head = turn.text.replace(/\s+/g, " ").trim();
     const preview = head.length > 200 ? head.slice(0, 200) + " …" : head;
     console.log(`  ${String(i + 1).padStart(2, " ")}. ${prefix}: ${preview}`);
+    // E3 — die (nur Forschern sichtbare) Rationale unter dem Agent-Turn, fürs
+    // manuelle Lesen: trägt sie Substanz (Thema/Vertiefung), nicht Floskeln?
+    if (turn.role === "agent" && turn.why) {
+      const whyHead = turn.why.replace(/\s+/g, " ").trim();
+      console.log(
+        `        ↳ why: ${whyHead.length > 160 ? whyHead.slice(0, 160) + " …" : whyHead}`,
+      );
+    }
   });
 
   // Per-topic tally.
@@ -406,6 +452,8 @@ function printCase(
     ["closed-by-model    ", checkClosedByModel(result)],
     ["≤ ceiling (6)      ", checkAgentQuestionCount(result)],
     ["no 3+ per topic    ", checkMaxPerTopic(result)],
+    ["WHY coverage ≥80%  ", checkWhyCoverage(result)],
+    ["no WHY leak        ", checkNoWhyLeak(result)],
   ];
   if (expectsCoverage) {
     checks.push(["all topics covered ", checkTopicCoverage(result)]);
