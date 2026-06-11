@@ -77,6 +77,9 @@ const CreatePlanBodySchema = z.object({
     .enum(["product_discovery", "market_research"])
     .optional()
     .default("product_discovery"),
+  // F2 — interview language for the whole study; inherited by its invites,
+  // open-links and sessions. Defaults to 'de' (existing behavior).
+  language: z.enum(["de", "en"]).optional().default("de"),
 });
 
 export async function POST(req: NextRequest) {
@@ -110,6 +113,7 @@ export async function POST(req: NextRequest) {
       stimulusType: parsed.data.stimulusType ?? null,
       stimulusDescription: parsed.data.stimulusDescription ?? null,
       studyType: parsed.data.studyType,
+      language: parsed.data.language,
     });
     return NextResponse.json({ success: true, planId: plan.id, plan });
   } catch (err) {

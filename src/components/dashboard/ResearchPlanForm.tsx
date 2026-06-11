@@ -97,6 +97,9 @@ interface FormState {
   // interviewer focus-block already exist on main; this form only fills the
   // value and uses it to pick a preset. Discovery never sends it (byte-identical).
   useCase: UseCase;
+  // F2 — interview language for the whole study (de/en). Sent as `language` in
+  // the create body; the study's invites, open-links and sessions inherit it.
+  language: "de" | "en";
   // Single stimulus per study (creative_test / concept_test). The asset itself
   // (url + type "image" | "link") is owned by the dedicated stimulus route and
   // mirrored here from its response for the preview; the description is a plain
@@ -269,6 +272,8 @@ const INITIAL_FORM: FormState = {
   // applied at mount (see the lazy useState init); on the discovery path this
   // value is never sent, so the create body stays byte-identical.
   useCase: "general_survey",
+  // F2 — default German; an untouched form keeps existing behavior.
+  language: "de",
   // No stimulus by default. Set via the stimulus route (asset) + this form's
   // description field; only ever touched on the needsStimulus use-cases.
   stimulusUrl: null,
@@ -468,6 +473,7 @@ export function ResearchPlanForm({
           voiceEnabled: form.voiceEnabled,
           ttsEnabled: form.ttsEnabled,
           signalsEnabled: form.signalsEnabled,
+          language: form.language,
           ...useCasePayload,
           ...studyTypePayload,
         }),
@@ -546,7 +552,7 @@ export function ResearchPlanForm({
             role:
               genInputs.role.trim() === "" ? undefined : genInputs.role.trim(),
             topicCount,
-            language: "de",
+            language: form.language,
           }),
         },
       );
@@ -922,6 +928,7 @@ export function ResearchPlanForm({
           voiceEnabled: form.voiceEnabled,
           ttsEnabled: form.ttsEnabled,
           signalsEnabled: form.signalsEnabled,
+          language: form.language,
           ...useCasePayload,
           ...studyTypePayload,
           ...stimulusDescriptionPayload,
@@ -1048,6 +1055,20 @@ export function ResearchPlanForm({
             disabled={submitting}
             className={FIELD_INPUT_CLASS}
           />
+        </Field>
+
+        {/* F2 — interview language for the whole study; inherited by its invites,
+            open-links and sessions. Defaults to German. */}
+        <Field label={t("fldLanguage")} hint={t("languageHint")}>
+          <select
+            value={form.language}
+            onChange={(e) => update("language", e.target.value as "de" | "en")}
+            disabled={submitting}
+            className={FIELD_INPUT_CLASS}
+          >
+            <option value="de">{t("languageDe")}</option>
+            <option value="en">{t("languageEn")}</option>
+          </select>
         </Field>
 
         {/* Forschungsziel — auf dem Discovery-Pfad hier an unveränderter Stelle

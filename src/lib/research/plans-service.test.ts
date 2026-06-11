@@ -49,6 +49,7 @@ function plan(overrides: Partial<ResearchPlanRecord>): ResearchPlanRecord {
     stimulusAnalysisStatus: null,
     screeningQuestions: [],
     studyType: "market_research",
+    language: "de",
     createdAt: "2026-06-01T00:00:00.000Z",
     ...overrides,
   };

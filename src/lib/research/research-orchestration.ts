@@ -195,7 +195,7 @@ export async function createResearchInterview(params: {
       // token is minted, never the shared open-link token.
       accessToken: inviteAccessToken,
       dealContext: input,
-      language: params.language ?? "de",
+      language: params.language ?? plan.language,
       screeningAnswers: params.screeningAnswers ?? null,
       // Perf-Etappe B2: every createResearchInterview caller sits on the
       // PARTICIPANT's request path (lazy page-load create + both screening
@@ -282,6 +282,9 @@ export async function createResearchInvite(params: {
       contact_label: params.contactLabel,
       contact_email: params.contactEmail ?? null,
       mode_preference: params.modePreference ?? "text",
+      // F2 — the invite (its email + the lazily-created session) inherits the
+      // study's language.
+      language: plan.language,
       status: "pending",
       access_token: accessToken,
     })

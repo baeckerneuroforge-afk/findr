@@ -82,6 +82,9 @@ export interface ResearchPlanRecord {
    *  es ist reines Typ-Fundament; die typ-bewusste Verzweigung (Markt-Prompt /
    *  Synthese-Persona / UI-Bereich) kommt in M1–M3. */
   studyType: ResearchPlanStudyType;
+  /** F2 — interview language for this study (de/en). Inherited by its invites,
+   *  open-links and sessions. */
+  language: "de" | "en";
   createdAt: string;
 }
 
@@ -151,6 +154,12 @@ function coerceScreeningQuestions(raw: unknown): ScreeningQuestion[] {
 // every read path.
 export function coerceStudyType(raw: unknown): ResearchPlanStudyType {
   return raw === "market_research" ? "market_research" : "product_discovery";
+}
+
+// F2 — per-study interview language. Pre-migration fail-safe: undefined → 'de'
+// (every existing study is German), mirroring coerceStudyType.
+export function coerceLanguage(raw: unknown): "de" | "en" {
+  return raw === "en" ? "en" : "de";
 }
 
 export function coerceUseCase(raw: unknown): ResearchPlanUseCase | null {
@@ -225,6 +234,7 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     ),
     screeningQuestions: coerceScreeningQuestions(row.screening_questions),
     studyType: coerceStudyType(row.study_type),
+    language: coerceLanguage((row as { language?: unknown }).language),
     createdAt: row.created_at,
   };
 }
@@ -632,6 +642,7 @@ export interface CreateResearchPlanInput {
    * column on the create, nothing else branches.
    */
   studyType?: ResearchPlanStudyType;
+  language?: "de" | "en";
 }
 
 /**
@@ -671,6 +682,9 @@ export async function createResearchPlan(
       ...(input.studyType === "market_research"
         ? { study_type: "market_research" as const }
         : {}),
+      // F2 — only stamp 'en' explicitly; 'de' is omitted so the DB DEFAULT
+      // writes it (pre-migration-safe for the common German create).
+      ...(input.language === "en" ? { language: "en" as const } : {}),
     })
     .select("*")
     .single();
@@ -703,6 +717,7 @@ export interface UpdateResearchPlanInput {
    *  Invalidierung). Kein anderer Pfad fasst diese Felder an. */
   stimulusAnalysis?: StimulusAnalysisPayload | null;
   stimulusAnalysisStatus?: StimulusAnalysisStatus | null;
+  language?: "de" | "en";
 }
 
 /**
@@ -741,6 +756,7 @@ export async function updateResearchPlan(
     stimulus_description?: string | null;
     stimulus_analysis?: Json | null;
     stimulus_analysis_status?: string | null;
+    language?: "de" | "en";
   } = {};
   if (input.title !== undefined) update.title = input.title;
   if (input.objective !== undefined) update.objective = input.objective;
@@ -767,6 +783,7 @@ export async function updateResearchPlan(
     update.stimulus_analysis = input.stimulusAnalysis as unknown as Json;
   if (input.stimulusAnalysisStatus !== undefined)
     update.stimulus_analysis_status = input.stimulusAnalysisStatus;
+  if (input.language !== undefined) update.language = input.language;
 
   if (Object.keys(update).length === 0) {
     return getResearchPlan(orgId, planId);
