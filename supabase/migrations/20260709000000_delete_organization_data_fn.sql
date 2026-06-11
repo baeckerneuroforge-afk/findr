@@ -51,5 +51,9 @@ end;
 $$;
 
 -- Only the service-role client (used by the admin-gated delete route) may run it.
-revoke all on function delete_organization_data(uuid) from public;
+-- anon + authenticated are revoked EXPLICITLY: Supabase default-grants EXECUTE on
+-- public functions to those roles directly, so `from public` alone would leave a
+-- SECURITY DEFINER function (RLS-bypassing, arbitrary org_id) callable via the
+-- anon PostgREST RPC endpoint.
+revoke all on function delete_organization_data(uuid) from public, anon, authenticated;
 grant execute on function delete_organization_data(uuid) to service_role;
