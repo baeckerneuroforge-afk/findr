@@ -485,50 +485,6 @@ export type Database = {
           },
         ]
       }
-      crm_connections: {
-        Row: {
-          access_token: string
-          created_at: string
-          expires_at: string | null
-          id: string
-          org_id: string
-          provider: string
-          refresh_token: string | null
-          scope: string | null
-          updated_at: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          org_id: string
-          provider: string
-          refresh_token?: string | null
-          scope?: string | null
-          updated_at?: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          org_id?: string
-          provider?: string
-          refresh_token?: string | null
-          scope?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crm_connections_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       deals: {
         Row: {
           amount: number | null
