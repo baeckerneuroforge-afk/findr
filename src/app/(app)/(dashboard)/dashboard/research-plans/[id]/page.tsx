@@ -7,7 +7,10 @@ import {
   researchInterviewUrl,
   researchOpenLinkUrl,
 } from "@/lib/email/research-invite";
-import { getProlificCredentialSummary } from "@/lib/panel/service";
+import {
+  getProlificCredentialSummary,
+  getProlificStudyForPlan,
+} from "@/lib/panel/service";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { getOpenLinkForPlan } from "@/lib/research/open-links";
 import { listInvitesForPlan } from "@/lib/research/scheduling";
@@ -132,17 +135,26 @@ export default async function ResearchPlanDetailPage({
   // refresh).
   const invites = await listInvitesForPlan(orgId, planId);
 
-  // Participant-Pool + Screening-Quoten + offener Link + Panel-Credentials.
-  // Additiv zum bestehenden Invite-Flow — unabhängige Reads, parallel. Listen
-  // degradieren auf [], der offene Link / Prolific-Status auf null (safe).
-  const [poolMembers, invitedPoolMemberIds, quotas, openLink, prolificCredential] =
-    await Promise.all([
-      listPoolMembers(orgId),
-      listInvitedPoolMemberIds(orgId, planId),
-      listQuotaProgress(orgId, planId),
-      getOpenLinkForPlan(orgId, planId),
-      getProlificCredentialSummary(orgId),
-    ]);
+  // Participant-Pool + Screening-Quoten + offener Link + Panel-Credentials
+  // + persistierter Prolific-Draft. Additiv zum bestehenden Invite-Flow —
+  // unabhängige Reads, parallel. Listen degradieren auf [], der offene Link /
+  // Prolific-Status / Draft auf null (safe; Draft-null heißt auch: Migration
+  // 20260705000000 noch nicht angewandt).
+  const [
+    poolMembers,
+    invitedPoolMemberIds,
+    quotas,
+    openLink,
+    prolificCredential,
+    prolificStudy,
+  ] = await Promise.all([
+    listPoolMembers(orgId),
+    listInvitedPoolMemberIds(orgId, planId),
+    listQuotaProgress(orgId, planId),
+    getOpenLinkForPlan(orgId, planId),
+    getProlificCredentialSummary(orgId),
+    getProlificStudyForPlan(orgId, planId),
+  ]);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
   ].sort();
@@ -569,6 +581,15 @@ export default async function ResearchPlanDetailPage({
               }
               credentialStatus={prolificCredential?.status ?? "missing"}
               panelCompletionConfigured={panelCompletionConfigured}
+              panelStudy={
+                prolificStudy
+                  ? {
+                      providerStudyId: prolificStudy.providerStudyId,
+                      status: prolificStudy.status,
+                      createdAt: prolificStudy.createdAt,
+                    }
+                  : null
+              }
               disabled={plan.status === "archived"}
             />
           </CardBody>

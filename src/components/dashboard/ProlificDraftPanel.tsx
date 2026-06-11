@@ -8,6 +8,17 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { FIELD_INPUT_CLASS } from "@/components/ui/Field";
 
+/** Persistierter Draft aus panel_studies (E4) — Server-seitig geladen, damit
+ *  die angelegte Studie einen Reload überlebt (vorher nur transienter
+ *  Client-State = Doppel-Draft-Risiko). Bewusst nur in den connected+active-
+ *  Zustand gerendert: die Early-Return-Hinweise (Credential/Open-Link fehlen)
+ *  bleiben unverändert, weil dort ohnehin kein Draft entstehen kann. */
+interface PersistedPanelStudy {
+  providerStudyId: string;
+  status: string;
+  createdAt: string;
+}
+
 interface ProlificDraftPanelProps {
   planId: string;
   planTitle: string;
@@ -21,6 +32,7 @@ interface ProlificDraftPanelProps {
     | null;
   credentialStatus: "connected" | "invalid" | "unknown" | "missing";
   panelCompletionConfigured: boolean;
+  panelStudy: PersistedPanelStudy | null;
   disabled?: boolean;
 }
 
@@ -46,6 +58,7 @@ export function ProlificDraftPanel({
   openLink,
   credentialStatus,
   panelCompletionConfigured,
+  panelStudy,
   disabled = false,
 }: ProlificDraftPanelProps) {
   const router = useRouter();
@@ -67,9 +80,14 @@ export function ProlificDraftPanel({
     id: string;
     status: string;
   } | null>(null);
+  // Existiert bereits ein persistierter Draft, ist das Formular eingeklappt —
+  // der Default-Pfad zeigt die Studie statt zur Zweit-Anlage einzuladen.
+  // "Create another draft" bleibt als bewusste Handlung möglich.
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const canCreate =
     !disabled && credentialStatus === "connected" && openLink?.status === "active";
+  const formVisible = panelStudy === null || showCreateForm;
 
   function readPositiveInt(value: string, label: string): number | null {
     const n = Number(value.trim());
@@ -145,6 +163,9 @@ export function ProlificDraftPanel({
         id: data.draft.providerStudyId,
         status: data.draft.status,
       });
+      // Nach Erfolg wieder einklappen; router.refresh() holt den persistierten
+      // Draft als panelStudy-Prop in die Karte oben.
+      setShowCreateForm(false);
       router.refresh();
     } finally {
       setCreating(false);
@@ -199,6 +220,27 @@ export function ProlificDraftPanel({
         </span>
       </div>
 
+      {panelStudy && (
+        <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-3 text-small">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium text-neutral-900">Prolific draft</span>
+            <Badge variant={panelStudy.status === "ACTIVE" ? "success" : "default"}>
+              {panelStudy.status}
+            </Badge>
+          </div>
+          <div className="mt-1 font-mono text-neutral-700">
+            {panelStudy.providerStudyId}
+          </div>
+          <p className="mt-1 text-neutral-600">
+            {/* ISO-Datum statt toLocaleDateString — deterministisch zwischen
+                Server-Pass und Client (kein Hydration-Drift). */}
+            Created {panelStudy.createdAt.slice(0, 10)}. Publish and fund it in
+            Prolific — findr never publishes or funds automatically.
+          </p>
+        </div>
+      )}
+
+      {formVisible && (
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block md:col-span-2">
           <span className="mb-1.5 block text-small font-medium text-neutral-700">
@@ -257,14 +299,25 @@ export function ProlificDraftPanel({
           disabled={disabled || creating}
         />
       </div>
+      )}
 
-      {!disabled && (
+      {formVisible && !disabled && (
         <Button onClick={handleCreate} disabled={!canCreate || creating}>
           {creating ? "Creating..." : "Create Prolific draft"}
         </Button>
       )}
 
-      {created && (
+      {!formVisible && !disabled && (
+        <Button variant="ghost" onClick={() => setShowCreateForm(true)}>
+          Create another draft
+        </Button>
+      )}
+
+      {/* Transientes Erfolgs-Banner nur, solange die persistierte Karte oben
+          nicht bereits dieselbe Studie zeigt (nach router.refresh kommt sie
+          als panelStudy-Prop an — und vor angewandter Migration bleibt das
+          Banner der einzige Beleg). */}
+      {created && created.id !== panelStudy?.providerStudyId && (
         <div className="rounded-md bg-success-50 px-3 py-2 text-small text-success-700">
           Draft created: {created.id} ({created.status}). Publish and fund it in
           Prolific.

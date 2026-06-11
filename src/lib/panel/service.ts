@@ -16,6 +16,11 @@ import {
 } from "./credentials";
 import { buildProlificExternalStudyUrl, prolificProvider } from "./prolific";
 import type { PanelStudyDraft } from "./providers";
+import {
+  getLatestPanelStudyForPlan,
+  recordPanelStudyDraft,
+  type PanelStudySummary,
+} from "./studies";
 
 const PROVIDER = "prolific" as const;
 
@@ -25,6 +30,15 @@ export type ProlificConnectionStatus =
 
 export async function getProlificCredentialSummary(orgId: string) {
   return getPanelCredentialSummary(orgId, PROVIDER);
+}
+
+/** Jüngster persistierter Prolific-Draft eines Plans (E4) — null, wenn nie
+ *  einer angelegt wurde (oder die panel_studies-Migration noch fehlt). */
+export async function getProlificStudyForPlan(
+  orgId: string,
+  planId: string,
+): Promise<PanelStudySummary | null> {
+  return getLatestPanelStudyForPlan(orgId, planId, PROVIDER);
 }
 
 export async function saveProlificCredential(
@@ -93,6 +107,9 @@ export interface CreateProlificDraftInput {
 export interface CreateProlificDraftResult {
   draft: PanelStudyDraft;
   panelCompletionWritten: boolean;
+  /** Persistierte panel_studies-Zeile (E4) — null, wenn die Persistenz
+   *  fehlschlug (fail-open; der Prolific-Draft existiert trotzdem). */
+  study: PanelStudySummary | null;
 }
 
 export type ProlificDraftErrorCode =
@@ -147,5 +164,20 @@ export async function createProlificDraftForPlan(
   );
   if (!updated) throw new ProlificDraftError("completion_write_failed");
 
-  return { draft, panelCompletionWritten: true };
+  // E4: Draft persistieren — provider_study_id war bis hier nur transienter
+  // Client-State (Keystone-Lücke, Doppel-Draft-Risiko). Fail-open: der
+  // Prolific-Draft EXISTIERT an diesem Punkt bereits; eine fehlgeschlagene
+  // Persistenz (z. B. Migration noch nicht angewandt) darf den Erfolg nicht
+  // in einen Fehler verwandeln, sonst legt der nächste Klick genau den
+  // Doppel-Draft an, den E4 verhindert.
+  const study = await recordPanelStudyDraft({
+    orgId,
+    planId,
+    provider: PROVIDER,
+    providerStudyId: draft.providerStudyId,
+    status: draft.status,
+    draftInput: { ...input, externalStudyUrl },
+  });
+
+  return { draft, panelCompletionWritten: true, study };
 }
