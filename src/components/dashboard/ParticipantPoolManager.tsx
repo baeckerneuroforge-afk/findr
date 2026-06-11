@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Field, FIELD_INPUT_CLASS, FIELD_TEXTAREA_CLASS } from "@/components/ui/Field";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
+// Tag-Split und E-Mail-Prüfung kommen aus der CSV-Lib: EINE Implementierung
+// für manuelle Eingabe und CSV-Import (POOL_EMAIL_RE spiegelt per gepinnter
+// Parität exakt, was das Server-Schema akzeptiert — das lockere lokale Regex
+// ließ vorher Adressen durch, die die API ablehnt, z. B. Umlaut-Domains).
+import { parsePoolTagsCell, POOL_EMAIL_RE } from "@/lib/csv/parse";
 import { PoolCsvImport } from "@/components/dashboard/PoolCsvImport";
 
 /**
@@ -36,21 +41,7 @@ export interface PoolMember {
   createdAt: string;
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALL = "__all__";
-
-/** Tag-Eingabe ("B2B, Founder; Enterprise") → normalisiertes, dedupliziertes
- *  Array. Trennt an Komma / Semikolon / Zeilenumbruch. */
-function parseTags(input: string): string[] {
-  return [
-    ...new Set(
-      input
-        .split(/[,;\n]/)
-        .map((t) => t.trim())
-        .filter((t) => t !== ""),
-    ),
-  ];
-}
 
 interface FormValues {
   contactLabel: string;
@@ -193,7 +184,7 @@ function PoolMemberForm({
       return;
     }
     const contactEmail = values.contactEmail.trim();
-    if (contactEmail !== "" && !EMAIL_RE.test(contactEmail)) {
+    if (contactEmail !== "" && !POOL_EMAIL_RE.test(contactEmail)) {
       setError(tc("errEmailInvalid"));
       return;
     }
@@ -205,7 +196,7 @@ function PoolMemberForm({
         contactEmail: contactEmail === "" ? null : contactEmail,
         role: values.role.trim() === "" ? null : values.role.trim(),
         segment: values.segment.trim() === "" ? null : values.segment.trim(),
-        tags: parseTags(values.tagsInput),
+        tags: parsePoolTagsCell(values.tagsInput),
         notes: values.notes.trim() === "" ? null : values.notes.trim(),
       });
       if (!outcome.ok) {

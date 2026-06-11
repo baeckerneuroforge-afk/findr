@@ -7,8 +7,11 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import {
+  decodeCsvBuffer,
   MAX_CSV_BYTES,
+  MAX_POOL_IMPORT_ROWS,
   parsePoolCsv,
+  POOL_CSV_TEMPLATES,
   type PoolParsedRow,
   type PoolParseIssue,
 } from "@/lib/csv/parse";
@@ -27,8 +30,6 @@ import type { PoolMember } from "@/components/dashboard/ParticipantPoolManager";
  * und werden via `onImported` an den Manager gereicht — der hält seine Liste
  * nach Mount autoritativ im State, daher KEIN router.refresh hier.
  */
-
-const MAX_IMPORT_ROWS = 200;
 
 interface CsvPreviewState {
   fileName: string;
@@ -65,22 +66,6 @@ const STATUS_TEXT_CLASS: Record<ServerResultItem["status"], string> = {
   error: "text-danger-700",
 };
 
-/** Lokalisierte Vorlage als Client-Blob — de mit Semikolon (DE-Excel-Default),
- *  en mit Komma. Beide Header-Varianten erkennt der Parser. BOM vorangestellt,
- *  damit Excel die UTF-8-Umlaute korrekt öffnet (der Parser strippt es). */
-const CSV_TEMPLATE: Record<string, { fileName: string; content: string }> = {
-  de: {
-    fileName: "teilnehmer-pool-vorlage.csv",
-    content:
-      '﻿Name;E-Mail;Rolle;Segment;Tags;Notizen\nJane Doe;jane@acme.example;Head of Sales;Enterprise;"Bestandskunde, Power-User";Aus Webinar Q3\n',
-  },
-  en: {
-    fileName: "participant-pool-template.csv",
-    content:
-      '﻿Name,Email,Role,Segment,Tags,Notes\nJane Doe,jane@acme.example,Head of Sales,Enterprise,"Existing customer, Power user",From Q3 webinar\n',
-  },
-};
-
 export function PoolCsvImport({
   onImported,
 }: {
@@ -96,6 +81,11 @@ export function PoolCsvImport({
   // Ref, um den <input type="file"> nach jedem Load zurückzusetzen — sonst
   // feuert die erneute Auswahl derselben Datei kein onChange.
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Monotone Lese-Sequenz: wählt der Nutzer eine zweite Datei, während die
+  // erste noch gelesen wird (Drag-and-drop aufs Input, langsame Cloud-/
+  // Netzlaufwerke), darf das ÄLTERE Ergebnis den State der neueren Auswahl
+  // nicht überschreiben — sonst bestätigt man Datei A im Glauben, B zu sehen.
+  const readSeqRef = useRef(0);
 
   function resetTransientUiState() {
     setError(null);
@@ -121,10 +111,17 @@ export function PoolCsvImport({
       return;
     }
 
+    const readSeq = ++readSeqRef.current;
+
     let raw: string;
     try {
-      raw = await file.text();
+      // arrayBuffer + decodeCsvBuffer statt file.text(): deutsche Excel-
+      // Exporte („CSV (Trennzeichen-getrennt)") sind Windows-1252 — file.text()
+      // dekodiert immer UTF-8 und machte aus Umlauten stille U+FFFD-Mojibake,
+      // die validiert und dauerhaft in den Pool importiert würde.
+      raw = decodeCsvBuffer(await file.arrayBuffer());
     } catch (err) {
+      if (readSeq !== readSeqRef.current) return;
       setError(
         err instanceof Error
           ? t("errCsvReadMsg", { msg: err.message })
@@ -132,6 +129,7 @@ export function PoolCsvImport({
       );
       return;
     }
+    if (readSeq !== readSeqRef.current) return;
 
     const { parsed, issues } = parsePoolCsv(raw);
 
@@ -144,8 +142,8 @@ export function PoolCsvImport({
       setParseIssues(issues);
       return;
     }
-    if (parsed.length > MAX_IMPORT_ROWS) {
-      setError(t("errCsvTooMany", { max: MAX_IMPORT_ROWS, count: parsed.length }));
+    if (parsed.length > MAX_POOL_IMPORT_ROWS) {
+      setError(t("errCsvTooMany", { max: MAX_POOL_IMPORT_ROWS, count: parsed.length }));
       return;
     }
 
@@ -160,6 +158,9 @@ export function PoolCsvImport({
   async function confirmImport() {
     if (!preview) return;
     setSubmitting(true);
+    // Fehler eines früheren Versuchs räumen — sonst stünde nach einem
+    // geglückten Retry das alte rote Banner neben der Erfolgs-Zusammenfassung.
+    setError(null);
     try {
       const res = await fetch("/api/research/pool/import", {
         method: "POST",
@@ -180,6 +181,13 @@ export function PoolCsvImport({
         throw new Error(data.error ?? t("errImport"));
       }
       setResponse(data);
+      // Client-seitig übersprungene Zeilen über den Erfolg hinaus sichtbar
+      // halten: die Vorschau (und damit ihre Issue-Liste) verschwindet gleich —
+      // ohne diese Übernahme behauptete „40 angelegt · 0 übersprungen" einen
+      // vollständigen Import, obwohl der Parser z. B. 10 Zeilen vorab
+      // gefiltert hat. Der Nutzer braucht Zeilennummern + Gründe zum
+      // Nachpflegen.
+      setParseIssues(preview.issues);
       setPreview(null);
       const createdMembers = (data.results ?? [])
         .filter(
@@ -196,14 +204,18 @@ export function PoolCsvImport({
   }
 
   function downloadTemplate() {
-    const template = CSV_TEMPLATE[locale] ?? CSV_TEMPLATE.de;
+    const template = POOL_CSV_TEMPLATES[locale] ?? POOL_CSV_TEMPLATES.de;
     const blob = new Blob([template.content], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = template.fileName;
+    document.body.appendChild(anchor);
     anchor.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(anchor);
+    // Revoke einen Tick später — Safari startet den Download asynchron und
+    // verliert ihn bei sofortigem Revoke (Muster aus ExportSynthesisPdfButton).
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   return (
@@ -260,15 +272,22 @@ export function PoolCsvImport({
                 })}
               </div>
               <ul className="space-y-0.5">
-                {response.results.map((r, i) => (
-                  <li key={i} className={STATUS_TEXT_CLASS[r.status]}>
-                    <span className="font-medium">{t(STATUS_LABEL_KEY[r.status])}</span>
-                    {" — "}
-                    {r.contactLabel}
-                    {r.contactEmail ? ` · ${r.contactEmail}` : ""}
-                    {r.message ? ` (${r.message})` : ""}
-                  </li>
-                ))}
+                {response.results.map((r, i) => {
+                  // Deploy-Skew-Schutz: ein unbekannter Status aus einer
+                  // neueren Server-Version fällt auf die Fehler-Optik zurück,
+                  // statt dass t(undefined) den rohen Namespace rendert.
+                  const status: ServerResultItem["status"] =
+                    r.status in STATUS_LABEL_KEY ? r.status : "error";
+                  return (
+                    <li key={i} className={STATUS_TEXT_CLASS[status]}>
+                      <span className="font-medium">{t(STATUS_LABEL_KEY[status])}</span>
+                      {" — "}
+                      {r.contactLabel}
+                      {r.contactEmail ? ` · ${r.contactEmail}` : ""}
+                      {r.message ? ` (${r.message})` : ""}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}

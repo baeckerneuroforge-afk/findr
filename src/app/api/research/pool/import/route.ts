@@ -4,6 +4,11 @@ import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
+  MAX_POOL_EMAIL_LENGTH,
+  MAX_POOL_IMPORT_ROWS,
+  MAX_POOL_LABEL_LENGTH,
+} from "@/lib/csv/parse";
+import {
   importPoolMembers,
   type ImportPoolMemberResult,
 } from "@/lib/research/participant-pool";
@@ -21,18 +26,22 @@ import { PoolMemberSchema } from "@/lib/schemas/participant-pool";
  *   Response → { success, results: [{ contactLabel, contactEmail, status,
  *                            member?, message? }], summary }
  *
- * Wire-Status wie die Bulk-Invite-Route: created | skipped_duplicate |
- * invalid | error ("invalid" ist reserviert — Zod lehnt heute den ganzen
- * Batch ab, der Client-Parser filtert vorab). Die Service-Statusse
- * duplicate_in_file / duplicate_in_pool werden hier auf skipped_duplicate
- * gemappt und an der Boundary lokalisiert (Muster der invite-from-pool-
- * Route). Cap 200/Request wie bei Invites (Fluid-Compute-Budget) — darüber
- * 413, der Client soll splitten.
+ * Validierung zweistufig: der ENVELOPE (members als Array, 1–200) wird als
+ * Ganzes geprüft — too_big kann dort nur noch das Zeilen-Cap sein ⇒ 413,
+ * der Client soll splitten. Jede ZEILE läuft danach einzeln durch
+ * PoolMemberSchema; ungültige Zeilen werden als status "invalid" gemeldet,
+ * statt den ganzen Batch zu reißen — Sicherheitsnetz für API-Nutzer und
+ * Client/Schema-Drift (eine schiefe Zeile darf nie 199 gültige blockieren).
+ * Die Service-Statusse duplicate_in_file / duplicate_in_pool werden auf
+ * skipped_duplicate gemappt und an der Boundary lokalisiert (Muster der
+ * invite-from-pool-Route).
  */
 
 const ImportBodySchema = z.object({
-  members: z.array(PoolMemberSchema).min(1).max(200),
+  members: z.array(z.unknown()).min(1).max(MAX_POOL_IMPORT_ROWS),
 });
+
+type MemberInput = z.infer<typeof PoolMemberSchema>;
 
 type ImportWireStatus = "created" | "skipped_duplicate" | "invalid" | "error";
 
@@ -63,40 +72,91 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { results, summary } = await importPoolMembers(orgId, parsed.data.members);
+  // Zeilenweise validieren: ungültige Zeilen sofort als "invalid" auf ihre
+  // Eingabe-Position legen, gültige gesammelt an den Service geben und die
+  // Service-Ergebnisse danach indexgenau zurückstitchen — die Antwort bleibt
+  // in Eingabe-Reihenfolge.
+  const rawMembers = parsed.data.members;
+  const wireResults: ImportWireItem[] = new Array(rawMembers.length);
+  const validInputs: MemberInput[] = [];
+  const validIndexes: number[] = [];
 
-  const wireResults: ImportWireItem[] = results.map((r) => {
+  rawMembers.forEach((raw, idx) => {
+    const row = PoolMemberSchema.safeParse(raw);
+    if (row.success) {
+      validInputs.push(row.data);
+      validIndexes.push(idx);
+      return;
+    }
+    // Best-effort-Echo von Label/E-Mail, damit der Nutzer die Zeile in der
+    // Ergebnisliste wiederfindet (gekappt auf die Feld-Limits).
+    const obj = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
+    wireResults[idx] = {
+      contactLabel:
+        typeof obj.contactLabel === "string"
+          ? obj.contactLabel.slice(0, MAX_POOL_LABEL_LENGTH)
+          : "",
+      contactEmail:
+        typeof obj.contactEmail === "string"
+          ? obj.contactEmail.slice(0, MAX_POOL_EMAIL_LENGTH)
+          : null,
+      status: "invalid",
+      message: t("pool.rowInvalid", {
+        field: row.error.issues[0]?.path.map(String).join(".") || "?",
+      }),
+    };
+  });
+
+  const { results, summary } = await importPoolMembers(orgId, validInputs);
+
+  results.forEach((r, k) => {
+    const idx = validIndexes[k];
     switch (r.status) {
       case "created":
-        return {
+        wireResults[idx] = {
           contactLabel: r.contactLabel,
           contactEmail: r.contactEmail,
           status: "created",
           member: r.member,
         };
+        break;
       case "duplicate_in_file":
-        return {
+        wireResults[idx] = {
           contactLabel: r.contactLabel,
           contactEmail: r.contactEmail,
           status: "skipped_duplicate",
           message: t("pool.emailDuplicateInFile"),
         };
+        break;
       case "duplicate_in_pool":
-        return {
+        wireResults[idx] = {
           contactLabel: r.contactLabel,
           contactEmail: r.contactEmail,
           status: "skipped_duplicate",
           message: t("pool.emailExists"),
         };
+        break;
       default:
-        return {
+        wireResults[idx] = {
           contactLabel: r.contactLabel,
           contactEmail: r.contactEmail,
           status: "error",
           message: t("pool.couldNotCreate"),
         };
+        break;
     }
   });
 
-  return NextResponse.json({ success: true, results: wireResults, summary });
+  const invalidCount = rawMembers.length - validInputs.length;
+
+  return NextResponse.json({
+    success: true,
+    results: wireResults,
+    summary: {
+      created: summary.created,
+      skipped: summary.skipped,
+      errors: summary.errors + invalidCount,
+      total: rawMembers.length,
+    },
+  });
 }

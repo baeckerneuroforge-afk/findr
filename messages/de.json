@@ -1623,6 +1623,7 @@
       "issueNoName": "Kein Name erkannt.",
       "issueNameTooLong": "Name zu lang (max 200 Zeichen).",
       "issueInvalidEmail": "E-Mail hat kein gültiges Format.",
+      "issueEmailTooLong": "E-Mail zu lang (max 320 Zeichen).",
       "issueRoleTooLong": "Rolle zu lang (max 80 Zeichen).",
       "issueSegmentTooLong": "Segment zu lang (max 80 Zeichen).",
       "issueTagsInvalid": "Zu viele Tags (max 30) oder ein Tag zu lang (max 40 Zeichen).",
@@ -1807,6 +1808,7 @@
       "alreadyInvitedFromPool": "Bereits aus dem Pool in diese Studie eingeladen.",
       "duplicateInStudy": "Diese E-Mail existiert bereits als Teilnehmer in dieser Studie.",
       "emailDuplicateInFile": "Diese E-Mail kommt in der Datei mehrfach vor.",
+      "rowInvalid": "Zeile ungültig — Feld {field} prüfen.",
       "invalidImportBody": "Ungültiger Import-Body"
     },
     "bridge": {

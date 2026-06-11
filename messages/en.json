@@ -1623,6 +1623,7 @@
       "issueNoName": "No name detected.",
       "issueNameTooLong": "Name too long (max 200 characters).",
       "issueInvalidEmail": "Email has an invalid format.",
+      "issueEmailTooLong": "Email too long (max 320 characters).",
       "issueRoleTooLong": "Role too long (max 80 characters).",
       "issueSegmentTooLong": "Segment too long (max 80 characters).",
       "issueTagsInvalid": "Too many tags (max 30) or a tag too long (max 40 characters).",
@@ -1807,6 +1808,7 @@
       "alreadyInvitedFromPool": "Already invited to this study from the pool.",
       "duplicateInStudy": "This email already exists as a participant in this study.",
       "emailDuplicateInFile": "This email appears multiple times in the file.",
+      "rowInvalid": "Invalid row — check field {field}.",
       "invalidImportBody": "Invalid import body"
     },
     "bridge": {

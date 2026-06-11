@@ -21,6 +21,22 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  *  bulky labels / quoted notes without ever being a real limit in practice. */
 export const MAX_CSV_BYTES = 1_000_000;
 
+/** CSV-Bytes → String mit Encoding-Fallback. `file.text()` dekodiert IMMER
+ *  als UTF-8; deutsche Excel-Exporte („CSV (Trennzeichen-getrennt)") sind aber
+ *  Windows-1252 — Umlaute würden still zu U+FFFD und so in den Pool
+ *  importiert. Heuristik: erst UTF-8 (TextDecoder strippt das BOM selbst);
+ *  enthält das Ergebnis Ersatzzeichen, war es kein UTF-8 → Windows-1252
+ *  (dekodiert jede Bytefolge ersatzzeichenfrei, alle 256 Bytes sind gemappt).
+ *  Bewusster Trade-off: eine ECHTE UTF-8-Datei, die bereits literal U+FFFD
+ *  enthält (vorgeschädigt), wird als 1252 re-dekodiert — verschmerzbar, die
+ *  Datei war schon kaputt. windows-1252 ist Pflicht-Label des Encoding-
+ *  Standards (alle Browser + Node). */
+export function decodeCsvBuffer(buffer: ArrayBuffer): string {
+  const utf8 = new TextDecoder("utf-8").decode(buffer);
+  if (!utf8.includes("�")) return utf8;
+  return new TextDecoder("windows-1252").decode(buffer);
+}
+
 export interface ParsedLine {
   /** Original raw line as the user provided it — used for the issue list
    *  ("Zeile X: <message> — <raw>"). For CSV rows this is a reconstructed
@@ -235,14 +251,12 @@ const HEADER_EMAIL_KEYS = new Set(["email", "e-mail", "mail", "e_mail"]);
 function stripBomAndDetectDelimiter(input: string): { text: string; delimiter: string } {
   const text = input.startsWith("﻿") ? input.slice(1) : input;
 
-  const firstLineEnd = (() => {
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (c === "\r" || c === "\n") return i;
-    }
-    return text.length;
-  })();
-  const firstLine = text.slice(0, firstLineEnd);
+  // Wirklich die erste NICHT-leere Zeile nehmen: eine führende Leer-/
+  // Whitespace-Zeile (kommt in Excel-Exporten vor) hätte 0 Treffer für beide
+  // Delimiter, fiele still auf ',' zurück und tokenisierte Semikolon-Dateien
+  // als Ein-Spalten-Zeilen — die Vorschau zeigt dann plausibel aussehenden
+  // Müll ("Jane;jane@x.de" als Label, keine E-Mail).
+  const firstLine = text.split(/\r\n|\r|\n/).find((l) => l.trim() !== "") ?? "";
   let inQ = false;
   let cmtCount = 0;
   let semiCount = 0;
@@ -270,21 +284,24 @@ export function parseCsvInput(input: string): ParseResult {
   const rows = tokenizeCsv(text, delimiter);
 
   // ── Header detection ─────────────────────────────────────────────────
-  // Look at row 0. If any cell, normalized (lowercased + trimmed), matches
-  // a known name- or email-header key, treat row 0 as a header and remember
-  // the column indices. If no header detected, default to col 0 = name,
-  // col 1 = email (matches the "name,email" format from the spec).
+  // Look at the first NON-blank row (mirrors the delimiter detection —
+  // leading blank lines from Excel exports must not push the header into
+  // the data). If any cell, normalized (lowercased + trimmed), matches a
+  // known name- or email-header key, treat that row as a header and
+  // remember the column indices. If no header detected, default to
+  // col 0 = name, col 1 = email (matches the "name,email" format).
   let nameColIdx = 0;
   let emailColIdx = 1;
   let dataStart = 0;
 
-  if (rows.length > 0) {
-    const normalized = rows[0].map((c) => c.trim().toLowerCase());
+  const headerRowIdx = rows.findIndex((row) => !row.every((c) => c.trim() === ""));
+  if (headerRowIdx !== -1) {
+    const normalized = rows[headerRowIdx].map((c) => c.trim().toLowerCase());
     const hdrNameIdx = normalized.findIndex((c) => HEADER_NAME_KEYS.has(c));
     const hdrEmailIdx = normalized.findIndex((c) => HEADER_EMAIL_KEYS.has(c));
 
     if (hdrNameIdx !== -1 || hdrEmailIdx !== -1) {
-      dataStart = 1;
+      dataStart = headerRowIdx + 1;
       nameColIdx = hdrNameIdx !== -1 ? hdrNameIdx : -1;
       emailColIdx = hdrEmailIdx !== -1 ? hdrEmailIdx : -1;
       // If only the email header was found, the label fallback is "use
@@ -421,14 +438,35 @@ const HEADER_NOTES_KEYS = new Set([
   "bemerkung",
 ]);
 
+// Feld-Limits des Pool-Eintrags — SINGLE SOURCE: das Zod-PoolMemberSchema
+// (src/lib/schemas/participant-pool.ts) importiert exakt diese Konstanten,
+// damit Client-Vorschau und Server-Validierung mechanisch nie driften.
+// (Sie leben hier statt im Schema-Modul, weil dieses Modul pure und
+// client-bundle-sicher ist — der umgekehrte Import zöge zod in den Client.)
 export const MAX_POOL_TAGS = 30;
 export const MAX_POOL_TAG_LENGTH = 40;
 export const MAX_POOL_ROLE_LENGTH = 80;
 export const MAX_POOL_SEGMENT_LENGTH = 80;
 export const MAX_POOL_NOTES_LENGTH = 2000;
+export const MAX_POOL_LABEL_LENGTH = 200;
+export const MAX_POOL_EMAIL_LENGTH = 320;
+/** Server-Cap pro Import-Request (Fluid-Compute-Budget) — geteilt von der
+ *  Import-Route (Zod .max) und der Client-Vorschau. */
+export const MAX_POOL_IMPORT_ROWS = 200;
+
+/** Strikte E-Mail-Prüfung für Pool-Zeilen — wörtliche Kopie von Zods
+ *  Default-Email-Regex (z.regexes.email; Parität wird in parse.test.ts per
+ *  Test gegen die zod-Quelle gepinnt, ohne zod ins Client-Bundle zu ziehen).
+ *  Das lockere EMAIL_RE oben bleibt bewusst für die Invite-Parser (gepinntes
+ *  Bestandsverhalten); die Pool-Vorschau MUSS spiegeln, was PoolMemberSchema
+ *  serverseitig akzeptiert — sonst weist der Server grün geprüfte Zeilen ab
+ *  (z. B. Umlaut-Adressen wie "jörg@müller.de", die .email() ablehnt). */
+export const POOL_EMAIL_RE =
+  /^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
 
 export type PoolIssueKey =
   | InviteIssueKey
+  | "issueEmailTooLong"
   | "issueRoleTooLong"
   | "issueSegmentTooLong"
   | "issueTagsInvalid"
@@ -457,9 +495,10 @@ export interface PoolParseResult {
 }
 
 /** Tag-Zelle ("B2B, Founder; Enterprise") → normalisiertes, dedupliziertes
- *  Array. EXAKT dieselbe Regel wie parseTags in ParticipantPoolManager, damit
- *  CSV-Import und manuelle Eingabe identische Tag-Arrays erzeugen. */
-function parsePoolTagsCell(input: string): string[] {
+ *  Array. Exportiert und vom ParticipantPoolManager für die manuelle Eingabe
+ *  importiert — EINE Implementierung, damit CSV-Import und manuelle Eingabe
+ *  mechanisch identische Tag-Arrays erzeugen. */
+export function parsePoolTagsCell(input: string): string[] {
   return [
     ...new Set(
       input
@@ -475,8 +514,9 @@ export function parsePoolCsv(input: string): PoolParseResult {
 
   const rows = tokenizeCsv(text, delimiter);
 
-  // Header-Erkennung wie parseCsvInput, erweitert um die Pool-Spalten: Header
-  // gilt als erkannt, sobald IRGENDEIN bekanntes Keyword in Zeile 0 auftaucht.
+  // Header-Erkennung wie parseCsvInput (erste NICHT-leere Zeile), erweitert
+  // um die Pool-Spalten: Header gilt als erkannt, sobald IRGENDEIN bekanntes
+  // Keyword in der Kopfzeile auftaucht.
   let nameColIdx = 0;
   let emailColIdx = 1;
   let roleColIdx = -1;
@@ -485,8 +525,9 @@ export function parsePoolCsv(input: string): PoolParseResult {
   let notesColIdx = -1;
   let dataStart = 0;
 
-  if (rows.length > 0) {
-    const normalized = rows[0].map((c) => c.trim().toLowerCase());
+  const headerRowIdx = rows.findIndex((row) => !row.every((c) => c.trim() === ""));
+  if (headerRowIdx !== -1) {
+    const normalized = rows[headerRowIdx].map((c) => c.trim().toLowerCase());
     const hdrNameIdx = normalized.findIndex((c) => HEADER_NAME_KEYS.has(c));
     const hdrEmailIdx = normalized.findIndex((c) => HEADER_EMAIL_KEYS.has(c));
     const hdrRoleIdx = normalized.findIndex((c) => HEADER_ROLE_KEYS.has(c));
@@ -502,9 +543,21 @@ export function parsePoolCsv(input: string): PoolParseResult {
       hdrTagsIdx !== -1 ||
       hdrNotesIdx !== -1
     ) {
-      dataStart = 1;
-      nameColIdx = hdrNameIdx;
-      emailColIdx = hdrEmailIdx;
+      dataStart = headerRowIdx + 1;
+      // Positions-Fallback auch im Header-Modus: Eine Kopfzeile wie
+      // "Teilnehmername;Mailadresse;Notizen" matcht nur 'notizen' — ohne
+      // Fallback wären Name/E-Mail -1 und JEDE Datenzeile fiele mit
+      // issueNoName durch, obwohl Spalte 0/1 sauber Name/E-Mail enthalten.
+      // Spalten, die bereits ein erkanntes Keyword beansprucht hat, werden
+      // nicht positional überschrieben (Header "Notizen;E-Mail" ⇒ Name
+      // bleibt -1, die E-Mail-als-Label-Rettung unten greift).
+      const claimed = new Set(
+        [hdrNameIdx, hdrEmailIdx, hdrRoleIdx, hdrSegmentIdx, hdrTagsIdx, hdrNotesIdx].filter(
+          (i) => i !== -1,
+        ),
+      );
+      nameColIdx = hdrNameIdx !== -1 ? hdrNameIdx : claimed.has(0) ? -1 : 0;
+      emailColIdx = hdrEmailIdx !== -1 ? hdrEmailIdx : claimed.has(1) ? -1 : 1;
       roleColIdx = hdrRoleIdx;
       segmentColIdx = hdrSegmentIdx;
       tagsColIdx = hdrTagsIdx;
@@ -537,17 +590,19 @@ export function parsePoolCsv(input: string): PoolParseResult {
     let contactLabel = name;
     let contactEmail: string | null = email !== "" ? email : null;
 
-    // Degenerate-Verhalten 1:1 vom Invite-Parser übernommen.
+    // Degenerate-Verhalten 1:1 vom Invite-Parser übernommen — nur mit der
+    // strikten Pool-Regex, damit als E-Mail nur durchgeht, was der Server
+    // auch akzeptiert.
     if (contactLabel === "" && contactEmail === null && row.length === 1) {
       const only = row[0].trim();
-      if (EMAIL_RE.test(only)) {
+      if (POOL_EMAIL_RE.test(only)) {
         contactLabel = only;
         contactEmail = only;
       } else {
         contactLabel = only;
       }
     }
-    if (contactLabel === "" && contactEmail && EMAIL_RE.test(contactEmail)) {
+    if (contactLabel === "" && contactEmail && POOL_EMAIL_RE.test(contactEmail)) {
       contactLabel = contactEmail;
     }
 
@@ -558,12 +613,16 @@ export function parsePoolCsv(input: string): PoolParseResult {
       pushIssue("issueNoName");
       continue;
     }
-    if (contactLabel.length > 200) {
+    if (contactLabel.length > MAX_POOL_LABEL_LENGTH) {
       pushIssue("issueNameTooLong");
       continue;
     }
-    if (contactEmail && !EMAIL_RE.test(contactEmail)) {
+    if (contactEmail && !POOL_EMAIL_RE.test(contactEmail)) {
       pushIssue("issueInvalidEmail");
+      continue;
+    }
+    if (contactEmail && contactEmail.length > MAX_POOL_EMAIL_LENGTH) {
+      pushIssue("issueEmailTooLong");
       continue;
     }
     if (role.length > MAX_POOL_ROLE_LENGTH) {
@@ -598,3 +657,26 @@ export function parsePoolCsv(input: string): PoolParseResult {
 
   return { parsed, issues };
 }
+
+// ── CSV-Vorlagen ──────────────────────────────────────────────────────────
+// Hier statt in der UI-Komponente, damit parse.test.ts die Vorlagen durch
+// parsePoolCsv ROUND-TRIPPEN kann: benennt jemand eine Header-Spalte um oder
+// ergänzt eine, ohne die HEADER_*_KEYS nachzuziehen, schlägt der Test fehl —
+// statt dass offizielle Vorlagen-Downloads still Spalten verlieren.
+
+/** Lokalisierte Download-Vorlage als Client-Blob-Inhalt — de mit Semikolon
+ *  (DE-Excel-Default), en mit Komma. Beide Header-Varianten erkennt der
+ *  Parser. BOM vorangestellt, damit Excel die UTF-8-Umlaute korrekt öffnet
+ *  (der Parser strippt es). */
+export const POOL_CSV_TEMPLATES: Record<string, { fileName: string; content: string }> = {
+  de: {
+    fileName: "teilnehmer-pool-vorlage.csv",
+    content:
+      '﻿Name;E-Mail;Rolle;Segment;Tags;Notizen\nJane Doe;jane@acme.example;Head of Sales;Enterprise;"Bestandskunde, Power-User";Aus Webinar Q3\n',
+  },
+  en: {
+    fileName: "participant-pool-template.csv",
+    content:
+      '﻿Name,Email,Role,Segment,Tags,Notes\nJane Doe,jane@acme.example,Head of Sales,Enterprise,"Existing customer, Power user",From Q3 webinar\n',
+  },
+};

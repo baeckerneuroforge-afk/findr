@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Field, FIELD_INPUT_CLASS } from "@/components/ui/Field";
 import {
+  decodeCsvBuffer,
   MAX_CSV_BYTES,
   parseBulkInput,
   parseCsvInput,
@@ -40,12 +41,8 @@ import {
  *
  * Die Parser (parseBulkInput/parseCsvInput) leben seit dem Pool-CSV-Import
  * als pure Funktionen in src/lib/csv/parse.ts (dort per Golden-Tests
- * gepinnt) und werden hier unverändert importiert + re-exportiert.
+ * gepinnt) und werden hier unverändert importiert.
  */
-
-// Re-Export, damit die öffentliche Oberfläche dieses Moduls unverändert
-// bleibt (die Parser waren historisch hier definiert und exportiert).
-export { parseBulkInput, parseCsvInput };
 
 const MAX_INVITES = 200;
 
@@ -196,7 +193,10 @@ export function BulkInviteForm({ planId }: { planId: string }) {
 
     let raw: string;
     try {
-      raw = await file.text();
+      // arrayBuffer + decodeCsvBuffer statt file.text(): DE-Excel-Exporte
+      // („CSV (Trennzeichen-getrennt)") sind Windows-1252 — file.text()
+      // (immer UTF-8) machte aus Umlauten stille U+FFFD-Mojibake.
+      raw = decodeCsvBuffer(await file.arrayBuffer());
     } catch (err) {
       setError(
         err instanceof Error

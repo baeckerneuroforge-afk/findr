@@ -1,15 +1,24 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
+import { PoolMemberSchema } from "../schemas/participant-pool";
 import {
+  decodeCsvBuffer,
+  MAX_POOL_EMAIL_LENGTH,
   parseBulkInput,
   parseCsvInput,
   parsePoolCsv,
+  POOL_CSV_TEMPLATES,
+  POOL_EMAIL_RE,
 } from "./parse";
 
 /**
  * Golden-Tests für die aus BulkInviteForm extrahierten Parser: Abschnitt 1+2
  * pinnen das BESTEHENDE Verhalten (Extraktion darf nichts ändern), Abschnitt 3
- * spezifiziert den neuen Pool-Parser.
+ * spezifiziert den neuen Pool-Parser. Die weiteren Abschnitte pinnen die
+ * Review-Fixes: Server-Paritäts-Regex (zod), Encoding-Fallback, Delimiter-/
+ * Header-Erkennung bei führenden Leerzeilen, Positions-Fallback im
+ * Header-Modus, Vorlagen-Roundtrip und Parser↔Schema-Parität.
  */
 
 // ── parseBulkInput (Textarea-Pfad, verbatim übernommen) ──────────────────────
@@ -312,5 +321,220 @@ describe("parsePoolCsv", () => {
     );
     expect(parsed).toHaveLength(1);
     expect(issues.map((i) => i.messageKey)).toEqual(["issueInvalidEmail"]);
+  });
+
+  it("rejects emails in the preview exactly like the server schema (umlauts etc.)", () => {
+    // DER Praxisfall im DE-Markt: Umlaut-Adressen bestehen das lockere
+    // Invite-Regex, aber nicht zods .email() — ohne Client-Parität würde
+    // die Vorschau grün zeigen und der Server die Zeile abweisen.
+    const { parsed, issues } = parsePoolCsv(
+      "Name,Email\nJörg,jörg@müller.de\nOk,ok@x.de\n",
+    );
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].contactLabel).toBe("Ok");
+    expect(issues.map((i) => i.messageKey)).toEqual(["issueInvalidEmail"]);
+  });
+
+  it("skips rows whose email exceeds the server's length cap", () => {
+    const longEmail = "a".repeat(310) + "@" + "b".repeat(8) + ".de";
+    expect(longEmail.length).toBeGreaterThan(MAX_POOL_EMAIL_LENGTH);
+    expect(POOL_EMAIL_RE.test(longEmail)).toBe(true);
+    const { parsed, issues } = parsePoolCsv(`Name,Email\nJane,${longEmail}\n`);
+    expect(parsed).toEqual([]);
+    expect(issues.map((i) => i.messageKey)).toEqual(["issueEmailTooLong"]);
+  });
+
+  it("rescues positional name/email when the header only matches pool columns", () => {
+    // Kopfzeile mit unbekannten Name-/E-Mail-Synonymen, aber erkannter
+    // Pool-Spalte: ohne Positions-Fallback fiele JEDE Datenzeile mit
+    // issueNoName durch, obwohl Spalte 0/1 sauber Name/E-Mail enthalten.
+    const { parsed, issues } = parsePoolCsv(
+      "Teilnehmername;Mailadresse;Notizen\nAnna;anna@x.de;VIP\nBernd;bernd@x.de;\n",
+    );
+    expect(issues).toEqual([]);
+    expect(parsed[0]).toMatchObject({
+      contactLabel: "Anna",
+      contactEmail: "anna@x.de",
+      notes: "VIP",
+    });
+    expect(parsed[1]).toMatchObject({
+      contactLabel: "Bernd",
+      contactEmail: "bernd@x.de",
+      notes: null,
+    });
+  });
+
+  it("does not positionally override a column claimed by a recognized keyword", () => {
+    // 'Notizen' beansprucht Spalte 0 → Name bleibt unbesetzt; die
+    // E-Mail-als-Label-Rettung greift pro Zeile.
+    const { parsed } = parsePoolCsv("Notizen;E-Mail\nVIP;jane@x.de\n");
+    expect(parsed[0]).toMatchObject({
+      contactLabel: "jane@x.de",
+      contactEmail: "jane@x.de",
+      notes: "VIP",
+    });
+  });
+
+  it("keeps later rows importable when a data cell accidentally matches a header keyword", () => {
+    // Vorbestehende Klasse (auch im Invite-Parser): exakter Keyword-Match in
+    // der ersten Zeile ("Position") schluckt sie als Header. Der Positions-
+    // Fallback hält den Rest der Datei nutzbar statt alles abzuweisen.
+    const { parsed } = parsePoolCsv("Position,max@firma.de\nCEO,eva@x.de\n");
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toMatchObject({
+      contactLabel: "eva@x.de",
+      contactEmail: "eva@x.de",
+      role: "CEO",
+    });
+  });
+});
+
+// ── Delimiter-/Header-Erkennung bei führenden Leerzeilen ─────────────────────
+
+describe("Erkennung bei führenden Leerzeilen", () => {
+  it("detects the semicolon delimiter and the header past a leading blank line (pool)", () => {
+    const { parsed, issues } = parsePoolCsv("\nName;E-Mail\nJane;jane@x.de\n");
+    expect(issues).toEqual([]);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toMatchObject({
+      contactLabel: "Jane",
+      contactEmail: "jane@x.de",
+      lineNumber: 3,
+    });
+  });
+
+  it("detects the semicolon delimiter and the header past a leading CRLF blank line (invites)", () => {
+    const { parsed, issues } = parseCsvInput("\r\nName;E-Mail\r\nJane;jane@x.de\r\n");
+    expect(issues).toEqual([]);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toMatchObject({
+      contactLabel: "Jane",
+      contactEmail: "jane@x.de",
+    });
+  });
+
+  it("ignores whitespace-only first lines for detection", () => {
+    const { parsed } = parsePoolCsv("  \nName;E-Mail\nJane;jane@x.de\n");
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toMatchObject({
+      contactLabel: "Jane",
+      contactEmail: "jane@x.de",
+    });
+  });
+});
+
+// ── Server-Paritäts-Regex ─────────────────────────────────────────────────────
+
+describe("POOL_EMAIL_RE", () => {
+  it("is byte-identical to zod's default email regex (the server schema's source)", () => {
+    expect(POOL_EMAIL_RE.source).toBe(z.regexes.email.source);
+  });
+
+  it("rejects what the server rejects and the loose invite regex let through", () => {
+    for (const bad of [
+      "jörg@müller.de",
+      "müller@firma.de",
+      "a@b.c",
+      "jane@acme.io.",
+      "user@my_domain.com",
+      "jane..doe@x.de",
+    ]) {
+      expect(POOL_EMAIL_RE.test(bad), bad).toBe(false);
+    }
+    for (const ok of ["jane@x.de", "jane+tag@acme-corp.io", "j.doe@sub.acme.de"]) {
+      expect(POOL_EMAIL_RE.test(ok), ok).toBe(true);
+    }
+  });
+});
+
+// ── Encoding-Fallback ─────────────────────────────────────────────────────────
+
+describe("decodeCsvBuffer", () => {
+  /** Mini-Encoder für den Testkorpus: im Latin-1-Bereich ist der Windows-
+   *  1252-Bytewert identisch mit dem Codepoint (ü = 0xFC). */
+  const cp1252Bytes = (s: string): ArrayBuffer =>
+    new Uint8Array([...s].map((ch) => ch.charCodeAt(0))).buffer;
+
+  it("decodes UTF-8 input as UTF-8 (umlauts intact, BOM stripped by the decoder)", () => {
+    const utf8 = new TextEncoder().encode("﻿Name;Jürgen");
+    expect(decodeCsvBuffer(utf8.buffer)).toBe("Name;Jürgen");
+  });
+
+  it("falls back to Windows-1252 for ANSI DE-Excel exports", () => {
+    expect(decodeCsvBuffer(cp1252Bytes("Jürgen;jürgen@x.de"))).toBe(
+      "Jürgen;jürgen@x.de",
+    );
+  });
+
+  it("re-decodes pre-corrupted UTF-8 as 1252 (documented trade-off — file was already damaged)", () => {
+    // U+FFFD ist in UTF-8 EF BF BD → als Windows-1252 gelesen "ï¿½".
+    const withReplacement = new TextEncoder().encode("kaputt � hier");
+    expect(decodeCsvBuffer(withReplacement.buffer)).toContain("ï¿½");
+  });
+});
+
+// ── Vorlagen-Roundtrip ────────────────────────────────────────────────────────
+// Pinnt mechanisch, dass die offiziellen Download-Vorlagen vollständig durch
+// den Parser kommen — eine umbenannte Header-Spalte ohne nachgezogene
+// HEADER_*_KEYS fällt hier auf, statt dass Vorlagen-Nutzer still Spalten
+// verlieren.
+
+describe("POOL_CSV_TEMPLATES", () => {
+  it("round-trips the German semicolon template with every column mapped", () => {
+    const { parsed, issues } = parsePoolCsv(POOL_CSV_TEMPLATES.de.content);
+    expect(issues).toEqual([]);
+    expect(parsed).toEqual([
+      {
+        raw: "Jane Doe;jane@acme.example;Head of Sales;Enterprise;Bestandskunde, Power-User;Aus Webinar Q3",
+        lineNumber: 2,
+        contactLabel: "Jane Doe",
+        contactEmail: "jane@acme.example",
+        role: "Head of Sales",
+        segment: "Enterprise",
+        tags: ["Bestandskunde", "Power-User"],
+        notes: "Aus Webinar Q3",
+      },
+    ]);
+  });
+
+  it("round-trips the English comma template with every column mapped", () => {
+    const { parsed, issues } = parsePoolCsv(POOL_CSV_TEMPLATES.en.content);
+    expect(issues).toEqual([]);
+    expect(parsed[0]).toMatchObject({
+      contactLabel: "Jane Doe",
+      contactEmail: "jane@acme.example",
+      role: "Head of Sales",
+      segment: "Enterprise",
+      tags: ["Existing customer", "Power user"],
+      notes: "From Q3 webinar",
+    });
+  });
+});
+
+// ── Parser↔Schema-Parität ─────────────────────────────────────────────────────
+
+describe("Parser↔Schema-Parität", () => {
+  it("every row the preview accepts passes PoolMemberSchema (no batch surprises)", () => {
+    const corpus = [
+      POOL_CSV_TEMPLATES.de.content,
+      POOL_CSV_TEMPLATES.en.content,
+      "Name,Email\n,jane@x.de\nNur Name,\n",
+      'Name,Tags\nJane,"B2B; B2B , Founder,,Power-User"\n',
+      `Name,Email\nGrenze,${"a".repeat(300)}@${"b".repeat(8)}.de\n`,
+    ];
+    for (const input of corpus) {
+      const { parsed } = parsePoolCsv(input);
+      for (const row of parsed) {
+        const res = PoolMemberSchema.safeParse({
+          contactLabel: row.contactLabel,
+          contactEmail: row.contactEmail,
+          role: row.role,
+          segment: row.segment,
+          tags: row.tags,
+          notes: row.notes,
+        });
+        expect(res.success, `${row.contactLabel} / ${row.contactEmail}`).toBe(true);
+      }
+    }
   });
 });
