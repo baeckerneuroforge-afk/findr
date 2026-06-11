@@ -134,6 +134,14 @@ export function ProlificDraftPanel({
   // dann POST. findr published nie ohne diese Bestätigung.
   const [confirmingPublish, setConfirmingPublish] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  // Test-Modus: gratis Klon-Publish an die Workspace-Test-Teilnehmer —
+  // Ergebnis (ID + Teilnahme-Link) bleibt transient, die Karte zeigt
+  // weiterhin den echten Rekrutierungs-Draft.
+  const [testCreating, setTestCreating] = useState(false);
+  const [testStudy, setTestStudy] = useState<{
+    providerStudyId: string;
+    studyUrl: string;
+  } | null>(null);
 
   const canCreate =
     !disabled && credentialStatus === "connected" && openLink?.status === "active";
@@ -175,6 +183,45 @@ export function ProlificDraftPanel({
       setError("Could not publish the study.");
     } finally {
       setPublishing(false);
+    }
+  }
+
+  // Test-Modus: kostenloser End-to-End-Probelauf — Prolific klont den Draft
+  // als Test-Studie (eigene ID + URL) für die Test-Teilnehmer des Workspace.
+  // Preconditions erzwingt der Server (wie beim echten Publish); fehlende
+  // Workspace-Voraussetzungen meldet Prolific wörtlich (detail).
+  async function handleTestStudy() {
+    setError(null);
+    setTestCreating(true);
+    try {
+      const res = await fetch(
+        `/api/research/plans/${planId}/panel/test-study`,
+        { method: "POST" },
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        providerStudyId?: string;
+        studyUrl?: string;
+        error?: string;
+        detail?: string | null;
+      };
+      if (
+        !res.ok ||
+        data.success === false ||
+        typeof data.providerStudyId !== "string" ||
+        typeof data.studyUrl !== "string"
+      ) {
+        setError(data.detail ?? (data.error ?? "Could not create the test study."));
+        return;
+      }
+      setTestStudy({
+        providerStudyId: data.providerStudyId,
+        studyUrl: data.studyUrl,
+      });
+    } catch {
+      setError("Could not create the test study.");
+    } finally {
+      setTestCreating(false);
     }
   }
 
@@ -432,6 +479,34 @@ export function ProlificDraftPanel({
                     Publish on Prolific…
                   </Button>
                 )}
+              {panelStudy.status === "UNPUBLISHED" &&
+                canCreate &&
+                panelCompletionConfigured && (
+                  <Button
+                    variant="ghost"
+                    onClick={handleTestStudy}
+                    disabled={testCreating || publishing}
+                  >
+                    {testCreating ? "Creating test study..." : "Publish as test study"}
+                  </Button>
+                )}
+            </div>
+          )}
+
+          {testStudy && (
+            <div className="mt-3 rounded-md bg-success-50 px-3 py-2 text-small text-success-700">
+              Test study created: <span className="font-mono">{testStudy.providerStudyId}</span>{" "}
+              —{" "}
+              <a
+                href={testStudy.studyUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium underline decoration-success-700/40 underline-offset-2"
+              >
+                open test study
+              </a>
+              . Runs with your workspace&apos;s test participants only — no
+              credits consumed. The real draft above stays unpublished.
             </div>
           )}
 
