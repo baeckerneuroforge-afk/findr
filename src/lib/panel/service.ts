@@ -283,3 +283,102 @@ export async function estimateProlificStudyCost(
 
   return estimateCost(token, input);
 }
+
+// ── E7: Publish über findr ───────────────────────────────────────────────────
+
+export type ProlificPublishErrorCode =
+  | "missing_credentials"
+  | "study_not_found"
+  | "open_link_missing"
+  | "open_link_disabled"
+  | "completion_not_wired"
+  | "not_unpublished"
+  | "publish_failed";
+
+export class ProlificPublishError extends Error {
+  constructor(
+    public code: ProlificPublishErrorCode,
+    /** Bei not_unpublished: der tatsächliche Live-Status der Studie. */
+    public providerStatus?: string,
+  ) {
+    super(code);
+    this.name = "ProlificPublishError";
+  }
+}
+
+export interface PublishProlificStudyResult {
+  /** Status aus der Publish-Antwort (i. d. R. ACTIVE oder PUBLISHING). */
+  status: string;
+  /** Persistierter Stand nach Best-effort-Sync — null, wenn der Sync nach
+   *  erfolgreichem Publish scheiterte (Publish gilt trotzdem). */
+  study: PanelStudySummary | null;
+}
+
+/**
+ * Persistierten Prolific-Draft eines Plans live schalten — die einzige
+ * GELD-NAHE Aktion der Panel-Integration: Prolific finanziert die Studie
+ * beim Publish aus dem Workspace-Guthaben des verbundenen Accounts. findr
+ * ruft das NIE automatisch auf; die Route hängt an einem expliziten
+ * Confirm-Schritt in der UI.
+ *
+ * Preconditions (Plan E7), alle serverseitig erzwungen: Credential
+ * verbunden, persistierter Draft vorhanden, Open-Link aktiv, Completion-
+ * URLs verdrahtet — und der LIVE-Status bei Prolific ist UNPUBLISHED
+ * (frisch geprüft, nicht der lokale Stand: schützt vor Doppel-Publish aus
+ * staler UI). Ohne Guthaben schlägt die Transition bei Prolific fehl; die
+ * Begründung läuft als providerMessage zur UI durch.
+ */
+export async function publishProlificStudyForPlan(
+  orgId: string,
+  planId: string,
+): Promise<PublishProlificStudyResult> {
+  const [token, study, openLink] = await Promise.all([
+    getPanelCredentialToken(orgId, PROVIDER),
+    getLatestPanelStudyForPlan(orgId, planId, PROVIDER),
+    getOpenLinkForPlan(orgId, planId),
+  ]);
+
+  if (!token) throw new ProlificPublishError("missing_credentials");
+  if (!study) throw new ProlificPublishError("study_not_found");
+  if (!openLink) throw new ProlificPublishError("open_link_missing");
+  if (openLink.status !== "active") {
+    throw new ProlificPublishError("open_link_disabled");
+  }
+  const completion = openLink.panel_completion;
+  if (!completion?.complete_url || !completion?.screenout_url) {
+    throw new ProlificPublishError("completion_not_wired");
+  }
+
+  const { getStudy, publishStudy } = prolificProvider;
+  if (!getStudy || !publishStudy) {
+    throw new ProlificPublishError("publish_failed");
+  }
+
+  // Live-Status statt lokalem Stand prüfen: zwischen letztem Sync und
+  // diesem Klick kann die Studie längst published worden sein (zweiter
+  // Tab, Prolific-UI) — ein zweites PUBLISH darf gar nicht erst rausgehen.
+  const live = await getStudy(token, study.providerStudyId);
+  if (live.status !== "UNPUBLISHED") {
+    throw new ProlificPublishError("not_unpublished", live.status);
+  }
+
+  const published = await publishStudy(token, study.providerStudyId);
+
+  // Best-effort: frischen Stand (Status/Zähler/Kosten) persistieren. Ein
+  // Fehler hier darf den erfolgten Publish nicht als Fehler maskieren —
+  // Fallback ist ein minimales Status-Update, notfalls null.
+  let summary: PanelStudySummary | null = null;
+  try {
+    summary = await syncProlificStudyForPlan(orgId, planId);
+  } catch {
+    summary = await updatePanelStudySync({
+      orgId,
+      provider: PROVIDER,
+      providerStudyId: study.providerStudyId,
+      status: published.status,
+      submissionCounts: study.submissionCounts ?? {},
+    });
+  }
+
+  return { status: published.status, study: summary };
+}
