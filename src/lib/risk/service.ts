@@ -106,20 +106,19 @@ export async function getLatestRiskScoresForDeals(
   if (dealIds.length === 0) return new Map();
 
   const supabase = createAdminSupabaseClient();
-  const { data, error } = await supabase
-    .from("risk_scores")
-    .select("*")
-    .eq("org_id", orgId)
-    .in("deal_id", dealIds)
-    .order("analyzed_at", { ascending: false });
+  // DISTINCT ON in SQL (get_latest_risk_scores_fn migration) returns one latest
+  // row per deal, instead of loading the full per-deal history and de-duping in
+  // JS — the daily reanalyze cron makes that history grow unbounded.
+  const { data, error } = await supabase.rpc("get_latest_risk_scores_for_deals", {
+    p_org_id: orgId,
+    p_deal_ids: dealIds,
+  });
 
   if (error || !data) return new Map();
 
   const latest = new Map<string, RiskScoreRecord>();
-  for (const row of data) {
-    if (!latest.has(row.deal_id)) {
-      latest.set(row.deal_id, toRecord(row));
-    }
+  for (const row of data as unknown as RiskScoreRow[]) {
+    latest.set(row.deal_id, toRecord(row));
   }
   return latest;
 }

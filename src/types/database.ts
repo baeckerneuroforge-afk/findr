@@ -1569,6 +1569,10 @@ export type Database = {
       current_org_id: { Args: never; Returns: string }
       export_organization_data: { Args: { p_org_id: string }; Returns: Json }
       delete_organization_data: { Args: { p_org_id: string }; Returns: undefined }
+      get_latest_risk_scores_for_deals: {
+        Args: { p_org_id: string; p_deal_ids: string[] }
+        Returns: Json
+      }
     }
     Enums: {
       finding_severity: "low" | "medium" | "high" | "critical"
