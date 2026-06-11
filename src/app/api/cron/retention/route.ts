@@ -44,9 +44,36 @@ export async function GET(request: Request) {
   const results = {
     dry_run: dryRun,
     orgs_with_retention: orgs?.length ?? 0,
+    abandoned: 0,
     deleted: 0,
     errors: [] as string[],
   };
+
+  // F7 — sweep stale 'open' interview sessions to 'abandoned'. A text/voice
+  // interview lasts minutes, so an 'open' session older than this is dead (e.g.
+  // a voice crash that never closed it, which otherwise stays open forever).
+  // Global (all orgs), independent of retention settings; best-effort.
+  const abandonCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  if (dryRun) {
+    const { count } = await supabase
+      .from("interview_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open")
+      .lt("created_at", abandonCutoff);
+    results.abandoned = count ?? 0;
+  } else {
+    const { data: marked, error: abandonError } = await supabase
+      .from("interview_sessions")
+      .update({ status: "abandoned" })
+      .eq("status", "open")
+      .lt("created_at", abandonCutoff)
+      .select("id");
+    if (abandonError) {
+      results.errors.push(`abandon-sweep: ${abandonError.message}`);
+    } else {
+      results.abandoned = marked?.length ?? 0;
+    }
+  }
 
   for (const row of orgs ?? []) {
     const days = row.interview_retention_days;
