@@ -11,7 +11,7 @@ const mockCreateAdminSupabaseClient = vi.mocked(createAdminSupabaseClient);
 
 function makeSupabase(
   opts: {
-    orgDeleteError?: unknown;
+    rpcError?: unknown;
     listData?: Array<{ name: string; id: string | null }>;
   } = {},
 ) {
@@ -20,11 +20,11 @@ function makeSupabase(
     .fn()
     .mockResolvedValue({ data: opts.listData ?? [], error: null });
   const storageFrom = vi.fn(() => ({ list, remove }));
-  const eq = vi.fn().mockResolvedValue({ error: opts.orgDeleteError ?? null });
-  const del = vi.fn(() => ({ eq }));
-  const from = vi.fn(() => ({ delete: del }));
-  const client = { storage: { from: storageFrom }, from } as never;
-  return { client, remove, list, storageFrom, eq, del, from };
+  const rpc = vi
+    .fn()
+    .mockResolvedValue({ data: null, error: opts.rpcError ?? null });
+  const client = { storage: { from: storageFrom }, rpc } as never;
+  return { client, remove, list, storageFrom, rpc };
 }
 
 function makeClerk() {
@@ -59,15 +59,16 @@ describe("deleteOrganizationData", () => {
     expect(mockClerkClient).not.toHaveBeenCalled();
   });
 
-  it("deletes the organizations row then the Clerk org, and reports the outcome", async () => {
+  it("deletes all org data via the SQL function then the Clerk org, and reports the outcome", async () => {
     const sb = makeSupabase();
     mockCreateAdminSupabaseClient.mockReturnValue(sb.client);
     const clerk = makeClerk();
 
     const result = await deleteOrganizationData(baseParams);
 
-    expect(sb.from).toHaveBeenCalledWith("organizations");
-    expect(sb.eq).toHaveBeenCalledWith("id", "uuid-1");
+    expect(sb.rpc).toHaveBeenCalledWith("delete_organization_data", {
+      p_org_id: "uuid-1",
+    });
     expect(clerk.deleteOrganization).toHaveBeenCalledWith("org_clerk_1");
     expect(result).toEqual({
       org_data_deleted: true,
@@ -111,8 +112,8 @@ describe("deleteOrganizationData", () => {
     errorSpy.mockRestore();
   });
 
-  it("throws if the org-row delete fails, before touching Clerk", async () => {
-    const sb = makeSupabase({ orgDeleteError: new Error("db down") });
+  it("throws if the data-delete function fails, before touching Clerk", async () => {
+    const sb = makeSupabase({ rpcError: new Error("db down") });
     mockCreateAdminSupabaseClient.mockReturnValue(sb.client);
     const clerk = makeClerk();
 

@@ -97,12 +97,14 @@ async function deleteOrgStorage(
  * Clerk organization itself (full account closure). User accounts survive but
  * lose access to this org.
  *
- * The data deletion is a single `delete from organizations` — every org-scoped
- * table has an `ON DELETE CASCADE` FK to organizations(id), and the two
- * org-less transcript tables (call_speakers, transcript_segments) cascade
- * transitively via calls. That one statement therefore removes ALL of the
- * org's data atomically, and stays correct as new tables are added — replacing
- * the previous hand-maintained list that had frozen at 20 of 43 tables.
+ * The data deletion runs in the `delete_organization_data` SQL function, which
+ * deletes from every org_id-bearing table (plus the two org-less transcript
+ * tables) and then the organizations row, all in one transaction. A plain
+ * `delete from organizations` is NOT enough — four org_id tables (risk_scores,
+ * alert_history, account_health_scores, product_discovery_insights) have no
+ * CASCADE FK and would otherwise be orphaned. The function stays correct as new
+ * tables are added, replacing the hand-maintained list that had frozen at 20 of
+ * 43 tables.
  */
 export async function deleteOrganizationData(params: {
   orgId: string;
@@ -125,12 +127,13 @@ export async function deleteOrganizationData(params: {
   //    failure can't strand objects whose org is already gone.
   const storageObjectsRemoved = await deleteOrgStorage(supabase, params.orgId);
 
-  // 2) Delete the organizations row → CASCADE removes every child table.
-  const { error: orgError } = await supabase
-    .from("organizations")
-    .delete()
-    .eq("id", params.orgId);
-  if (orgError) throw orgError;
+  // 2) Delete all org data + the org row atomically via the SQL function —
+  //    covers the org_id tables a plain cascade would miss, and any future one.
+  const { error: deleteError } = await supabase.rpc(
+    "delete_organization_data",
+    { p_org_id: params.orgId },
+  );
+  if (deleteError) throw deleteError;
 
   // 3) Delete the Clerk organization. Done last: the GDPR-critical data is
   //    already gone, and if Clerk hiccups the admin still has access to retry.
