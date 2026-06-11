@@ -7,7 +7,10 @@ import {
   researchInterviewUrl,
   researchOpenLinkUrl,
 } from "@/lib/email/research-invite";
-import { getProlificCredentialSummary } from "@/lib/panel/service";
+import {
+  getProlificCredentialSummary,
+  getProlificStudyForPlan,
+} from "@/lib/panel/service";
 import {
   countCompletedSessionsForPlan,
   getResearchPlan,
@@ -161,11 +164,13 @@ export default async function MarketCampaignDetailPage({
 
   const invites = await listInvitesForPlan(orgId, planId);
 
-  // Pool + Quoten + offener Link + Ziel-Pool-Fortschritt + Prolific-Credential —
-  // alle unabhängig, parallel (kein N+1). Der completed-Count ist die §7-
-  // Messung; null → "—" (fail-open). getProlificCredentialSummary degradiert auf
-  // null, wenn kein Token verbunden ist — das Panel zeigt dann den "erst Prolific
-  // verbinden"-Leerzustand, genau wie auf der Product-Discovery-Detailseite.
+  // Pool + Quoten + offener Link + Ziel-Pool-Fortschritt + Prolific-Credential
+  // + persistierter Prolific-Draft — alle unabhängig, parallel (kein N+1). Der
+  // completed-Count ist die §7-Messung; null → "—" (fail-open).
+  // getProlificCredentialSummary degradiert auf null, wenn kein Token verbunden
+  // ist — das Panel zeigt dann den "erst Prolific verbinden"-Leerzustand, genau
+  // wie auf der Product-Discovery-Detailseite. getProlificStudyForPlan ist
+  // ebenso fail-open (null = nie ein Draft angelegt oder Migration fehlt noch).
   const [
     poolMembers,
     invitedPoolMemberIds,
@@ -173,6 +178,7 @@ export default async function MarketCampaignDetailPage({
     openLink,
     completed,
     prolificCredential,
+    prolificStudy,
     sessions,
   ] = await Promise.all([
     listPoolMembers(orgId),
@@ -181,6 +187,7 @@ export default async function MarketCampaignDetailPage({
     getOpenLinkForPlan(orgId, planId),
     countCompletedSessionsForPlan(orgId, planId),
     getProlificCredentialSummary(orgId),
+    getProlificStudyForPlan(orgId, planId),
     listSessionsForPlan(orgId, planId),
   ]);
   const poolRoles = [
@@ -939,6 +946,15 @@ export default async function MarketCampaignDetailPage({
               }
               credentialStatus={prolificCredential?.status ?? "missing"}
               panelCompletionConfigured={panelCompletionConfigured}
+              panelStudy={
+                prolificStudy
+                  ? {
+                      providerStudyId: prolificStudy.providerStudyId,
+                      status: prolificStudy.status,
+                      createdAt: prolificStudy.createdAt,
+                    }
+                  : null
+              }
               disabled={plan.status === "archived"}
             />
           </CardBody>

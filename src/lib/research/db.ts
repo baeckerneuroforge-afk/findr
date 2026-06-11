@@ -705,6 +705,58 @@ type PanelProviderCredentialUpdate = {
   updated_at?: string;
 };
 
+// ── panel_studies ────────────────────────────────────────────────────────────
+//
+// Panel-E4 — persistierte Provider-Studien (Drafts) pro Plan. status trägt das
+// Provider-Vokabular (Prolific: UNPUBLISHED, ACTIVE, …) und bleibt deshalb ein
+// freier string; submission_counts/total_cost_cents/last_synced_at werden erst
+// ab E5/E6 befüllt.
+
+export type PanelStudyRow = {
+  id: string;
+  org_id: string;
+  plan_id: string;
+  provider: "prolific";
+  provider_study_id: string;
+  status: string;
+  draft_input: Json | null;
+  submission_counts: Json | null;
+  total_cost_cents: number | null;
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PanelStudyInsert = {
+  id?: string;
+  org_id: string;
+  plan_id: string;
+  provider: "prolific";
+  provider_study_id: string;
+  status: string;
+  draft_input?: Json | null;
+  submission_counts?: Json | null;
+  total_cost_cents?: number | null;
+  last_synced_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type PanelStudyUpdate = {
+  id?: string;
+  org_id?: string;
+  plan_id?: string;
+  provider?: "prolific";
+  provider_study_id?: string;
+  status?: string;
+  draft_input?: Json | null;
+  submission_counts?: Json | null;
+  total_cost_cents?: number | null;
+  last_synced_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 // ── Augmented Database type ────────────────────────────────────────────────
 
 export type DatabaseWithResearch = {
@@ -781,6 +833,12 @@ export type DatabaseWithResearch = {
         Row: PanelProviderCredentialRow;
         Insert: PanelProviderCredentialInsert;
         Update: PanelProviderCredentialUpdate;
+        Relationships: [];
+      };
+      panel_studies: {
+        Row: PanelStudyRow;
+        Insert: PanelStudyInsert;
+        Update: PanelStudyUpdate;
         Relationships: [];
       };
     };
