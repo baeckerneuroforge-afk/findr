@@ -9,12 +9,13 @@
 --
 -- SECURITY INVOKER (default): called via the service-role client (bypasses
 -- RLS); locked to service_role so it isn't exposed on the anon/authenticated
--- PostgREST RPC surface.
+-- PostgREST RPC surface. NB: risk_scores.deal_id is TEXT (deals.id was made
+-- text in 20260519000001), so p_deal_ids is text[], not uuid[].
 -- ─────────────────────────────────────────────────────────────────────────────
 
 create or replace function get_latest_risk_scores_for_deals(
   p_org_id uuid,
-  p_deal_ids uuid[]
+  p_deal_ids text[]
 )
 returns setof risk_scores
 language sql
@@ -27,7 +28,7 @@ as $$
   order by deal_id, analyzed_at desc nulls last;
 $$;
 
-revoke all on function get_latest_risk_scores_for_deals(uuid, uuid[])
+revoke all on function get_latest_risk_scores_for_deals(uuid, text[])
   from public, anon, authenticated;
-grant execute on function get_latest_risk_scores_for_deals(uuid, uuid[])
+grant execute on function get_latest_risk_scores_for_deals(uuid, text[])
   to service_role;
