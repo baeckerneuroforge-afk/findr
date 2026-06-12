@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { sealSynthesisExtras } from "@/lib/synthesis/engine";
+import { filterStimulusSections, sealSynthesisExtras } from "@/lib/synthesis/engine";
 import {
   aggregateSignalSessions,
   MIN_SIGNAL_AGGREGATE_SESSIONS,
@@ -119,6 +119,9 @@ describe("sealSynthesisExtras — Halluzinations-Guards", () => {
       coverageNote: null,
     },
     signal_observations: ["4 von 12 Antworten wichen aus."],
+    // E7 — neue Pflichtfelder des Result-Typs (hier nicht Gegenstand).
+    stimulus_sections: [],
+    stimulus_comparison: null,
   };
 
   it("nulls methodology when no rationales were supplied", () => {
@@ -131,6 +134,65 @@ describe("sealSynthesisExtras — Halluzinations-Guards", () => {
     const sealed = sealSynthesisExtras(base, false, true);
     expect(sealed.signal_observations).toEqual([]);
     expect(sealed.methodology).not.toBeNull();
+  });
+
+  // E7 — Stimulus-Guards: ohne Block keine Sektionen, ohne Server-Präferenz
+  // keine Vergleichs-Prosa.
+  const withStimuli = {
+    ...base,
+    stimulus_sections: [
+      { position: 1, summary: "Kam gut an.", quotes: [] },
+    ],
+    stimulus_comparison: "Variante A wurde 2 von 3 Mal bevorzugt.",
+  };
+
+  it("drops stimulus sections + comparison without a stimulus block", () => {
+    const sealed = sealSynthesisExtras(withStimuli, true, true, false, false);
+    expect(sealed.stimulus_sections).toEqual([]);
+    expect(sealed.stimulus_comparison).toBeNull();
+  });
+
+  it("keeps sections but nulls comparison without server preference counts", () => {
+    const sealed = sealSynthesisExtras(withStimuli, true, true, true, false);
+    expect(sealed.stimulus_sections).toHaveLength(1);
+    expect(sealed.stimulus_comparison).toBeNull();
+  });
+
+  it("keeps both with stimulus block + preference counts", () => {
+    const sealed = sealSynthesisExtras(withStimuli, true, true, true, true);
+    expect(sealed.stimulus_sections).toHaveLength(1);
+    expect(sealed.stimulus_comparison).toContain("2 von 3");
+  });
+});
+
+describe("filterStimulusSections — Mindest-N + Anker-Härtung (E7)", () => {
+  const anchors = {
+    ids: new Set<string>(),
+    foldedHaystack:
+      "das blau wirkt sehr frisch. wirkt altmodischer auf mich.",
+  };
+
+  it("keeps only eligible positions, dedupes, and drops unanchored quotes", () => {
+    const sections = filterStimulusSections(
+      [
+        {
+          position: 1,
+          summary: "Frische-Wahrnehmung.",
+          quotes: ["Das Blau wirkt sehr frisch.", "Erfundenes Zitat."],
+        },
+        { position: 1, summary: "Duplikat.", quotes: [] },
+        { position: 3, summary: "Nicht eligible.", quotes: [] },
+      ],
+      [1, 2],
+      anchors,
+    );
+    expect(sections).toEqual([
+      {
+        position: 1,
+        summary: "Frische-Wahrnehmung.",
+        quotes: ["Das Blau wirkt sehr frisch."],
+      },
+    ]);
   });
 });
 

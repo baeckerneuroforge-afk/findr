@@ -25,6 +25,7 @@ import type {
   SessionRationales,
   SignalsPromptBlock,
 } from "./signals";
+import type { StimulusPromptBlock } from "./stimuli";
 
 /** Input row for the synthesizer — one per Stage-1 insight that belongs
  *  to the study being synthesized. The engine assembles these from
@@ -90,6 +91,11 @@ export interface SynthesisInput {
   /** E4 — Coverage für die ehrliche Methodik-Note („Begründungen lagen für
    *  X von Y Interviews vor"). Nur gesetzt, wenn rationales gesetzt ist. */
   rationaleCoverage?: { withRationales: number; totalSessions: number } | null;
+  /** E7 — SERVER-berechneter Stimulus-Faktenblock (Gesehen-Zähler,
+   *  Präferenz-Stimmen, gedeckelte Erstreaktions-Ausschnitte). Optional/null
+   *  → der Prompt trägt keinen Stimulus-Block und die Engine erzwingt
+   *  stimulus_sections=[] + stimulus_comparison=null. */
+  stimuli?: StimulusPromptBlock | null;
 }
 
 export const STUDY_SYNTHESIS_SYSTEM_PROMPT = `You are a senior B2B research analyst synthesizing the FINDINGS of a multi-interview study. Your inputs are the per-interview verdichtungen (NOT the raw transcripts — they already exist downstream) produced by a Stage-1 classifier. Your job is to find what is true ACROSS interviews — emergent themes and real tensions — and to write a short overview.
@@ -339,6 +345,58 @@ RULES for "methodology" („Warum wurde was gefragt?"):
 - Method-focused, never judgments about participants.`;
 }
 
+/** E7 — rendert den Stimulus-Faktenblock (Server-Zahlen + gedeckelte
+ *  Erstreaktions-Ausschnitte) samt der Formulierungs-Regeln für
+ *  stimulus_sections / stimulus_comparison. Pure string-building. */
+function formatStimulusBlock(block: StimulusPromptBlock): string {
+  const s = block.summary;
+  const name = (item: { position: number; label: string | null }): string =>
+    item.label ? `"${item.label}"` : `Stimulus ${item.position}`;
+  const setLine = s.items
+    .map((item) => `${item.position} ${name(item)} (${item.type})`)
+    .join(", ");
+  const seenLine = s.items
+    .map((item) => `#${item.position}→${item.seenSessions}`)
+    .join(", ");
+  const preferenceLine = s.preference
+    ? `- stated preference (SERVER-counted from the mandatory preference question, over ${s.preference.counted} full-reveal interviews): ${s.preference.votes
+        .map((vote) => `#${vote.position}=${vote.count}`)
+        .join(", ")}, no clear preference=${s.preference.none}`
+    : "- stated preference: (not counted — below minimum N)";
+  const excerptBlocks = block.excerpts
+    .map(
+      (e) =>
+        `STIMULUS ${e.position} ${name(e)}:
+${
+          e.excerpts.length > 0
+            ? e.excerpts.map((x) => `- "${x}"`).join("\n")
+            : "- (no first reactions recorded)"
+        }`,
+    )
+    .join("\n");
+
+  return `STIMULUS SET (SERVER-COMPUTED FACTS — the study revealed numbered stimuli in fixed order; reveal markers are recorded per interview):
+- set: ${setLine}
+- interviews that saw each stimulus: ${seenLine} (of ${s.totalSessions} completed)
+- interviews that saw ALL ${s.setSize}: ${s.fullRevealSessions}
+${preferenceLine}
+
+FIRST REACTIONS PER STIMULUS (verbatim participant excerpts, capped):
+${excerptBlocks}
+
+RULES for "stimulus_sections" (one per eligible stimulus — eligible positions: ${block.eligiblePositions.join(", ") || "(none)"}):
+- Write a section ONLY for the eligible positions above (each was seen by enough interviews); the engine drops any other position.
+- summary: 1-3 sentences on how participants received THIS stimulus, grounded ONLY in its excerpts above. quotes: up to 3, verbatim from those excerpts (typography-folded matching, no paraphrase).
+- Do NOT compare stimuli inside a section — comparison has its own field. Do NOT state counts inside sections.
+
+RULES for "stimulus_comparison":
+- ${
+    s.preference
+      ? "2-4 sentences comparing reception across the stimuli, grounded in the excerpts AND the server-counted preference line above; copy every count verbatim — never recompute, never extrapolate."
+      : "Return null — preference was not counted (below minimum N), so no cross-stimulus comparison may be asserted."
+  }`;
+}
+
 export function buildSynthesisUserPrompt(input: SynthesisInput): string {
   const planLines = [
     `STUDY PLAN`,
@@ -365,6 +423,10 @@ export function buildSynthesisUserPrompt(input: SynthesisInput): string {
     extraBlocks.push(
       formatRationalesBlock(input.rationales, input.rationaleCoverage ?? null),
     );
+  }
+  // E7 — ebenfalls strikt additiv: ohne Block byte-identischer Prompt.
+  if (input.stimuli) {
+    extraBlocks.push(formatStimulusBlock(input.stimuli));
   }
   const extras =
     extraBlocks.length > 0 ? `\n\n${extraBlocks.join("\n\n")}` : "";

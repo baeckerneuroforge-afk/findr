@@ -4,15 +4,18 @@ import { createResearchSupabase } from "@/lib/research/db";
 import {
   normalizeEmergentThemes,
   normalizeMethodology,
+  normalizeStimulusSections,
   normalizeTensions,
 } from "@/lib/schemas/synthesis";
 import type {
   EmergentTheme,
   Methodology,
+  StimulusSection,
   Tension,
   TensionSide,
 } from "@/lib/schemas/synthesis";
 import { normalizeSignalsSummary, type SignalsSummary } from "./signals";
+import { normalizeStimulusSummary, type StimulusSummary } from "./stimuli";
 
 /**
  * Read-side service for the study-synthesis UI. Two functions:
@@ -60,6 +63,15 @@ export interface StudySynthesisRecord {
   signals_summary: SignalsSummary | null;
   /** E4 — max. 3 LLM-formulierte Beobachtungen aus dem Faktenblock. */
   signal_observations: string[];
+  /** E7 — deterministische Server-Zahlen des Stimulus-Sets (Gesehen-Zähler,
+   *  Präferenz-Stimmen). Die UI zeigt Kennzahlen NUR von hier. Null für
+   *  Studien ohne Set / pre-migration. */
+  stimulus_summary: StimulusSummary | null;
+  /** E7 — LLM-formulierte per-Stimulus-Sektionen (nur Mindest-N-Positionen,
+   *  Quotes anker-geprüft). */
+  stimulus_sections: StimulusSection[];
+  /** E7 — LLM-formulierter Vergleich, nur mit Server-Präferenz-Zahlen. */
+  stimulus_comparison: string | null;
 }
 
 export type { EmergentTheme, Tension, TensionSide };
@@ -83,6 +95,9 @@ export async function getStudySynthesis(
     methodology?: unknown;
     signals_summary?: unknown;
     signal_observations?: unknown;
+    stimulus_summary?: unknown;
+    stimulus_sections?: unknown;
+    stimulus_comparison?: unknown;
   };
   return {
     id: data.id,
@@ -101,6 +116,13 @@ export async function getStudySynthesis(
           (x): x is string => typeof x === "string" && x.trim() !== "",
         )
       : [],
+    stimulus_summary: normalizeStimulusSummary(row.stimulus_summary),
+    stimulus_sections: normalizeStimulusSections(row.stimulus_sections),
+    stimulus_comparison:
+      typeof row.stimulus_comparison === "string" &&
+      row.stimulus_comparison.trim() !== ""
+        ? row.stimulus_comparison
+        : null,
   };
 }
 
