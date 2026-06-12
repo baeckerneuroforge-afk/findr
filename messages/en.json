@@ -45,7 +45,7 @@
       "newTab": "Opens in a new tab",
       "videoAria": "The video discussed in this interview",
       "hiddenHint": "The material will appear during the conversation.",
-     "thumbAria": "Show stimulus {position}"
+      "thumbAria": "Show stimulus {position}"
     },
     "error": {
       "requestFailed": "Request failed. Please try again.",
@@ -1563,7 +1563,9 @@
         "partial": "partially answered",
         "evasive": "not answered directly",
         "declined": "preferred not to answer"
-      }
+      },
+      "stimulusShownMarker": "Stimulus {position} revealed",
+      "stimulusShownMarkerLabeled": "Stimulus {position} “{label}” revealed"
     },
     "synthesis": {
       "backToPlan": "← Back to plan",
@@ -1639,7 +1641,18 @@
       "pptxExporting": "Generating PowerPoint…",
       "pptxExport": "Export as PowerPoint",
       "errPptx": "PowerPoint export failed.",
-      "errPptxNetwork": "PowerPoint export failed — network error."
+      "errPptxNetwork": "PowerPoint export failed — network error.",
+      "stimuliTitle": "Stimulus evaluation",
+      "stimuliDesc": "{fullReveal} of {total} interviews saw all {setSize} stimuli. Counts are computed server-side, never asserted by the model.",
+      "stimulusHeading": "Stimulus {position}",
+      "stimulusHeadingLabeled": "Stimulus {position} · {label}",
+      "stimulusSeen": "{count} of {total} interviews",
+      "stimulusBelowMinN": "Not enough interviews yet to evaluate this stimulus (minimum base: 3).",
+      "stimulusPreferenceTitle": "Preference comparison",
+      "stimulusPreferenceCounted": "Counted across {counted} interviews that saw all stimuli (answers to the preference question).",
+      "stimulusVotes": "{count, plural, =1 {1 vote} other {# votes}}",
+      "stimulusNoPreference": "No clear preference",
+      "stimulusPreferenceDisclaimer": "Votes are coded per interview from the answer to the preference question and counted server-side; unclear answers count as “no clear preference”."
     },
     "panel": {
       "integrationTitle": "Prolific integration",

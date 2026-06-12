@@ -340,6 +340,148 @@ export default async function ResearchPlanSynthesisPage({
             )}
           </section>
 
+          {/* E7 — Stimulus-Auswertung. Rendert nur, wenn die Synthese einen
+              Server-Stimulus-Block trägt (Set-Studien nach Re-Run). ALLE
+              Kennzahlen kommen aus stimulus_summary (deterministisch, Server);
+              die LLM-Anteile (Sektion-Prosa, Vergleich) sind anker-geprüft
+              und unter Mindest-N hart unterdrückt (Engine). */}
+          {synthesis.stimulus_summary && (
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-h2 text-neutral-900">
+                  {t("stimuliTitle")}
+                </h2>
+                <p className="text-body text-neutral-500">
+                  {t("stimuliDesc", {
+                    fullReveal: synthesis.stimulus_summary.fullRevealSessions,
+                    total: synthesis.stimulus_summary.totalSessions,
+                    setSize: synthesis.stimulus_summary.setSize,
+                  })}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {synthesis.stimulus_summary.items.map((item) => {
+                  const section = synthesis.stimulus_sections.find(
+                    (sec) => sec.position === item.position,
+                  );
+                  return (
+                    <Card key={`stimulus-${item.position}`}>
+                      <CardBody className="space-y-3">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                          <h3 className="text-body-strong text-neutral-900">
+                            {item.label
+                              ? t("stimulusHeadingLabeled", {
+                                  position: item.position,
+                                  label: item.label,
+                                })
+                              : t("stimulusHeading", {
+                                  position: item.position,
+                                })}
+                          </h3>
+                          <span className="text-caption text-neutral-500">
+                            {t("stimulusSeen", {
+                              count: item.seenSessions,
+                              total:
+                                synthesis.stimulus_summary!.totalSessions,
+                            })}
+                          </span>
+                        </div>
+                        {section ? (
+                          <>
+                            <p className="text-body leading-relaxed text-neutral-700">
+                              {section.summary}
+                            </p>
+                            {section.quotes.length > 0 && (
+                              <ul className="space-y-2">
+                                {section.quotes.map((q, qi) => (
+                                  <li
+                                    key={qi}
+                                    className="border-l-2 border-primary-200 pl-3 text-small italic text-neutral-600"
+                                  >
+                                    „{q}“
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-small text-neutral-500">
+                            {t("stimulusBelowMinN")}
+                          </p>
+                        )}
+                      </CardBody>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {synthesis.stimulus_summary.preference && (
+                <Card>
+                  <CardBody className="space-y-3">
+                    <h3 className="text-body-strong text-neutral-900">
+                      {t("stimulusPreferenceTitle")}
+                    </h3>
+                    <p className="text-small text-neutral-500">
+                      {t("stimulusPreferenceCounted", {
+                        counted: synthesis.stimulus_summary.preference.counted,
+                      })}
+                    </p>
+                    <ul className="space-y-1">
+                      {synthesis.stimulus_summary.preference.votes.map(
+                        (vote) => {
+                          const item =
+                            synthesis.stimulus_summary!.items.find(
+                              (i) => i.position === vote.position,
+                            );
+                          return (
+                            <li
+                              key={`vote-${vote.position}`}
+                              className="flex items-baseline justify-between gap-4 text-body text-neutral-700"
+                            >
+                              <span>
+                                {item?.label
+                                  ? t("stimulusHeadingLabeled", {
+                                      position: vote.position,
+                                      label: item.label,
+                                    })
+                                  : t("stimulusHeading", {
+                                      position: vote.position,
+                                    })}
+                              </span>
+                              <span className="font-medium text-neutral-900">
+                                {t("stimulusVotes", { count: vote.count })}
+                              </span>
+                            </li>
+                          );
+                        },
+                      )}
+                      {synthesis.stimulus_summary.preference.none > 0 && (
+                        <li className="flex items-baseline justify-between gap-4 text-body text-neutral-500">
+                          <span>{t("stimulusNoPreference")}</span>
+                          <span className="font-medium">
+                            {t("stimulusVotes", {
+                              count:
+                                synthesis.stimulus_summary.preference.none,
+                            })}
+                          </span>
+                        </li>
+                      )}
+                    </ul>
+                    {synthesis.stimulus_comparison && (
+                      <p className="border-t border-neutral-100 pt-3 text-body leading-relaxed text-neutral-700">
+                        {synthesis.stimulus_comparison}
+                      </p>
+                    )}
+                    <p className="text-caption text-neutral-400">
+                      {t("stimulusPreferenceDisclaimer")}
+                    </p>
+                  </CardBody>
+                </Card>
+              )}
+            </section>
+          )}
+
           {/* E4 — Antwort-Signale (Kennzahlen NUR aus signals_summary, dem
               server-berechneten Block — nie aus LLM-Text) + Methodik-Abschnitt
               („Warum wurde was gefragt?", aus den echten WHY-Rationales E3).
