@@ -675,6 +675,59 @@ type ResearchOpenLinkUpdate = {
   created_at?: string;
 };
 
+// ── research_plan_stimuli ────────────────────────────────────────────────────
+//
+// Multi-Stimulus E1 (20260714000000) — Stimulus-SET pro Studie (bis 5 Assets
+// in fester position-Reihenfolge). Dual-Read mit den Legacy-Single-Spalten auf
+// research_plans: Zeilen hier gewinnen, keine Zeilen → Legacy als 1-Element-
+// Set (plans-service resolveStimulusSet). stimulus_type/analysis_status bleiben
+// freie strings wie auf research_plans (kein DB-Enum).
+
+export type ResearchPlanStimulusRow = {
+  id: string;
+  plan_id: string;
+  org_id: string | null;
+  position: number;
+  stimulus_type: string;
+  url: string;
+  storage_path: string | null;
+  label: string | null;
+  description: string | null;
+  analysis: Json | null;
+  analysis_status: string | null;
+  created_at: string;
+};
+
+type ResearchPlanStimulusInsert = {
+  id?: string;
+  plan_id: string;
+  org_id?: string | null;
+  position: number;
+  stimulus_type: string;
+  url: string;
+  storage_path?: string | null;
+  label?: string | null;
+  description?: string | null;
+  analysis?: Json | null;
+  analysis_status?: string | null;
+  created_at?: string;
+};
+
+type ResearchPlanStimulusUpdate = {
+  id?: string;
+  plan_id?: string;
+  org_id?: string | null;
+  position?: number;
+  stimulus_type?: string;
+  url?: string;
+  storage_path?: string | null;
+  label?: string | null;
+  description?: string | null;
+  analysis?: Json | null;
+  analysis_status?: string | null;
+  created_at?: string;
+};
+
 // ── panel_provider_credentials ───────────────────────────────────────────────
 //
 // Phase 4 Baustein 3 (Panel-Anbieter) E3 — per-org provider credentials. This
@@ -811,6 +864,12 @@ export type DatabaseWithResearch = {
         Row: ResearchInviteRow;
         Insert: ResearchInviteInsert;
         Update: ResearchInviteUpdate;
+        Relationships: [];
+      };
+      research_plan_stimuli: {
+        Row: ResearchPlanStimulusRow;
+        Insert: ResearchPlanStimulusInsert;
+        Update: ResearchPlanStimulusUpdate;
         Relationships: [];
       };
       study_synthesis: {

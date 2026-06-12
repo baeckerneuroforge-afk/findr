@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   coerceConversation,
   planToAgentContext,
+  resolveStimulusSet,
   type ResearchPlanRecord,
+  type ResearchPlanStimulusRecord,
 } from "./plans-service";
 import type { StimulusAnalysisPayload } from "./stimulus-analysis";
 
@@ -95,6 +97,121 @@ describe("planToAgentContext — stimulus analysis gating", () => {
 
     expect("stimulusAnalysis" in ctx).toBe(false);
     expect("stimulusDescription" in ctx).toBe(false);
+  });
+});
+
+function stimulus(
+  overrides: Partial<ResearchPlanStimulusRecord>,
+): ResearchPlanStimulusRecord {
+  return {
+    id: "s1",
+    planId: "p1",
+    orgId: "o1",
+    position: 1,
+    stimulusType: "image",
+    url: "https://storage.example/s1.png",
+    storagePath: "o1/p1/s1.png",
+    label: "Variante A",
+    description: "Blaues Packaging",
+    analysis: null,
+    analysisStatus: null,
+    createdAt: "2026-06-12T10:00:00.000Z",
+    ...overrides,
+  };
+}
+
+describe("planToAgentContext — Multi-Stimulus-Set (E1)", () => {
+  it("is byte-identical with omitted and with empty stimuli (legacy parity)", () => {
+    const record = plan({});
+    const withoutParam = planToAgentContext(record);
+    const withEmpty = planToAgentContext(record, []);
+
+    expect("stimuli" in withoutParam).toBe(false);
+    expect(JSON.stringify(withEmpty)).toBe(JSON.stringify(withoutParam));
+  });
+
+  it("emits the set in canonical position order with analysis gated on done", () => {
+    const ctx = planToAgentContext(plan({}), [
+      stimulus({
+        id: "s2",
+        position: 2,
+        label: "Variante B",
+        analysis: PAYLOAD,
+        analysisStatus: "done",
+      }),
+      stimulus({ id: "s1", position: 1, analysisStatus: "pending" }),
+    ]);
+
+    expect(ctx.stimuli?.map((s) => s.position)).toEqual([1, 2]);
+    expect(ctx.stimuli?.[0]).toEqual({
+      position: 1,
+      type: "image",
+      url: "https://storage.example/s1.png",
+      label: "Variante A",
+      description: "Blaues Packaging",
+      analysis: null,
+    });
+    // done → NUR der textBlock, nie das Roh-Envelope.
+    expect(ctx.stimuli?.[1].analysis).toBe(
+      "Layout/Aufbau: Zentrierte Headline",
+    );
+    expect(JSON.stringify(ctx.stimuli)).not.toContain("frageansaetze");
+    // Storage-Pfad und DB-Identität bleiben aus dem Agent-Kontext draußen.
+    expect(JSON.stringify(ctx.stimuli)).not.toContain("storagePath");
+    expect(JSON.stringify(ctx.stimuli)).not.toContain('"id"');
+  });
+
+  it("keeps the set out of a product_discovery context", () => {
+    const ctx = planToAgentContext(plan({ studyType: "product_discovery" }), [
+      stimulus({}),
+    ]);
+    expect("stimuli" in ctx).toBe(false);
+  });
+});
+
+describe("resolveStimulusSet — Dual-Read (D1)", () => {
+  it("table rows win over the legacy columns, canonically sorted", () => {
+    const set = resolveStimulusSet(plan({}), [
+      stimulus({ id: "b", position: 2 }),
+      // Positions-Duplikat (transient nach Crash) → Tie-Break created_at, id.
+      stimulus({ id: "c", position: 1, createdAt: "2026-06-12T11:00:00.000Z" }),
+      stimulus({ id: "a", position: 1 }),
+    ]);
+    expect(set.map((s) => s.id)).toEqual(["a", "c", "b"]);
+  });
+
+  it("synthesizes the legacy single asset as a 1-element set", () => {
+    const set = resolveStimulusSet(plan({ id: "p9" }), []);
+    expect(set).toHaveLength(1);
+    expect(set[0]).toMatchObject({
+      id: "legacy:p9",
+      position: 1,
+      stimulusType: "image",
+      url: "https://storage.example/stimulus.png",
+      description: "Anzeige mit blauem CTA",
+      label: null,
+      storagePath: null,
+    });
+  });
+
+  it("does NOT synthesize from a description-only legacy plan (O3)", () => {
+    const set = resolveStimulusSet(
+      plan({ stimulusUrl: null, stimulusType: null }),
+      [],
+    );
+    expect(set).toEqual([]);
+  });
+
+  it("returns an empty set when there is nothing anywhere", () => {
+    const set = resolveStimulusSet(
+      plan({
+        stimulusUrl: null,
+        stimulusType: null,
+        stimulusDescription: null,
+      }),
+      [],
+    );
+    expect(set).toEqual([]);
   });
 });
 

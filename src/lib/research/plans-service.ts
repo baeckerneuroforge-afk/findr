@@ -4,11 +4,13 @@ import type { Json } from "@/types/database";
 import type {
   InterviewTurn,
   ResearchPlanContext,
+  ResearchStimulusContext,
   ResearchTopic,
 } from "@/lib/voice-agent/interviewer";
 import {
   createResearchSupabase,
   type ResearchPlanRow,
+  type ResearchPlanStimulusRow,
   type ResearchPlanStudyType,
   type ResearchPlanUseCase,
 } from "./db";
@@ -265,7 +267,14 @@ export async function getResearchPlan(
  * exactly what RESEARCH_INTERVIEWER_SYSTEM_PROMPT + buildResearchPrompt need.
  * Pure derivation, no DB call.
  */
-export function planToAgentContext(plan: ResearchPlanRecord): ResearchPlanContext {
+export function planToAgentContext(
+  plan: ResearchPlanRecord,
+  // Multi-Stimulus E1 — OPTIONAL: das Stimulus-Set des Plans
+  // (listPlanStimuli). Weggelassen/leer → Rückgabe byte-identisch zu vorher;
+  // jeder Bestands-Aufrufer bleibt dadurch unverändert. Die Set-Verdrahtung
+  // der Aufrufer (Session-Create, Voice-Kontext) kommt in E4/E6.
+  stimuli?: ResearchPlanStimulusRecord[],
+): ResearchPlanContext {
   return {
     title: plan.title,
     objective: plan.objective,
@@ -288,6 +297,11 @@ export function planToAgentContext(plan: ResearchPlanRecord): ResearchPlanContex
               ? (plan.stimulusAnalysis?.textBlock ?? null)
               : null,
         }
+      : {}),
+    // Der stimuli-Key erscheint NUR, wenn der Aufrufer ein nicht-leeres Set
+    // mitgibt — Bestands-Snapshots (deal_context) bleiben byte-identisch.
+    ...(plan.studyType === "market_research" && stimuli && stimuli.length > 0
+      ? { stimuli: sortStimuli(stimuli).map(stimulusToContext) }
       : {}),
   };
 }
@@ -814,4 +828,314 @@ export async function setResearchPlanStatus(
   status: ResearchPlanRecord["status"],
 ): Promise<ResearchPlanRecord | null> {
   return updateResearchPlan(orgId, planId, { status });
+}
+
+// ── Multi-Stimulus-Set (E1, docs/findr-multi-stimulus-plan.md) ───────────────
+//
+// Bis zu MAX_PLAN_STIMULI Assets pro Studie in fester Forscher-Reihenfolge
+// (research_plan_stimuli, Migration 20260714000000). Dual-Read-Vertrag:
+// Tabellen-Zeilen gewinnen; ohne Zeilen synthetisiert resolveStimulusSet den
+// Legacy-Single-Slot der Plan-Spalten als 1-Element-Set (NUR wenn dort ein
+// echtes Asset liegt — url+type). Die Legacy-Spalten werden von dieser
+// Schicht NIE geschrieben.
+
+/** Produkt-Invariante (Entscheidung O1, 12.06.2026). Die Route (E2) prüft
+ *  zuerst; addPlanStimulus erzwingt zusätzlich als Defense-in-depth. */
+export const MAX_PLAN_STIMULI = 5;
+
+export interface ResearchPlanStimulusRecord {
+  id: string;
+  planId: string;
+  orgId: string | null;
+  /** 1-basiert; Lese-Ordnung ist (position, createdAt, id) — deterministisch
+   *  auch bei transient doppelten Positionen (kein DB-unique, s. Migration). */
+  position: number;
+  stimulusType: string;
+  url: string;
+  storagePath: string | null;
+  label: string | null;
+  description: string | null;
+  analysis: StimulusAnalysisPayload | null;
+  analysisStatus: StimulusAnalysisStatus | null;
+  createdAt: string;
+}
+
+function toStimulusRecord(
+  row: ResearchPlanStimulusRow,
+): ResearchPlanStimulusRecord {
+  return {
+    id: row.id,
+    planId: row.plan_id,
+    orgId: row.org_id,
+    position: row.position,
+    stimulusType: row.stimulus_type,
+    url: row.url,
+    storagePath: row.storage_path,
+    label: row.label,
+    description: row.description,
+    analysis: coerceStimulusAnalysis(row.analysis),
+    analysisStatus: coerceStimulusAnalysisStatus(row.analysis_status),
+    createdAt: row.created_at,
+  };
+}
+
+/** Kanonische Set-Ordnung — exakt der Migrations-Vertrag
+ *  (position, created_at, id). Pure, kopiert statt zu mutieren. */
+function sortStimuli(
+  records: ResearchPlanStimulusRecord[],
+): ResearchPlanStimulusRecord[] {
+  return [...records].sort(
+    (a, b) =>
+      a.position - b.position ||
+      a.createdAt.localeCompare(b.createdAt) ||
+      a.id.localeCompare(b.id),
+  );
+}
+
+function stimulusToContext(
+  record: ResearchPlanStimulusRecord,
+): ResearchStimulusContext {
+  return {
+    position: record.position,
+    type: record.stimulusType,
+    url: record.url,
+    label: record.label,
+    description: record.description,
+    // Identisches Gating wie der Legacy-Pfad in planToAgentContext: NUR der
+    // textBlock, NUR bei status 'done'.
+    analysis:
+      record.analysisStatus === "done"
+        ? (record.analysis?.textBlock ?? null)
+        : null,
+  };
+}
+
+/** Das Stimulus-Set eines Plans in kanonischer Ordnung. [] bei Fehler —
+ *  liest sich überall als "kein Set" und fällt damit auf den Legacy-Pfad
+ *  zurück (fail-open wie listResearchPlans). */
+export async function listPlanStimuli(
+  orgId: string,
+  planId: string,
+): Promise<ResearchPlanStimulusRecord[]> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_plan_stimuli")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("plan_id", planId)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
+  if (error || !data) return [];
+  return data.map(toStimulusRecord);
+}
+
+export interface AddPlanStimulusInput {
+  stimulusType: string;
+  url: string;
+  storagePath?: string | null;
+  label?: string | null;
+  description?: string | null;
+  analysis?: StimulusAnalysisPayload | null;
+  analysisStatus?: StimulusAnalysisStatus | null;
+}
+
+/**
+ * Hängt ein Asset ans Ende des Sets (position = max + 1). Gibt null zurück,
+ * wenn der Plan nicht zur Org gehört, das Set voll ist (MAX_PLAN_STIMULI)
+ * oder der Insert fehlschlägt — die Route übersetzt null in 4xx/5xx.
+ * Kein Lock: die Draft-Phase ist Ein-Forscher-Betrieb; ein Positions-Race
+ * erzeugt schlimmstenfalls ein transientes Duplikat, das die Lese-Ordnung
+ * deterministisch auflöst und der nächste Reorder repariert.
+ */
+export async function addPlanStimulus(
+  orgId: string,
+  planId: string,
+  input: AddPlanStimulusInput,
+): Promise<ResearchPlanStimulusRecord | null> {
+  const plan = await getResearchPlan(orgId, planId);
+  if (!plan) return null;
+
+  const existing = await listPlanStimuli(orgId, planId);
+  if (existing.length >= MAX_PLAN_STIMULI) return null;
+  const position =
+    existing.reduce((max, s) => Math.max(max, s.position), 0) + 1;
+
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_plan_stimuli")
+    .insert({
+      org_id: orgId,
+      plan_id: planId,
+      position,
+      stimulus_type: input.stimulusType,
+      url: input.url,
+      storage_path: input.storagePath ?? null,
+      label: input.label ?? null,
+      description: input.description ?? null,
+      analysis: (input.analysis ?? null) as unknown as Json,
+      analysis_status: input.analysisStatus ?? null,
+    })
+    .select("*")
+    .single();
+  if (error || !data) return null;
+  return toStimulusRecord(data);
+}
+
+export interface UpdatePlanStimulusInput {
+  label?: string | null;
+  description?: string | null;
+  /** Analyse-Felder — geschrieben NUR von der Stimuli-Route (Trigger +
+   *  Invalidierung), Spiegel des updateResearchPlan-Vertrags. */
+  analysis?: StimulusAnalysisPayload | null;
+  analysisStatus?: StimulusAnalysisStatus | null;
+}
+
+/** Sparse-Update eines Set-Elements (Label/Beschreibung/Analyse). Null wenn
+ *  die Zeile nicht existiert oder einer fremden Org gehört. */
+export async function updatePlanStimulus(
+  orgId: string,
+  planId: string,
+  stimulusId: string,
+  input: UpdatePlanStimulusInput,
+): Promise<ResearchPlanStimulusRecord | null> {
+  const update: {
+    label?: string | null;
+    description?: string | null;
+    analysis?: Json | null;
+    analysis_status?: string | null;
+  } = {};
+  if (input.label !== undefined) update.label = input.label;
+  if (input.description !== undefined) update.description = input.description;
+  if (input.analysis !== undefined)
+    update.analysis = input.analysis as unknown as Json;
+  if (input.analysisStatus !== undefined)
+    update.analysis_status = input.analysisStatus;
+  if (Object.keys(update).length === 0) return null;
+
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_plan_stimuli")
+    .update(update)
+    .eq("org_id", orgId)
+    .eq("plan_id", planId)
+    .eq("id", stimulusId)
+    .select("*")
+    .maybeSingle();
+  if (error || !data) return null;
+  return toStimulusRecord(data);
+}
+
+/**
+ * Entfernt ein Asset und schließt die Positions-Lücke (Renumber 1…N in
+ * kanonischer Ordnung). Das Renumber ist best-effort: schlägt es teilweise
+ * fehl, bleibt die Lese-Ordnung trotzdem korrekt (Lücken sind harmlos, nur
+ * die Anzeige-Nummern springen) und der nächste Reorder repariert.
+ * Bucket-Objekte räumt die Route auf (sie kennt storage_path + BUCKET).
+ */
+export async function removePlanStimulus(
+  orgId: string,
+  planId: string,
+  stimulusId: string,
+): Promise<boolean> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("research_plan_stimuli")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("plan_id", planId)
+    .eq("id", stimulusId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return false;
+
+  const remaining = await listPlanStimuli(orgId, planId);
+  for (const [index, record] of remaining.entries()) {
+    const target = index + 1;
+    if (record.position === target) continue;
+    await supabase
+      .from("research_plan_stimuli")
+      .update({ position: target })
+      .eq("org_id", orgId)
+      .eq("plan_id", planId)
+      .eq("id", record.id);
+  }
+  return true;
+}
+
+/**
+ * Setzt die Forscher-Reihenfolge neu (O5: v1 = feste Reihenfolge). orderedIds
+ * muss eine exakte Permutation des aktuellen Sets sein — sonst null (die
+ * Route übersetzt in 400; schützt gegen Stale-UI nach parallelem Add/Remove).
+ * Die Updates laufen einzeln (PostgREST, keine Transaktion) — ein Abbruch
+ * mittendrin lässt eine Mischordnung zurück, die der nächste Reorder-Call
+ * vollständig überschreibt; Reads bleiben durch die kanonische Ordnung
+ * jederzeit deterministisch.
+ */
+export async function reorderPlanStimuli(
+  orgId: string,
+  planId: string,
+  orderedIds: string[],
+): Promise<ResearchPlanStimulusRecord[] | null> {
+  const current = await listPlanStimuli(orgId, planId);
+  if (current.length === 0 || orderedIds.length !== current.length) {
+    return null;
+  }
+  const currentIds = new Set(current.map((s) => s.id));
+  if (
+    new Set(orderedIds).size !== orderedIds.length ||
+    !orderedIds.every((id) => currentIds.has(id))
+  ) {
+    return null;
+  }
+
+  const supabase = createResearchSupabase();
+  const positionById = new Map(current.map((s) => [s.id, s.position]));
+  for (const [index, id] of orderedIds.entries()) {
+    const target = index + 1;
+    if (positionById.get(id) === target) continue;
+    const { error } = await supabase
+      .from("research_plan_stimuli")
+      .update({ position: target })
+      .eq("org_id", orgId)
+      .eq("plan_id", planId)
+      .eq("id", id);
+    if (error) return null;
+  }
+  return listPlanStimuli(orgId, planId);
+}
+
+/**
+ * Dual-Read (D1): die Wahrheit über das Stimulus-Set eines Plans.
+ *   - Tabellen-Zeilen vorhanden → sie SIND das Set (kanonisch sortiert).
+ *   - Keine Zeilen, aber Legacy-Single-ASSET (url + type) auf den Plan-
+ *     Spalten → synthetisches 1-Element-Set (id "legacy:<planId>").
+ *   - Sonst → leeres Set.
+ * BEWUSST NICHT synthetisiert: ein Legacy-Plan mit NUR einer Beschreibung
+ * (ohne Asset) — der Beschreibungs-Block läuft dort weiter über die
+ * Legacy-Prompt-Felder (O3: kein Verhaltensbruch für Bestand). Pure Funktion,
+ * kein DB-Call — Aufrufer kombinieren getResearchPlan + listPlanStimuli.
+ */
+export function resolveStimulusSet(
+  plan: ResearchPlanRecord,
+  stimuli: ResearchPlanStimulusRecord[],
+): ResearchPlanStimulusRecord[] {
+  if (stimuli.length > 0) return sortStimuli(stimuli);
+  if (!plan.stimulusUrl || !plan.stimulusType) return [];
+  return [
+    {
+      id: `legacy:${plan.id}`,
+      planId: plan.id,
+      orgId: plan.orgId,
+      position: 1,
+      stimulusType: plan.stimulusType,
+      url: plan.stimulusUrl,
+      storagePath: null,
+      label: null,
+      description: plan.stimulusDescription,
+      analysis: plan.stimulusAnalysis,
+      analysisStatus: plan.stimulusAnalysisStatus,
+      createdAt: plan.createdAt,
+    },
+  ];
 }
