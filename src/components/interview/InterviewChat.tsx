@@ -64,6 +64,12 @@ interface InterviewChatProps {
    *  it's interviewer-prompt-only and must never be shown to the participant. */
   stimulusUrl?: string | null;
   stimulusType?: string | null;
+  /** E5 Multi-Stimulus: das Stimulus-Set der Studie aus der Public-Session-
+   *  View (Snapshot; teilnehmer-sichere Felder, Positions-Reihenfolge).
+   *  Nicht-leer → Set-Panel mit Agent-Reveal (Platzhalter bis zum ersten
+   *  SHOW, Thumbnails für bereits Gezeigtes); die Page liefert die Legacy-
+   *  Props dann NIE parallel. Leer/fehlend → exakt der bisherige Pfad. */
+  stimuli?: StimulusSetItem[] | null;
   /** TTS Stage 1: when true, every new agent turn (incl. the opening question)
    *  is spoken via POST /api/interview/[token]/speak and played through a
    *  DEDICATED HTMLAudioElement — fully decoupled from the level-meter
@@ -72,6 +78,34 @@ interface InterviewChatProps {
    *  toggle is the always-available fallback (incl. pure text mode). Defaults
    *  false → byte-identical silent chat (no audio, no /speak calls). */
   ttsEnabled?: boolean;
+}
+
+/** E5 Multi-Stimulus — ein Set-Element, wie die Public-Session-View es
+ *  liefert (PublicStimulusItem in session-service): bewusst OHNE
+ *  description/analysis (Demand-Effekte / Modell-Material). */
+export type StimulusSetItem = {
+  position: number;
+  type: string;
+  url: string;
+  label: string | null;
+};
+
+/** E5 — Reveal-Stand aus persistierten SHOW-Markern einer Conversation:
+ *  `max` = höchste je gezeigte Position (steuert die Thumbnails), `last` =
+ *  zuletzt gezeigte (aktive Ansicht beim Restore). Pure, module-level. */
+function shownPositions(turns: InterviewTurn[]): {
+  max: number;
+  last: number | null;
+} {
+  let max = 0;
+  let last: number | null = null;
+  for (const turn of turns) {
+    const p = turn.role === "agent" ? turn.shownStimulusPosition : undefined;
+    if (typeof p !== "number" || !Number.isInteger(p) || p < 1) continue;
+    last = p;
+    if (p > max) max = p;
+  }
+  return { max, last };
 }
 
 /** Default Findr accent — fallback when no org accent color is set. */
@@ -442,6 +476,140 @@ function StimulusPanel({ url, kind }: { url: string; kind: "image" | "link" }) {
   );
 }
 
+/**
+ * E5 Multi-Stimulus — das Set-Panel: verborgen hinter einem Platzhalter, bis
+ * der Agent den ersten Stimulus einblendet (Voice-E4-Muster); danach große
+ * Ansicht des aktiven Stimulus + Thumbnail-Leiste aller BEREITS GEZEIGTEN
+ * (klickbarer lokaler Rückblick — methodisch gewollt für ehrliche Vergleiche,
+ * Entscheidung O2). Noch nicht gezeigte Stimuli erscheinen nirgends. Video
+ * mit Teilnehmer-Controls (Text-Modus: kein Agent-gesteuertes Playback).
+ */
+function StimulusSetPanel({
+  items,
+  revealedMax,
+  active,
+  onSelect,
+}: {
+  items: StimulusSetItem[];
+  revealedMax: number;
+  active: number | null;
+  onSelect: (position: number) => void;
+}) {
+  const t = useTranslations("interview");
+
+  if (revealedMax < 1) {
+    return (
+      <div>
+        <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
+          {t("stimulus.label")}
+        </p>
+        <div className="flex min-h-[120px] items-center justify-center rounded-xl border border-dashed border-[#E8E4F2] bg-[#FAFAFE] px-4 py-6">
+          <p className="text-center text-[13px] text-[#8A85A0]">
+            {t("stimulus.hiddenHint")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const revealed = items.filter((item) => item.position <= revealedMax);
+  const current =
+    revealed.find((item) => item.position === active) ??
+    revealed[revealed.length - 1];
+
+  return (
+    <div>
+      <p className="mb-2 flex items-baseline gap-2 text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
+        {t("stimulus.label")}
+        {current.label && (
+          <span className="normal-case tracking-normal text-[#0E0A1F]">
+            {current.label}
+          </span>
+        )}
+      </p>
+      {current.type === "image" ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={current.url}
+          alt={t("stimulus.imageAlt")}
+          className="max-h-[32vh] w-full rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] object-contain lg:max-h-[70vh]"
+        />
+      ) : current.type === "video" ? (
+        <video
+          src={current.url}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={t("stimulus.videoAria")}
+          className="max-h-[32vh] w-full rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] object-contain lg:max-h-[70vh]"
+        />
+      ) : (
+        <div className="rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-4">
+          <h2 className="text-[14px] font-semibold text-[#0E0A1F]">
+            {t("stimulus.linkTitle")}
+          </h2>
+          <p className="mt-2 text-[13px] leading-relaxed text-[#6B6680]">
+            {t("stimulus.linkBody")}
+          </p>
+          <a
+            href={current.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex h-[40px] items-center rounded-lg bg-[var(--brand-accent)] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+          >
+            {t("stimulus.openLink")}
+          </a>
+          <p className="mt-2 text-[12px] text-[#8A85A0]">
+            {t("stimulus.newTab")}
+          </p>
+        </div>
+      )}
+
+      {revealed.length > 1 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {revealed.map((item) => {
+            const isActive = item.position === current.position;
+            return (
+              <button
+                key={item.position}
+                type="button"
+                onClick={() => onSelect(item.position)}
+                aria-pressed={isActive}
+                aria-label={t("stimulus.thumbAria", {
+                  position: item.position,
+                })}
+                className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[12px] transition-colors ${
+                  isActive
+                    ? "border-[var(--brand-accent)] bg-white text-[#0E0A1F]"
+                    : "border-[#E8E4F2] bg-[#FAFAFE] text-[#6B6680] hover:border-[#CFC9E4]"
+                }`}
+              >
+                {item.type === "image" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.url}
+                    alt=""
+                    aria-hidden="true"
+                    className="h-8 w-8 rounded-md border border-[#E8E4F2] bg-white object-contain"
+                  />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E8E4F2] bg-white text-[13px]"
+                  >
+                    {item.type === "video" ? "▶" : "↗"}
+                  </span>
+                )}
+                <span>{item.label ?? item.position}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MicIcon({ size = 14 }: { size?: number }) {
   return (
     <svg
@@ -699,6 +867,7 @@ export function InterviewChat({
   voiceEnabled = false,
   stimulusUrl = null,
   stimulusType = null,
+  stimuli = null,
   ttsEnabled = false,
 }: InterviewChatProps) {
   const t = useTranslations("interview");
@@ -712,6 +881,13 @@ export function InterviewChat({
   const stimulus =
     stimulusUrl && stimulusKind
       ? { url: stimulusUrl, kind: stimulusKind }
+      : null;
+
+  // E5 Multi-Stimulus: nicht-leeres Set → Set-Panel mit Agent-Reveal. Sortier-
+  // Kopie (Positions-Ordnung ist der Vertrag); null → Legacy-Pfad unverändert.
+  const stimulusSet =
+    stimuli && stimuli.length > 0
+      ? [...stimuli].sort((a, b) => a.position - b.position)
       : null;
 
   // Accent flows down as a CSS custom property on the root wrapper; the inline
@@ -734,6 +910,18 @@ export function InterviewChat({
   // only updates when the authoritative `final` event lands. So nothing can
   // act on a half-generated turn.
   const [streamText, setStreamText] = useState<string | null>(null);
+  // E5 — Reveal-Zustand des Set-Panels: `max` schaltet Platzhalter/Thumbnails,
+  // `active` die große Ansicht. Lazy-Init aus den persistierten Markern der
+  // Initial-Conversation (Reload-Restore); live aktualisiert vom `show`-SSE-
+  // Event (vor den Deltas) und — als Fallback für verpasste Events/Resyncs —
+  // aus den Markern jeder authoritativen Session-View (applySession).
+  const [stimulusReveal, setStimulusReveal] = useState<{
+    max: number;
+    active: number | null;
+  }>(() => {
+    const { max, last } = shownPositions(initialConversation);
+    return { max, active: last };
+  });
   // B2: the opening turn is requested at most once per mount (the server
   // side is idempotent on top — a second request is a no-op final).
   const openingRequestedRef = useRef(false);
@@ -1585,6 +1773,20 @@ export function InterviewChat({
     }
     setMessages(session.conversation);
     setStatus(session.status);
+    // E5 — Reveal-Fallback aus den persistierten Markern: deckt verpasste
+    // show-Events (Resync nach Stream-Abriss) ab. Ein NEUER Marker zieht die
+    // aktive Ansicht mit; sonst bleibt eine Thumbnail-Auswahl des Teilnehmers
+    // unangetastet.
+    const { max, last } = shownPositions(session.conversation);
+    if (max > 0) {
+      setStimulusReveal((prev) =>
+        max > prev.max
+          ? { max, active: last }
+          : prev.active === null && last !== null
+            ? { ...prev, active: last }
+            : prev,
+      );
+    }
   }
 
   /** POST to the SSE turn route; feeds deltas into streamText and returns the
@@ -1623,6 +1825,20 @@ export function InterviewChat({
         const text = (parsed as { text?: unknown }).text;
         if (typeof text === "string" && text) {
           setStreamText((prev) => (prev ?? "") + text);
+        }
+      } else if (event === "show") {
+        // E5 Multi-Stimulus — Panel wechselt, BEVOR die Frage tippt. Wert ist
+        // server-seitig gegen das Set geklemmt; defensiver Re-Check trotzdem.
+        const position = (parsed as { position?: unknown }).position;
+        if (
+          typeof position === "number" &&
+          Number.isInteger(position) &&
+          position >= 1
+        ) {
+          setStimulusReveal((prev) => ({
+            max: Math.max(prev.max, position),
+            active: position,
+          }));
         }
       } else if (event === "final") {
         finalSession = (parsed as { session?: SessionView }).session ?? null;
@@ -1937,7 +2153,25 @@ export function InterviewChat({
 
       <WithdrawDataLink token={token} />
 
-      {stimulus ? (
+      {stimulusSet ? (
+        // E5 Multi-Stimulus — gleiche Split-View-Geometrie wie das Legacy-
+        // Panel; nur der Panel-Inhalt ist Set-fähig (Reveal + Thumbnails).
+        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-5 py-6 lg:flex-row lg:items-start">
+          <aside className="sticky top-0 z-20 self-stretch border-b border-[#E8E4F2] bg-white py-3 lg:top-6 lg:z-0 lg:w-2/5 lg:max-w-sm lg:shrink-0 lg:self-auto lg:border-b-0 lg:py-0">
+            <StimulusSetPanel
+              items={stimulusSet}
+              revealedMax={stimulusReveal.max}
+              active={stimulusReveal.active}
+              onSelect={(position) =>
+                setStimulusReveal((prev) => ({ ...prev, active: position }))
+              }
+            />
+          </aside>
+          <div className="flex w-full flex-1 flex-col lg:max-w-2xl lg:self-stretch">
+            {chatColumn}
+          </div>
+        </main>
+      ) : stimulus ? (
         // Split-View — Asset + Chat. Mobil: Asset oben (sticky, full-width,
         // höhenbegrenzt), Chat darunter. Desktop (lg+): Asset linke Spalte
         // (sticky top), Chat rechts. `lg:items-start` lässt das Asset oben

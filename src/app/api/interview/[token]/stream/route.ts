@@ -23,6 +23,10 @@ import {
  *                          no LLM call)
  *
  * Event protocol (SSE):
+ *   show   { position }  → E4 Multi-Stimulus: reveal stimulus <position>
+ *                          NOW (sent before the turn's deltas; only ever
+ *                          emitted for sessions whose plan carries a
+ *                          stimulus set)
  *   delta  { text }      → participant-visible message chars, in order
  *   final  { session }   → the persisted, authoritative public session view
  *                          (identical shape to the non-streaming route) —
@@ -106,9 +110,14 @@ export async function POST(
 
       try {
         const onDelta = (text: string) => send("delta", { text });
+        // E4 Multi-Stimulus — Reveal-Signal VOR den Text-Deltas: das Panel
+        // wechselt, bevor die zugehörige Frage einläuft (Dramaturgie). Wert
+        // ist server-seitig bereits gegen das Set geklemmt; Sessions ohne
+        // Set feuern nie → Event-Strom byte-identisch zu vorher.
+        const onShow = (position: number) => send("show", { position });
         const session = message
-          ? await advanceInterview(tokenParsed.data, message, onDelta)
-          : await ensureOpeningTurn(tokenParsed.data, onDelta);
+          ? await advanceInterview(tokenParsed.data, message, onDelta, onShow)
+          : await ensureOpeningTurn(tokenParsed.data, onDelta, onShow);
 
         if (!session) {
           send("error", { error: t("notFound.interview") });

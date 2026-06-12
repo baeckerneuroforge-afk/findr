@@ -44,7 +44,8 @@
       "openLink": "Open prototype",
       "newTab": "Opens in a new tab",
       "videoAria": "The video discussed in this interview",
-      "hiddenHint": "The material will appear during the conversation."
+      "hiddenHint": "The material will appear during the conversation.",
+     "thumbAria": "Show stimulus {position}"
     },
     "error": {
       "requestFailed": "Request failed. Please try again.",

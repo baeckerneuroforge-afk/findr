@@ -215,6 +215,25 @@ describe("resolveStimulusSet — Dual-Read (D1)", () => {
   });
 });
 
+describe("coerceConversation — shownStimulusPosition (E4 Reveal-Marker)", () => {
+  it("carries valid markers on agent turns and drops everything else", () => {
+    const conversation = coerceConversation([
+      { role: "agent", text: "F1?", shownStimulusPosition: 1 },
+      { role: "customer", text: "A.", shownStimulusPosition: 2 },
+      { role: "agent", text: "F2?", shownStimulusPosition: 0 },
+      { role: "agent", text: "F3?", shownStimulusPosition: 2.5 },
+      { role: "agent", text: "F4?", why: "x", shownStimulusPosition: 2 },
+    ]);
+    expect(conversation).toEqual([
+      { role: "agent", text: "F1?", shownStimulusPosition: 1 },
+      { role: "customer", text: "A." },
+      { role: "agent", text: "F2?" },
+      { role: "agent", text: "F3?" },
+      { role: "agent", text: "F4?", why: "x", shownStimulusPosition: 2 },
+    ]);
+  });
+});
+
 describe("coerceConversation — why-Feld (E3 Frage-Rationale, Forscher-Lesepfad)", () => {
   it("carries why on agent turns and drops it everywhere else", () => {
     const conversation = coerceConversation([

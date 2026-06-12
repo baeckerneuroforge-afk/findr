@@ -533,11 +533,21 @@ export function coerceConversation(raw: unknown): InterviewTurn[] {
       e.role === "agent" && typeof e.why === "string" && e.why.trim() !== ""
         ? e.why
         : undefined;
-    out.push(
-      why !== undefined
-        ? { role: e.role, text: e.text, why }
-        : { role: e.role, text: e.text },
-    );
+    // E4 — Reveal-Marker (Multi-Stimulus): kleine positive Ganzzahl, nur auf
+    // Agent-Turns. Speist Transkript-Marker (E7) und Forscher-Ansichten.
+    const shown =
+      e.role === "agent" &&
+      typeof e.shownStimulusPosition === "number" &&
+      Number.isInteger(e.shownStimulusPosition) &&
+      e.shownStimulusPosition >= 1
+        ? e.shownStimulusPosition
+        : undefined;
+    out.push({
+      role: e.role,
+      text: e.text,
+      ...(why !== undefined ? { why } : {}),
+      ...(shown !== undefined ? { shownStimulusPosition: shown } : {}),
+    });
   }
   return out;
 }

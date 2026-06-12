@@ -168,8 +168,16 @@ export default async function InterviewPage({
   // only, defensive (?? null), and the plan record already carries both fields
   // (Etappe 1). For post_loss / checkin (non-research) both stay null → the
   // chat renders its existing single-column layout, byte-identical.
-  const stimulusUrl = isResearch ? (plan?.stimulusUrl ?? null) : null;
-  const stimulusType = isResearch ? (plan?.stimulusType ?? null) : null;
+  // E5 Multi-Stimulus: das Set kommt aus dem SESSION-SNAPSHOT (public view),
+  // nie live vom Plan — Agent-Regie und Teilnehmer-Panel sehen damit garantiert
+  // dieselben Assets (R2/R6). Nicht-leer NUR für Set-Studien.
+  const stimulusSet = isResearch ? session.stimuli : [];
+  // Legacy-Single (O3: Verhaltensbruch vermeiden): NUR wenn kein Set existiert,
+  // wie bisher live vom Plan — statisches Panel ab Sekunde 1.
+  const stimulusUrl =
+    isResearch && stimulusSet.length === 0 ? (plan?.stimulusUrl ?? null) : null;
+  const stimulusType =
+    isResearch && stimulusSet.length === 0 ? (plan?.stimulusType ?? null) : null;
   const ttsProps = { ttsEnabled };
   const useCaseProps = { useCase };
 
@@ -267,6 +275,8 @@ export default async function InterviewPage({
         // chat). Both null for non-research / no-stimulus studies → unchanged.
         stimulusUrl={stimulusUrl}
         stimulusType={stimulusType}
+        // E5 Multi-Stimulus — Set-Panel mit Agent-Reveal; leer → Legacy-Pfad.
+        stimuli={stimulusSet}
         {...ttsProps}
         {...useCaseProps}
       />,
