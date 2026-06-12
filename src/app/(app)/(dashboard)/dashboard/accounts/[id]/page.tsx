@@ -234,7 +234,7 @@ export default async function AccountDetailPage({
               return (
                 <div
                   key={call.id}
-                  className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4"
+                  className="space-y-3 rounded-lg border border-neutral-200 bg-card p-4"
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div>

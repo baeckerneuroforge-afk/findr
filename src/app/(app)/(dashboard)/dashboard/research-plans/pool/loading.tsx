@@ -15,7 +15,7 @@ export default function ParticipantPoolLoading() {
         <Skeleton className="h-8 w-32 rounded-md" />
       </div>
 
-      <div className="rounded-card border border-neutral-200 bg-white shadow-card">
+      <div className="rounded-card border border-neutral-200 bg-card shadow-card">
         <div className="space-y-3 p-5">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />

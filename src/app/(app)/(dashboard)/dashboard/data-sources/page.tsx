@@ -214,7 +214,7 @@ export default async function DataSourcesPage() {
 
               <Link
                 href={source.href}
-                className="inline-flex h-9 items-center justify-center self-start rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-700"
+                className="inline-flex h-9 items-center justify-center self-start rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
               >
                 {source.cta}
               </Link>

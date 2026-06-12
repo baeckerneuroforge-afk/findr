@@ -147,7 +147,7 @@ export function BrandingSettingsForm() {
   const disabled = !isAdmin || loading;
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-5">
+    <div className="rounded-lg border border-neutral-200 bg-card p-5">
       <div className="mb-5">
         <h2 className="text-h2 text-neutral-900">{t("title")}</h2>
         <p className="mt-1 text-body text-neutral-500">{t("subtitle")}</p>
@@ -227,7 +227,7 @@ export function BrandingSettingsForm() {
             type="button"
             onClick={save}
             disabled={disabled || saving}
-            className="inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? t("saving") : t("save")}
           </button>

@@ -63,7 +63,7 @@ export function RiskHistoryChart({
 
   if (history.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-neutral-200 bg-white p-8 text-center text-body text-neutral-500">
+      <div className="rounded-lg border border-dashed border-neutral-200 bg-card p-8 text-center text-body text-neutral-500">
         {t("chartNoHistory")}
       </div>
     );
@@ -71,7 +71,7 @@ export function RiskHistoryChart({
 
   if (history.length === 1) {
     return (
-      <div className="rounded-lg border border-dashed border-neutral-200 bg-white p-8 text-center text-body text-neutral-500">
+      <div className="rounded-lg border border-dashed border-neutral-200 bg-card p-8 text-center text-body text-neutral-500">
         {t("chartOnePoint")}
       </div>
     );
@@ -98,7 +98,7 @@ export function RiskHistoryChart({
       : "text-neutral-500";
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-6">
+    <div className="rounded-lg border border-neutral-200 bg-card p-6">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
           <h3 className="text-h2 text-neutral-900">{resolvedTitle}</h3>
@@ -137,13 +137,13 @@ export function RiskHistoryChart({
                 y1={y}
                 x2={chartData.width - chartData.padding.right}
                 y2={y}
-                stroke="#e4e4e7"
+                className="stroke-neutral-200"
                 strokeWidth="1"
               />
               <text
                 x={chartData.padding.left - 8}
                 y={y + 4}
-                fill="#a1a1aa"
+                className="fill-neutral-400"
                 fontSize="10"
                 textAnchor="end"
               >
@@ -177,7 +177,7 @@ export function RiskHistoryChart({
         <path
           d={chartData.pathD}
           fill="none"
-          stroke="#4a51a8"
+          className="stroke-primary-600"
           strokeWidth="2"
         />
 
@@ -188,7 +188,7 @@ export function RiskHistoryChart({
               cy={point.y}
               r="4"
               fill={LEVEL_COLORS[point.level]}
-              stroke="#ffffff"
+              className="stroke-card"
               strokeWidth="2"
             />
             <title>
@@ -203,7 +203,7 @@ export function RiskHistoryChart({
             key={`${point.date}-${i}`}
             x={point.x}
             y={chartData.height - 8}
-            fill="#71717a"
+            className="fill-neutral-500"
             fontSize="10"
             textAnchor={
               i === 0 ? "start" : i === labels.length - 1 ? "end" : "middle"

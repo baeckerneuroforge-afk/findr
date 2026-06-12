@@ -116,6 +116,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const [index, setIndex] = useState<SearchIndex | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Portal-Ziel: das ThemeShell-Div (statt document.body), damit die
+  // Palette die .dark-Variablen des Dashboards erbt. Per Effect aufgelöst,
+  // weil document beim SSR nicht existiert; undefined = cmdk-Default.
+  const [portalContainer, setPortalContainer] = useState<HTMLElement>();
+  useEffect(() => {
+    setPortalContainer(
+      document.getElementById("findr-theme-shell") ?? undefined,
+    );
+  }, []);
 
   // Lazy session-cache hydration. Fires on the FIRST open; closing then
   // re-opening reuses the in-memory snapshot. A page navigation does NOT
@@ -178,8 +187,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       onOpenChange={onOpenChange}
       label={t("command.dialogLabel")}
       filter={paletteFilter}
-      overlayClassName="fixed inset-0 z-40 bg-neutral-900/40 backdrop-blur-sm"
-      contentClassName="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-2xl"
+      // Radix portalt den Dialog standardmäßig an document.body — das läge
+      // AUSSERHALB des .dark-Wrappers (ThemeShell) und die Palette bliebe im
+      // Dunkelmodus hell. Der Container verankert das Portal im Shell-Div.
+      container={portalContainer}
+      overlayClassName="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+      contentClassName="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border border-neutral-200 bg-card shadow-2xl"
     >
       <Command.Input
         placeholder={

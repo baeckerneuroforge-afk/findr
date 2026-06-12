@@ -23,7 +23,7 @@ export default function DashboardLoading() {
         <StatCardSkeleton />
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white">
+      <div className="rounded-lg border border-neutral-200 bg-card">
         <Skeleton className="m-5 h-5 w-40" />
         <DealRowSkeleton />
         <DealRowSkeleton />

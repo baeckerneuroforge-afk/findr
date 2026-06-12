@@ -17,7 +17,7 @@ export default function MarketResearchDetailLoading() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="rounded-lg border border-neutral-200 bg-card p-5">
         <Skeleton className="mb-4 h-6 w-32" />
         <Skeleton className="mb-4 h-16 w-full" />
         <div className="grid gap-4 md:grid-cols-2">
@@ -32,7 +32,7 @@ export default function MarketResearchDetailLoading() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="rounded-lg border border-neutral-200 bg-card p-5">
         <Skeleton className="mb-3 h-6 w-40" />
         <Skeleton className="mb-3 h-4 w-64" />
         <Skeleton className="h-2 w-full rounded-full" />
@@ -52,7 +52,7 @@ export default function MarketResearchDetailLoading() {
           <Skeleton className="mb-2 h-6 w-40" />
           <Skeleton className="h-4 w-80 max-w-full" />
         </div>
-        <div className="rounded-lg border border-neutral-200 bg-white">
+        <div className="rounded-lg border border-neutral-200 bg-card">
           <div className="flex gap-4 border-b border-neutral-200 p-4">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-4 w-24" />

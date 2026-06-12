@@ -53,7 +53,7 @@ export function AnalyzeButton({ dealId, hasScore }: AnalyzeButtonProps) {
         type="button"
         onClick={handleAnalyze}
         disabled={analyzing}
-        className="text-caption font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50 transition-colors"
+        className="text-caption font-medium text-primary-700 hover:text-primary-800 disabled:opacity-50 transition-colors"
       >
         {analyzing
           ? t("analyzingShort")

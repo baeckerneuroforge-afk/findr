@@ -115,7 +115,7 @@ function Select({
       aria-label={label}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-9 rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-700 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+      className="h-9 rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-700 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
     >
       {children}
     </select>
@@ -307,7 +307,7 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
           placeholder={t("searchPlaceholder")}
           value={search}
           onChange={(event) => updateSearch(event.target.value)}
-          className="h-9 min-w-[240px] flex-1 rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          className="h-9 min-w-[240px] flex-1 rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
         />
 
         <Select

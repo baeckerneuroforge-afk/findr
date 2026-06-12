@@ -50,7 +50,7 @@ export function LossReportPanel() {
   }).toString()}`;
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-5">
+    <div className="rounded-lg border border-neutral-200 bg-card p-5">
       <div className="mb-4">
         <h3 className="text-h3 text-neutral-900">{t("quarterlyTitle")}</h3>
         <p className="text-small text-neutral-500">{t("quarterlyDesc")}</p>
@@ -88,7 +88,7 @@ export function LossReportPanel() {
         <a
           href={pdfUrl}
           download
-          className="inline-flex h-8 items-center justify-center rounded-md border border-neutral-200 bg-white px-3 text-body-strong text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+          className="inline-flex h-8 items-center justify-center rounded-md border border-neutral-200 bg-card px-3 text-body-strong text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
         >
           {tc("downloadPdf")}
         </a>

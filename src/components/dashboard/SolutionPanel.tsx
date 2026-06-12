@@ -106,7 +106,7 @@ function SolutionReportView({ report }: { report: SolutionReport }) {
             {recommendations.map((rec, i) => (
               <div
                 key={i}
-                className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4"
+                className="space-y-3 rounded-lg border border-neutral-200 bg-card p-4"
               >
                 <span className="inline-block rounded-md border border-primary-200 bg-primary-50 px-1.5 py-0.5 text-caption font-medium text-primary-700">
                   {formatSignal(rec.signal)}
@@ -212,7 +212,7 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
             <a
               href={`/api/solution/${dealId}/pdf`}
               download
-              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-white px-3 text-body-strong font-medium text-neutral-900 transition-colors duration-150 hover:border-neutral-300 hover:bg-neutral-50"
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-card px-3 text-body-strong font-medium text-neutral-900 transition-colors duration-150 hover:border-neutral-300 hover:bg-neutral-50"
             >
               {tc("exportPdf")}
             </a>
@@ -248,7 +248,7 @@ export function SolutionPanel({ dealId, initialReport }: SolutionPanelProps) {
       )}
 
       {!report && !loading && !error && (
-        <div className="rounded-lg border border-dashed border-neutral-200 bg-white px-4 py-6 text-center text-small text-neutral-500">
+        <div className="rounded-lg border border-dashed border-neutral-200 bg-card px-4 py-6 text-center text-small text-neutral-500">
           {t("generatePrompt")}
         </div>
       )}

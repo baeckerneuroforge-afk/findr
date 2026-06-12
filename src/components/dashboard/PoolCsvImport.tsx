@@ -234,7 +234,7 @@ export function PoolCsvImport({
                 accept=".csv,text/csv,text/plain"
                 onChange={handleFileChange}
                 disabled={submitting}
-                className="block w-full text-small text-neutral-700 file:mr-3 file:rounded-md file:border file:border-neutral-200 file:bg-white file:px-3 file:py-1.5 file:text-small file:font-medium file:text-neutral-900 hover:file:bg-neutral-50 disabled:opacity-60"
+                className="block w-full text-small text-neutral-700 file:mr-3 file:rounded-md file:border file:border-neutral-200 file:bg-card file:px-3 file:py-1.5 file:text-small file:font-medium file:text-neutral-900 hover:file:bg-neutral-50 disabled:opacity-60"
               />
             </Field>
           ) : (

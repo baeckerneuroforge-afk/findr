@@ -134,7 +134,7 @@ export default async function MarketResearchOverviewPage({
           alten neutral-900-Sonderwegs — angeglichen an die Heute-Seite. */}
       <Link
         href="/dashboard/market-research/new"
-        className="inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-700"
+        className="inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
       >
         {t("newCampaign")}
       </Link>
@@ -224,7 +224,7 @@ export default async function MarketResearchOverviewPage({
   const chipActive =
     "border-primary-200 bg-primary-50 font-medium text-primary-700";
   const chipIdle =
-    "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900";
+    "border-neutral-200 bg-card text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900";
 
   return (
     <div className="space-y-8">

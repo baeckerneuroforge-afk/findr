@@ -16,7 +16,7 @@ export function DealRowSkeleton() {
 
 export function StatCardSkeleton() {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-5">
+    <div className="rounded-lg border border-neutral-200 bg-card p-5">
       <Skeleton className="mb-3 h-3 w-20" />
       <Skeleton className="h-8 w-16" />
     </div>
@@ -25,7 +25,7 @@ export function StatCardSkeleton() {
 
 export function ChartSkeleton() {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-6">
+    <div className="rounded-lg border border-neutral-200 bg-card p-6">
       <Skeleton className="mb-2 h-4 w-32" />
       <Skeleton className="mb-6 h-3 w-48" />
       <Skeleton className="h-32 w-full" />

@@ -111,7 +111,7 @@ export default async function ResearchPlansIndexPage() {
         </div>
         <Link
           href="/dashboard/research-plans/new"
-          className="inline-flex h-8 items-center justify-center rounded-md bg-neutral-900 px-3 text-body-strong font-medium text-white transition-colors hover:bg-neutral-700"
+          className="inline-flex h-8 items-center justify-center rounded-md bg-neutral-900 px-3 text-body-strong font-medium text-neutral-0 transition-colors hover:bg-neutral-700"
         >
           {t("newPlan")}
         </Link>

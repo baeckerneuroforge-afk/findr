@@ -15,7 +15,7 @@ export function ErrorState({ title, message, onRetry }: ErrorStateProps) {
 
   return (
     <div className="flex flex-col items-center rounded-lg border border-danger-500/30 bg-danger-50 p-8 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-danger-500/30 bg-white text-danger-500">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-danger-500/30 bg-card text-danger-500">
         <svg
           className="h-6 w-6"
           viewBox="0 0 24 24"
@@ -39,7 +39,7 @@ export function ErrorState({ title, message, onRetry }: ErrorStateProps) {
         <button
           type="button"
           onClick={onRetry}
-          className="mt-6 inline-flex h-8 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-body-strong font-medium text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+          className="mt-6 inline-flex h-8 items-center gap-2 rounded-md border border-neutral-200 bg-card px-3 text-body-strong font-medium text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
         >
           <svg
             className="h-4 w-4"

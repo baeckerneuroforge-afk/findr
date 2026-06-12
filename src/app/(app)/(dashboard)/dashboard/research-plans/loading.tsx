@@ -11,12 +11,12 @@ export default function ResearchPlansLoading() {
         <Skeleton className="h-8 w-24 rounded-md" />
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-6">
+      <div className="rounded-lg border border-neutral-200 bg-card p-6">
         <Skeleton className="mb-4 h-6 w-48" />
         <Skeleton className="h-16 w-full rounded-md" />
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white">
+      <div className="rounded-lg border border-neutral-200 bg-card">
         <div className="border-b border-neutral-200 bg-neutral-50 px-6 py-3">
           <div className="grid grid-cols-5 gap-4">
             <Skeleton className="h-4 w-20" />

@@ -83,7 +83,7 @@ export function TranscriptImport({ dealId, onAdded }: TranscriptImportProps) {
           <input
             value={callType}
             onChange={(event) => setCallType(event.target.value)}
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />
         </label>
@@ -95,7 +95,7 @@ export function TranscriptImport({ dealId, onAdded }: TranscriptImportProps) {
             type="date"
             value={recordedAt}
             onChange={(event) => setRecordedAt(event.target.value)}
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />
         </label>
@@ -109,7 +109,7 @@ export function TranscriptImport({ dealId, onAdded }: TranscriptImportProps) {
               onChange={(event) => setDurationMinutes(event.target.value)}
               inputMode="numeric"
               placeholder="45"
-              className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+              className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
               disabled={submitting}
             />
             <span className="text-small text-neutral-500">min</span>
@@ -134,7 +134,7 @@ export function TranscriptImport({ dealId, onAdded }: TranscriptImportProps) {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="inline-flex h-8 items-center justify-center rounded-md border border-neutral-200 bg-white px-3 text-body-strong text-neutral-700 transition-colors hover:bg-neutral-50"
+            className="inline-flex h-8 items-center justify-center rounded-md border border-neutral-200 bg-card px-3 text-body-strong text-neutral-700 transition-colors hover:bg-neutral-50"
           >
             Import .txt
           </button>
@@ -153,7 +153,7 @@ export function TranscriptImport({ dealId, onAdded }: TranscriptImportProps) {
           onChange={(event) => setTranscript(event.target.value)}
           placeholder="Paste your call transcript here..."
           rows={14}
-          className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-3 text-body leading-relaxed text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+          className="w-full rounded-lg border border-neutral-200 bg-card px-3 py-3 text-body leading-relaxed text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
           disabled={submitting}
         />
       </div>
@@ -167,7 +167,7 @@ export function TranscriptImport({ dealId, onAdded }: TranscriptImportProps) {
       <button
         type="submit"
         disabled={submitting || !transcript.trim()}
-        className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {submitting ? "Adding transcript..." : "Add transcript"}
       </button>

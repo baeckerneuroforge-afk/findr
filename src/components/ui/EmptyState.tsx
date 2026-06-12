@@ -27,7 +27,7 @@ export function EmptyState({
   const visibleAction = action ?? cta;
   const container =
     variant === "default"
-      ? "rounded-card border border-dashed border-neutral-200 bg-white p-12 text-center"
+      ? "rounded-card border border-dashed border-neutral-200 bg-card p-12 text-center"
       : "p-8 text-center";
 
   return (
@@ -45,7 +45,7 @@ export function EmptyState({
         ("href" in visibleAction && visibleAction.href ? (
           <Link
             href={visibleAction.href}
-            className="mt-6 inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-700"
+            className="mt-6 inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
           >
             {visibleAction.label}
           </Link>
@@ -53,7 +53,7 @@ export function EmptyState({
           <button
             type="button"
             onClick={visibleAction.onClick}
-            className="mt-6 inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-700"
+            className="mt-6 inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
           >
             {visibleAction.label}
           </button>

@@ -22,7 +22,7 @@ export function StatCard({
   status = "default",
 }: StatCardProps) {
   return (
-    <div className="bg-white border border-neutral-200 rounded-card shadow-card p-5">
+    <div className="bg-card border border-neutral-200 rounded-card shadow-card p-5">
       <div className="mb-2 flex items-center gap-1.5 text-caption font-medium uppercase tracking-wider text-neutral-500">
         {label}
       </div>

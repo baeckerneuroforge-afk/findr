@@ -90,7 +90,7 @@ export function DataPrivacyPanel({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-neutral-200 bg-white p-5">
+      <section className="rounded-lg border border-neutral-200 bg-card p-5">
         <h2 className="text-h2 text-neutral-900">{t("data.exportHeading")}</h2>
         <p className="mt-1 max-w-2xl text-body text-neutral-500">
           {t("data.exportDesc")}
@@ -99,7 +99,7 @@ export function DataPrivacyPanel({
           href="/api/settings/export"
           className={`mt-5 inline-flex h-8 items-center justify-center rounded-md px-3 text-body-strong font-medium transition-colors ${
             isAdmin
-              ? "bg-primary-600 text-white hover:bg-primary-700"
+              ? "bg-primary-600 text-white hover:bg-primary-hover"
               : "pointer-events-none bg-neutral-100 text-neutral-400"
           }`}
           aria-disabled={!isAdmin}
@@ -113,14 +113,14 @@ export function DataPrivacyPanel({
         )}
       </section>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-5">
+      <section className="rounded-lg border border-neutral-200 bg-card p-5">
         <h2 className="text-h2 text-neutral-900">{t("data.gdprHeading")}</h2>
         <p className="mt-1 max-w-2xl text-body text-neutral-500">
           {t("data.gdprBody")}
         </p>
       </section>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-5">
+      <section className="rounded-lg border border-neutral-200 bg-card p-5">
         <h2 className="text-h2 text-neutral-900">
           {t("data.retentionHeading")}
         </h2>
@@ -145,14 +145,14 @@ export function DataPrivacyPanel({
               value={retentionInput}
               onChange={(event) => setRetentionInput(event.target.value)}
               disabled={!isAdmin || savingRetention}
-              className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors disabled:bg-neutral-50 disabled:text-neutral-500 focus:border-primary-600 focus:ring-2 focus:ring-primary-600/10"
+              className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors disabled:bg-neutral-50 disabled:text-neutral-500 focus:border-primary-600 focus:ring-2 focus:ring-primary-600/10"
             />
           </div>
           <button
             type="button"
             onClick={handleSaveRetention}
             disabled={!isAdmin || savingRetention}
-            className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {savingRetention
               ? t("data.retentionSaving")
@@ -172,7 +172,7 @@ export function DataPrivacyPanel({
         )}
       </section>
 
-      <section className="rounded-lg border border-danger-500/20 bg-white p-5">
+      <section className="rounded-lg border border-danger-500/20 bg-card p-5">
         <h2 className="text-h2 text-danger-700">{t("data.deleteHeading")}</h2>
         <p className="mt-1 max-w-2xl text-body text-neutral-500">
           {t("data.deleteDesc")}
@@ -190,7 +190,7 @@ export function DataPrivacyPanel({
             value={confirmationName}
             onChange={(event) => setConfirmationName(event.target.value)}
             disabled={!isAdmin || deleting}
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors disabled:bg-neutral-50 disabled:text-neutral-500 focus:border-danger-500 focus:ring-2 focus:ring-danger-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors disabled:bg-neutral-50 disabled:text-neutral-500 focus:border-danger-500 focus:ring-2 focus:ring-danger-500/10"
           />
         </div>
 

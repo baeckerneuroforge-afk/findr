@@ -47,7 +47,7 @@ export function OrganizationSettingsForm() {
 
   if (!isLoaded) {
     return (
-      <div className="rounded-lg border border-neutral-200 bg-white p-5 text-body text-neutral-500">
+      <div className="rounded-lg border border-neutral-200 bg-card p-5 text-body text-neutral-500">
         {t("orgForm.loading")}
       </div>
     );
@@ -55,7 +55,7 @@ export function OrganizationSettingsForm() {
 
   if (!organization) {
     return (
-      <div className="rounded-lg border border-neutral-200 bg-white p-5 text-body text-neutral-500">
+      <div className="rounded-lg border border-neutral-200 bg-card p-5 text-body text-neutral-500">
         {t("orgForm.noActiveOrg")}
       </div>
     );
@@ -63,7 +63,7 @@ export function OrganizationSettingsForm() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="rounded-lg border border-neutral-200 bg-card p-5">
         <div className="mb-5">
           <h2 className="text-h2 text-neutral-900">
             {t("orgForm.profileHeading")}
@@ -86,7 +86,7 @@ export function OrganizationSettingsForm() {
               value={name}
               onChange={(event) => setName(event.target.value)}
               disabled={!isAdmin || saving}
-              className="h-9 w-full max-w-md rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors disabled:bg-neutral-50 disabled:text-neutral-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+              className="h-9 w-full max-w-md rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors disabled:bg-neutral-50 disabled:text-neutral-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             />
             {!isAdmin && (
               <p className="mt-2 text-small text-neutral-500">
@@ -123,7 +123,7 @@ export function OrganizationSettingsForm() {
               type="button"
               onClick={handleSave}
               disabled={saving || !name.trim()}
-              className="inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? t("orgForm.saving") : t("orgForm.save")}
             </button>

@@ -28,7 +28,7 @@ export default async function SettingsLayout({
         <p className="mt-1 text-body text-neutral-500">{t("subtitle")}</p>
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white">
+      <div className="rounded-lg border border-neutral-200 bg-card">
         <SettingsNav />
         <div className="p-5">{children}</div>
       </div>

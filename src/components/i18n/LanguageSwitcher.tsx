@@ -59,7 +59,7 @@ export function LanguageSwitcher({
             aria-label={labels[loc]}
             className={`rounded px-2 py-1 text-caption font-medium uppercase tracking-wider transition-colors disabled:opacity-60 ${
               isActive
-                ? "bg-white text-neutral-900 shadow-sm"
+                ? "bg-card text-neutral-900 shadow-sm"
                 : "text-neutral-500 hover:text-neutral-900"
             }`}
           >
@@ -72,7 +72,7 @@ export function LanguageSwitcher({
 
   if (variant === "settings") {
     return (
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-neutral-200 bg-card p-5">
         <div>
           <div className="text-body-strong text-neutral-900">
             {t("language")}

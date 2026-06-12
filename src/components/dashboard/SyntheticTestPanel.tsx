@@ -305,7 +305,7 @@ export function SyntheticTestPanel({
                     className={`px-3 py-1.5 text-small transition-colors ${
                       language === lang
                         ? "bg-primary-600 text-white"
-                        : "bg-white text-neutral-700 hover:bg-neutral-50"
+                        : "bg-card text-neutral-700 hover:bg-neutral-50"
                     }`}
                   >
                     {lang === "de" ? t("langDe") : t("langEn")}

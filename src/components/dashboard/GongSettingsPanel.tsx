@@ -144,7 +144,7 @@ export function GongSettingsPanel({
           {configured ? (
             <a
               href="/api/integrations/gong/connect"
-              className="inline-flex h-8 items-center justify-center rounded-md bg-neutral-900 px-3 text-body-strong font-medium text-white transition-colors hover:bg-neutral-700"
+              className="inline-flex h-8 items-center justify-center rounded-md bg-neutral-900 px-3 text-body-strong font-medium text-neutral-0 transition-colors hover:bg-neutral-700"
             >
               Connect Gong
             </a>
@@ -202,7 +202,7 @@ export function GongSettingsPanel({
           {configured ? (
             <a
               href="/api/integrations/gong/connect"
-              className="inline-flex h-8 items-center justify-center rounded-md border border-neutral-200 bg-white px-3 text-body-strong font-medium text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-neutral-200 bg-card px-3 text-body-strong font-medium text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
             >
               Reconnect
             </a>

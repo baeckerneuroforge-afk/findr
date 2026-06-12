@@ -479,6 +479,10 @@
     "language": "Language",
     "languageGerman": "German",
     "languageEnglish": "English",
+    "theme": "Appearance",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
     "onboarding": {
       "eyebrow": "First run setup",
       "title": "Make Findr useful in a few minutes",

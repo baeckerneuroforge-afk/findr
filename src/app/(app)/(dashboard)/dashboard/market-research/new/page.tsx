@@ -116,7 +116,7 @@ export default async function NewMarketCampaignPage() {
           href="#leitfaden"
           className="relative rounded-lg border border-primary-200 bg-gradient-to-b from-primary-50 to-white p-5 shadow-sm outline-none transition-all hover:border-primary-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary-500/40 motion-safe:hover:-translate-y-0.5"
         >
-          <span className="absolute right-4 top-4 rounded-full border border-primary-200 bg-white px-2 py-0.5 text-caption font-medium leading-none text-primary-700">
+          <span className="absolute right-4 top-4 rounded-full border border-primary-200 bg-card px-2 py-0.5 text-caption font-medium leading-none text-primary-700">
             {t("startAiBadge")}
           </span>
           <span className="flex items-center gap-2 pr-24 text-body-strong text-neutral-900">
@@ -132,7 +132,7 @@ export default async function NewMarketCampaignPage() {
         </a>
         <a
           href="#grundlagen"
-          className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm outline-none transition-all hover:border-neutral-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary-500/40 motion-safe:hover:-translate-y-0.5"
+          className="rounded-lg border border-neutral-200 bg-card p-5 shadow-sm outline-none transition-all hover:border-neutral-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary-500/40 motion-safe:hover:-translate-y-0.5"
         >
           <span className="flex items-center gap-2 text-body-strong text-neutral-900">
             <PencilIcon />

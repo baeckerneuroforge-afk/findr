@@ -140,7 +140,7 @@ function ToastViewport({
         <div
           key={item.id}
           role="status"
-          className={`animate-console-rise pointer-events-auto flex max-w-sm items-center gap-2.5 rounded-lg border border-neutral-200 bg-white py-3 pl-4 pr-2 shadow-lg transition-[opacity,transform] duration-200 motion-reduce:transition-none ${
+          className={`animate-console-rise pointer-events-auto flex max-w-sm items-center gap-2.5 rounded-lg border border-neutral-200 bg-card py-3 pl-4 pr-2 shadow-lg transition-[opacity,transform] duration-200 motion-reduce:transition-none ${
             item.leaving ? "translate-y-1 opacity-0" : ""
           }`}
         >

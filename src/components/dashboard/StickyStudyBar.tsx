@@ -53,7 +53,7 @@ export function StickyStudyBar({
     <div
       inert={!show}
       aria-hidden={!show}
-      className={`fixed left-60 right-0 top-14 z-20 border-b border-neutral-200 bg-white/95 backdrop-blur transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${
+      className={`fixed left-60 right-0 top-14 z-20 border-b border-neutral-200 bg-card/95 backdrop-blur transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${
         show
           ? "translate-y-0 opacity-100 pointer-events-auto"
           : "-translate-y-2 opacity-0 pointer-events-none"
@@ -74,7 +74,7 @@ export function StickyStudyBar({
         <span className="flex-1" />
         <Link
           href={ctaHref}
-          className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary-600 px-3 text-small font-medium text-white transition-colors hover:bg-primary-700"
+          className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary-600 px-3 text-small font-medium text-white transition-colors hover:bg-primary-hover"
         >
           {ctaLabel}
         </Link>

@@ -55,7 +55,7 @@ export default function ProductDiscoveryLoading() {
           <Skeleton className="mb-3 h-7 w-52" />
           <Skeleton className="h-5 w-80 max-w-full" />
         </div>
-        <div className="rounded-lg border border-neutral-200 bg-white">
+        <div className="rounded-lg border border-neutral-200 bg-card">
           <Skeleton className="m-5 h-5 w-32" />
           <div className="space-y-3 p-5 pt-0">
             <Skeleton className="h-12 w-full" />

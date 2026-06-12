@@ -91,7 +91,7 @@ export function CoachingDashboard({ profiles }: CoachingDashboardProps) {
         return (
           <div
             key={profile.repName}
-            className="overflow-hidden rounded-lg border border-neutral-200 bg-white"
+            className="overflow-hidden rounded-lg border border-neutral-200 bg-card"
           >
             <button
               type="button"

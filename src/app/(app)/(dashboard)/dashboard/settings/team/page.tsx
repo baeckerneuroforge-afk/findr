@@ -21,7 +21,7 @@ export default async function TeamSettingsPage() {
           appearance={findrDashboardClerkAppearance}
         />
       ) : (
-        <div className="rounded-lg border border-neutral-200 bg-white p-5 text-body text-neutral-500">
+        <div className="rounded-lg border border-neutral-200 bg-card p-5 text-body text-neutral-500">
           {t("team.adminOnly")}
         </div>
       )}

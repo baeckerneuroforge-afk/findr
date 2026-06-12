@@ -77,7 +77,7 @@ export function CallDetail({ call }: CallDetailProps) {
       : call.transcript_segments;
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-6">
+    <div className="rounded-lg border border-neutral-200 bg-card p-6">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -160,7 +160,7 @@ export function CallDetail({ call }: CallDetailProps) {
                   className={`rounded-lg border p-3 ${
                     hasSignals
                       ? "border-danger-500/30 bg-danger-50/40"
-                      : "border-neutral-200 bg-white"
+                      : "border-neutral-200 bg-card"
                   }`}
                 >
                   <div className="mb-1 flex items-start justify-between gap-2">

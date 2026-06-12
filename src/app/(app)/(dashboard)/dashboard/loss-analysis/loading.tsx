@@ -14,7 +14,7 @@ export default function LossAnalysisLoading() {
         <StatCardSkeleton />
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="rounded-lg border border-neutral-200 bg-card p-5">
         <Skeleton className="mb-4 h-6 w-40" />
         <div className="space-y-3">
           <Skeleton className="h-12 w-full" />
@@ -22,7 +22,7 @@ export default function LossAnalysisLoading() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="rounded-lg border border-neutral-200 bg-card p-5">
         <Skeleton className="mb-4 h-6 w-48" />
         <Skeleton className="mb-4 h-5 w-80 max-w-full" />
         <div className="space-y-2">
@@ -47,7 +47,7 @@ export default function LossAnalysisLoading() {
           <Skeleton className="mb-1 h-6 w-48" />
           <Skeleton className="h-5 w-80 max-w-full" />
         </div>
-        <div className="rounded-lg border border-neutral-200 bg-white">
+        <div className="rounded-lg border border-neutral-200 bg-card">
           <div className="space-y-3 p-5">
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />

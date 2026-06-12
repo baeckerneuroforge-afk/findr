@@ -2,6 +2,7 @@ import { UserProfile } from "@clerk/nextjs";
 import { getTranslations } from "next-intl/server";
 import { findrDashboardClerkAppearance } from "@/lib/clerk/dashboard-appearance";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 
 export default async function ProfileSettingsPage() {
   const t = await getTranslations("settings");
@@ -15,6 +16,7 @@ export default async function ProfileSettingsPage() {
         </p>
       </div>
       <LanguageSwitcher variant="settings" />
+      <ThemeSwitcher variant="settings" />
       <UserProfile routing="hash" appearance={findrDashboardClerkAppearance} />
     </div>
   );

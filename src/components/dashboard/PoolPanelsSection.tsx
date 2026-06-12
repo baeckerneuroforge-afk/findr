@@ -77,7 +77,7 @@ export async function PoolPanelsSection({
               <div>
                 <Link
                   href="/dashboard/integrations/prolific"
-                  className="inline-flex items-center rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-900 transition-colors hover:bg-neutral-50"
+                  className="inline-flex items-center rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-small font-medium text-neutral-900 transition-colors hover:bg-neutral-50"
                 >
                   {connected ? t("manage") : t("connect")}
                 </Link>

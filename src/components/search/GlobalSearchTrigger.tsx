@@ -46,7 +46,7 @@ export function GlobalSearchTrigger({ onClick }: GlobalSearchTriggerProps) {
     >
       <SearchIcon />
       <span className="flex-1 text-left">{t("triggerPlaceholder")}</span>
-      <kbd className="hidden items-center gap-0.5 rounded border border-neutral-200 bg-white px-1.5 py-0.5 text-caption font-medium text-neutral-500 sm:inline-flex">
+      <kbd className="hidden items-center gap-0.5 rounded border border-neutral-200 bg-card px-1.5 py-0.5 text-caption font-medium text-neutral-500 sm:inline-flex">
         ⌘K
       </kbd>
     </button>

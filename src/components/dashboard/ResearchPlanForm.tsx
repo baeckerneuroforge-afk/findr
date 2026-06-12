@@ -1189,7 +1189,7 @@ export function ResearchPlanForm({
                     className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-small outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
                       selected
                         ? "border-primary-200 bg-primary-50 font-medium text-primary-700"
-                        : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
+                        : "border-neutral-200 bg-card text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
                     }`}
                   >
                     {t(meta.titleKey)}
@@ -1273,7 +1273,7 @@ export function ResearchPlanForm({
             the hint sets the expectation that it only helps when participants
             demonstrate on-screen. Writes `visualCaptureEnabled` (exact key) in
             the submit body; the backend flag + interview-gate already exist. */}
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+        <div className="rounded-lg border border-neutral-200 bg-card p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <span className="block text-body-strong text-neutral-900">
@@ -1305,7 +1305,7 @@ export function ResearchPlanForm({
                 }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                  className={`inline-block h-5 w-5 transform rounded-full bg-card shadow-sm transition-transform ${
                     form.visualCaptureEnabled
                       ? "translate-x-5"
                       : "translate-x-0.5"
@@ -1347,7 +1347,7 @@ export function ResearchPlanForm({
             research-Completion-Pfad, nicht am Studientyp. Schreibt
             `signalsEnabled` (exact key) in den Submit-Body; Backend-Flag +
             Sidecar-Gates (signals_enabled, Consent-Stempel) existieren (E1). */}
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+        <div className="rounded-lg border border-neutral-200 bg-card p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <span className="block text-body-strong text-neutral-900">
@@ -1373,7 +1373,7 @@ export function ResearchPlanForm({
                 }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                  className={`inline-block h-5 w-5 transform rounded-full bg-card shadow-sm transition-transform ${
                     form.signalsEnabled ? "translate-x-5" : "translate-x-0.5"
                   }`}
                 />
@@ -1390,7 +1390,7 @@ export function ResearchPlanForm({
             Feld und reist beim Speichern im Body mit. Auf dem Discovery-Pfad
             ist needsStimulus immer false → der Block rendert dort nie. */}
         {needsStimulus && (
-          <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="rounded-lg border border-neutral-200 bg-card p-4">
             <div className="min-w-0">
               <span className="block text-body-strong text-neutral-900">
                 {t("stimulusSectionTitle")}
@@ -1426,7 +1426,7 @@ export function ResearchPlanForm({
                         <img
                           src={item.url}
                           alt={t("stimulusThumbAlt")}
-                          className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
+                          className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-card object-contain p-1"
                         />
                       ) : item.type === "video" ? (
                         // Stumme Mini-Vorschau (erstes Frame via preload) — die
@@ -1437,7 +1437,7 @@ export function ResearchPlanForm({
                           playsInline
                           preload="metadata"
                           aria-label={t("stimulusThumbAlt")}
-                          className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
+                          className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-card object-contain p-1"
                         />
                       ) : (
                         <a
@@ -1503,7 +1503,7 @@ export function ResearchPlanForm({
                           }
                           aria-label={t("stimulusMoveUp")}
                           title={t("stimulusMoveUp")}
-                          className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-40"
+                          className="rounded-md border border-neutral-200 bg-card px-2 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-40"
                         >
                           ↑
                         </button>
@@ -1519,7 +1519,7 @@ export function ResearchPlanForm({
                           }
                           aria-label={t("stimulusMoveDown")}
                           title={t("stimulusMoveDown")}
-                          className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-40"
+                          className="rounded-md border border-neutral-200 bg-card px-2 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-40"
                         >
                           ↓
                         </button>
@@ -1527,7 +1527,7 @@ export function ResearchPlanForm({
                           type="button"
                           onClick={() => handleStimulusRemove(item)}
                           disabled={stimulusBusy || submitting || generating}
-                          className="rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-50"
+                          className="rounded-md border border-neutral-200 bg-card px-2.5 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-50"
                         >
                           {t("stimulusRemove")}
                         </button>
@@ -1710,7 +1710,7 @@ export function ResearchPlanForm({
             Entscheidung, keine Detaileinstellung. voiceAvailable=false
             (LiveKit-Env fehlt) deaktiviert die Voice-Karte, damit keine Studie
             entsteht, die beim Teilnehmer mit 503 scheitert. */}
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+        <div className="rounded-lg border border-neutral-200 bg-card p-4">
           <span className="block text-body-strong text-neutral-900">
             {t("fldInteractionMode")}
           </span>
@@ -1731,7 +1731,7 @@ export function ResearchPlanForm({
               className={`rounded-lg border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
                 !form.voiceEnabled
                   ? "border-primary-200 bg-primary-50"
-                  : "border-neutral-200 bg-white hover:border-neutral-300"
+                  : "border-neutral-200 bg-card hover:border-neutral-300"
               }`}
             >
               <span
@@ -1755,7 +1755,7 @@ export function ResearchPlanForm({
               className={`rounded-lg border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
                 form.voiceEnabled
                   ? "border-primary-200 bg-primary-50"
-                  : "border-neutral-200 bg-white hover:border-neutral-300"
+                  : "border-neutral-200 bg-card hover:border-neutral-300"
               }`}
             >
               <span
@@ -1785,7 +1785,7 @@ export function ResearchPlanForm({
             Backend-Flag + die /speak-Route existieren bereits — dieses
             Formular füllt nur den Wert. */}
         {!form.voiceEnabled && (
-          <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="rounded-lg border border-neutral-200 bg-card p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <span className="block text-body-strong text-neutral-900">
@@ -1811,7 +1811,7 @@ export function ResearchPlanForm({
                   }`}
                 >
                   <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                    className={`inline-block h-5 w-5 transform rounded-full bg-card shadow-sm transition-transform ${
                       form.ttsEnabled ? "translate-x-5" : "translate-x-0.5"
                     }`}
                   />
@@ -1962,7 +1962,7 @@ export function ResearchPlanForm({
                   {lastGuide.topics.map((topic) => (
                     <li
                       key={topic.id}
-                      className="rounded-md border border-neutral-200 bg-white p-3"
+                      className="rounded-md border border-neutral-200 bg-card p-3"
                     >
                       <p className="text-small font-medium text-neutral-900">
                         {topic.label}
@@ -2002,7 +2002,7 @@ export function ResearchPlanForm({
                   {t("previewParticipantTitle")}
                 </p>
                 <div className="overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 shadow-sm">
-                  <div className="flex items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2">
+                  <div className="flex items-center gap-2 border-b border-neutral-200 bg-card px-3 py-2">
                     <span
                       className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-600 text-caption font-semibold text-white"
                       aria-hidden="true"
@@ -2014,11 +2014,11 @@ export function ResearchPlanForm({
                     </span>
                   </div>
                   <div className="space-y-2.5 px-3 py-4">
-                    <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-neutral-200 bg-white px-3 py-2 text-small text-neutral-700">
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-neutral-200 bg-card px-3 py-2 text-small text-neutral-700">
                       {t("previewGreeting")}
                     </div>
                     {lastGuide.topics[0]?.mainQuestion && (
-                      <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-neutral-200 bg-white px-3 py-2 text-small text-neutral-800">
+                      <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-neutral-200 bg-card px-3 py-2 text-small text-neutral-800">
                         {lastGuide.topics[0].mainQuestion}
                       </div>
                     )}
@@ -2029,7 +2029,7 @@ export function ResearchPlanForm({
                       <span className="block">{t("previewExampleProbe")}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 border-t border-neutral-200 bg-white px-3 py-2">
+                  <div className="flex items-center gap-2 border-t border-neutral-200 bg-card px-3 py-2">
                     <span className="flex-1 truncate rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-caption text-neutral-400">
                       {t("previewAnswerPlaceholder")}
                     </span>

@@ -263,7 +263,7 @@ export function SalesHandoverPanel({
             type="button"
             onClick={handleScan}
             disabled={scanning || busyId !== null}
-            className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
+            className="shrink-0 rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
           >
             {scanning ? t("scanning") : t("shScan")}
           </button>
@@ -351,7 +351,7 @@ export function SalesHandoverPanel({
                         type="button"
                         onClick={() => handleApprove(s)}
                         disabled={busyId !== null || scanning}
-                        className="w-44 rounded-md border border-primary-600 bg-primary-600 px-3 py-1.5 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:opacity-50"
+                        className="w-44 rounded-md border border-primary-600 bg-primary-600 px-3 py-1.5 text-small font-medium text-white transition-colors hover:border-primary-hover hover:bg-primary-hover disabled:opacity-50"
                       >
                         {busyId === s.id ? t("shApproving") : t("shAdopt")}
                       </button>
@@ -359,7 +359,7 @@ export function SalesHandoverPanel({
                         type="button"
                         onClick={() => handleDismiss(s)}
                         disabled={busyId !== null || scanning}
-                        className="w-44 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
+                        className="w-44 rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
                       >
                         {t("dismiss")}
                       </button>

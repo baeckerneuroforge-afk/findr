@@ -172,7 +172,7 @@ export function CrossStudyAgentPanel({ studies }: CrossStudyAgentPanelProps) {
               type="button"
               onClick={handleReset}
               disabled={loading}
-              className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-caption font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
+              className="shrink-0 rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-caption font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
             >
               {t("clear")}
             </button>
@@ -250,7 +250,7 @@ export function CrossStudyAgentPanel({ studies }: CrossStudyAgentPanelProps) {
                 placeholder={t("placeholder")}
                 rows={3}
                 disabled={loading}
-                className="block w-full resize-y rounded-md border border-neutral-200 bg-white px-3 py-2 text-body text-neutral-900 placeholder:text-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
+                className="block w-full resize-y rounded-md border border-neutral-200 bg-card px-3 py-2 text-body text-neutral-900 placeholder:text-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
               />
               <div className="flex items-center justify-between gap-3">
                 {error ? (
@@ -265,7 +265,7 @@ export function CrossStudyAgentPanel({ studies }: CrossStudyAgentPanelProps) {
                 <button
                   type="submit"
                   disabled={loading || question.trim() === ""}
-                  className="shrink-0 rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="shrink-0 rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-small font-medium text-white transition-colors hover:border-primary-hover hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? t("submitting") : t("submit")}
                 </button>
@@ -372,7 +372,7 @@ function RefusalBlock({
   refusalLabel: string;
 }) {
   return (
-    <div className="rounded-md border border-neutral-200 bg-white p-3">
+    <div className="rounded-md border border-neutral-200 bg-card p-3">
       <div className="mb-1 text-caption font-medium uppercase tracking-wider text-neutral-500">
         {refusalLabel}
       </div>

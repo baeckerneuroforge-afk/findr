@@ -14,7 +14,7 @@ interface SlackSettingsFormProps {
 }
 
 const INPUT_BASE =
-  "w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-body text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors";
+  "w-full rounded-md border border-neutral-200 bg-card px-3 py-2 text-body text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors";
 
 /** The validation-message keys SlackIntegrationConfigSchema can emit (the
  *  messageKey->t() pattern). A Zod fieldError whose first message is in this
@@ -157,7 +157,7 @@ export function SlackSettingsForm({
         </ol>
       </div>
 
-      <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="space-y-4 rounded-lg border border-neutral-200 bg-card p-5">
         <div>
           <h3 className="text-h3 text-neutral-900">
             {t("webhookConfigTitle")}
@@ -225,7 +225,7 @@ export function SlackSettingsForm({
         </label>
       </div>
 
-      <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="space-y-4 rounded-lg border border-neutral-200 bg-card p-5">
         <div>
           <h3 className="text-h3 text-neutral-900">{t("alertTypesTitle")}</h3>
           <p className="text-small text-neutral-500">{t("alertTypesDesc")}</p>
@@ -302,7 +302,7 @@ export function SlackSettingsForm({
         </ToggleRow>
       </div>
 
-      <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="space-y-4 rounded-lg border border-neutral-200 bg-card p-5">
         <div>
           <h3 className="text-h3 text-neutral-900">{t("quietHoursTitle")}</h3>
           <p className="text-small text-neutral-500">{t("quietHoursDesc")}</p>

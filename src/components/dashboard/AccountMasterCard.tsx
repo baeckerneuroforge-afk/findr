@@ -34,7 +34,7 @@ interface AccountMasterCardProps {
 }
 
 const INPUT_CLASS =
-  "h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 disabled:opacity-60";
+  "h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 disabled:opacity-60";
 
 function formatDate(date: string | null, locale: string): string {
   if (!date) return "—";

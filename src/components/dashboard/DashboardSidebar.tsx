@@ -460,7 +460,7 @@ export default function DashboardSidebar() {
   }, [reducedMotion, pathname, openGroups]);
 
   return (
-    <aside className="fixed inset-y-0 left-0 flex w-60 flex-col border-r border-neutral-200 bg-white">
+    <aside className="fixed inset-y-0 left-0 flex w-60 flex-col border-r border-neutral-200 bg-card">
       {/* Logo */}
       <div className="flex h-14 items-center border-b border-neutral-200 px-6">
         <Link

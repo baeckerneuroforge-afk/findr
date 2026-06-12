@@ -14,7 +14,7 @@ export default function DataSourcesLoading() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-lg border border-neutral-200 bg-white p-6"
+            className="rounded-lg border border-neutral-200 bg-card p-6"
           >
             <div className="flex items-start gap-4">
               <Skeleton className="h-10 w-10 rounded-md" />

@@ -16,7 +16,7 @@ export default function DealDetailLoading() {
 
       <ChartSkeleton />
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-6">
+      <div className="rounded-lg border border-neutral-200 bg-card p-6">
         <Skeleton className="mb-4 h-8 w-28" />
         <Skeleton className="mb-3 h-4 w-64" />
         <Skeleton className="h-20 w-full rounded-lg" />

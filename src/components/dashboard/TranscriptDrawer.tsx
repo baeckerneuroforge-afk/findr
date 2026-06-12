@@ -58,7 +58,7 @@ export function TranscriptDrawer({
       <div
         aria-hidden="true"
         onClick={() => router.back()}
-        className={`absolute inset-0 bg-neutral-900/35 transition-opacity duration-200 motion-reduce:transition-none ${
+        className={`absolute inset-0 bg-black/35 transition-opacity duration-200 motion-reduce:transition-none ${
           open ? "opacity-100" : "opacity-0"
         }`}
       />
@@ -67,7 +67,7 @@ export function TranscriptDrawer({
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-neutral-200 bg-white px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-neutral-200 bg-card px-5 py-4">
           <div className="min-w-0">
             <h2 className="text-h2 text-neutral-900">{title}</h2>
             <p className="mt-0.5 truncate text-small text-neutral-500">

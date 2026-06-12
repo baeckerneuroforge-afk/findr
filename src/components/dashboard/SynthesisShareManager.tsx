@@ -169,7 +169,7 @@ export function SynthesisShareManager({
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as Locale)}
-                className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-small text-neutral-900 focus:border-primary-500 focus:outline-none"
+                className="rounded-md border border-neutral-200 bg-card px-3 py-2 text-small text-neutral-900 focus:border-primary-500 focus:outline-none"
               >
                 <option value="de">{t("langDe")}</option>
                 <option value="en">{t("langEn")}</option>
@@ -180,7 +180,7 @@ export function SynthesisShareManager({
               type="button"
               onClick={handleCreate}
               disabled={creating}
-              className="rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:opacity-50"
+              className="rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-small font-medium text-white transition-colors hover:border-primary-hover hover:bg-primary-hover disabled:opacity-50"
             >
               {creating ? t("creating") : t("create")}
             </button>
@@ -238,7 +238,7 @@ export function SynthesisShareManager({
                       <button
                         type="button"
                         onClick={() => handleCopy(share.token, share.id)}
-                        className="rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-caption font-medium text-neutral-900 transition-colors hover:bg-neutral-50"
+                        className="rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-caption font-medium text-neutral-900 transition-colors hover:bg-neutral-50"
                       >
                         {copiedId === share.id ? t("copied") : t("copy")}
                       </button>
@@ -246,7 +246,7 @@ export function SynthesisShareManager({
                         type="button"
                         onClick={() => handleRevoke(share.id)}
                         disabled={revokingId === share.id}
-                        className="rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-caption font-medium text-danger-700 transition-colors hover:bg-danger-50 disabled:opacity-50"
+                        className="rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-caption font-medium text-danger-700 transition-colors hover:bg-danger-50 disabled:opacity-50"
                       >
                         {revokingId === share.id ? t("revoking") : t("revoke")}
                       </button>

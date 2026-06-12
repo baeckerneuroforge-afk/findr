@@ -53,7 +53,7 @@ export function InsightsModeSwitcher({ studies }: { studies: StudyRef[] }) {
         <div
           role="tablist"
           aria-label={t("modeAria")}
-          className="inline-flex rounded-lg border border-neutral-200 bg-white p-1"
+          className="inline-flex rounded-lg border border-neutral-200 bg-card p-1"
         >
           {tab("chat", t("modeChat"))}
           {tab("agent", t("modeAgent"))}

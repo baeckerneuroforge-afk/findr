@@ -17,7 +17,7 @@ export default async function BillingSettingsPage() {
         </p>
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="rounded-lg border border-neutral-200 bg-card p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-caption font-medium uppercase tracking-wider text-primary-700">
@@ -32,7 +32,7 @@ export default async function BillingSettingsPage() {
           </div>
           <a
             href="mailto:andre@findr.ai?subject=Findr%20billing%20upgrade"
-            className="inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-700"
+            className="inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
           >
             {t("billing.contact")}
           </a>

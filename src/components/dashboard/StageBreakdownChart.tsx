@@ -90,13 +90,13 @@ export async function StageBreakdownChart({
                   <text
                     x="0"
                     y={y + 22}
-                    fill="#171717"
+                    className="fill-neutral-900"
                     fontSize="13"
                     fontWeight="600"
                   >
                     {STAGE_LABELS[stage.stage] ?? stage.stage}
                   </text>
-                  <text x="0" y={y + 40} fill="#737373" fontSize="11">
+                  <text x="0" y={y + 40} className="fill-neutral-500" fontSize="11">
                     {t("stageDealCount", { count: stage.count })}
                   </text>
 
@@ -106,7 +106,7 @@ export async function StageBreakdownChart({
                     width={chartWidth}
                     height="10"
                     rx="5"
-                    fill="#f5f5f5"
+                    className="fill-neutral-100"
                   />
                   <rect
                     x={labelWidth}
@@ -114,7 +114,7 @@ export async function StageBreakdownChart({
                     width={valueWidth}
                     height="10"
                     rx="5"
-                    fill="#d4d4d4"
+                    className="fill-neutral-300"
                   />
                   <rect
                     x={labelWidth}
@@ -122,7 +122,7 @@ export async function StageBreakdownChart({
                     width={chartWidth}
                     height="10"
                     rx="5"
-                    fill="#f5f5f5"
+                    className="fill-neutral-100"
                   />
                   <rect
                     x={labelWidth}
@@ -130,12 +130,12 @@ export async function StageBreakdownChart({
                     width={weightedWidth}
                     height="10"
                     rx="5"
-                    fill="#6f74ba"
+                    className="fill-primary-500"
                   />
                   <text
                     x={labelWidth + chartWidth}
                     y={y + 48}
-                    fill="#737373"
+                    className="fill-neutral-500"
                     fontSize="11"
                     textAnchor="end"
                   >

@@ -176,7 +176,7 @@ export function EditParticipantButton({
           // clicks on the inner panel (stopPropagation) don't trigger it.
           // Submitting locks closing so a half-saved edit doesn't vanish
           // mid-flight.
-          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
           role="dialog"
           aria-modal="true"
           aria-label={t("editDialogTitle")}
@@ -185,7 +185,7 @@ export function EditParticipantButton({
           }}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+            className="w-full max-w-md rounded-lg bg-card p-6 shadow-lg"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <h3 className="text-h2 mb-1 text-neutral-900">

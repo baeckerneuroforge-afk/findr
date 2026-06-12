@@ -61,7 +61,7 @@ export function AutoInterviewSettingForm() {
   }
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-5">
+    <div className="rounded-lg border border-neutral-200 bg-card p-5">
       <div className="mb-5">
         <h2 className="text-h2 text-neutral-900">Post-loss interviews</h2>
         <p className="mt-1 text-body text-neutral-500">

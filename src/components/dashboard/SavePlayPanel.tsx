@@ -111,7 +111,7 @@ function SavePlayReportView({ report }: { report: SavePlayReport }) {
             {recommendations.map((rec, i) => (
               <div
                 key={i}
-                className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4"
+                className="space-y-3 rounded-lg border border-neutral-200 bg-card p-4"
               >
                 <span className="inline-block rounded-md border border-primary-200 bg-primary-50 px-1.5 py-0.5 text-caption font-medium text-primary-700">
                   {formatSignal(rec.signal)}
@@ -238,7 +238,7 @@ export function SavePlayPanel({ accountId, initialReport }: SavePlayPanelProps) 
       )}
 
       {!report && !loading && !error && (
-        <div className="rounded-lg border border-dashed border-neutral-200 bg-white px-4 py-6 text-center text-small text-neutral-500">
+        <div className="rounded-lg border border-dashed border-neutral-200 bg-card px-4 py-6 text-center text-small text-neutral-500">
           {t("emptyBox")}
         </div>
       )}

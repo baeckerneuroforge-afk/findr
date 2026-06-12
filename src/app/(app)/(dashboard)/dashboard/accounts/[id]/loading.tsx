@@ -22,7 +22,7 @@ export default function AccountDetailLoading() {
 
       {/* AccountHealthPanel: Card with h2 + badge + textarea + button + chart */}
       <div className="space-y-6">
-        <div className="rounded-lg border border-neutral-200 bg-white p-6">
+        <div className="rounded-lg border border-neutral-200 bg-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <Skeleton className="h-7 w-40" />
             <Skeleton className="h-9 w-20 rounded-md" />
@@ -34,7 +34,7 @@ export default function AccountDetailLoading() {
 
         <ChartSkeleton />
 
-        <div className="rounded-lg border border-neutral-200 bg-white p-6">
+        <div className="rounded-lg border border-neutral-200 bg-card p-6">
           <Skeleton className="mb-3 h-4 w-60" />
           <div className="space-y-3">
             <Skeleton className="h-20 w-full rounded-lg" />
@@ -44,7 +44,7 @@ export default function AccountDetailLoading() {
       </div>
 
       {/* SavePlayPanel (conditional, so we include it as present) */}
-      <div className="rounded-lg border border-neutral-200 bg-white p-6">
+      <div className="rounded-lg border border-neutral-200 bg-card p-6">
         <Skeleton className="mb-4 h-7 w-48" />
         <div className="space-y-3">
           <Skeleton className="h-5 w-full" />
@@ -53,7 +53,7 @@ export default function AccountDetailLoading() {
       </div>
 
       {/* AccountCheckinPanel */}
-      <div className="rounded-lg border border-neutral-200 bg-white p-6">
+      <div className="rounded-lg border border-neutral-200 bg-card p-6">
         <Skeleton className="mb-4 h-7 w-52" />
         <div className="space-y-4">
           <Skeleton className="h-5 w-full" />
@@ -65,11 +65,11 @@ export default function AccountDetailLoading() {
       <div>
         <Skeleton className="mb-4 h-7 w-44" />
         <div className="space-y-6">
-          <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="rounded-lg border border-neutral-200 bg-card p-4">
             <Skeleton className="mb-3 h-5 w-40" />
             <Skeleton className="h-4 w-32" />
           </div>
-          <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="rounded-lg border border-neutral-200 bg-card p-4">
             <Skeleton className="mb-3 h-5 w-40" />
             <Skeleton className="h-4 w-32" />
           </div>
@@ -77,7 +77,7 @@ export default function AccountDetailLoading() {
       </div>
 
       {/* AccountMasterCard */}
-      <div className="rounded-lg border border-neutral-200 bg-white p-6">
+      <div className="rounded-lg border border-neutral-200 bg-card p-6">
         <Skeleton className="mb-4 h-7 w-40" />
         <div className="space-y-4">
           <Skeleton className="h-10 w-full rounded-md" />

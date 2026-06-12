@@ -157,7 +157,7 @@ function ReelBody({ reel }: { reel: HighlightReel }) {
 
 function HighlightCard({ highlight }: { highlight: Highlight }) {
   return (
-    <li className="rounded-lg border border-neutral-200 bg-white p-5">
+    <li className="rounded-lg border border-neutral-200 bg-card p-5">
       <p className="border-l-2 border-primary-300 pl-4 text-body italic leading-relaxed text-neutral-800">
         „{highlight.quote}"
       </p>

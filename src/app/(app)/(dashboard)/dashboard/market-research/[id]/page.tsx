@@ -452,7 +452,7 @@ export default async function MarketCampaignDetailPage({
                   <img
                     src={item.url}
                     alt={t("stimulusThumbAlt")}
-                    className="h-20 w-20 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
+                    className="h-20 w-20 shrink-0 rounded-md border border-neutral-200 bg-card object-contain p-1"
                   />
                 ) : item.stimulusType === "video" ? (
                   // Abspielbare Vorschau des Video-Stimulus (Etappe 3).
@@ -462,7 +462,7 @@ export default async function MarketCampaignDetailPage({
                     playsInline
                     preload="metadata"
                     aria-label={t("stimulusThumbAlt")}
-                    className="h-28 w-44 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
+                    className="h-28 w-44 shrink-0 rounded-md border border-neutral-200 bg-card object-contain p-1"
                   />
                 ) : (
                   <a

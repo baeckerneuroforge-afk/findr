@@ -106,7 +106,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
             value={form.name}
             onChange={(event) => update("name", event.target.value)}
             placeholder="Nordbank Enterprise Expansion"
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />
         </Field>
@@ -116,7 +116,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
             value={form.companyName}
             onChange={(event) => update("companyName", event.target.value)}
             placeholder="Nordbank AG"
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />
         </Field>
@@ -128,7 +128,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
               onChange={(event) => update("amount", event.target.value)}
               inputMode="numeric"
               placeholder="85000"
-              className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+              className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
               disabled={submitting}
             />
             <select
@@ -136,7 +136,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
               onChange={(event) =>
                 update("currency", event.target.value as "EUR" | "USD")
               }
-              className="h-9 rounded-md border border-neutral-200 bg-white px-2 text-body text-neutral-900 outline-none focus:border-primary-500"
+              className="h-9 rounded-md border border-neutral-200 bg-card px-2 text-body text-neutral-900 outline-none focus:border-primary-500"
               disabled={submitting}
             >
               <option value="EUR">EUR</option>
@@ -149,7 +149,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
           <select
             value={form.stage}
             onChange={(event) => update("stage", event.target.value as DealStage)}
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none focus:border-primary-500"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none focus:border-primary-500"
             disabled={submitting}
           >
             {STAGES.map((stage) => (
@@ -165,7 +165,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
             value={form.ownerName}
             onChange={(event) => update("ownerName", event.target.value)}
             placeholder="Sarah Müller"
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />
         </Field>
@@ -175,7 +175,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
             value={form.championName}
             onChange={(event) => update("championName", event.target.value)}
             placeholder="Thomas Becker"
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />
         </Field>
@@ -185,7 +185,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
             value={form.contactName}
             onChange={(event) => update("contactName", event.target.value)}
             placeholder="Anna Berg"
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />
         </Field>
@@ -196,7 +196,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
             value={form.contactEmail}
             onChange={(event) => update("contactEmail", event.target.value)}
             placeholder="anna.berg@example.com"
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />
         </Field>
@@ -206,7 +206,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
             value={form.contactPhone}
             onChange={(event) => update("contactPhone", event.target.value)}
             placeholder="+49 151 23456789"
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />
         </Field>
@@ -216,7 +216,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
             type="date"
             value={form.closeDate}
             onChange={(event) => update("closeDate", event.target.value)}
-            className="h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+            className="h-9 w-full rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
             disabled={submitting}
           />
         </Field>
@@ -231,7 +231,7 @@ export function ManualDealForm({ onCreated }: ManualDealFormProps) {
       <button
         type="submit"
         disabled={submitting || !form.name.trim()}
-        className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {submitting ? "Creating deal..." : "Create deal"}
       </button>

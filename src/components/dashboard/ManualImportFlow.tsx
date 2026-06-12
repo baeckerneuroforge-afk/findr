@@ -86,7 +86,7 @@ export function ManualImportFlow() {
     <div className="space-y-6">
       <Progress currentStep={step} />
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-5">
+      <section className="rounded-lg border border-neutral-200 bg-card p-5">
         {step === 1 && (
           <div className="space-y-5">
             <StepHeader
@@ -126,7 +126,7 @@ export function ManualImportFlow() {
                 type="button"
                 onClick={() => setStep(3)}
                 disabled={callIds.length === 0}
-                className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Continue to analysis
               </button>
@@ -159,7 +159,7 @@ export function ManualImportFlow() {
                     type="button"
                     onClick={analyze}
                     disabled={analyzing}
-                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-80"
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-80"
                   >
                     {analyzing && (
                       <span
@@ -190,7 +190,7 @@ export function ManualImportFlow() {
                   type="button"
                   onClick={analyze}
                   disabled={analyzing}
-                  className="mt-3 inline-flex h-8 items-center justify-center rounded-md bg-white px-3 text-body-strong text-danger-700 ring-1 ring-danger-500/20 transition-colors hover:bg-danger-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-3 inline-flex h-8 items-center justify-center rounded-md bg-card px-3 text-body-strong text-danger-700 ring-1 ring-danger-500/20 transition-colors hover:bg-danger-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Retry analysis
                 </button>
@@ -211,7 +211,7 @@ export function ManualImportFlow() {
                 <div className="flex flex-wrap items-center gap-3 border-t border-neutral-200 pt-4">
                   <Link
                     href={`/dashboard/deals/${createdDeal.id}`}
-                    className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-700"
+                    className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
                   >
                     View full deal
                   </Link>
@@ -224,7 +224,7 @@ export function ManualImportFlow() {
                       setAnalysis(null);
                       setAnalysisError(null);
                     }}
-                    className="inline-flex h-9 items-center justify-center rounded-md border border-neutral-200 bg-white px-4 text-body-strong text-neutral-700 transition-colors hover:bg-neutral-50"
+                    className="inline-flex h-9 items-center justify-center rounded-md border border-neutral-200 bg-card px-4 text-body-strong text-neutral-700 transition-colors hover:bg-neutral-50"
                   >
                     Import another deal
                   </button>
@@ -241,7 +241,7 @@ export function ManualImportFlow() {
 function AnalysisLoadingState({ message }: { message: string }) {
   return (
     <div
-      className="mt-4 rounded-lg border border-primary-100 bg-white p-4"
+      className="mt-4 rounded-lg border border-primary-100 bg-card p-4"
       role="status"
       aria-live="polite"
     >
@@ -270,7 +270,7 @@ function AnalysisLoadingState({ message }: { message: string }) {
 
 function Progress({ currentStep }: { currentStep: Step }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
+    <div className="rounded-lg border border-neutral-200 bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="text-body-strong text-neutral-900">
           Manual import progress

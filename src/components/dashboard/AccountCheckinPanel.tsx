@@ -305,7 +305,7 @@ export function AccountCheckinPanel({
                     value={intervalInput}
                     onChange={(e) => setIntervalInput(e.target.value)}
                     disabled={savingSettings}
-                    className="h-9 w-20 rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 outline-none focus:border-primary-500"
+                    className="h-9 w-20 rounded-md border border-neutral-200 bg-card px-3 text-body text-neutral-900 outline-none focus:border-primary-500"
                   />
                   <span className="text-small text-neutral-500">
                     {t("days")}

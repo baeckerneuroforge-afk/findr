@@ -19,7 +19,7 @@ export default function HealthLoading() {
           <StatCardSkeleton />
           <StatCardSkeleton />
         </div>
-        <div className="rounded-lg border border-neutral-200 bg-white p-5">
+        <div className="rounded-lg border border-neutral-200 bg-card p-5">
           <Skeleton className="mb-2 h-3 w-64" />
           <Skeleton className="h-3 w-48" />
         </div>
@@ -32,7 +32,7 @@ export default function HealthLoading() {
         <StatCardSkeleton />
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-6">
+      <div className="rounded-lg border border-neutral-200 bg-card p-6">
         <Skeleton className="mb-2 h-6 w-40" />
         <Skeleton className="mb-6 h-4 w-96 max-w-full" />
         <div className="space-y-3">
@@ -60,7 +60,7 @@ export default function HealthLoading() {
           <Skeleton className="mb-2 h-6 w-40" />
           <Skeleton className="h-4 w-96 max-w-full" />
         </div>
-        <div className="rounded-lg border border-neutral-200 bg-white">
+        <div className="rounded-lg border border-neutral-200 bg-card">
           <div className="border-b border-neutral-100 p-4">
             <div className="flex gap-4">
               <Skeleton className="h-4 w-32" />

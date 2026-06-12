@@ -273,7 +273,7 @@ export function ResearchRiskPanel({
               type="button"
               onClick={() => handleApprove(s)}
               disabled={busyId !== null || scanning}
-              className="w-44 rounded-md border border-primary-600 bg-primary-600 px-3 py-1.5 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:opacity-50"
+              className="w-44 rounded-md border border-primary-600 bg-primary-600 px-3 py-1.5 text-small font-medium text-white transition-colors hover:border-primary-hover hover:bg-primary-hover disabled:opacity-50"
             >
               {busyId === s.id ? t("rrSetting") : t("rrSetWatch")}
             </button>
@@ -281,7 +281,7 @@ export function ResearchRiskPanel({
               type="button"
               onClick={() => handleDismiss(s)}
               disabled={busyId !== null || scanning}
-              className="w-44 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
+              className="w-44 rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
             >
               {t("dismiss")}
             </button>
@@ -296,7 +296,7 @@ export function ResearchRiskPanel({
     return (
       <li
         key={s.id}
-        className="rounded-md border border-neutral-200 bg-white p-3"
+        className="rounded-md border border-neutral-200 bg-card p-3"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -331,7 +331,7 @@ export function ResearchRiskPanel({
             type="button"
             onClick={() => handleDismiss(s)}
             disabled={busyId !== null || scanning}
-            className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
+            className="shrink-0 rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
           >
             {busyId === s.id ? t("rrRemoving") : t("rrRemoveFromList")}
           </button>
@@ -352,7 +352,7 @@ export function ResearchRiskPanel({
             type="button"
             onClick={handleScan}
             disabled={scanning || busyId !== null}
-            className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
+            className="shrink-0 rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
           >
             {scanning ? t("scanning") : t("rrScan")}
           </button>

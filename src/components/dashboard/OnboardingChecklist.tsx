@@ -28,7 +28,7 @@ export function OnboardingChecklist({ status }: OnboardingChecklistProps) {
       : 0;
 
   return (
-    <section className="rounded-lg border border-primary-100 bg-white p-5 shadow-sm">
+    <section className="rounded-lg border border-primary-100 bg-card p-5 shadow-sm">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <div className="text-caption font-medium uppercase tracking-wider text-primary-700">
@@ -77,7 +77,7 @@ export function OnboardingChecklist({ status }: OnboardingChecklistProps) {
               className={`rounded-lg border p-4 ${
                 isNext
                   ? "border-primary-200 bg-primary-50"
-                  : "border-neutral-200 bg-white"
+                  : "border-neutral-200 bg-card"
               }`}
             >
               <div className="mb-3 flex items-center gap-2">
@@ -86,8 +86,8 @@ export function OnboardingChecklist({ status }: OnboardingChecklistProps) {
                     complete
                       ? "border-success-500 bg-success-500 text-white"
                       : isNext
-                        ? "border-primary-500 bg-white text-primary-700"
-                        : "border-neutral-300 bg-white text-neutral-400"
+                        ? "border-primary-500 bg-card text-primary-700"
+                        : "border-neutral-300 bg-card text-neutral-400"
                   }`}
                   aria-hidden="true"
                 >
@@ -121,8 +121,8 @@ export function OnboardingChecklist({ status }: OnboardingChecklistProps) {
                   href={step.href}
                   className={`mt-4 inline-flex h-8 items-center justify-center rounded-md px-3 text-body-strong font-medium transition-colors ${
                     isNext
-                      ? "bg-primary-600 text-white hover:bg-primary-700"
-                      : "border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                      ? "bg-primary-600 text-white hover:bg-primary-hover"
+                      : "border border-neutral-200 bg-card text-neutral-700 hover:bg-neutral-50"
                   }`}
                 >
                   {t(`steps.${step.id}.cta`)}

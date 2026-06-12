@@ -23,7 +23,7 @@ const SEVERITY_STYLES: Record<AlertSeverity, string> = {
 export async function AlertHistoryPanel({ alerts }: AlertHistoryPanelProps) {
   const locale = await getLocale();
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-5">
+    <div className="rounded-lg border border-neutral-200 bg-card p-5">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h3 className="text-h3 text-neutral-900">Alert history</h3>

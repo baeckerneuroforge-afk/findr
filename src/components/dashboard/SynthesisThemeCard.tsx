@@ -67,7 +67,7 @@ export function SynthesisThemeCard({
 
   return (
     <div
-      className={`rounded-lg border bg-white transition-all ${
+      className={`rounded-lg border bg-card transition-all ${
         expanded
           ? "border-primary-200"
           : "border-neutral-200 hover:border-neutral-300"

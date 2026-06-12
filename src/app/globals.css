@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Dark Mode (Plattform): klassenbasiert statt media-basiert, damit System-
+   Präferenz UND manueller Override möglich sind. Die .dark-Klasse sitzt
+   bewusst NICHT auf <html>, sondern auf dem Dashboard-Shell-Wrapper
+   (ThemeShell) — Teilnehmer-Interview (interview/[token]), Shared-Report
+   (shared/synthesis) und Auth/Onboarding liegen außerhalb und bleiben per
+   Konstruktion hell (white-label). Das Variant matcht Wrapper + Nachfahren. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Findr Brand Colors */
   --color-violet-50: #eeeff8;
@@ -117,6 +125,16 @@
      Platform Design System v2 — light-mode tokens for /dashboard
      and /onboarding. Landing-page tokens above are untouched. */
 
+  /* Shell-Flächen mit Hell/Dunkel-Rolle. Im Hellmodus pixelidentisch zu den
+     bisherigen Werten (surface = neutral-50-Canvas, card = weiße Karte,
+     primary-hover = primary-700-Hover); im .dark-Block unten bekommen sie
+     eigene Werte. primary-hover existiert, weil primary-700 doppelt belegt
+     war (Link-TEXT und Button-Hover-FLÄCHE) — im Dunkelmodus divergieren
+     diese Rollen zwingend (Text muss aufhellen, Fläche nicht). */
+  --color-surface: #fafafa;
+  --color-card: #ffffff;
+  --color-primary-hover: #353c8a;
+
   /* Neutrals (gray-scale) */
   --color-neutral-0: #ffffff;
   --color-neutral-50: #fafafa;
@@ -210,6 +228,70 @@
     55% { transform: translateX(110%); }
     100% { transform: translateX(320%); }
   }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Dark-Mode-Token-Set (Plattform-Shell). Strategie: die Dashboard-
+   Komponenten nutzen die Neutral-/Primary-Rampen hochgradig konsistent
+   (900=Überschrift, 700=Body, 500=Muted, 400=Faint, 200=Linie, 50=Wash) —
+   statt ~2.300 Klassen umzubenennen, werden die Rampen-VARIABLEN unter
+   .dark rollengerecht umdefiniert (Obsidian-Familie, violett getönt, kein
+   totes Grau). Utilities lesen var(--color-*), erben also den Override.
+
+   NIEMALS DUNKEL (liegen außerhalb des .dark-Wrappers, zusätzlich teils
+   Inline-Hex): Teilnehmer-Interview (ParticipantShell), Shared-Synthesis-
+   View, PDF/PPTX-Exporte, E-Mail-Templates, Marketing-OG-Image. Diese
+   Liste bei Erweiterungen NICHT "mitmodernisieren".
+
+   Sonderfälle, die NICHT über die Rampe laufen (in Komponenten gefixt):
+   Modal-Scrims (bg-black/40 statt bg-neutral-900/40), Ink-Buttons
+   (text-neutral-0 statt text-white, damit der Text mit der Fläche dreht). */
+.dark {
+  color-scheme: dark;
+
+  --color-surface: #131017;        /* Canvas hinter den Karten */
+  --color-card: #1d1925;           /* Kartenfläche */
+
+  --color-neutral-0: #1d1925;      /* "Weiß"-Fläche → Kartenton */
+  --color-neutral-50: #251f30;     /* Wash/Hover/Zebra — heller als Karte */
+  --color-neutral-100: #2c2538;
+  --color-neutral-200: #322b40;    /* Hairlines */
+  --color-neutral-300: #413853;
+  --color-neutral-400: #756b88;    /* Faint-Text */
+  --color-neutral-500: #9c92ad;    /* Muted-Text (AA auf Karte: 5,8:1) */
+  --color-neutral-600: #b0a6c0;
+  --color-neutral-700: #cfc7da;    /* Body-Text */
+  --color-neutral-800: #e2dcea;
+  --color-neutral-900: #f2eff6;    /* Überschriften */
+
+  /* Primary-Rampe rolleninvertiert: 50/100 = dunkle Washes, 200/300 =
+     dunkle violette Hairlines, 600 = Button-Fläche (weißer Text 5,1:1),
+     700–900 = helle Link-/Labeltöne (700 auf Surface 7,6:1). */
+  --color-primary-50: #232744;
+  --color-primary-100: #282d52;
+  --color-primary-200: #353b6e;
+  --color-primary-300: #434a85;
+  --color-primary-400: #565d9d;
+  --color-primary-500: #7a80c5;
+  --color-primary-600: #5e65c0;
+  --color-primary-700: #a3a8d9;
+  --color-primary-800: #bcc0e4;
+  --color-primary-900: #d6d8ef;
+  --color-primary-hover: #4f56b4;
+
+  /* Status-Tints: 50er werden tiefe Farb-Washes, 700er helle Texttöne
+     (Badge-Kombi bg-*-50 + text-*-700 bleibt damit stimmig). 500er
+     (Signalfarben, Risk-Mapping) bleiben unverändert — sie funktionieren
+     auf dunklem Grund. */
+  --color-success-50: #11271d;
+  --color-success-700: #34d399;
+  --color-warning-50: #2b2110;
+  --color-warning-700: #fbbf24;
+  --color-danger-50: #321519;
+  --color-danger-700: #f87171;
+
+  /* Schatten tragen auf Dunkel kaum — Trennung übernehmen die Hairlines. */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 body {

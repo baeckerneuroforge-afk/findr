@@ -142,7 +142,7 @@ export function TopicEditor({
           {topics.map((topic, i) => (
             <li
               key={i}
-              className="rounded-lg border border-neutral-200 bg-white p-4"
+              className="rounded-lg border border-neutral-200 bg-card p-4"
             >
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-caption font-medium uppercase tracking-wider text-neutral-400">

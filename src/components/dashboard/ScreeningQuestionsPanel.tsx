@@ -285,7 +285,7 @@ export function ScreeningQuestionsPanel({
           {drafts.map((d, i) => (
             <li
               key={d.id}
-              className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4"
+              className="space-y-3 rounded-lg border border-neutral-200 bg-card p-4"
             >
               <div className="flex items-center justify-between">
                 <span className="text-caption font-medium uppercase tracking-wider text-neutral-400">

@@ -22,7 +22,7 @@ export default function AccountsLoading() {
       <div className="space-y-6">
         <div>
           <Skeleton className="mb-3 h-6 w-48" />
-          <div className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
+          <div className="rounded-lg border border-neutral-200 bg-card overflow-hidden">
             <div className="border-b border-neutral-100 p-4 flex gap-4">
               <Skeleton className="h-5 w-32" />
               <Skeleton className="h-5 w-24" />
@@ -54,7 +54,7 @@ export default function AccountsLoading() {
 
         <div>
           <Skeleton className="mb-3 h-6 w-36" />
-          <div className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
+          <div className="rounded-lg border border-neutral-200 bg-card overflow-hidden">
             <div className="border-b border-neutral-100 p-4 flex gap-4">
               <Skeleton className="h-5 w-32" />
               <Skeleton className="h-5 w-24" />

@@ -23,7 +23,7 @@ export default function ForecastLoading() {
 
       <ChartSkeleton />
 
-      <div className="rounded-lg border border-neutral-200 bg-white">
+      <div className="rounded-lg border border-neutral-200 bg-card">
         <Skeleton className="m-5 h-5 w-40" />
         <div className="space-y-3 p-5 pt-0">
           <Skeleton className="h-12 w-full" />

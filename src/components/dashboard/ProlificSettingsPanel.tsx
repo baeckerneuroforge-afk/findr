@@ -142,7 +142,7 @@ export function ProlificSettingsPanel({ initialCredential }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="rounded-lg border border-neutral-200 bg-card p-5">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h3 className="text-h3 text-neutral-900">{t("connectionTitle")}</h3>

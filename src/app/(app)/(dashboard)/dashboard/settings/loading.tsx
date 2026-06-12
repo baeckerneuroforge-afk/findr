@@ -11,7 +11,7 @@ export default function SettingsLoading() {
         <Skeleton className="h-5 w-80 max-w-full" />
       </div>
 
-      <div className="rounded-card border border-neutral-200 bg-white shadow-card">
+      <div className="rounded-card border border-neutral-200 bg-card shadow-card">
         <div className="space-y-3 p-5">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -19,7 +19,7 @@ export default function SettingsLoading() {
         </div>
       </div>
 
-      <div className="rounded-card border border-neutral-200 bg-white shadow-card">
+      <div className="rounded-card border border-neutral-200 bg-card shadow-card">
         <div className="space-y-3 p-5">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-3/4" />

@@ -84,7 +84,7 @@ export function UpdateSynthesisButton({
         type="button"
         onClick={handleClick}
         disabled={loading}
-        className="inline-flex items-center gap-2 rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-small font-medium text-white transition-colors hover:border-primary-700 hover:bg-primary-700 disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-small font-medium text-white transition-colors hover:border-primary-hover hover:bg-primary-hover disabled:opacity-50"
       >
         {loading && (
           <span

@@ -59,7 +59,7 @@ const INTENSITY_BADGE: Record<IntensityLevel, string> = {
   blocker: "border-danger-500/30 bg-danger-50 text-danger-700",
   high: "border-primary-200 bg-primary-50 text-primary-700",
   medium: "border-neutral-200 bg-neutral-50 text-neutral-700",
-  low: "border-neutral-200 bg-white text-neutral-500",
+  low: "border-neutral-200 bg-card text-neutral-500",
 };
 
 function formatAnalyzedAt(iso: string, locale: string): string {
@@ -84,7 +84,7 @@ function ItemCard({
   evidence: string[];
 }) {
   return (
-    <li className="rounded-md border border-neutral-200 bg-white p-3">
+    <li className="rounded-md border border-neutral-200 bg-card p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-caption font-medium uppercase tracking-wider text-neutral-500">
           {categoryLabel}
@@ -207,7 +207,7 @@ export async function ProductDiscoveryPanel({
                 {themes.map((t: Theme, i) => (
                   <li
                     key={`th-${i}`}
-                    className="rounded-md border border-neutral-200 bg-white p-3"
+                    className="rounded-md border border-neutral-200 bg-card p-3"
                   >
                     <p className="text-body-strong text-neutral-900">
                       {t.label}

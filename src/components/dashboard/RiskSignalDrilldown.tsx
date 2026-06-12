@@ -84,7 +84,7 @@ function getRiskBadgeStyle(level: string): string {
   if (level === "high")
     return "border-primary-200 bg-primary-50 text-primary-700";
   if (level === "medium")
-    return "border-neutral-200 bg-white text-neutral-700";
+    return "border-neutral-200 bg-card text-neutral-700";
   return "border-success-500/30 bg-success-50 text-success-700";
 }
 
@@ -106,7 +106,7 @@ function getSeverityBadge(severity: number): {
   }
   return {
     labelKey: "sevInformational",
-    className: "border-neutral-200 bg-white text-neutral-600",
+    className: "border-neutral-200 bg-card text-neutral-600",
   };
 }
 
@@ -227,7 +227,7 @@ export function RiskSignalDrilldown({
                 className={`rounded-lg border transition-all ${
                   isExpanded
                     ? "border-primary-200 bg-primary-50/50"
-                    : "border-neutral-200 bg-white hover:border-neutral-300"
+                    : "border-neutral-200 bg-card hover:border-neutral-300"
                 }`}
               >
                 <button

@@ -17,7 +17,7 @@ export default function InsightsLoading() {
           <Skeleton className="mt-2 h-5 w-80 max-w-full" />
         </div>
 
-        <div className="rounded-lg border border-neutral-200 bg-white p-6">
+        <div className="rounded-lg border border-neutral-200 bg-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <Skeleton className="mb-1 h-6 w-32" />
