@@ -102,7 +102,6 @@ export async function GET(
     return NextResponse.json(
       {
         error: t("deals.interviewPdfFailed"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

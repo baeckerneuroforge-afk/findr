@@ -42,10 +42,10 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err) {
+    console.error("[loss/reports/pdf] failed:", err instanceof Error ? err.message : err);
     return NextResponse.json(
       {
         error: t("loss.pdfFailed"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

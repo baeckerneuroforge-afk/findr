@@ -32,7 +32,6 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       {
         error: t("bridge.couldNotListResearchToRisk"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

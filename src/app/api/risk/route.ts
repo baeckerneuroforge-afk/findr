@@ -197,10 +197,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, result, alert, source });
   } catch (error) {
+    console.error("[risk] analysis failed:", error instanceof Error ? error.message : error);
     return NextResponse.json(
       {
         error: t("risk.analysisFailed"),
-        detail: error instanceof Error ? error.message : "unknown",
       },
       { status: 500 },
     );

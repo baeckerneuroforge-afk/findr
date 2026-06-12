@@ -116,7 +116,6 @@ export async function POST(
     return NextResponse.json(
       {
         error: t("research.chatFailed"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

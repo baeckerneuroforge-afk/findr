@@ -264,8 +264,9 @@ export async function POST(
   } catch (err) {
     if (err instanceof DeepgramTtsError) {
       console.error("[interview speak] Deepgram TTS failed:", err.message);
+      // Public participant route: the raw Deepgram message stays server-side.
       return NextResponse.json(
-        { error: "Could not synthesize speech.", detail: err.message },
+        { error: "Could not synthesize speech." },
         { status: err.status },
       );
     }

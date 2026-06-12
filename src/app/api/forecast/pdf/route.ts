@@ -29,10 +29,10 @@ export async function GET() {
       },
     });
   } catch (err) {
+    console.error("[forecast/pdf] failed:", err instanceof Error ? err.message : err);
     return NextResponse.json(
       {
         error: t("forecast.pdfFailed"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

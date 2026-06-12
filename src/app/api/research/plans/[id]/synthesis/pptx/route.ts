@@ -96,7 +96,6 @@ export async function GET(
     return NextResponse.json(
       {
         error: t("research.synthesisPptxFailed"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

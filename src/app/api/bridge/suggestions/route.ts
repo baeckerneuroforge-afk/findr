@@ -39,7 +39,6 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       {
         error: t("bridge.couldNotList"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );
@@ -66,7 +65,6 @@ export async function POST(_request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       {
         error: t("bridge.couldNotScan"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

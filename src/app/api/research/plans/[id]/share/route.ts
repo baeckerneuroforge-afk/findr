@@ -80,10 +80,10 @@ export async function POST(
       path: `/shared/synthesis/${share.token}`,
     });
   } catch (err) {
+    console.error("[research/share] failed:", err instanceof Error ? err.message : err);
     return NextResponse.json(
       {
         error: t("research.couldNotCreateShare"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );
