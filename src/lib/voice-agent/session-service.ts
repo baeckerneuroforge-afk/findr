@@ -781,6 +781,41 @@ export async function markSessionConsentByToken(
 }
 
 /**
+ * Voice-Pricing-Fundament — stempelt mode='voice' auf eine Session, sobald
+ * der LiveKit-Token gemintet wurde (POST /api/voice/token). Das ist der
+ * Moment, ab dem der Voice-Agent dispatcht wird und Voice-Kosten entstehen —
+ * NICHT erst beim ersten persistierten Voice-Turn (den Spät-Stempel in
+ * appendVoiceTurns gibt es weiterhin, gleiche Werte, redundanz-sicher).
+ * Teilnehmer, die nur den ?mode=text-Fallback nutzen und nie einen Token
+ * holen, bleiben mode='text' — sie verursachen keine Voice-Kosten.
+ *
+ * Eigenschaften (Spiegel von markSessionConsentByToken):
+ *   - Idempotent: `WHERE mode = 'text'` — ein bereits gesetzter voice/video-
+ *     Modus wird nie überschrieben.
+ *   - Best-effort: Fehler werden geloggt und geschluckt — ein Teilnehmer
+ *     wird NIE aus dem Interview ausgesperrt, weil der Stempel scheitert.
+ *   - transcript_source bleibt unberührt — 'stt' ist erst wahr, wenn
+ *     tatsächlich Turns ankommen (Job von appendVoiceTurns).
+ */
+export async function markSessionVoiceModeById(
+  sessionId: string,
+): Promise<void> {
+  try {
+    const supabase = createResearchSupabase();
+    const { error } = await supabase
+      .from("interview_sessions")
+      .update({ mode: "voice" })
+      .eq("id", sessionId)
+      .eq("mode", "text");
+    if (error) {
+      console.warn(`[voice] mode stamp failed: ${error.message}`);
+    }
+  } catch (err) {
+    console.warn("[voice] mode stamp failed:", err);
+  }
+}
+
+/**
  * DSGVO-Selbstwiderruf (G6) — der Teilnehmer löscht seine EIGENE Interview-
  * Session über den unguessbaren access_token. Entfernt die Session-Row samt
  * Gesprächstranskript (conversation), Auswertung (result), Screening-Antworten,

@@ -111,9 +111,9 @@ interface FormState {
   // TTS read-aloud opt-in. Default OFF. Sent as `ttsEnabled` (exact key) in the
   // create/update body — the backend flag + /speak route already exist; this
   // form only fills the value. It's its OWN field, but the UI couples it to
-  // voiceEnabled (a read-aloud agent only makes sense once the participant has
-  // the mic gesture that unlocks browser autoplay): the switch is disabled in
-  // Text mode and switching back to Text clears it.
+  // voiceEnabled INVERTIERT: die Vorlesefunktion gehört zum TEXT-Interview
+  // (der Voice-Agent spricht ohnehin), also ist die Karte nur im Text-Modus
+  // sichtbar und ein Wechsel auf Voice setzt das Feld zurück (setVoiceMode).
   ttsEnabled: boolean;
   // E2 Turn-Signale opt-in. Default OFF. Sent as `signalsEnabled` (exact key)
   // in the create/update body — backend flag + Sidecar-Gates (E1) existieren;
@@ -279,7 +279,7 @@ const INITIAL_FORM: FormState = {
   stimulusUrl: null,
   stimulusType: null,
   stimulusDescription: "",
-  // Default OFF — read-aloud is opt-in and only enabled while voice is on.
+  // Default OFF — read-aloud is opt-in and only offered for TEXT studies.
   ttsEnabled: false,
   // Default OFF — Turn-Signale sind opt-in pro Studie (Plan §3.2); ein
   // unberührtes Formular sendet false.
@@ -300,8 +300,14 @@ type FormStudyType = "product_discovery" | "market_research";
 
 export function ResearchPlanForm({
   studyType = "product_discovery",
+  voiceAvailable = true,
 }: {
   studyType?: FormStudyType;
+  /** Server-seitig ermittelt (getLiveKitVoiceEnv() !== null). false ⇒ die
+   *  Voice-Agent-Karte ist deaktiviert und Use-Case-Presets können den Modus
+   *  nicht auf Voice stellen — verhindert Studien, die beim Teilnehmer mit
+   *  503 scheitern würden. Default true (Back-Compat für bestehende Caller). */
+  voiceAvailable?: boolean;
 } = {}) {
   const router = useRouter();
   const t = useTranslations("research.plans");
@@ -402,7 +408,11 @@ export function ResearchPlanForm({
    *  the VI/TTS toggles are left exactly as the user has them. Everything the
    *  preset writes stays fully editable afterwards. */
   function applyUseCase(useCase: UseCase) {
-    setForm((current) => ({ ...current, ...presetFor(useCase, t) }));
+    const preset = presetFor(useCase, t);
+    // Voice nicht konfiguriert (LiveKit-Env fehlt) → das Preset darf den Modus
+    // nicht auf Voice stellen; alles andere am Preset bleibt unverändert.
+    if (!voiceAvailable) preset.voiceEnabled = false;
+    setForm((current) => ({ ...current, ...preset }));
     // The stimulus block is gated on needsStimulus, so switching to a use-case
     // that doesn't need one would hide the block — and its Remove control —
     // while an uploaded asset still lingers on the draft plan (orphan). Switch
@@ -418,15 +428,16 @@ export function ResearchPlanForm({
     setGenInputs((current) => ({ ...current, [key]: value }));
   }
 
-  /** Voice/Text mode switch. Coupled to TTS: read-aloud only makes sense in
-   *  voice mode (where the mic gesture unlocks autoplay), so switching to Text
-   *  clears ttsEnabled in the same update. ttsEnabled stays its own field —
-   *  this is pure UI coupling, not a field merge. */
+  /** Voice/Text mode switch. Coupled to TTS — INVERTIERT zur ursprünglichen
+   *  Kopplung: die Vorlesefunktion gehört zum TEXT-Interview (im Voice-Agent-
+   *  Modus spricht die KI ohnehin), also löscht ein Wechsel auf Voice das
+   *  ttsEnabled-Feld. ttsEnabled stays its own field — this is pure UI
+   *  coupling, not a field merge. */
   function setVoiceMode(enabled: boolean) {
     setForm((current) => ({
       ...current,
       voiceEnabled: enabled,
-      ttsEnabled: enabled ? current.ttsEnabled : false,
+      ttsEnabled: enabled ? false : current.ttsEnabled,
     }));
   }
 
@@ -1469,99 +1480,126 @@ export function ResearchPlanForm({
           </div>
         )}
 
-        {/* Interaktionsmodus — Text (Default) oder Voice. Sichtbar für BEIDE
-            Studientypen (kein study_type-Gate). Schreibt `voiceEnabled` (exakt
-            dieser Key) in dieselben Submit-Pfade wie visualCaptureEnabled;
-            ein unberührtes Formular sendet false (Text). Der Backend-Flag + die
-            Voice-Route existieren bereits — dieses Formular füllt nur den Wert. */}
+        {/* Interaktionsmodus — Text-Interview (Default) oder Voice-Agent.
+            Sichtbar für BEIDE Studientypen (kein study_type-Gate). Schreibt
+            `voiceEnabled` (exakt dieser Key) in dieselben Submit-Pfade wie
+            visualCaptureEnabled; ein unberührtes Formular sendet false (Text).
+            Bewusst zwei Radio-CARDS statt einer kleinen Pill: die Wahl
+            entscheidet, OB eine KI-Stimme das Interview in Echtzeit führt
+            (LiveKit-Voice-Agent) — eine produkt- und künftig preisrelevante
+            Entscheidung, keine Detaileinstellung. voiceAvailable=false
+            (LiveKit-Env fehlt) deaktiviert die Voice-Karte, damit keine Studie
+            entsteht, die beim Teilnehmer mit 503 scheitert. */}
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <span className="block text-body-strong text-neutral-900">
-                {t("fldInteractionMode")}
-              </span>
-              <span className="mt-1 block text-caption text-neutral-500">
-                {t("interactionModeHint")}
-              </span>
-            </div>
-            <div
-              role="radiogroup"
-              aria-label={t("fldInteractionMode")}
-              className="flex shrink-0 items-center gap-0.5 rounded-full bg-neutral-100 p-0.5"
+          <span className="block text-body-strong text-neutral-900">
+            {t("fldInteractionMode")}
+          </span>
+          <span className="mt-1 block text-caption text-neutral-500">
+            {t("interactionModeHint")}
+          </span>
+          <div
+            role="radiogroup"
+            aria-label={t("fldInteractionMode")}
+            className="mt-3 grid gap-2 sm:grid-cols-2"
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!form.voiceEnabled}
+              onClick={() => setVoiceMode(false)}
+              disabled={submitting}
+              className={`rounded-lg border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                !form.voiceEnabled
+                  ? "border-primary-200 bg-primary-50"
+                  : "border-neutral-200 bg-white hover:border-neutral-300"
+              }`}
             >
-              <button
-                type="button"
-                role="radio"
-                aria-checked={!form.voiceEnabled}
-                onClick={() => setVoiceMode(false)}
-                disabled={submitting}
-                className={`rounded-full px-3.5 py-1.5 text-small font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
-                  !form.voiceEnabled
-                    ? "bg-primary-600 text-white"
-                    : "text-neutral-600 hover:text-neutral-900"
+              <span
+                className={`block text-small font-medium ${
+                  !form.voiceEnabled ? "text-primary-700" : "text-neutral-900"
                 }`}
               >
                 {t("modeTextLabel")}
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={form.voiceEnabled}
-                onClick={() => setVoiceMode(true)}
-                disabled={submitting}
-                className={`rounded-full px-3.5 py-1.5 text-small font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
-                  form.voiceEnabled
-                    ? "bg-primary-600 text-white"
-                    : "text-neutral-600 hover:text-neutral-900"
+              </span>
+              <span className="mt-0.5 block text-caption text-neutral-500">
+                {t("modeTextDesc")}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={form.voiceEnabled}
+              aria-disabled={!voiceAvailable || undefined}
+              onClick={() => setVoiceMode(true)}
+              disabled={submitting || !voiceAvailable}
+              className={`rounded-lg border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                form.voiceEnabled
+                  ? "border-primary-200 bg-primary-50"
+                  : "border-neutral-200 bg-white hover:border-neutral-300"
+              }`}
+            >
+              <span
+                className={`block text-small font-medium ${
+                  form.voiceEnabled ? "text-primary-700" : "text-neutral-900"
                 }`}
               >
                 {t("modeVoiceLabel")}
-              </button>
-            </div>
+              </span>
+              <span className="mt-0.5 block text-caption text-neutral-500">
+                {voiceAvailable
+                  ? t("modeVoiceDesc")
+                  : t("modeVoiceUnavailable")}
+              </span>
+            </button>
           </div>
         </div>
 
-        {/* Sprachausgabe der KI (TTS) — eigenes Feld `ttsEnabled` (exakt dieser
-            Key) in denselben Submit-Pfaden wie voiceEnabled. Produktregel: nur
-            im Voice-Modus aktiv (dort gibt es die Mic-Geste, die das Autoplay
-            der Browser entsperrt). Im Text-Modus ist der Schalter deaktiviert
-            und ein Wechsel auf Text setzt das Feld zurück (siehe setVoiceMode).
-            Ein unberührtes Formular sendet false. Der Backend-Flag + die
-            /speak-Route existieren bereits — dieses Formular füllt nur den Wert. */}
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <span className="block text-body-strong text-neutral-900">
-                {t("fldTts")}
-              </span>
-              <span className="mt-1 block text-caption text-neutral-500">
-                {form.voiceEnabled ? t("ttsHint") : t("ttsRequiresVoice")}
-              </span>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="text-caption text-neutral-500">
-                {form.ttsEnabled ? t("ttsOn") : t("ttsOff")}
-              </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={form.ttsEnabled}
-                aria-label={t("fldTts")}
-                onClick={() => update("ttsEnabled", !form.ttsEnabled)}
-                disabled={submitting || !form.voiceEnabled}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
-                  form.ttsEnabled ? "bg-primary-600" : "bg-neutral-300"
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
-                    form.ttsEnabled ? "translate-x-5" : "translate-x-0.5"
+        {/* Vorlesefunktion (TTS) — eigenes Feld `ttsEnabled` (exakt dieser
+            Key) in denselben Submit-Pfaden wie voiceEnabled. Produktregel
+            INVERTIERT zur ursprünglichen Kopplung: die Vorlesefunktion gehört
+            zum TEXT-Interview (der Voice-Agent spricht ohnehin selbst), also
+            ist die Karte nur im Text-Modus sichtbar; ein Wechsel auf Voice
+            setzt das Feld zurück (siehe setVoiceMode). Die Wiedergabe-UI im
+            Text-Chat entsperrt Autoplay über einen sichtbaren Sound-Toggle —
+            keine Mic-Geste nötig. Ein unberührtes Formular sendet false. Der
+            Backend-Flag + die /speak-Route existieren bereits — dieses
+            Formular füllt nur den Wert. */}
+        {!form.voiceEnabled && (
+          <div className="rounded-lg border border-neutral-200 bg-white p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <span className="block text-body-strong text-neutral-900">
+                  {t("fldTts")}
+                </span>
+                <span className="mt-1 block text-caption text-neutral-500">
+                  {t("ttsHint")}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="text-caption text-neutral-500">
+                  {form.ttsEnabled ? t("ttsOn") : t("ttsOff")}
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.ttsEnabled}
+                  aria-label={t("fldTts")}
+                  onClick={() => update("ttsEnabled", !form.ttsEnabled)}
+                  disabled={submitting}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                    form.ttsEnabled ? "bg-primary-600" : "bg-neutral-300"
                   }`}
-                />
-              </button>
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                      form.ttsEnabled ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </section>
 
       {/* KI-Leitfaden-Generator — optional, ändert das Standard-Verhalten

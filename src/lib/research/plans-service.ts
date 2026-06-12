@@ -393,6 +393,28 @@ export async function countCompletedSessionsForPlan(
 }
 
 /**
+ * ALL-Status-Zähler für die Mid-Study-Flip-Warnung (PATCH voiceEnabled):
+ * zählt JEDE Session des Plans (auch open/abandoned). Bewusst ein VIERTER
+ * Zähler neben dem §7-Trio oben — er beantwortet eine andere Frage („gab es
+ * überhaupt schon Teilnehmer-Kontakt?"), nicht Fortschritt, nicht Quota,
+ * nicht Spend. Fail-open null bei Lesefehler (der Aufrufer lässt die
+ * Warnung dann weg statt falsch zu warnen).
+ */
+export async function countSessionsForPlan(
+  orgId: string,
+  planId: string,
+): Promise<number | null> {
+  const supabase = createResearchSupabase();
+  const { count, error } = await supabase
+    .from("interview_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .eq("plan_id", planId);
+  if (error) return null;
+  return count ?? 0;
+}
+
+/**
  * Batched flavor of the §7 counter for LIST pages: ONE query for all plans
  * instead of N parallel head-COUNTs (Perf-Audit 4.1 / MR-Übersicht). Same
  * predicate set as countCompletedSessionsForPlan — the §7 separation note
