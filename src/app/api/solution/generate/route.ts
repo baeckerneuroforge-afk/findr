@@ -58,7 +58,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error: t("solution.generationFailed"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

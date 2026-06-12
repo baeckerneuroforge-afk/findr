@@ -53,7 +53,6 @@ export async function POST(
     return NextResponse.json(
       {
         error: t("bridge.couldNotApprove"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

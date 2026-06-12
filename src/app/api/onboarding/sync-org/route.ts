@@ -57,8 +57,9 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
+      console.error("[onboarding/sync-org] org upsert failed:", error.message);
       return NextResponse.json(
-        { error: t("unexpected"), detail: error.message },
+        { error: t("unexpected") },
         { status: 500 },
       );
     }

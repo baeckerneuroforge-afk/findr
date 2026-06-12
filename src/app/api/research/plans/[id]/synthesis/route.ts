@@ -57,10 +57,10 @@ export async function POST(
     const synthesis = await synthesizeStudy(orgId, planId);
     return NextResponse.json({ success: true, synthesis });
   } catch (err) {
+    console.error("[research/synthesis] failed:", err instanceof Error ? err.message : err);
     return NextResponse.json(
       {
         error: t("research.synthesisFailed"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

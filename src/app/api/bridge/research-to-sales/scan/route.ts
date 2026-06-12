@@ -41,7 +41,6 @@ export async function POST(_request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       {
         error: t("bridge.couldNotScanResearchToRisk"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

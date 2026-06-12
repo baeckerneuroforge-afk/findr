@@ -88,7 +88,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       {
         error: tAgent("errEngine"),
-        detail: err instanceof Error ? err.message : "unknown",
         code:
           err instanceof CrossStudyAgentUnavailableError ? "engine" : "unknown",
       },

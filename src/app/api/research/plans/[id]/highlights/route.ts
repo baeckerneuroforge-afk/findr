@@ -77,7 +77,6 @@ async function handleHighlights(
     return NextResponse.json(
       {
         error: t("research.highlightFailed"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

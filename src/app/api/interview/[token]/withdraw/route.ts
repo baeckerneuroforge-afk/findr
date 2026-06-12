@@ -24,11 +24,14 @@ export async function POST(
     await withdrawSessionByToken(token);
     return NextResponse.json({ success: true });
   } catch (err) {
+    // Public participant route: DB error text stays server-side; the client
+    // only needs the stable failure code.
+    console.error(
+      "[interview withdraw] failed:",
+      err instanceof Error ? err.message : err,
+    );
     return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : "withdraw_failed",
-      },
+      { success: false, error: "withdraw_failed" },
       { status: 500 },
     );
   }

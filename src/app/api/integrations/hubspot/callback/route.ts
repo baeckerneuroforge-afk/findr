@@ -76,10 +76,15 @@ export async function GET(request: Request) {
       new URLSearchParams({ connected: "true" }),
     );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "unknown";
+    // Generic code only: the raw message would land in browser history,
+    // referrers and access logs via the redirect URL.
+    console.error(
+      "[hubspot/callback] token exchange failed:",
+      err instanceof Error ? err.message : err,
+    );
     return redirectToHubspotSettings(
       request,
-      new URLSearchParams({ error: msg.slice(0, 200) }),
+      new URLSearchParams({ error: "token_exchange_failed" }),
     );
   }
 }

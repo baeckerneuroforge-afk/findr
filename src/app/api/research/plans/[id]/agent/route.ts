@@ -117,7 +117,6 @@ export async function POST(
     return NextResponse.json(
       {
         error: tAgent("errEngine"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

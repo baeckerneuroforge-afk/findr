@@ -42,7 +42,6 @@ export async function DELETE(
     return NextResponse.json(
       {
         error: t("unexpected"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

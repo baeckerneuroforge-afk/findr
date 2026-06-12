@@ -73,9 +73,40 @@ const nextConfig: NextConfig = {
   //     white-label customer, this would block that embed → scope it to exclude
   //     /interview (confirm with André). The interview is link-accessed today,
   //     so 'none' is safe.
-  //   • Permissions-Policy is intentionally OMITTED: a restrictive camera/
-  //     microphone policy would break the interview voice features.
+  //   • Permissions-Policy with (self) allowlists — same-origin getUserMedia
+  //     (voice interview) and getDisplayMedia (visual capture) keep working;
+  //     only cross-origin iframes lose access to camera/mic/screen, which
+  //     nothing embeds today (frame-ancestors 'none' anyway).
+  //   • Content-Security-Policy-Report-Only — the rollout step the block above
+  //     calls for: enforces NOTHING, only reports would-be violations to
+  //     /api/csp-report (visible in Vercel logs). Once the report stream is
+  //     quiet in production, the policy can be promoted to an enforcing
+  //     Content-Security-Policy. NEVER promote without a quiet report stream.
   async headers() {
+    const cspReportOnly = [
+      "default-src 'self'",
+      // 'unsafe-inline' is required by Next's inline bootstrap scripts (no
+      // nonce infrastructure yet). Clerk loads its JS from the Frontend-API
+      // host (dev: *.clerk.accounts.dev, prod: clerk.<domain> — first-party
+      // subdomain, reported if missing). Cloudflare Turnstile is Clerk's bot
+      // protection frame.
+      "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+      "style-src 'self' 'unsafe-inline'",
+      // https: in img-src is deliberate: stimulus images may live on external
+      // hosts chosen by researchers.
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co wss://*.livekit.cloud https://*.livekit.cloud https://*.clerk.accounts.dev https://clerk-telemetry.com",
+      // blob: for TTS-MP3 playback and recorded-audio previews.
+      "media-src 'self' blob: https:",
+      "worker-src 'self' blob:",
+      "frame-src https://challenges.cloudflare.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "report-uri /api/csp-report",
+    ].join("; ");
+
     return [
       {
         source: "/:path*",
@@ -88,6 +119,12 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-DNS-Prefetch-Control", value: "on" },
           { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          {
+            key: "Permissions-Policy",
+            value:
+              "camera=(self), microphone=(self), display-capture=(self), geolocation=(), payment=(), usb=()",
+          },
+          { key: "Content-Security-Policy-Report-Only", value: cspReportOnly },
         ],
       },
     ];

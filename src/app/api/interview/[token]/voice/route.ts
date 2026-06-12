@@ -274,8 +274,9 @@ export async function POST(
   } catch (err) {
     if (err instanceof DeepgramTranscriptionError) {
       console.error("[interview voice] Deepgram STT failed:", err.message);
+      // Public participant route: the raw Deepgram message stays server-side.
       return NextResponse.json(
-        { error: "Could not transcribe audio.", detail: err.message },
+        { error: "Could not transcribe audio." },
         { status: err.status },
       );
     }

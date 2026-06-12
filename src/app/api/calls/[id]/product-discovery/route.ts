@@ -39,8 +39,9 @@ export async function POST(
     .maybeSingle();
 
   if (lookupError) {
+    console.error("[product-discovery] call lookup failed:", lookupError.message);
     return NextResponse.json(
-      { error: t("calls.lookupFailed"), detail: lookupError.message },
+      { error: t("calls.lookupFailed") },
       { status: 500 },
     );
   }
@@ -61,10 +62,10 @@ export async function POST(
     }
     return NextResponse.json({ success: true, insight });
   } catch (err) {
+    console.error("[product-discovery] failed:", err instanceof Error ? err.message : err);
     return NextResponse.json(
       {
         error: t("calls.discoveryFailed"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );

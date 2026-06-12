@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
     const result = await getLatestRiskScore(orgId, dealId);
     return NextResponse.json({ result });
   } catch (err) {
+    console.error("[risk/latest] failed:", err instanceof Error ? err.message : err);
     return NextResponse.json(
       {
         error: t("risk.fetchFailed"),
-        detail: err instanceof Error ? err.message : "unknown",
       },
       { status: 500 },
     );
