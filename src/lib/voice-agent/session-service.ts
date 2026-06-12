@@ -269,6 +269,23 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
   };
 }
 
+/** E3/E4 — Agent-Turn additiv bauen: why (Forscher-Rationale) und
+ *  shownStimulusPosition (Multi-Stimulus-Reveal) erscheinen NUR, wenn der
+ *  Pfad sie liefert; post_loss/checkin und Set-lose Research-Sessions
+ *  schreiben exakt die alte {role, text}-Form. */
+function buildAgentTurn(
+  text: string,
+  why: string | null,
+  shownStimulusPosition: number | null,
+): InterviewTurn {
+  return {
+    role: "agent",
+    text,
+    ...(why !== null ? { why } : {}),
+    ...(shownStimulusPosition !== null ? { shownStimulusPosition } : {}),
+  };
+}
+
 function agentTurnCount(conversation: InterviewTurn[]): number {
   return conversation.filter((t) => t.role === "agent").length;
 }
@@ -387,14 +404,10 @@ export async function createInterviewSession(params: {
             language,
             model,
           );
-  // E3 — die Opening-Begründung (nur Research-Pfad liefert eine) reist
-  // additiv mit; post_loss/checkin geben why=null → Form unverändert.
+  // E3/E4 — Opening-Begründung + Reveal-Marker (nur Research liefert sie)
+  // reisen additiv mit; post_loss/checkin geben null → Form unverändert.
   const conversation: InterviewTurn[] = opening
-    ? [
-        opening.why !== null
-          ? { role: "agent", text: opening.message, why: opening.why }
-          : { role: "agent", text: opening.message },
-      ]
+    ? [buildAgentTurn(opening.message, opening.why, opening.showStimulusPosition)]
     : [];
 
   const supabase = createResearchSupabase();
@@ -822,6 +835,8 @@ export async function withdrawSessionByToken(
 export async function ensureOpeningTurn(
   token: string,
   onDelta?: TurnDelta,
+  // E4 — frühes Reveal-Event (Multi-Stimulus); nur der Research-Pfad nutzt es.
+  onShow?: (position: number) => void,
 ): Promise<PublicInterviewView | null> {
   const session = await loadByToken(token);
   if (!session) return null;
@@ -842,6 +857,7 @@ export async function ensureOpeningTurn(
           session.language,
           model,
           onDelta,
+          onShow,
         )
       : session.kind === "checkin"
         ? await nextCheckinMessage(
@@ -859,11 +875,9 @@ export async function ensureOpeningTurn(
             onDelta,
           );
 
-  // E3 — Opening-Begründung additiv mitschreiben (nur Research liefert eine).
+  // E3/E4 — Opening-Begründung + Reveal-Marker additiv mitschreiben.
   const conversation: InterviewTurn[] = [
-    opening.why !== null
-      ? { role: "agent", text: opening.message, why: opening.why }
-      : { role: "agent", text: opening.message },
+    buildAgentTurn(opening.message, opening.why, opening.showStimulusPosition),
   ];
   const supabase = createResearchSupabase();
   const { data, error } = await supabase
@@ -928,6 +942,8 @@ export async function advanceInterview(
   token: string,
   buyerMessage: string,
   onDelta?: TurnDelta,
+  // E4 — frühes Reveal-Event (Multi-Stimulus); nur der Research-Pfad nutzt es.
+  onShow?: (position: number) => void,
 ): Promise<PublicInterviewView | null> {
   const session = await loadByToken(token);
   if (!session) return null;
@@ -962,27 +978,32 @@ export async function advanceInterview(
     // push.
     const wouldHitCap = history.length + 1 >= MAX_RESEARCH_TOTAL_TURNS;
 
-    const { done, message, why } = await nextResearchMessage(
-      input,
-      history,
-      session.language,
-      model,
-      wouldHitCap ? undefined : onDelta,
-    );
+    const { done, message, why, showStimulusPosition } =
+      await nextResearchMessage(
+        input,
+        history,
+        session.language,
+        model,
+        wouldHitCap ? undefined : onDelta,
+        // Cap-Close-Turns dürfen auch kein Reveal-Event feuern — die Message
+        // wird gleich durch die generische Closing ersetzt.
+        wouldHitCap ? undefined : onShow,
+      );
     const forceCapClose = wouldHitCap && !done;
     const finalAgentText = forceCapClose
       ? RESEARCH_CAP_CLOSING_MESSAGE
       : message;
-    // E3 — die echte Begründung zum Entscheidungszeitpunkt wandert additiv an
-    // den Agent-Turn ({role, text, why?}). NICHT beim Cap-Close: dort wurde
-    // die Modell-Nachricht durch die generische Closing-Message ersetzt, eine
-    // mitgelieferte Begründung gehörte zur verworfenen Frage. Alte Reader
-    // (Voice-Agent build_history, conversationToTranscript) lesen nur `text`;
-    // Teilnehmer-Payloads strippen das Feld in toPublicView.
+    // E3/E4 — Begründung + Reveal-Marker wandern additiv an den Agent-Turn.
+    // NICHT beim Cap-Close: dort wurde die Modell-Nachricht durch die
+    // generische Closing-Message ersetzt; Begründung wie Reveal gehörten zur
+    // verworfenen Frage. Alte Reader (Voice-Agent build_history,
+    // conversationToTranscript) lesen nur `text`; Teilnehmer-Payloads
+    // strippen why in toPublicView (der Reveal-Marker bleibt — E5 braucht
+    // ihn für Panel-Restore).
     history.push(
-      why !== null && !forceCapClose
-        ? { role: "agent", text: finalAgentText, why }
-        : { role: "agent", text: finalAgentText },
+      forceCapClose
+        ? { role: "agent", text: finalAgentText }
+        : buildAgentTurn(finalAgentText, why, showStimulusPosition),
     );
     const finished = done || forceCapClose;
 

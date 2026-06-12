@@ -59,6 +59,12 @@ export interface InterviewTurn {
    *  Pfade tragen das Feld nie. NUR für Forscher-Ansichten — jede
    *  Teilnehmer-Payload läuft durch stripTurnInternals (toPublicView). */
   why?: string;
+  /** Multi-Stimulus E4 — Position (1-basiert) des Stimulus, den der Agent in
+   *  DIESEM Turn eingeblendet hat (SHOW:-Header). OPTIONAL und additiv; nur
+   *  Agent-Turns von Multi-Stimulus-Studien tragen das Feld. Bewusst NICHT
+   *  gestript: der Teilnehmer-Client braucht es für Reveal + Reload-Restore
+   *  (es verrät nur WANN gezeigt wurde, nie Methodik). */
+  shownStimulusPosition?: number;
 }
 
 /** E3 — entfernt interne Felder (heute: why) aus Turns. PFLICHT vor jeder
@@ -68,7 +74,13 @@ export interface InterviewTurn {
 export function stripTurnInternals(
   conversation: InterviewTurn[],
 ): InterviewTurn[] {
-  return conversation.map(({ role, text }) => ({ role, text }));
+  // shownStimulusPosition bleibt absichtlich drin (Reveal-Steuerung der
+  // Teilnehmer-UI, E4/E5) — gestript wird nur Forscher-Methodik (why).
+  return conversation.map(({ role, text, shownStimulusPosition }) =>
+    shownStimulusPosition !== undefined
+      ? { role, text, shownStimulusPosition }
+      : { role, text },
+  );
 }
 
 /** Buyer-facing conversation language for a session. */
@@ -110,6 +122,12 @@ export interface NextMessage {
    *  JSON-Voice-Contract). Erreicht NIE den Teilnehmer: der Parser emittiert
    *  die Zeile nicht als Delta, und toPublicView strippt das Feld. */
   why: string | null;
+  /** Multi-Stimulus E4 — Wert der optionalen `SHOW:`-Headerzeile (nur der
+   *  Multi-Stimulus-Turn-Prompt fordert sie an): die Position des Stimulus,
+   *  den der Agent JETZT einblendet. Null ohne Header, bei Parse-Fehlern
+   *  (fail-open) und auf allen anderen Pfaden. Vom Aufrufer gegen 1..N
+   *  geklemmt (nextResearchMessage). */
+  showStimulusPosition: number | null;
 }
 
 const InterviewResultSchema = z.object({
@@ -182,6 +200,20 @@ Second line: exactly \`WHY: \` followed by ONE short sentence (max ~15 words) te
 Then one empty line.
 Then your next message to the ${audience}, or a short warm closing if done — plain text only.
 Wherever these instructions say to set "done": true or false, express it ONLY through this first DONE line. Never repeat the DONE or WHY line inside the message itself.`;
+}
+
+/** Multi-Stimulus E4 — der Set-Flavor des Research-Turn-Contracts: zusätzlich
+ *  zur WHY-Zeile eine OPTIONALE dritte Headerzeile `SHOW: <n>`, mit der der
+ *  Agent den Stimulus n einblendet. Parser fail-open + leak-gehärtet wie WHY;
+ *  alle anderen Pfade behalten ihre Contracts byte-identisch. */
+function plainOutputBlockWithWhyAndShow(audience: string): string {
+  return `OUTPUT FORMAT — reply as PLAIN TEXT, no JSON, no markdown, no preamble:
+First line: exactly \`DONE: false\` while you still want to ask another question, or \`DONE: true\` when wrapping up.
+Second line: exactly \`WHY: \` followed by ONE short sentence (max ~15 words) telling the RESEARCHER who reads the transcript later why you are asking THIS question now — e.g. which plan topic it serves, what in the previous answer you are deepening, or (when done) why you are closing. The line must start with exactly the four characters \`WHY:\` — never prefix or rename it (no labels, no self-check notes). Write it in the interview's required language. The ${audience} never sees this line; keep it factual and method-focused, never a judgment about the person.
+Third line (OPTIONAL — only in a turn where you reveal a stimulus): exactly \`SHOW: \` followed by the stimulus number (e.g. \`SHOW: 2\`). This makes that stimulus visible on the ${audience}'s screen the moment your message arrives — sending it is the ONLY way to show a stimulus; announcing one in your message without this line leaves the ${audience} in front of an unchanged screen. Omit the line entirely in every other turn. Never write it inside the message body.
+Then one empty line.
+Then your next message to the ${audience}, or a short warm closing if done — plain text only.
+Wherever these instructions say to set "done": true or false, express it ONLY through this first DONE line. Never repeat the DONE, WHY or SHOW line inside the message itself.`;
 }
 
 const INTERVIEWER_CORE = `You are findr.'s post-loss interview agent. A B2B SaaS deal was just lost, and you are reaching out to the buyer (over text/chat) to learn the REAL reason it didn't go forward. This is research — you are NOT trying to win the deal back or sell anything.
@@ -358,6 +390,10 @@ export interface DoneHeaderParser {
   /** Final, fail-open parse: a missing/violated header degrades to
    *  `done: false` + the full text as message — never a hard failure. */
   finish(): NextMessage;
+  /** E4 — der bereits geparste SHOW-Wert WÄHREND des Streams (null bis die
+   *  Headerzeile vollständig ist). Erlaubt dem Stream-Consumer ein frühes
+   *  show-Event VOR den Text-Deltas (Panel wechselt, bevor die Frage tippt). */
+  showStimulusPosition(): number | null;
 }
 
 const DONE_HEADER_RE = /^\s*done:\s*(true|false)\s*$/i;
@@ -373,6 +409,11 @@ const WHY_LINE_MAX_CHARS = 400;
 // Persistenz-Hygiene: die Begründung ist EIN kurzer Satz (Prompt: ~15 Wörter);
 // alles darüber wird hart gekappt, bevor es eine DB-Zeile erreicht.
 const WHY_VALUE_MAX_CHARS = 300;
+// E4 — optionale dritte Headerzeile `SHOW: <n>` (nur Multi-Stimulus-Prompt).
+// Gleiche Müll-Präfix-Toleranz wie WHY; eine Zeile, die darüber hinauswächst,
+// ist kein Header mehr (fail-open als Body, Streaming hängt nie).
+const SHOW_PREFIX_SLACK = 24;
+const SHOW_LINE_MAX_CHARS = 64;
 
 /** Incremental parser for the plain-text turn contract. Exported for unit
  *  tests — pure state machine, no I/O.
@@ -384,10 +425,12 @@ const WHY_VALUE_MAX_CHARS = 300;
  *  ("why:"-Präfix-Check) zugunsten des Live-Streamings ab, ein Body wie
  *  "Why did …" verzögert sich also nicht messbar. */
 export function createDoneHeaderParser(): DoneHeaderParser {
-  // header → lead (Zeile 2: WHY-Kandidat) → sep (Separator/Body-Start) → body.
-  let state: "header" | "lead" | "sep" | "body" = "header";
+  // header → lead (Zeile 2: WHY-Kandidat) → show (Zeile 3: SHOW-Kandidat,
+  // E4) → sep (Separator/Body-Start) → body.
+  let state: "header" | "lead" | "show" | "sep" | "body" = "header";
   let done = false;
   let why: string | null = null;
+  let showStimulusPosition: number | null = null;
   let buffer = "";
   let message = "";
 
@@ -420,6 +463,18 @@ export function createDoneHeaderParser(): DoneHeaderParser {
     const idx = line.toLowerCase().indexOf("why:");
     if (idx < 0 || idx > WHY_PREFIX_SLACK) return null;
     return line.slice(idx + 4).trim() || null;
+  }
+
+  // E4 — SHOW-Header in EINER Zeile, gleiche Präfix-Toleranz wie extractWhy.
+  // Der Wert muss eine kleine positive Zahl sein (1–99); alles andere ist
+  // kein Header (fail-open). Klemmen gegen das echte N macht der Aufrufer.
+  function extractShow(line: string): number | null {
+    const idx = line.toLowerCase().indexOf("show:");
+    if (idx < 0 || idx > SHOW_PREFIX_SLACK) return null;
+    const value = line.slice(idx + 5).trim();
+    if (!/^\d{1,2}$/.test(value)) return null;
+    const parsed = Number.parseInt(value, 10);
+    return parsed >= 1 ? parsed : null;
   }
 
   function push(chunk: string): string {
@@ -456,13 +511,15 @@ export function createDoneHeaderParser(): DoneHeaderParser {
       if (buffer.startsWith("\n") || buffer.startsWith("\r")) {
         state = "sep";
       } else if (buffer !== "") {
-        // Zeile 2 trägt Text → WHY-Kandidat. Puffern (NIE emittieren), bis
-        // die Zeile endet oder klar ist, dass sie kein Header sein kann.
+        // Zeile 2 trägt Text → WHY-Kandidat (oder, bei übersprungener WHY-
+        // Zeile, direkt der SHOW-Header — Contract-Verletzung, aber der
+        // Leak-Schutz schlägt Strenge: beides darf nie zum Teilnehmer).
         const nl = buffer.indexOf("\n");
         if (nl === -1) {
-          const hasWhy = buffer.toLowerCase().includes("why:");
+          const lower = buffer.toLowerCase();
+          const hasHeaderWord = lower.includes("why:") || lower.includes("show:");
           if (
-            (!hasWhy && buffer.length > WHY_PREFIX_SLACK + 4) ||
+            (!hasHeaderWord && buffer.length > WHY_PREFIX_SLACK + 5) ||
             buffer.length > WHY_LINE_MAX_CHARS
           ) {
             return enterBody(buffer);
@@ -471,8 +528,51 @@ export function createDoneHeaderParser(): DoneHeaderParser {
         }
         const line = buffer.slice(0, nl).trim();
         const extracted = extractWhy(line);
-        if (extracted === null) return enterBody(buffer);
-        why = extracted;
+        if (extracted === null) {
+          const shown = extractShow(line);
+          if (shown === null) return enterBody(buffer);
+          showStimulusPosition = shown;
+          buffer = buffer.slice(nl + 1);
+          state = "sep";
+        } else {
+          why = extracted;
+          buffer = buffer.slice(nl + 1);
+          state = "show";
+        }
+      } else {
+        return "";
+      }
+    }
+    if (state === "show") {
+      // Direkt nach der WHY-Zeile: optionale SHOW-Zeile (E4). Beginnt der
+      // Rest mit einem Zeilenumbruch, war Zeile 3 leer → Body folgt; der
+      // No-SHOW-Pfad streamt damit exakt so früh wie vor E4.
+      if (buffer.startsWith("\n") || buffer.startsWith("\r")) {
+        state = "sep";
+      } else if (buffer !== "") {
+        const nl = buffer.indexOf("\n");
+        if (nl === -1) {
+          const hasShow = buffer.toLowerCase().includes("show:");
+          if (
+            (!hasShow && buffer.length > SHOW_PREFIX_SLACK + 5) ||
+            buffer.length > SHOW_LINE_MAX_CHARS
+          ) {
+            return enterBody(buffer);
+          }
+          return "";
+        }
+        const line = buffer.slice(0, nl).trim();
+        const shown = extractShow(line);
+        if (shown !== null) {
+          showStimulusPosition = shown;
+        } else {
+          // Zeile trägt "show:" im Präfix-Fenster, aber keinen gültigen
+          // Wert → Header-Müll. SCHLUCKEN statt streamen (Teilnehmer-Schutz
+          // schlägt Datenverlust-Paranoia, exakt die WHY-Philosophie);
+          // ohne "show:" war es doch Body.
+          const idx = line.toLowerCase().indexOf("show:");
+          if (idx < 0 || idx > SHOW_PREFIX_SLACK) return enterBody(buffer);
+        }
         buffer = buffer.slice(nl + 1);
         state = "sep";
       } else {
@@ -503,10 +603,25 @@ export function createDoneHeaderParser(): DoneHeaderParser {
       // Stream ended inside line 2: a complete bare `WHY: …` (auch mit
       // Müll-Präfix) yields the rationale — message stays empty, the
       // empty-message retry path treats it like a bare DONE header. A
-      // fragment without "why:" was body after all.
+      // fragment without "why:" was body after all (außer es ist ein
+      // nackter SHOW-Header — E4, gleicher Leak-Schutz).
       const extracted = extractWhy(buffer.trim());
       if (extracted !== null) {
         why = extracted;
+      } else {
+        const shown = extractShow(buffer.trim());
+        if (shown !== null) {
+          showStimulusPosition = shown;
+        } else {
+          message = buffer;
+        }
+      }
+    } else if (state === "show" && buffer) {
+      // Stream ended inside line 3: nackter `SHOW: n` zählt, alles andere
+      // war doch Body.
+      const shown = extractShow(buffer.trim());
+      if (shown !== null) {
+        showStimulusPosition = shown;
       } else {
         message = buffer;
       }
@@ -515,10 +630,15 @@ export function createDoneHeaderParser(): DoneHeaderParser {
       done,
       message: message.trim(),
       why: why ? why.slice(0, WHY_VALUE_MAX_CHARS) : null,
+      showStimulusPosition,
     };
   }
 
-  return { push, finish };
+  return {
+    push,
+    finish,
+    showStimulusPosition: () => showStimulusPosition,
+  };
 }
 
 /**
@@ -601,11 +721,15 @@ async function callPlainTurn(
   messages: Anthropic.MessageParam[],
   model: string,
   onDelta?: TurnDelta,
+  // E4 — feuert GENAU EINMAL, sobald der SHOW-Header vollständig geparst ist
+  // (vor dem ersten Body-Delta). Nur der Multi-Stimulus-Pfad reicht ihn durch.
+  onShow?: (position: number) => void,
 ): Promise<NextMessage> {
   const client = getAnthropicClient();
   try {
     for (let attempt = 0; attempt <= 1; attempt++) {
       const parser = createDoneHeaderParser();
+      let showFired = false;
       const stream = client.messages.stream({
         model,
         max_tokens: 1024,
@@ -622,6 +746,13 @@ async function callPlainTurn(
           event.delta.type === "text_delta"
         ) {
           const visible = parser.push(event.delta.text);
+          if (!showFired && onShow) {
+            const shown = parser.showStimulusPosition();
+            if (shown !== null) {
+              showFired = true;
+              onShow(shown);
+            }
+          }
           if (visible && onDelta) onDelta(visible);
         }
       }
@@ -980,9 +1111,103 @@ function hasResearchStimulus(plan: ResearchPlanContext): boolean {
   // Beschreibung ODER Vision-Analyse zählt als Stimulus-Präsenz — damit greift
   // der Stimulus-Fokusblock auch, wenn der Forscher keine eigene Beschreibung
   // getippt hat. Bestandspläne haben nie eine Analyse → Verhalten unverändert.
+  // E4: ein Multi-Stimulus-SET zählt immer als Präsenz.
   return Boolean(
-    plan.stimulusDescription?.trim() || plan.stimulusAnalysis?.trim(),
+    plan.stimulusDescription?.trim() ||
+      plan.stimulusAnalysis?.trim() ||
+      hasStimulusSet(plan),
   );
+}
+
+/** E4 — true genau dann, wenn der Snapshot ein nicht-leeres Stimulus-Set
+ *  trägt (research_plan_stimuli, über planToAgentContext). Steuert den
+ *  Set-Prompt-Block, den SHOW-Contract und die Tail-Zähler. */
+function hasStimulusSet(plan: ResearchPlanContext): boolean {
+  return Array.isArray(plan.stimuli) && plan.stimuli.length > 0;
+}
+
+/** D8 — Stop-Ceiling skaliert mit der Set-Größe: Basis 2 + 3 Fragen pro
+ *  Stimulus + 1 Pflicht-Präferenzfrage (ab N ≥ 2), hart gedeckelt. Exported
+ *  for unit tests. */
+export function stimulusSetCeiling(count: number): number {
+  return Math.min(2 + 3 * count + (count >= 2 ? 1 : 0), 14);
+}
+
+/** D5 — Analyse-Block pro Set-Element kürzen, sobald das Set groß wird
+ *  (Prompt-Budget): Schnitt am letzten Satzende vor dem Cap. */
+const SET_ANALYSIS_FULL_MAX = 3000;
+const SET_ANALYSIS_TRIMMED_MAX = 1200;
+function trimAnalysis(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const slice = text.slice(0, max);
+  const lastStop = Math.max(
+    slice.lastIndexOf(". "),
+    slice.lastIndexOf(".\n"),
+  );
+  return lastStop > max / 2 ? slice.slice(0, lastStop + 1) : `${slice}…`;
+}
+
+const STIMULUS_TYPE_LABELS: Record<string, string> = {
+  image: "Bild",
+  video: "Video",
+  link: "Prototyp-Link",
+};
+
+/**
+ * E4 — der Multi-Stimulus-Block: nummeriertes Set + verbindliche Regie
+ * (Reihenfolge, SHOW-Steuerung, Vergleichsregeln, Pflicht-Präferenzfrage,
+ * D8-Ceiling-Override). Ersetzt formatStimulus, sobald ein Set existiert;
+ * ohne Set rendert weiterhin der Legacy-Block byte-identisch. Stable pro
+ * Session (Snapshot) — cache-sicher. Exported for unit tests.
+ */
+export function formatStimulusSet(plan: ResearchPlanContext): string | null {
+  const stimuli = plan.stimuli;
+  if (!stimuli || stimuli.length === 0) return null;
+
+  const count = stimuli.length;
+  const ceiling = stimulusSetCeiling(count);
+  const analysisMax =
+    count >= 3 ? SET_ANALYSIS_TRIMMED_MAX : SET_ANALYSIS_FULL_MAX;
+
+  const items = stimuli
+    .map((item) => {
+      const typeLabel = STIMULUS_TYPE_LABELS[item.type] ?? item.type;
+      const name = item.label?.trim()
+        ? `„${item.label.trim()}“`
+        : `Stimulus ${item.position}`;
+      const lines = [
+        `${item.position}. ${name} (${typeLabel})${
+          item.description?.trim()
+            ? ` — Beschreibung: ${item.description.trim()}`
+            : ""
+        }`,
+      ];
+      const analysis = item.analysis?.trim();
+      if (analysis) {
+        lines.push(
+          `   ANALYSE (KI-Beschreibung — Nachhak-Material, ERSETZT NICHT die TOPICS): ${trimAnalysis(analysis, analysisMax)}`,
+        );
+      }
+      return lines.join("\n");
+    })
+    .join("\n");
+
+  const preference =
+    count >= 2
+      ? `\n- PFLICHT-PRÄFERENZFRAGE: Nachdem ALLE ${count} Stimuli gezeigt und befragt wurden, stelle genau EINE explizite Präferenzfrage (welchen Stimulus die Person bevorzugt UND was den Ausschlag gibt — als EINE Frage in einem Turn). Warte die Antwort ab; erst danach abschließen. Diese Frage ist von der Eine-Frage-Disziplin gedeckt und zählt im Ceiling unten mit.`
+      : "";
+
+  return `STIMULUS-SET (${count} ${count === 1 ? "Stimulus" : "Stimuli"} in fester Reihenfolge — der Teilnehmer sieht zu Beginn KEINEN davon):
+${items}
+
+REGIE (Stimulus-Steuerung — verbindlich):
+- DU steuerst, wann der Teilnehmer welchen Stimulus sieht: über die SHOW-Headerzeile deines Outputs (siehe OUTPUT FORMAT). Ohne SHOW-Zeile ändert sich auf dem Bildschirm NICHTS — einen Stimulus anzukündigen, ohne SHOW zu senden, lässt die Person vor einem leeren Panel sitzen.
+- Zeige die Stimuli strikt in der Reihenfolge 1…${count}. Sende \`SHOW: 1\` im selben Turn wie deine erste Frage zu Stimulus 1 (direkt nach dem Opening), \`SHOW: 2\` im Turn des Wechsels zu Stimulus 2, und so weiter.
+- Kündige den Wechsel in deiner Message kurz an („Schauen Sie sich bitte jetzt das nächste Bild an …") — im SELBEN Turn wie die SHOW-Zeile, nie früher.
+- Pro Stimulus 2–3 Fragen (erster Eindruck, dann höchstens eine Vertiefung gemäß USE-CASE FOCUS), dann weiter zum nächsten. Die Saturation-Regeln gelten pro Stimulus wie für Topics.
+- Sprich NIEMALS über einen noch nicht gezeigten Stimulus und verrate nie, was noch kommt (auch nicht die Anzahl).
+- Vergleichsfragen sind erwünscht — aber nur rückwärts auf bereits gezeigte Stimuli („Wie wirkt das im Vergleich zu dem ersten Bild?"). Ein erneutes \`SHOW: <frühere Nummer>\` ist dafür erlaubt.${preference}
+- ABWEICHENDES STOP-CEILING für diese Studie (ERSETZT die Basis-Zahlen 5/6 der Stop-Regeln): ab ${ceiling - 1} Agent-Fragen aktiv abwickeln, ab ${ceiling} "done": true setzen. Die COUNTERS in deiner User-Message liefern die verbindlichen Zählwerte.`;
 }
 
 function withUseCaseFocus(
@@ -1019,12 +1244,14 @@ export function buildResearchSystemPrompt(
 function buildResearchTurnSystemPrompt(
   useCase: unknown,
   hasStimulus: boolean,
+  // E4 — Multi-Stimulus-Sessions bekommen den Contract MIT SHOW-Zeile; alle
+  // anderen Research-Sessions behalten den WHY-Contract byte-identisch.
+  withStimulusSet = false,
 ): string {
-  return withUseCaseFocus(
-    RESEARCH_INTERVIEWER_TURN_SYSTEM_PROMPT,
-    useCase,
-    hasStimulus,
-  );
+  const base = withStimulusSet
+    ? `${RESEARCH_INTERVIEWER_CORE}\n\n${plainOutputBlockWithWhyAndShow("participant")}`
+    : RESEARCH_INTERVIEWER_TURN_SYSTEM_PROMPT;
+  return withUseCaseFocus(base, useCase, hasStimulus);
 }
 
 function formatTopics(topics: ResearchTopic[]): string {
@@ -1100,7 +1327,11 @@ export function buildResearchContext(
   language: InterviewLanguage,
 ): string {
   const persona = input.plan.persona?.trim();
-  const stimulus = formatStimulus(input.plan);
+  // E4: ein Set verdrängt den Legacy-Block (ein migrierter Plan trägt beide
+  // Quellen im Snapshot — doppelt rendern hieße doppelte Wahrheit).
+  const stimulus = hasStimulusSet(input.plan)
+    ? formatStimulusSet(input.plan)
+    : formatStimulus(input.plan);
 
   return `REQUIRED LANGUAGE: ${LANGUAGE_LABELS[language]} — write your message in this language, including the opening message.
 
@@ -1124,18 +1355,47 @@ ${formatTopics(input.plan.topics)}`;
  *     the absolute stop ceiling in the system prompt (5: wind down, 6: done).
  *   - topicsTotal — number of plan topics, for pacing without re-counting.
  */
-function buildResearchTail(
+export function buildResearchTail(
   input: ResearchInput,
   history: InterviewTurn[],
 ): string {
   const agentQuestionCount = history.filter((t) => t.role === "agent").length;
   const topicsTotal = input.plan.topics.length;
 
+  // E4 — Multi-Stimulus-Zähler (D4): "aktuell sichtbar" wird aus den
+  // persistierten SHOW-Markern der Historie BERECHNET, nie geschätzt. Ohne
+  // Set bleibt der Tail byte-identisch zu vorher.
+  let stimulusCounters = "";
+  if (hasStimulusSet(input.plan)) {
+    const stimuli = input.plan.stimuli ?? [];
+    let highest = 0;
+    let current: number | null = null;
+    for (const turn of history) {
+      if (turn.role !== "agent") continue;
+      const shown = turn.shownStimulusPosition;
+      if (typeof shown !== "number") continue;
+      current = shown;
+      if (shown > highest) highest = shown;
+    }
+    const currentLabel =
+      current !== null
+        ? `#${current}${
+            stimuli.find((item) => item.position === current)?.label
+              ? ` („${stimuli.find((item) => item.position === current)!.label}“)`
+              : ""
+          }`
+        : "NONE (the participant sees no stimulus yet — send SHOW: 1 with your next content question)";
+    stimulusCounters = `
+- stimuli in the set:           ${stimuli.length}
+- stimuli revealed so far:      ${highest} of ${stimuli.length}
+- currently shown stimulus:     ${currentLabel}`;
+  }
+
   return buildTurnTail(
     history,
     `COUNTERS (calculated facts — trust these, do NOT estimate from history):
 - agent questions asked so far: ${agentQuestionCount}
-- plan topics in total:         ${topicsTotal}`,
+- plan topics in total:         ${topicsTotal}${stimulusCounters}`,
   );
 }
 
@@ -1155,11 +1415,18 @@ export async function nextResearchMessage(
   language: InterviewLanguage,
   model: string = process.env.VOICE_MODEL ?? DEFAULT_VOICE_MODEL,
   onDelta?: TurnDelta,
+  // E4 — frühes Reveal-Signal (vor den Text-Deltas), bereits gegen das Set
+  // validiert. Nur der Multi-Stimulus-Pfad bekommt Events.
+  onShow?: (position: number) => void,
 ): Promise<NextMessage> {
-  return callPlainTurn(
+  const withStimulusSet = hasStimulusSet(input.plan);
+  const setSize = input.plan.stimuli?.length ?? 0;
+
+  const result = await callPlainTurn(
     buildResearchTurnSystemPrompt(
       input.plan.useCase,
       hasResearchStimulus(input.plan),
+      withStimulusSet,
     ),
     buildTurnMessages(
       buildResearchContext(input, language),
@@ -1168,5 +1435,24 @@ export async function nextResearchMessage(
     ),
     model,
     onDelta,
+    // Klemme VOR dem Event: ein SHOW außerhalb von 1..N (oder ganz ohne Set)
+    // erreicht weder den Consumer noch die Persistenz — fail-open, das
+    // Interview läuft normal weiter.
+    withStimulusSet && onShow
+      ? (position) => {
+          if (position >= 1 && position <= setSize) onShow(position);
+        }
+      : undefined,
   );
+
+  return {
+    ...result,
+    showStimulusPosition:
+      withStimulusSet &&
+      result.showStimulusPosition !== null &&
+      result.showStimulusPosition >= 1 &&
+      result.showStimulusPosition <= setSize
+        ? result.showStimulusPosition
+        : null,
+  };
 }

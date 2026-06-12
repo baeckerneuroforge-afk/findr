@@ -3,11 +3,15 @@ import { describe, expect, it } from "vitest";
 import {
   buildResearchContext,
   buildResearchSystemPrompt,
+  buildResearchTail,
   buildTurnMessages,
   createDoneHeaderParser,
+  formatStimulusSet,
+  stimulusSetCeiling,
   stripTurnInternals,
   type InterviewTurn,
   type ResearchInput,
+  type ResearchStimulusContext,
 } from "./interviewer";
 
 const BASE_INPUT: ResearchInput = {
@@ -162,6 +166,7 @@ describe("done-header stream parser (B1 plain-text turn contract)", () => {
       done: false,
       message: "Hallo! Wie geht es Ihnen?",
       why: null,
+      showStimulusPosition: null,
     });
   });
 
@@ -172,6 +177,7 @@ describe("done-header stream parser (B1 plain-text turn contract)", () => {
       done: true,
       message: "Danke für das Gespräch!",
       why: null,
+      showStimulusPosition: null,
     });
   });
 
@@ -185,6 +191,7 @@ describe("done-header stream parser (B1 plain-text turn contract)", () => {
       done: false,
       message: "Vielen Dank für Ihre Zeit — eine Frage noch: Was war der Auslöser?",
       why: null,
+      showStimulusPosition: null,
     });
   });
 
@@ -198,21 +205,21 @@ describe("done-header stream parser (B1 plain-text turn contract)", () => {
   it("handles a bare DONE header with no message as empty (caller retries)", () => {
     const parser = createDoneHeaderParser();
     parser.push("DONE: true");
-    expect(parser.finish()).toEqual({ done: true, message: "", why: null });
+    expect(parser.finish()).toEqual({ done: true, message: "", why: null, showStimulusPosition: null });
   });
 
   it("tolerates blank lines BEFORE the header (review finding)", () => {
     const parser = createDoneHeaderParser();
     parser.push("\n");
     parser.push("\nDONE: true\n\nDanke!");
-    expect(parser.finish()).toEqual({ done: true, message: "Danke!", why: null });
+    expect(parser.finish()).toEqual({ done: true, message: "Danke!", why: null, showStimulusPosition: null });
   });
 
   it("emits nothing for the header even when everything arrives in one chunk", () => {
     const parser = createDoneHeaderParser();
     const emitted = parser.push("DONE: true\n\nAuf Wiedersehen!");
     expect(emitted).toBe("Auf Wiedersehen!");
-    expect(parser.finish()).toEqual({ done: true, message: "Auf Wiedersehen!", why: null });
+    expect(parser.finish()).toEqual({ done: true, message: "Auf Wiedersehen!", why: null, showStimulusPosition: null });
   });
 });
 
@@ -227,6 +234,7 @@ describe("WHY header line (E3 Frage-Rationale)", () => {
       done: false,
       message: "Was genau war zu teuer?",
       why: "Vertiefung zu Thema 2 — Preis wurde erstmals erwähnt",
+      showStimulusPosition: null,
     });
   });
 
@@ -240,6 +248,7 @@ describe("WHY header line (E3 Frage-Rationale)", () => {
       done: true,
       message: "Vielen Dank!",
       why: "Alle Themen gesättigt",
+      showStimulusPosition: null,
     });
   });
 
@@ -251,6 +260,7 @@ describe("WHY header line (E3 Frage-Rationale)", () => {
       done: false,
       message: "Wie lief das ab?",
       why: null,
+      showStimulusPosition: null,
     });
   });
 
@@ -264,6 +274,7 @@ describe("WHY header line (E3 Frage-Rationale)", () => {
       done: false,
       message: "Why was that frustrating for you?",
       why: null,
+      showStimulusPosition: null,
     });
   });
 
@@ -274,6 +285,7 @@ describe("WHY header line (E3 Frage-Rationale)", () => {
       done: true,
       message: "",
       why: "Teilnehmer bat um Abschluss",
+      showStimulusPosition: null,
     });
   });
 
@@ -306,6 +318,7 @@ describe("WHY header line (E3 Frage-Rationale)", () => {
       done: false,
       message: "Verstehe. Lassen Sie uns wechseln.",
       why: "Onboarding ohne Signal, wechsle zu Reporting",
+      showStimulusPosition: null,
     });
   });
 
@@ -415,5 +428,199 @@ describe("buildTurnMessages (B4 messages-list + caching layout)", () => {
       "TAIL",
     );
     expect(messages.map((m) => m.role)).toEqual(["user"]);
+  });
+});
+
+// ─── Multi-Stimulus E4 ───────────────────────────────────────────────────────
+
+function setItem(
+  overrides: Partial<ResearchStimulusContext>,
+): ResearchStimulusContext {
+  return {
+    position: 1,
+    type: "image",
+    url: "https://storage.example/s1.png",
+    label: "Variante A",
+    description: "Blaues Packaging",
+    analysis: null,
+    ...overrides,
+  };
+}
+
+function setInput(stimuli: ResearchStimulusContext[]): ResearchInput {
+  return {
+    ...BASE_INPUT,
+    plan: { ...BASE_INPUT.plan, stimuli },
+  };
+}
+
+const TWO_SET = [
+  setItem({}),
+  setItem({ position: 2, label: "Variante B", url: "https://storage.example/s2.png" }),
+];
+
+describe("createDoneHeaderParser — SHOW header (E4)", () => {
+  function feed(chunks: string[]) {
+    const parser = createDoneHeaderParser();
+    let emitted = "";
+    for (const chunk of chunks) emitted += parser.push(chunk);
+    return { result: parser.finish(), emitted };
+  }
+
+  it("parses DONE + WHY + SHOW and never emits any header as delta", () => {
+    const { result, emitted } = feed([
+      "DONE: false\nWHY: Wechsel zu Variante B.\nSHOW: 2\n\nWie wirkt dieses Bild auf Sie?",
+    ]);
+    expect(result.done).toBe(false);
+    expect(result.why).toBe("Wechsel zu Variante B.");
+    expect(result.showStimulusPosition).toBe(2);
+    expect(result.message).toBe("Wie wirkt dieses Bild auf Sie?");
+    expect(emitted).toBe("Wie wirkt dieses Bild auf Sie?");
+    expect(emitted.toLowerCase()).not.toContain("show:");
+  });
+
+  it("survives char-by-char streaming without leaking the SHOW line", () => {
+    const text =
+      "DONE: false\nWHY: Einstieg.\nSHOW: 1\n\nSchauen Sie sich das Bild an.";
+    const { result, emitted } = feed([...text]);
+    expect(result.showStimulusPosition).toBe(1);
+    expect(emitted).toBe("Schauen Sie sich das Bild an.");
+  });
+
+  it("exposes the show value mid-stream via showStimulusPosition()", () => {
+    const parser = createDoneHeaderParser();
+    parser.push("DONE: false\nWHY: x.\n");
+    expect(parser.showStimulusPosition()).toBeNull();
+    parser.push("SHOW: 3\n");
+    expect(parser.showStimulusPosition()).toBe(3);
+    parser.push("\nFrage?");
+    expect(parser.finish().showStimulusPosition).toBe(3);
+  });
+
+  it("accepts SHOW directly after DONE when the model skipped WHY (leak guard)", () => {
+    const { result, emitted } = feed(["DONE: false\nSHOW: 2\n\nFrage?"]);
+    expect(result.showStimulusPosition).toBe(2);
+    expect(result.why).toBeNull();
+    expect(emitted).toBe("Frage?");
+  });
+
+  it("swallows a SHOW line with a garbage value instead of streaming it", () => {
+    const { result, emitted } = feed([
+      "DONE: false\nWHY: x.\nSHOW: zwei\n\nFrage?",
+    ]);
+    expect(result.showStimulusPosition).toBeNull();
+    expect(emitted).toBe("Frage?");
+    expect(emitted.toLowerCase()).not.toContain("show");
+  });
+
+  it("does NOT eat a body that merely starts with the word Show", () => {
+    const { result, emitted } = feed([
+      "DONE: false\nWHY: x.\n\nShow me how you would start.",
+    ]);
+    expect(result.showStimulusPosition).toBeNull();
+    expect(emitted).toBe("Show me how you would start.");
+  });
+
+  it("takes a bare trailing SHOW header when the stream ends inside line 3", () => {
+    const { result } = feed(["DONE: true\nWHY: Abschluss.\nSHOW: 3"]);
+    expect(result.showStimulusPosition).toBe(3);
+    expect(result.message).toBe("");
+  });
+
+  it("keeps the no-SHOW path byte-identical (null, body streams)", () => {
+    const { result, emitted } = feed([
+      "DONE: false\nWHY: Vertiefung.\n\nWas genau blieb unklar?",
+    ]);
+    expect(result.showStimulusPosition).toBeNull();
+    expect(result.why).toBe("Vertiefung.");
+    expect(emitted).toBe("Was genau blieb unklar?");
+  });
+});
+
+describe("formatStimulusSet + Kontext (E4)", () => {
+  it("renders the numbered set with Regie, scaled ceiling and preference rule", () => {
+    const block = formatStimulusSet(setInput(TWO_SET).plan);
+    expect(block).toContain("STIMULUS-SET (2 Stimuli");
+    expect(block).toContain("1. „Variante A“ (Bild) — Beschreibung: Blaues Packaging");
+    expect(block).toContain("2. „Variante B“ (Bild)");
+    expect(block).toContain("PFLICHT-PRÄFERENZFRAGE");
+    // D8: N=2 → min(2 + 6 + 1, 14) = 9
+    expect(block).toContain("ab 8 Agent-Fragen aktiv abwickeln, ab 9");
+    expect(block).not.toContain("https://storage.example");
+  });
+
+  it("omits the preference rule for a single-stimulus set", () => {
+    const block = formatStimulusSet(setInput([setItem({})]).plan);
+    expect(block).not.toContain("PFLICHT-PRÄFERENZFRAGE");
+  });
+
+  it("trims per-item analyses once the set reaches 3 elements", () => {
+    const longAnalysis = `${"Satz eins. ".repeat(200)}ENDE-MARKER`;
+    const block = formatStimulusSet(
+      setInput([
+        setItem({ analysis: longAnalysis }),
+        setItem({ position: 2, analysis: longAnalysis }),
+        setItem({ position: 3, analysis: longAnalysis }),
+      ]).plan,
+    )!;
+    expect(block).not.toContain("ENDE-MARKER");
+    expect(block).toContain("ANALYSE");
+  });
+
+  it("scales the D8 ceiling and caps it", () => {
+    expect(stimulusSetCeiling(1)).toBe(5);
+    expect(stimulusSetCeiling(2)).toBe(9);
+    expect(stimulusSetCeiling(3)).toBe(12);
+    expect(stimulusSetCeiling(5)).toBe(14);
+  });
+
+  it("replaces the legacy block in the context and stays absent without a set", () => {
+    const withSet = buildResearchContext(setInput(TWO_SET), "de");
+    expect(withSet).toContain("STIMULUS-SET");
+    expect(withSet).not.toContain("Dem Teilnehmer wird gerade gezeigt");
+
+    const withoutKey = buildResearchContext(BASE_INPUT, "de");
+    const withEmpty = buildResearchContext(setInput([]), "de");
+    expect(withEmpty).toBe(withoutKey);
+    expect(withoutKey).not.toContain("STIMULUS-SET");
+  });
+});
+
+describe("buildResearchTail — Stimulus-COUNTERS (E4)", () => {
+  const history: InterviewTurn[] = [
+    { role: "agent", text: "Intro?", shownStimulusPosition: 1 },
+    { role: "customer", text: "Ok." },
+    { role: "agent", text: "Vergleich?", shownStimulusPosition: 2 },
+    { role: "customer", text: "Besser." },
+  ];
+
+  it("computes revealed + currently shown from persisted markers", () => {
+    const tail = buildResearchTail(setInput(TWO_SET), history);
+    expect(tail).toContain("stimuli in the set:           2");
+    expect(tail).toContain("stimuli revealed so far:      2 of 2");
+    expect(tail).toContain("currently shown stimulus:     #2 („Variante B“)");
+  });
+
+  it("tells the agent explicitly when nothing is shown yet", () => {
+    const tail = buildResearchTail(setInput(TWO_SET), []);
+    expect(tail).toContain("currently shown stimulus:     NONE");
+  });
+
+  it("stays byte-identical without a set", () => {
+    const tail = buildResearchTail(BASE_INPUT, history);
+    expect(tail).not.toContain("stimuli");
+  });
+});
+
+describe("stripTurnInternals — Reveal-Marker (E4)", () => {
+  it("keeps shownStimulusPosition for the participant but strips why", () => {
+    const stripped = stripTurnInternals([
+      { role: "agent", text: "F?", why: "geheim", shownStimulusPosition: 2 },
+      { role: "customer", text: "A." },
+    ]);
+    expect(stripped).toEqual([
+      { role: "agent", text: "F?", shownStimulusPosition: 2 },
+      { role: "customer", text: "A." },
+    ]);
   });
 });
