@@ -3,7 +3,7 @@
 import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import type { SearchIndex } from "@/lib/search/types";
 import { PALETTE_ROUTES } from "@/lib/search/nav-routes";
@@ -26,6 +26,19 @@ import { ENABLED_MODULES } from "@/config/modules";
 interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+/** Store-Trio fürs Portal-Ziel (ThemeShell-Div): das Element wechselt nie
+ *  nach Mount → leerer Subscribe; getElementById gibt eine stabile Referenz
+ *  zurück (Snapshot-Identität hält über Renders). */
+function subscribeNever(): () => void {
+  return () => {};
+}
+function getThemeShellContainer(): HTMLElement | undefined {
+  return document.getElementById("findr-theme-shell") ?? undefined;
+}
+function getServerContainer(): HTMLElement | undefined {
+  return undefined;
 }
 
 /** Case-insensitive substring filter. Overrides cmdk's default fuzzy
@@ -117,14 +130,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Portal-Ziel: das ThemeShell-Div (statt document.body), damit die
-  // Palette die .dark-Variablen des Dashboards erbt. Per Effect aufgelöst,
-  // weil document beim SSR nicht existiert; undefined = cmdk-Default.
-  const [portalContainer, setPortalContainer] = useState<HTMLElement>();
-  useEffect(() => {
-    setPortalContainer(
-      document.getElementById("findr-theme-shell") ?? undefined,
-    );
-  }, []);
+  // Palette die .dark-Variablen des Dashboards erbt. useSyncExternalStore
+  // statt setState-in-Effect: SSR-Snapshot undefined (= cmdk-Default), im
+  // Client liefert getElementById eine stabile Referenz — kein Re-Render-
+  // Kaskadenrisiko, kein Hydration-Trap.
+  const portalContainer = useSyncExternalStore(
+    subscribeNever,
+    getThemeShellContainer,
+    getServerContainer,
+  );
 
   // Lazy session-cache hydration. Fires on the FIRST open; closing then
   // re-opening reuses the in-memory snapshot. A page navigation does NOT
