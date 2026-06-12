@@ -116,6 +116,20 @@ export interface VoiceTurnInput {
    *  Route-Layer bereits auf Agent-Turns beschränkt und auf 300 Zeichen
    *  gecappt. Optional: alte Agent-Versionen liefern das Feld nicht. */
   why?: string;
+  /** E6 Multi-Stimulus — SHOW-Marker des Voice-Agenten (1-basierte Position
+   *  im Stimulus-Set), vom Route-Layer bereits auf Agent-Turns beschränkt.
+   *  Gegen die echte Set-Größe des Session-Snapshots klemmt appendVoiceTurns
+   *  (außerhalb 1..N → Feld entfällt, Turn wird normal gespeichert). */
+  shownStimulusPosition?: number;
+}
+
+/** E6 — Set-Größe aus dem deal_context-Snapshot (defensiv genarrowed wie
+ *  toPublicView; 0 für jede Session ohne Set). Exported for unit tests. */
+export function stimulusSetSizeFromContext(dealContext: Json | null): number {
+  const stimuli = (
+    dealContext as { plan?: { stimuli?: unknown } | null } | null
+  )?.plan?.stimuli;
+  return Array.isArray(stimuli) ? stimuli.length : 0;
 }
 
 export type AppendVoiceTurnsResult =
@@ -154,6 +168,7 @@ export async function appendVoiceTurns(
   }
 
   const conversation: InterviewTurn[] = [...session.conversation];
+  const setSize = stimulusSetSizeFromContext(session.dealContext);
   const sorted = [...turns].sort((a, b) => a.index - b.index);
   let appended = 0;
   let skipped = 0;
@@ -171,14 +186,23 @@ export async function appendVoiceTurns(
         turnCount: conversation.length,
       };
     }
-    // E5: why additiv am Agent-Turn — exakt die Form, die der Text-Pfad
-    // (advanceInterview, E3) schreibt; Forscher-UI und Synthese-Methodik
-    // lesen Voice-Turns damit ohne jede weitere Änderung.
-    conversation.push(
-      turn.role === "agent" && turn.why
-        ? { role: turn.role, text: turn.text, why: turn.why }
-        : { role: turn.role, text: turn.text },
-    );
+    // E5/E6: why + shownStimulusPosition additiv am Agent-Turn — exakt die
+    // Form, die der Text-Pfad (advanceInterview, E3/E4) schreibt; Forscher-UI,
+    // Synthese-Methodik und Teilnehmer-Reload-Restore lesen Voice-Turns damit
+    // ohne jede weitere Änderung. Der SHOW-Marker wird gegen die Set-Größe
+    // des Snapshots geklemmt (fail-open: ungültig → Marker entfällt).
+    const next: InterviewTurn = { role: turn.role, text: turn.text };
+    if (turn.role === "agent") {
+      if (turn.why) next.why = turn.why;
+      if (
+        typeof turn.shownStimulusPosition === "number" &&
+        turn.shownStimulusPosition >= 1 &&
+        turn.shownStimulusPosition <= setSize
+      ) {
+        next.shownStimulusPosition = turn.shownStimulusPosition;
+      }
+    }
+    conversation.push(next);
     appended += 1;
   }
 

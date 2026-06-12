@@ -42,7 +42,10 @@
       "linkTitle": "Prototyp ansehen",
       "linkBody": "Öffnen Sie den Prototyp in einem neuen Tab und beziehen Sie sich beim Antworten darauf.",
       "openLink": "Prototyp öffnen",
-      "newTab": "Öffnet in einem neuen Tab"
+      "newTab": "Öffnet in einem neuen Tab",
+      "videoAria": "Das in diesem Interview besprochene Video",
+      "hiddenHint": "Material wird im Gespräch eingeblendet.",
+      "thumbAria": "Stimulus {position} anzeigen"
     },
     "error": {
       "requestFailed": "Anfrage fehlgeschlagen. Bitte versuchen Sie es erneut.",
@@ -1210,9 +1213,15 @@
       "stimulusLinkSetting": "Speichere…",
       "stimulusLinkHint": "Öffentlich erreichbarer http(s)-Link, z. B. zu einem Figma-Prototyp oder Mockup.",
       "stimulusThumbAlt": "Vorschau des Stimulus",
-      "stimulusReplace": "Ersetzen",
       "stimulusRemove": "Entfernen",
       "stimulusRemoving": "Entferne…",
+      "stimulusOrderHint": "Die Reihenfolge bestimmt, wann der KI-Interviewer welchen Stimulus zeigt.",
+      "stimulusLabelLabel": "Label (optional)",
+      "phStimulusLabel": "z. B. Variante A",
+      "stimulusMoveUp": "Nach oben",
+      "stimulusMoveDown": "Nach unten",
+      "stimulusSetFull": "Maximal 5 Stimuli pro Studie.",
+      "errStimulusSave": "Änderung konnte nicht gespeichert werden.",
       "stimulusDescLabel": "Beschreibung des Assets (optional)",
       "stimulusDescHint": "Kurze Beschreibung des Assets — fließt in die Fragen des KI-Interviewers.",
       "phStimulusDesc": "z. B. Neues Verpackungsdesign, Variante B mit reduziertem Etikett.",
@@ -1557,7 +1566,9 @@
         "partial": "teilweise beantwortet",
         "evasive": "nicht direkt beantwortet",
         "declined": "möchte nicht antworten"
-      }
+      },
+      "stimulusShownMarker": "Stimulus {position} eingeblendet",
+      "stimulusShownMarkerLabeled": "Stimulus {position} „{label}“ eingeblendet"
     },
     "synthesis": {
       "backToPlan": "← Zurück zum Plan",
@@ -1633,7 +1644,18 @@
       "pptxExporting": "PowerPoint wird erstellt…",
       "pptxExport": "Als PowerPoint exportieren",
       "errPptx": "PowerPoint-Export fehlgeschlagen.",
-      "errPptxNetwork": "PowerPoint-Export fehlgeschlagen — Netzwerkfehler."
+      "errPptxNetwork": "PowerPoint-Export fehlgeschlagen — Netzwerkfehler.",
+      "stimuliTitle": "Stimulus-Auswertung",
+      "stimuliDesc": "{fullReveal} von {total} Interviews sahen alle {setSize} Stimuli. Kennzahlen werden server-seitig gezählt, nie vom Modell behauptet.",
+      "stimulusHeading": "Stimulus {position}",
+      "stimulusHeadingLabeled": "Stimulus {position} · {label}",
+      "stimulusSeen": "{count} von {total} Interviews",
+      "stimulusBelowMinN": "Noch zu wenige Interviews für eine Auswertung dieses Stimulus (Mindestbasis: 3).",
+      "stimulusPreferenceTitle": "Präferenz im Vergleich",
+      "stimulusPreferenceCounted": "Gezählt über {counted} Interviews, die alle Stimuli gesehen haben (Antworten auf die Präferenzfrage).",
+      "stimulusVotes": "{count, plural, =1 {1 Stimme} other {# Stimmen}}",
+      "stimulusNoPreference": "Keine klare Präferenz",
+      "stimulusPreferenceDisclaimer": "Stimmen werden pro Interview aus der Antwort auf die Präferenzfrage kodiert und server-seitig gezählt; unklare Antworten zählen als „keine klare Präferenz“."
     },
     "panel": {
       "integrationTitle": "Prolific-Integration",

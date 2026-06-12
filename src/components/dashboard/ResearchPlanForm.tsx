@@ -45,6 +45,53 @@ type StimulusAnalysisStatus = "pending" | "done" | "failed";
 
 /** Defensiver Response-Read (Muster coerceStimulusAnalysisStatus serverseitig):
  *  alles außer den drei bekannten Werten liest als null → kein Badge. */
+/** Client-Spiegel von MAX_PLAN_STIMULI (plans-service) — die Set-Route
+ *  erzwingt den Cap zusätzlich serverseitig. */
+const STIMULUS_MAX_COUNT = 5;
+
+/** Ein Element des Stimulus-Sets, wie die Set-Route (/stimuli) es liefert
+ *  (Multi-Stimulus E3). `legacy` markiert das synthetische 1-Element-Set aus
+ *  den Plan-Spalten — im create-only-Formular praktisch unerreichbar, aber
+ *  defensiv behandelt (Remove läuft dann über die Legacy-Route). */
+type StimulusItem = {
+  id: string;
+  position: number;
+  type: string;
+  url: string;
+  label: string | null;
+  description: string | null;
+  analysisStatus: StimulusAnalysisStatus | null;
+  legacy: boolean;
+};
+
+/** Defensiver Response-Read eines Set-Elements (Muster coerceAnalysisStatus):
+ *  ein unerwartetes Objekt wird verworfen statt zu crashen. */
+function coerceStimulusItem(raw: unknown): StimulusItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.id !== "string" || typeof r.url !== "string") return null;
+  return {
+    id: r.id,
+    position: typeof r.position === "number" ? r.position : 0,
+    type: typeof r.stimulus_type === "string" ? r.stimulus_type : "link",
+    url: r.url,
+    label: typeof r.label === "string" && r.label !== "" ? r.label : null,
+    description:
+      typeof r.description === "string" && r.description !== ""
+        ? r.description
+        : null,
+    analysisStatus: coerceAnalysisStatus(r.analysis_status),
+    legacy: r.legacy === true,
+  };
+}
+
+function coerceStimulusItems(raw: unknown): StimulusItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map(coerceStimulusItem)
+    .filter((item): item is StimulusItem => item !== null);
+}
+
 function coerceAnalysisStatus(raw: unknown): StimulusAnalysisStatus | null {
   return raw === "pending" || raw === "done" || raw === "failed" ? raw : null;
 }
@@ -372,13 +419,12 @@ export function ResearchPlanForm({
   const [linkDraft, setLinkDraft] = useState("");
   const [stimulusBusy, setStimulusBusy] = useState(false);
   const [stimulusError, setStimulusError] = useState<string | null>(null);
-  // Status der KI-Analyse des aktuellen Bild-Stimulus (transient, gespiegelt
-  // aus der Response der Stimulus-Route). 'pending' wird optimistisch beim
-  // Start des Bild-Uploads gesetzt (die Analyse läuft synchron in genau diesem
-  // Request); die Response überschreibt mit dem finalen Stand. null = kein
-  // Badge (Link-Stimulus, entfernt, oder noch nie analysiert).
-  const [stimulusAnalysisStatus, setStimulusAnalysisStatus] =
-    useState<StimulusAnalysisStatus | null>(null);
+  // Multi-Stimulus E3: das Stimulus-SET der Studie. Quelle der Wahrheit ist
+  // immer die letzte Server-Response (Add → GET-Refresh, Reorder → PATCH-
+  // Response, Remove → Refresh). Kein Sync-Effect nötig: das Formular ist
+  // create-only und kennt nur Assets, die es in dieser Sitzung selbst angelegt
+  // hat. Der Analyse-Status lebt PRO Element (item.analysisStatus).
+  const [stimuli, setStimuli] = useState<StimulusItem[]>([]);
   const stimulusFileRef = useRef<HTMLInputElement>(null);
   // Guards ensureDraftPlanId against a concurrency race: the `planId` STATE
   // guard only blocks a second create AFTER setPlanId has flushed, so two
@@ -419,8 +465,11 @@ export function ResearchPlanForm({
     // = new product (same discipline as the preset overwrite above): clear the
     // asset too. DELETE if it reached the server; the typed description is kept
     // (it's decoupled from the asset and not sent for non-stimulus use-cases).
-    if (!USE_CASE_META[useCase].needsStimulus && form.stimulusUrl) {
-      void handleStimulusRemove();
+    if (
+      !USE_CASE_META[useCase].needsStimulus &&
+      (form.stimulusUrl || stimuli.length > 0)
+    ) {
+      void handleStimulusSetClear();
     }
   }
 
@@ -601,6 +650,20 @@ export function ResearchPlanForm({
     return form.title.trim().length >= 3 && form.objective.trim().length >= 3;
   }
 
+  /** Set neu vom Server lesen — nach jedem Add/Remove. Deckt auch die
+   *  serverseitige Lazy-Legacy-Migration ab (erster Add auf einen Plan mit
+   *  Single-Slot), bei der die Response des POST nur das NEUE Element trägt. */
+  async function refreshStimuli(id: string): Promise<void> {
+    const res = await fetch(
+      `/api/research/plans/${encodeURIComponent(id)}/stimuli`,
+    );
+    const data = (await res.json().catch(() => ({}))) as {
+      stimuli?: unknown;
+    };
+    if (!res.ok) return;
+    setStimuli(coerceStimulusItems(data.stimuli));
+  }
+
   /** File branch (image OR video): validate type + size locally (mirrors the
    *  route), ensure a draft plan exists, then hand the asset to the server.
    *
@@ -643,13 +706,13 @@ export function ResearchPlanForm({
       clearInput();
       return;
     }
+    if (stimuli.length >= STIMULUS_MAX_COUNT) {
+      setStimulusError(t("stimulusSetFull"));
+      clearInput();
+      return;
+    }
 
     setStimulusBusy(true);
-    // Optimistisch 'pending': die Vision-Analyse läuft synchron in genau
-    // diesem Upload-Request. Schlägt der Upload fehl, hat der Server nichts
-    // geschrieben (alte Analyse bleibt gültig) → vorherigen Stand wiederherstellen.
-    const previousAnalysisStatus = stimulusAnalysisStatus;
-    setStimulusAnalysisStatus("pending");
     try {
       let res: Response;
       if (isVideo) {
@@ -691,10 +754,10 @@ export function ResearchPlanForm({
           throw new Error(t("errStimulusUpload"));
         }
 
-        // 3) Pfad + Frames an die Stimulus-Route — dort läuft die Analyse
-        //    synchron, die Response trägt den finalen Status.
+        // 3) Pfad + Frames an die Set-Route — dort läuft die Analyse
+        //    synchron, die Response trägt das fertige Element.
         res = await fetch(
-          `/api/research/plans/${encodeURIComponent(id)}/stimulus`,
+          `/api/research/plans/${encodeURIComponent(id)}/stimuli`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -706,30 +769,23 @@ export function ResearchPlanForm({
         const body = new FormData();
         body.append("file", file);
         res = await fetch(
-          `/api/research/plans/${encodeURIComponent(id)}/stimulus`,
+          `/api/research/plans/${encodeURIComponent(id)}/stimuli`,
           { method: "POST", body },
         );
       }
       const data = (await res.json().catch(() => ({}))) as {
-        stimulus_url?: string;
-        stimulus_type?: string;
-        stimulus_analysis_status?: string | null;
+        stimulus?: unknown;
         error?: string;
       };
-      if (!res.ok || !data.stimulus_url) {
+      if (!res.ok || !data.stimulus) {
         throw new Error(data.error ?? t("errStimulusUpload"));
       }
-      setForm((current) => ({
-        ...current,
-        stimulusUrl: data.stimulus_url ?? null,
-        stimulusType: data.stimulus_type ?? null,
-      }));
-      // Finaler Stand aus der Response (Analyse lief synchron im Request).
-      setStimulusAnalysisStatus(
-        coerceAnalysisStatus(data.stimulus_analysis_status),
-      );
+      // Quelle der Wahrheit nach jedem Add ist der GET (deckt Migration +
+      // kanonische Reihenfolge ab). ensureDraftPlanId ist idempotent und
+      // liefert hier garantiert die bereits angelegte Draft-Id — der planId-
+      // STATE kann zu diesem Zeitpunkt noch un-geflusht sein.
+      await refreshStimuli(await ensureDraftPlanId());
     } catch (err) {
-      setStimulusAnalysisStatus(previousAnalysisStatus);
       setStimulusError(
         err instanceof VideoDecodeError
           ? t("errStimulusVideoFormat")
@@ -763,12 +819,16 @@ export function ResearchPlanForm({
       setStimulusError(t("errStimulusNeedsBasics"));
       return;
     }
+    if (stimuli.length >= STIMULUS_MAX_COUNT) {
+      setStimulusError(t("stimulusSetFull"));
+      return;
+    }
 
     setStimulusBusy(true);
     try {
       const id = await ensureDraftPlanId();
       const res = await fetch(
-        `/api/research/plans/${encodeURIComponent(id)}/stimulus`,
+        `/api/research/plans/${encodeURIComponent(id)}/stimuli`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -776,24 +836,13 @@ export function ResearchPlanForm({
         },
       );
       const data = (await res.json().catch(() => ({}))) as {
-        stimulus_url?: string;
-        stimulus_type?: string;
-        stimulus_analysis_status?: string | null;
+        stimulus?: unknown;
         error?: string;
       };
-      if (!res.ok || !data.stimulus_url) {
+      if (!res.ok || !data.stimulus) {
         throw new Error(data.error ?? t("errStimulusUpload"));
       }
-      setForm((current) => ({
-        ...current,
-        stimulusUrl: data.stimulus_url ?? null,
-        stimulusType: data.stimulus_type ?? null,
-      }));
-      // Link-Stimulus → Server invalidiert eine alte Bild-Analyse (Status
-      // null in der Response) → Badge verschwindet. Spiegelung wie im Bild-Zweig.
-      setStimulusAnalysisStatus(
-        coerceAnalysisStatus(data.stimulus_analysis_status),
-      );
+      await refreshStimuli(id);
       setLinkDraft("");
     } catch (err) {
       setStimulusError(
@@ -804,43 +853,150 @@ export function ResearchPlanForm({
     }
   }
 
-  /** Remove the current ASSET via DELETE. The typed description is intentionally
-   *  kept: it's decoupled from the asset (asset = route, description = normal
-   *  submit body) and never reaches the server before the final submit, so
-   *  there's no server description to "mirror" here — clearing it would only
-   *  destroy text the user may want to keep when swapping assets. Falls back to
-   *  a local-only clear if no draft exists yet. */
-  async function handleStimulusRemove() {
+  /** Ein Set-Element entfernen. Zeilen-Elemente über die Element-Route
+   *  (DELETE räumt serverseitig auch das Bucket-Objekt), das defensive
+   *  legacy-Element über die Legacy-Route. Danach Set-Refresh. */
+  async function handleStimulusRemove(item: StimulusItem) {
     setStimulusError(null);
-    if (!planId) {
-      setForm((current) => ({
-        ...current,
-        stimulusUrl: null,
-        stimulusType: null,
-      }));
-      setStimulusAnalysisStatus(null);
-      setLinkDraft("");
-      return;
-    }
+    if (!planId) return;
     setStimulusBusy(true);
     try {
       const res = await fetch(
-        `/api/research/plans/${encodeURIComponent(planId)}/stimulus`,
+        item.legacy
+          ? `/api/research/plans/${encodeURIComponent(planId)}/stimulus`
+          : `/api/research/plans/${encodeURIComponent(planId)}/stimuli/${encodeURIComponent(item.id)}`,
         { method: "DELETE" },
       );
       if (!res.ok) throw new Error(t("errStimulusRemove"));
-      setForm((current) => ({
-        ...current,
-        stimulusUrl: null,
-        stimulusType: null,
-      }));
-      // DELETE räumt serverseitig auch Analyse + Status ab — Badge weg.
-      setStimulusAnalysisStatus(null);
-      setLinkDraft("");
+      await refreshStimuli(planId);
     } catch (err) {
       setStimulusError(
         err instanceof Error ? err.message : t("errStimulusRemove"),
       );
+    } finally {
+      setStimulusBusy(false);
+    }
+  }
+
+  /** Reihenfolge per ↑/↓ — PATCH mit der vollständigen Permutation (O5: die
+   *  Position bestimmt die Regie-Reihenfolge im Interview). Bei stale-Antwort
+   *  (paralleles Add/Remove) wird das Set neu geladen. */
+  async function handleStimulusMove(item: StimulusItem, direction: -1 | 1) {
+    if (!planId || item.legacy) return;
+    const index = stimuli.findIndex((entry) => entry.id === item.id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= stimuli.length) return;
+    const orderedIds = stimuli.map((entry) => entry.id);
+    [orderedIds[index], orderedIds[target]] = [
+      orderedIds[target],
+      orderedIds[index],
+    ];
+
+    setStimulusError(null);
+    setStimulusBusy(true);
+    try {
+      const res = await fetch(
+        `/api/research/plans/${encodeURIComponent(planId)}/stimuli`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderedIds }),
+        },
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        stimuli?: unknown;
+      };
+      if (!res.ok) throw new Error(t("errStimulusSave"));
+      setStimuli(coerceStimulusItems(data.stimuli));
+    } catch {
+      setStimulusError(t("errStimulusSave"));
+      void refreshStimuli(planId);
+    } finally {
+      setStimulusBusy(false);
+    }
+  }
+
+  /** Lokales Tippen in Label/Beschreibung eines Set-Elements. Persistiert
+   *  wird erst onBlur (commitStimulusText) — kein Request pro Tastendruck. */
+  function updateStimulusField(
+    id: string,
+    field: "label" | "description",
+    value: string,
+  ) {
+    setStimuli((current) =>
+      current.map((entry) =>
+        entry.id === id
+          ? { ...entry, [field]: value === "" ? null : value }
+          : entry,
+      ),
+    );
+  }
+
+  /** Label + Beschreibung eines Elements persistieren (PATCH, sparse beide
+   *  Felder zusammen — die Route erlaubt sparse, der gemeinsame Commit hält
+   *  den Client-Stand und die Zeile deckungsgleich). Best-effort: ein Fehler
+   *  zeigt die Meldung, das Getippte bleibt lokal stehen. */
+  async function commitStimulusText(id: string) {
+    if (!planId) return;
+    const item = stimuli.find((entry) => entry.id === id);
+    if (!item || item.legacy) return;
+    try {
+      const res = await fetch(
+        `/api/research/plans/${encodeURIComponent(planId)}/stimuli/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            label: item.label ?? null,
+            description: item.description ?? null,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error(t("errStimulusSave"));
+    } catch {
+      setStimulusError(t("errStimulusSave"));
+    }
+  }
+
+  /** Beim Wechsel auf einen Use-Case ohne Stimulus: das GANZE Set räumen —
+   *  Spiegel des bisherigen Single-Remove (Switch = neues Produkt; ohne
+   *  Räumen lägen unsichtbare Assets am Plan, die ab E4 in den Agent-Kontext
+   *  jeder market_research-Studie wandern würden). Sequenziell, best-effort. */
+  async function handleStimulusSetClear() {
+    setStimulusError(null);
+    if (!planId) {
+      setStimuli([]);
+      setForm((current) => ({
+        ...current,
+        stimulusUrl: null,
+        stimulusType: null,
+      }));
+      return;
+    }
+    setStimulusBusy(true);
+    try {
+      for (const item of stimuli) {
+        await fetch(
+          item.legacy
+            ? `/api/research/plans/${encodeURIComponent(planId)}/stimulus`
+            : `/api/research/plans/${encodeURIComponent(planId)}/stimuli/${encodeURIComponent(item.id)}`,
+          { method: "DELETE" },
+        ).catch(() => null);
+      }
+      // Defensiv auch die Legacy-Spalten räumen (Slot ohne Set-Zeile).
+      if (form.stimulusUrl) {
+        await fetch(
+          `/api/research/plans/${encodeURIComponent(planId)}/stimulus`,
+          { method: "DELETE" },
+        ).catch(() => null);
+      }
+      setStimuli([]);
+      setForm((current) => ({
+        ...current,
+        stimulusUrl: null,
+        stimulusType: null,
+      }));
+      setLinkDraft("");
     } finally {
       setStimulusBusy(false);
     }
@@ -869,7 +1025,7 @@ export function ResearchPlanForm({
     // are unaffected. Safe for the draft-first flow: a set stimulusUrl implies
     // ensureDraftPlanId already ran during upload, so this only gates the final
     // POST/PATCH — it never creates or races a plan itself.
-    if (needsStimulus && !form.stimulusUrl) {
+    if (needsStimulus && stimuli.length === 0 && !form.stimulusUrl) {
       setError(t("errStimulusRequired"));
       return;
     }
@@ -1244,223 +1400,287 @@ export function ResearchPlanForm({
               </span>
             </div>
 
-            {/* Aktueller Stimulus — Bild-Thumbnail bzw. Link-Chip + Entfernen.
-                Nur sichtbar, wenn ein Asset gesetzt ist (nach Upload bzw. im
-                Draft). Ersetzen = einfach erneut hochladen/Link setzen unten. */}
-            {form.stimulusUrl && (
-              <div className="mt-3 flex items-center gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-2">
-                {form.stimulusType === "image" ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={form.stimulusUrl}
-                    alt={t("stimulusThumbAlt")}
-                    className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
-                  />
-                ) : form.stimulusType === "video" ? (
-                  // Stumme Mini-Vorschau (erstes Frame via preload) — die
-                  // volle Wiedergabe gibt es in der Studien-Detail-Ansicht.
-                  <video
-                    src={form.stimulusUrl}
-                    muted
-                    playsInline
-                    preload="metadata"
-                    aria-label={t("stimulusThumbAlt")}
-                    className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
-                  />
-                ) : (
-                  <a
-                    href={form.stimulusUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="min-w-0 flex-1 truncate text-small text-primary-700 underline underline-offset-2 hover:text-primary-800"
-                  >
-                    {form.stimulusUrl}
-                  </a>
-                )}
-                <span className="shrink-0 rounded-full bg-neutral-200 px-2 py-0.5 text-caption font-medium leading-none text-neutral-600">
-                  {form.stimulusType === "image"
-                    ? t("stimulusModeImage")
-                    : form.stimulusType === "video"
-                      ? t("stimulusModeVideo")
-                      : t("stimulusModeLink")}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleStimulusRemove}
-                  disabled={stimulusBusy || submitting || generating}
-                  className="ml-auto shrink-0 rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-50"
-                >
-                  {stimulusBusy ? t("stimulusRemoving") : t("stimulusRemove")}
-                </button>
-              </div>
-            )}
-
-            {/* KI-Analyse-Status (Etappe 2/3) — für Bild- UND Video-Stimuli.
-                Die Analyse läuft synchron im Upload-Request; 'pending' ist der
-                optimistische Stand WÄHREND des Uploads, die Response liefert
-                final done/failed. Bei null (kein Asset, Link, entfernt): nichts.
-                failed ist bewusst dezent (neutral, kein Alarm) — der Stimulus
-                funktioniert im Interview auch ohne Analyse; erneutes Hochladen
-                analysiert neu. */}
-            {stimulusAnalysisStatus === "pending" && (
-              <p className="mt-2 inline-flex items-center gap-2 text-caption text-neutral-500">
-                <span
-                  className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin"
-                  aria-hidden="true"
-                />
-                {t("stimulusAnalysisPending")}
-              </p>
-            )}
-            {stimulusAnalysisStatus === "done" && (
-              <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="inline-flex items-center gap-1.5 text-caption font-medium text-success-700">
-                  <svg
-                    className="h-3.5 w-3.5 shrink-0"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="m5 12 5 5L20 7" />
-                  </svg>
-                  {t("stimulusAnalysisDone")}
-                </span>
-                <span className="text-caption text-neutral-500">
-                  {t("stimulusAnalysisFormDoneHint")}
-                </span>
-              </p>
-            )}
-            {stimulusAnalysisStatus === "failed" && (
+            {/* Stimulus-GALERIE (Multi-Stimulus E3): bis zu 5 Assets in
+                Forscher-Reihenfolge — Position = Reihenfolge, in der der
+                KI-Interviewer die Stimuli zeigt (E4). Jede Karte: Vorschau,
+                Typ, Analyse-Badge, Label/Beschreibung (PATCH onBlur),
+                ↑/↓-Reorder, Entfernen. */}
+            {stimuli.length > 1 && (
               <p className="mt-2 text-caption text-neutral-500">
-                {t("stimulusAnalysisFailed")}{" "}
-                {t("stimulusAnalysisReuploadHint")}
+                {t("stimulusOrderHint")}
               </p>
             )}
-
-            {/* Umschalter Bild | Link — gleicher Segmented-Control-Stil wie der
-                Interaktionsmodus unten. */}
-            <div
-              role="radiogroup"
-              aria-label={t("stimulusSectionTitle")}
-              className="mt-3 inline-flex items-center gap-0.5 rounded-full bg-neutral-100 p-0.5"
-            >
-              {(["image", "link"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  role="radio"
-                  aria-checked={stimulusMode === mode}
-                  onClick={() => {
-                    setStimulusMode(mode);
-                    setStimulusError(null);
-                  }}
-                  disabled={stimulusBusy || submitting || generating}
-                  className={`rounded-full px-3.5 py-1.5 text-small font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
-                    stimulusMode === mode
-                      ? "bg-primary-600 text-white"
-                      : "text-neutral-600 hover:text-neutral-900"
-                  }`}
-                >
-                  {mode === "image"
-                    ? t("stimulusModeUpload")
-                    : t("stimulusModeLink")}
-                </button>
-              ))}
-            </div>
-
-            {/* Eingabe je Modus. Bild: verstecktes File-Input in einem Label
-                (spiegelt BrandingSettingsForm) mit lokaler Vorvalidierung.
-                Link: URL-Feld + Setzen-Button. */}
-            {stimulusMode === "image" ? (
-              <div className="mt-3">
-                <label
-                  className={`inline-flex items-center rounded-md border border-neutral-200 px-3 py-2 text-body-strong text-neutral-700 ${
-                    stimulusBusy || submitting || generating
-                      ? "cursor-not-allowed opacity-50"
-                      : "cursor-pointer"
-                  }`}
-                >
-                  {stimulusBusy
-                    ? t("stimulusImageUploading")
-                    : (form.stimulusType === "image" ||
-                          form.stimulusType === "video") &&
-                        form.stimulusUrl
-                      ? t("stimulusReplace")
-                      : t("stimulusImageUpload")}
-                  <input
-                    ref={stimulusFileRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,video/mp4"
-                    disabled={stimulusBusy || submitting || generating}
-                    onChange={handleStimulusFile}
-                    className="sr-only"
-                  />
-                </label>
-                <p className="mt-1.5 text-caption text-neutral-500">
-                  {t("stimulusImageHint")}
-                </p>
-              </div>
-            ) : (
-              <div className="mt-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <input
-                      type="url"
-                      value={linkDraft}
-                      onChange={(e) => setLinkDraft(e.target.value)}
-                      placeholder={t("phStimulusLink")}
-                      aria-label={t("stimulusLinkLabel")}
-                      disabled={stimulusBusy || submitting || generating}
-                      className={FIELD_INPUT_CLASS}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleStimulusLink}
-                    disabled={
-                      stimulusBusy ||
-                      submitting ||
-                      generating ||
-                      linkDraft.trim() === ""
-                    }
+            {stimuli.length > 0 && (
+              <ul className="mt-3 space-y-2">
+                {stimuli.map((item, index) => (
+                  <li
+                    key={item.id}
+                    className="rounded-md border border-neutral-200 bg-neutral-50 p-3"
                   >
-                    {stimulusBusy
-                      ? t("stimulusLinkSetting")
-                      : form.stimulusType === "link" && form.stimulusUrl
-                        ? t("stimulusReplace")
-                        : t("stimulusLinkSet")}
-                  </Button>
-                </div>
-                <p className="mt-1.5 text-caption text-neutral-500">
-                  {t("stimulusLinkHint")}
-                </p>
-              </div>
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-caption font-semibold text-neutral-600">
+                        {index + 1}
+                      </span>
+                      {item.type === "image" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.url}
+                          alt={t("stimulusThumbAlt")}
+                          className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
+                        />
+                      ) : item.type === "video" ? (
+                        // Stumme Mini-Vorschau (erstes Frame via preload) — die
+                        // volle Wiedergabe gibt es in der Studien-Detail-Ansicht.
+                        <video
+                          src={item.url}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          aria-label={t("stimulusThumbAlt")}
+                          className="h-14 w-14 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
+                        />
+                      ) : (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="min-w-0 flex-1 truncate text-small text-primary-700 underline underline-offset-2 hover:text-primary-800"
+                        >
+                          {item.url}
+                        </a>
+                      )}
+                      <span className="shrink-0 rounded-full bg-neutral-200 px-2 py-0.5 text-caption font-medium leading-none text-neutral-600">
+                        {item.type === "image"
+                          ? t("stimulusModeImage")
+                          : item.type === "video"
+                            ? t("stimulusModeVideo")
+                            : t("stimulusModeLink")}
+                      </span>
+                      {/* Analyse-Badge pro Asset — gleiche Drei-Zustands-Logik
+                          wie zuvor global; failed bewusst dezent (das Interview
+                          nutzt den Stimulus auch ohne Analyse). */}
+                      {item.analysisStatus === "pending" && (
+                        <span className="inline-flex shrink-0 items-center gap-1.5 text-caption text-neutral-500">
+                          <span
+                            className="h-3 w-3 shrink-0 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin"
+                            aria-hidden="true"
+                          />
+                          {t("stimulusAnalysisPending")}
+                        </span>
+                      )}
+                      {item.analysisStatus === "done" && (
+                        <span className="inline-flex shrink-0 items-center gap-1 text-caption font-medium text-success-700">
+                          <svg
+                            className="h-3 w-3 shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="m5 12 5 5L20 7" />
+                          </svg>
+                          {t("stimulusAnalysisDone")}
+                        </span>
+                      )}
+                      {item.analysisStatus === "failed" && (
+                        <span className="shrink-0 text-caption text-neutral-500">
+                          {t("stimulusAnalysisFailed")}
+                        </span>
+                      )}
+                      <div className="ml-auto flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleStimulusMove(item, -1)}
+                          disabled={
+                            stimulusBusy ||
+                            submitting ||
+                            generating ||
+                            index === 0 ||
+                            item.legacy
+                          }
+                          aria-label={t("stimulusMoveUp")}
+                          title={t("stimulusMoveUp")}
+                          className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-40"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStimulusMove(item, 1)}
+                          disabled={
+                            stimulusBusy ||
+                            submitting ||
+                            generating ||
+                            index === stimuli.length - 1 ||
+                            item.legacy
+                          }
+                          aria-label={t("stimulusMoveDown")}
+                          title={t("stimulusMoveDown")}
+                          className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-40"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStimulusRemove(item)}
+                          disabled={stimulusBusy || submitting || generating}
+                          className="rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-small text-neutral-700 hover:border-neutral-300 disabled:opacity-50"
+                        >
+                          {t("stimulusRemove")}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Label + Beschreibung pro Asset — Tippen lokal, Persistenz
+                        onBlur (PATCH). Beide fließen in den Agent-Prompt (E4)
+                        und die Auswertung; das legacy-Element bleibt read-only
+                        (seine Beschreibung lebt auf den Plan-Spalten). */}
+                    {!item.legacy && (
+                      <div className="mt-3 grid gap-2 sm:grid-cols-[200px_1fr]">
+                        <input
+                          type="text"
+                          value={item.label ?? ""}
+                          onChange={(e) =>
+                            updateStimulusField(item.id, "label", e.target.value)
+                          }
+                          onBlur={() => void commitStimulusText(item.id)}
+                          placeholder={t("phStimulusLabel")}
+                          aria-label={t("stimulusLabelLabel")}
+                          maxLength={80}
+                          disabled={submitting}
+                          className={FIELD_INPUT_CLASS}
+                        />
+                        <textarea
+                          value={item.description ?? ""}
+                          onChange={(e) =>
+                            updateStimulusField(
+                              item.id,
+                              "description",
+                              e.target.value,
+                            )
+                          }
+                          onBlur={() => void commitStimulusText(item.id)}
+                          placeholder={t("phStimulusDesc")}
+                          aria-label={t("stimulusDescLabel")}
+                          rows={2}
+                          maxLength={3000}
+                          disabled={submitting}
+                          className={FIELD_TEXTAREA_CLASS}
+                        />
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
 
-            {/* Beschreibung — fließt in die Fragen des KI-Interviewers. Normales
-                Feld; wird beim Speichern über stimulusDescriptionPayload
-                mitgesendet (NICHT über die Asset-Route). */}
-            <div className="mt-4">
-              <Field
-                label={t("stimulusDescLabel")}
-                hint={t("stimulusDescHint")}
-              >
-                <textarea
-                  value={form.stimulusDescription}
-                  onChange={(e) =>
-                    update("stimulusDescription", e.target.value)
-                  }
-                  placeholder={t("phStimulusDesc")}
-                  rows={2}
-                  disabled={submitting}
-                  className={FIELD_TEXTAREA_CLASS}
-                />
-              </Field>
-            </div>
+            {/* Hinzufügen — ausgeblendet, sobald der Cap erreicht ist. */}
+            {stimuli.length >= STIMULUS_MAX_COUNT ? (
+              <p className="mt-3 text-caption text-neutral-500">
+                {t("stimulusSetFull")}
+              </p>
+            ) : (
+              <>
+                {/* Umschalter Bild | Link — gleicher Segmented-Control-Stil wie
+                    der Interaktionsmodus unten. */}
+                <div
+                  role="radiogroup"
+                  aria-label={t("stimulusSectionTitle")}
+                  className="mt-3 inline-flex items-center gap-0.5 rounded-full bg-neutral-100 p-0.5"
+                >
+                  {(["image", "link"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      role="radio"
+                      aria-checked={stimulusMode === mode}
+                      onClick={() => {
+                        setStimulusMode(mode);
+                        setStimulusError(null);
+                      }}
+                      disabled={stimulusBusy || submitting || generating}
+                      className={`rounded-full px-3.5 py-1.5 text-small font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                        stimulusMode === mode
+                          ? "bg-primary-600 text-white"
+                          : "text-neutral-600 hover:text-neutral-900"
+                      }`}
+                    >
+                      {mode === "image"
+                        ? t("stimulusModeUpload")
+                        : t("stimulusModeLink")}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Eingabe je Modus. Bild: verstecktes File-Input in einem Label
+                    (spiegelt BrandingSettingsForm) mit lokaler Vorvalidierung.
+                    Link: URL-Feld + Setzen-Button. Add hängt IMMER ans Ende des
+                    Sets an — Ersetzen = Entfernen + neu hinzufügen. */}
+                {stimulusMode === "image" ? (
+                  <div className="mt-3">
+                    <label
+                      className={`inline-flex items-center rounded-md border border-neutral-200 px-3 py-2 text-body-strong text-neutral-700 ${
+                        stimulusBusy || submitting || generating
+                          ? "cursor-not-allowed opacity-50"
+                          : "cursor-pointer"
+                      }`}
+                    >
+                      {stimulusBusy
+                        ? t("stimulusImageUploading")
+                        : t("stimulusImageUpload")}
+                      <input
+                        ref={stimulusFileRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,video/mp4"
+                        disabled={stimulusBusy || submitting || generating}
+                        onChange={handleStimulusFile}
+                        className="sr-only"
+                      />
+                    </label>
+                    <p className="mt-1.5 text-caption text-neutral-500">
+                      {t("stimulusImageHint")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <input
+                          type="url"
+                          value={linkDraft}
+                          onChange={(e) => setLinkDraft(e.target.value)}
+                          placeholder={t("phStimulusLink")}
+                          aria-label={t("stimulusLinkLabel")}
+                          disabled={stimulusBusy || submitting || generating}
+                          className={FIELD_INPUT_CLASS}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleStimulusLink}
+                        disabled={
+                          stimulusBusy ||
+                          submitting ||
+                          generating ||
+                          linkDraft.trim() === ""
+                        }
+                      >
+                        {stimulusBusy
+                          ? t("stimulusLinkSetting")
+                          : t("stimulusLinkSet")}
+                      </Button>
+                    </div>
+                    <p className="mt-1.5 text-caption text-neutral-500">
+                      {t("stimulusLinkHint")}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Pflicht-Hinweis (proaktiv, neben dem Uploader). Hart durchgesetzt
                 wird die Pflicht jetzt in handleSubmit (Guard needsStimulus &&
@@ -1468,7 +1688,7 @@ export function ResearchPlanForm({
                 Unkritisch fürs planId-Timing: ein gesetztes stimulusUrl
                 impliziert bereits einen Draft (ensureDraftPlanId lief beim
                 Upload); der Guard gated nur den finalen POST/PATCH. */}
-            {!form.stimulusUrl && (
+            {stimuli.length === 0 && !form.stimulusUrl && (
               <p className="mt-3 rounded-md border border-warning-500/30 bg-warning-50 px-3 py-2 text-caption text-warning-700">
                 {t("stimulusRequiredHint")}
               </p>

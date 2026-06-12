@@ -253,6 +253,59 @@ export function normalizeMethodology(value: unknown): Methodology | null {
   };
 }
 
+// ── E7: Stimulus-Sektionen (Multi-Stimulus-Auswertung) ─────────────────────
+
+/** Eine per-Stimulus-Sektion — formuliert AUSSCHLIESSLICH aus den im Prompt
+ *  gelieferten Erstreaktions-Ausschnitten des jeweiligen Stimulus; nur für
+ *  Positionen über Mindest-N (Engine-Filter erzwingt beides). */
+const StimulusSectionSchema = z.object({
+  position: z
+    .number()
+    .int()
+    .min(1)
+    .describe(
+      "1-based stimulus position — MUST be one of the eligible positions listed in the STIMULUS SET block.",
+    ),
+  summary: z
+    .string()
+    .min(1)
+    .max(600)
+    .describe(
+      "1-3 sentences on how participants received THIS stimulus, grounded ONLY in its supplied excerpts.",
+    ),
+  quotes: z.array(z.string()).max(5).default([]),
+});
+export type StimulusSection = z.infer<typeof StimulusSectionSchema>;
+
+/** Lenienter Read-Mapper (Stil normalizeEmergentThemes): persistierte
+ *  stimulus_sections-JSONB → StimulusSection[], niemals werfen. */
+export function normalizeStimulusSections(value: unknown): StimulusSection[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const section = entry as Record<string, unknown>;
+    if (
+      typeof section.position !== "number" ||
+      typeof section.summary !== "string" ||
+      section.summary.trim() === ""
+    ) {
+      return [];
+    }
+    const quotes = section.quotes;
+    return [
+      {
+        position: section.position,
+        summary: section.summary,
+        quotes: Array.isArray(quotes)
+          ? (quotes as unknown[]).filter(
+              (q): q is string => typeof q === "string",
+            )
+          : [],
+      },
+    ];
+  });
+}
+
 // ── Top-level synthesis result ──────────────────────────────────────────────
 
 export const StudySynthesisResultSchema = z.object({
@@ -291,6 +344,15 @@ export const StudySynthesisResultSchema = z.object({
     )
     .max(3)
     .default([]),
+  /** E7 — eine Sektion je ELIGIBLE Stimulus (Mindest-N erfüllt), formuliert
+   *  nur aus den gelieferten Erstreaktions-Ausschnitten. Leer, wenn der
+   *  Prompt keinen STIMULUS-SET-Block trug — die Engine erzwingt das
+   *  zusätzlich server-seitig (sealSynthesisExtras). */
+  stimulus_sections: z.array(StimulusSectionSchema).max(10).default([]),
+  /** E7 — 2-4 Sätze Vergleich über die Stimuli hinweg, gegründet in den
+   *  Ausschnitten + den SERVER-gezählten Präferenz-Stimmen (Zahlen wörtlich
+   *  übernehmen). Null ohne Stimulus-Block / ohne Präferenz-Zahlen. */
+  stimulus_comparison: z.string().max(800).nullable().default(null),
 });
 
 export type StudySynthesisResult = z.infer<typeof StudySynthesisResultSchema>;

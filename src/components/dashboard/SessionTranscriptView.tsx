@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { toBcp47 } from "@/i18n/locale";
@@ -232,10 +234,19 @@ export async function SessionSignalsCard({
  *  Chips + Beleg-Disclosure; ohne Signale ist das Markup byte-identisch. */
 export async function SessionConversationCard({
   session,
+  stimuli = [],
 }: {
   session: PlanSessionTranscript;
+  /** E7 Multi-Stimulus — das Set der Studie (Position + Label) für die
+   *  Reveal-Marker („— Stimulus 2 ‚Variante B' eingeblendet —") an
+   *  Agent-Turns mit persistiertem shownStimulusPosition. Leer/fehlend →
+   *  Markup byte-identisch (Studien ohne Set tragen nie Marker). */
+  stimuli?: Array<{ position: number; label: string | null }>;
 }) {
   const tm = await getTranslations("research.market");
+  const stimulusLabelByPosition = new Map(
+    stimuli.map((item) => [item.position, item.label]),
+  );
 
   // index → Signal; der Sidecar garantiert customer-Turn-Indizes (seal).
   const signalsByIndex = new Map<number, TurnSignal>(
@@ -271,7 +282,19 @@ export async function SessionConversationCard({
               {session.conversation.map((turn, i) => {
                 const signal =
                   turn.role === "customer" ? signalsByIndex.get(i) : undefined;
-                return (
+                // E7 — Reveal-Marker VOR der Agent-Bubble, die den Stimulus
+                // eingeblendet hat (nur Set-Studien; geklemmte Persistenz).
+                const shownPosition =
+                  turn.role === "agent" &&
+                  typeof turn.shownStimulusPosition === "number" &&
+                  stimulusLabelByPosition.has(turn.shownStimulusPosition)
+                    ? turn.shownStimulusPosition
+                    : null;
+                const shownLabel =
+                  shownPosition !== null
+                    ? (stimulusLabelByPosition.get(shownPosition) ?? null)
+                    : null;
+                const bubble = (
                   <li
                     key={i}
                     className={`flex ${
@@ -319,6 +342,29 @@ export async function SessionConversationCard({
                       )}
                     </div>
                   </li>
+                );
+                if (shownPosition === null) return bubble;
+                return (
+                  <Fragment key={`f-${i}`}>
+                    <li
+                      aria-hidden="true"
+                      className="flex items-center gap-3 text-caption text-neutral-400"
+                    >
+                      <span className="h-px flex-1 bg-neutral-200" />
+                      <span className="shrink-0">
+                        {shownLabel
+                          ? tm("stimulusShownMarkerLabeled", {
+                              position: shownPosition,
+                              label: shownLabel,
+                            })
+                          : tm("stimulusShownMarker", {
+                              position: shownPosition,
+                            })}
+                      </span>
+                      <span className="h-px flex-1 bg-neutral-200" />
+                    </li>
+                    {bubble}
+                  </Fragment>
                 );
               })}
             </ol>

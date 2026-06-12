@@ -12,6 +12,7 @@ import { normalizeThemes } from "@/lib/schemas/product-discovery";
 import {
   StudySynthesisResultSchema,
   type EmergentTheme,
+  type StimulusSection,
   type StudySynthesisResult,
   type Tension,
   type TensionSide,
@@ -32,6 +33,7 @@ import {
   type SynthesisPlanContext,
 } from "./prompts";
 import { loadSynthesisSignalInputs } from "./signals";
+import { loadSynthesisStimulusInputs } from "./stimuli";
 
 /**
  * Stage-2 Study-Synthesis engine. Reads all product_discovery_insights of
@@ -117,6 +119,11 @@ type StudySynthesisRow = {
   methodology: Json | null;
   signals_summary: Json | null;
   signal_observations: Json | null;
+  // E7 (20260714000001) — additive, nullable; geschrieben nur vom selben
+  // best-effort Zweit-UPDATE (pre-migration-safe).
+  stimulus_summary: Json | null;
+  stimulus_sections: Json | null;
+  stimulus_comparison: string | null;
 };
 
 type StudySynthesisInsert = {
@@ -133,6 +140,9 @@ type StudySynthesisInsert = {
   methodology?: Json | null;
   signals_summary?: Json | null;
   signal_observations?: Json | null;
+  stimulus_summary?: Json | null;
+  stimulus_sections?: Json | null;
+  stimulus_comparison?: string | null;
 };
 
 type StudySynthesisUpdate = Partial<StudySynthesisInsert>;
@@ -270,9 +280,14 @@ interface AnchorSet {
   foldedHaystack: string;
 }
 
-function buildAnchorSet(insights: SynthesisInsightInput[]): AnchorSet {
+function buildAnchorSet(
+  insights: SynthesisInsightInput[],
+  // E7 — zusätzliche wörtlich zitierbare Texte (Erstreaktions-Ausschnitte
+  // des Stimulus-Blocks): Sektion-Quotes müssen GENAU dort belegt sein.
+  extraTexts: string[] = [],
+): AnchorSet {
   const ids = new Set<string>();
-  const parts: string[] = [];
+  const parts: string[] = [...extraTexts];
   for (const ins of insights) {
     ids.add(ins.id);
     if (ins.summary) parts.push(ins.summary);
@@ -370,25 +385,63 @@ function applyAnchoredFilter(
     tensions,
     methodology: raw.methodology,
     signal_observations: raw.signal_observations,
+    stimulus_sections: raw.stimulus_sections,
+    stimulus_comparison: raw.stimulus_comparison,
   };
 }
 
 /**
- * E4 — Server-Guard für die additiven Felder: was der Prompt nicht als Input
- * trug, darf das Modell nicht behaupten. Ohne RATIONALES-Block wird
+ * E7 — Stimulus-Sektionen härten: nur ELIGIBLE Positionen (Mindest-N, vom
+ * Server bestimmt), höchstens eine Sektion pro Position, Quotes nur wörtlich
+ * aus dem Anker-Haystack (die Erstreaktions-Ausschnitte reisen via
+ * buildAnchorSet-extraTexts hinein). Pure Funktion, exported for unit tests.
+ */
+export function filterStimulusSections(
+  sections: StimulusSection[],
+  eligiblePositions: number[],
+  anchors: AnchorSet,
+): StimulusSection[] {
+  const eligible = new Set(eligiblePositions);
+  const seen = new Set<number>();
+  const kept: StimulusSection[] = [];
+  for (const section of sections) {
+    if (!eligible.has(section.position) || seen.has(section.position)) continue;
+    seen.add(section.position);
+    kept.push({
+      position: section.position,
+      summary: section.summary,
+      quotes: section.quotes.filter((q) =>
+        anchors.foldedHaystack.includes(fold(q)),
+      ),
+    });
+  }
+  return kept;
+}
+
+/**
+ * E4/E7 — Server-Guard für die additiven Felder: was der Prompt nicht als
+ * Input trug, darf das Modell nicht behaupten. Ohne RATIONALES-Block wird
  * methodology hart genullt, ohne SIGNALS-Block werden signal_observations
- * hart geleert — kein Halluzinations-Fenster, unabhängig vom Modell.
- * Pure Funktion, exported for unit tests.
+ * hart geleert, ohne STIMULUS-Block (bzw. ohne Server-Präferenz-Zahlen)
+ * fallen stimulus_sections/stimulus_comparison — kein Halluzinations-
+ * Fenster, unabhängig vom Modell. Pure Funktion, exported for unit tests.
  */
 export function sealSynthesisExtras(
   result: StudySynthesisResult,
   hadSignals: boolean,
   hadRationales: boolean,
+  hadStimuli = false,
+  hadPreference = false,
 ): StudySynthesisResult {
   return {
     ...result,
     methodology: hadRationales ? result.methodology : null,
     signal_observations: hadSignals ? result.signal_observations : [],
+    stimulus_sections: hadStimuli ? result.stimulus_sections : [],
+    // Vergleichs-PROSA nur, wenn die Server-Zählung lief — ein Vergleich
+    // ohne Zahlenbasis wäre genau die LLM-Behauptung, die E7 ausschließt.
+    stimulus_comparison:
+      hadStimuli && hadPreference ? result.stimulus_comparison : null,
   };
 }
 
@@ -405,7 +458,11 @@ export async function synthesizeFromInputs(
   model: string = process.env.SYNTHESIS_MODEL ?? DEFAULT_SYNTHESIS_MODEL,
 ): Promise<StudySynthesisResult> {
   const userPrompt = buildSynthesisUserPrompt(input);
-  const anchors = buildAnchorSet(input.insights);
+  // E7 — die Erstreaktions-Ausschnitte sind die einzige wörtliche Quelle der
+  // Stimulus-Sektion-Quotes und wandern deshalb mit in den Anker-Haystack.
+  const stimulusExcerpts =
+    input.stimuli?.excerpts.flatMap((e) => e.excerpts) ?? [];
+  const anchors = buildAnchorSet(input.insights, stimulusExcerpts);
 
   let raw: StudySynthesisResult;
   try {
@@ -444,10 +501,21 @@ export async function synthesizeFromInputs(
   // part of the transport change. E4 layert den Extras-Guard darüber:
   // methodology/signal_observations existieren nur, wenn ihre Input-Blöcke
   // tatsächlich geliefert wurden.
+  const filtered = applyAnchoredFilter(raw, anchors);
   return sealSynthesisExtras(
-    applyAnchoredFilter(raw, anchors),
+    {
+      ...filtered,
+      // E7 — Sektionen gegen Mindest-N-Positionen + Anker-Haystack härten.
+      stimulus_sections: filterStimulusSections(
+        filtered.stimulus_sections,
+        input.stimuli?.eligiblePositions ?? [],
+        anchors,
+      ),
+    },
     Boolean(input.signals),
     Boolean(input.rationales && input.rationales.length > 0),
+    Boolean(input.stimuli),
+    Boolean(input.stimuli?.summary.preference),
   );
 }
 
@@ -555,6 +623,11 @@ export async function synthesizeStudy(
   // Datenmaterial, nur bereits abgeleitete Felder").
   const signalInputs = await loadSynthesisSignalInputs(orgId, planId);
 
+  // E7 — Stimulus-Inputs (Set-Studien): Server-Zahlen + gedeckelte
+  // Erstreaktions-Ausschnitte; Präferenz-Klassifikation (Haiku) läuft nur
+  // ab Mindest-N Voll-Reveal-Sessions. Fail-open wie die Signal-Inputs.
+  const stimulusInputs = await loadSynthesisStimulusInputs(orgId, planId);
+
   const synthesis = await synthesizeFromInputs(
     {
       plan,
@@ -562,6 +635,7 @@ export async function synthesizeStudy(
       signals: signalInputs.signals,
       rationales: signalInputs.rationales,
       rationaleCoverage: signalInputs.rationaleCoverage,
+      stimuli: stimulusInputs.block,
     },
     model,
   );
@@ -602,12 +676,18 @@ export async function synthesizeStudy(
       methodology: synthesis.methodology as unknown as Json,
       signals_summary: (signalInputs.signals?.summary ?? null) as unknown as Json,
       signal_observations: synthesis.signal_observations as unknown as Json,
+      // E7 — stimulus_summary trägt die SERVER-Zahlen (auch unter Mindest-N,
+      // für die ehrliche „noch zu wenige Interviews"-Anzeige); sections/
+      // comparison sind die geharteten LLM-Formulierungen.
+      stimulus_summary: (stimulusInputs.summary ?? null) as unknown as Json,
+      stimulus_sections: synthesis.stimulus_sections as unknown as Json,
+      stimulus_comparison: synthesis.stimulus_comparison,
     })
     .eq("org_id", orgId)
     .eq("plan_id", planId);
   if (extrasErr) {
     console.warn(
-      `[synthesis] E4 extras update failed (migration 20260704000003 applied?): ${extrasErr.message}`,
+      `[synthesis] extras update failed (migrations 20260704000003 + 20260714000001 applied?): ${extrasErr.message}`,
     );
   }
 

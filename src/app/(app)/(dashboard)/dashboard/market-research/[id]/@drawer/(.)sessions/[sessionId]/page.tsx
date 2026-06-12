@@ -5,6 +5,8 @@ import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import {
   getResearchPlan,
   getSessionWithTranscript,
+  listPlanStimuli,
+  resolveStimulusSet,
 } from "@/lib/research/plans-service";
 import {
   SessionConversationCard,
@@ -50,6 +52,13 @@ export default async function InterceptedSessionDrawerPage({
 
   const session = await getSessionWithTranscript(orgId, planId, sessionId);
   if (!session) notFound();
+  // E7 Multi-Stimulus — Set fürs Reveal-Marker-Labeling (leer für Studien
+  // ohne Set → Transkript byte-identisch). Aufgelöst über den Dual-Read,
+  // dieselbe Quelle wie die Detailseite.
+  const stimuli = resolveStimulusSet(
+    plan,
+    await listPlanStimuli(orgId, planId),
+  ).map((item) => ({ position: item.position, label: item.label }));
 
   const tm = await getTranslations("research.market");
 
@@ -62,7 +71,7 @@ export default async function InterceptedSessionDrawerPage({
       <SessionMetaBadges session={session} />
       {/* E2 — Signal-Block; identische Reihenfolge wie die Voll-Seite. */}
       <SessionSignalsCard session={session} />
-      <SessionConversationCard session={session} />
+      <SessionConversationCard session={session} stimuli={stimuli} />
     </TranscriptDrawer>
   );
 }

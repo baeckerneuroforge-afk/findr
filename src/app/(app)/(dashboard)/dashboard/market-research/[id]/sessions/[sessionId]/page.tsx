@@ -6,6 +6,8 @@ import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import {
   getResearchPlan,
   getSessionWithTranscript,
+  listPlanStimuli,
+  resolveStimulusSet,
 } from "@/lib/research/plans-service";
 import {
   SessionConversationCard,
@@ -61,6 +63,13 @@ export default async function MarketSessionTranscriptPage({
 
   const session = await getSessionWithTranscript(orgId, planId, sessionId);
   if (!session) notFound();
+  // E7 Multi-Stimulus — Set fürs Reveal-Marker-Labeling (leer für Studien
+  // ohne Set → Transkript byte-identisch). Aufgelöst über den Dual-Read,
+  // dieselbe Quelle wie die Detailseite.
+  const stimuli = resolveStimulusSet(
+    plan,
+    await listPlanStimuli(orgId, planId),
+  ).map((item) => ({ position: item.position, label: item.label }));
 
   return (
     <div className="space-y-8">
@@ -85,7 +94,7 @@ export default async function MarketSessionTranscriptPage({
       <SessionSignalsCard session={session} />
 
       {/* Gesprächsverlauf — geteilter Baustein mit dem Drawer (E7b). */}
-      <SessionConversationCard session={session} />
+      <SessionConversationCard session={session} stimuli={stimuli} />
     </div>
   );
 }

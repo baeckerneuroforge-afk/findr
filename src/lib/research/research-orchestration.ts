@@ -12,7 +12,11 @@ import type {
   ResearchInput,
 } from "@/lib/voice-agent/interviewer";
 import { createResearchSupabase } from "./db";
-import { getResearchPlan, planToAgentContext } from "./plans-service";
+import {
+  getResearchPlan,
+  listPlanStimuli,
+  planToAgentContext,
+} from "./plans-service";
 import { getResearchInvite } from "./scheduling";
 
 /**
@@ -172,8 +176,12 @@ export async function createResearchInterview(params: {
         }
       : null;
 
+    // E4 Multi-Stimulus — das Set reist im Snapshot (deal_context) mit:
+    // Engine und Voice-Kontext lesen NIE live vom Plan (Prompt-Stabilität,
+    // R2). Leeres Set → Kontext byte-identisch zu vorher.
+    const stimuli = await listPlanStimuli(params.orgId, plan.id);
     const input: ResearchInput = {
-      plan: planToAgentContext(plan),
+      plan: planToAgentContext(plan, stimuli),
       brand,
     };
 
