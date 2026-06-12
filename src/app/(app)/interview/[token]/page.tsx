@@ -237,6 +237,9 @@ export default async function InterviewPage({
           panelCompleteRedirect={session.panelCompleteRedirect}
           stimulusUrl={stimulusUrl}
           stimulusType={stimulusType}
+          // E6 Multi-Stimulus — Set-Panel mit Agent-Reveal per DataPacket;
+          // leer → exakt der bisherige Single-/No-Stimulus-Pfad.
+          stimuli={stimulusSet}
         />,
         )}
       </NextIntlClientProvider>

@@ -49,6 +49,12 @@ const TurnSchema = z.object({
   // Übernommen wird es NUR auf Agent-Turns (Mapping unten) — Rationales
   // sind Interviewer-Methodik, nie Teilnehmer-Inhalt.
   why: z.string().trim().min(1).max(300).nullable().optional(),
+  // E6 Multi-Stimulus — SHOW-Marker des Voice-Agenten (Gegenstück zum
+  // persistierten shownStimulusPosition des Text-Pfads, E4): welcher Stimulus
+  // in diesem Turn eingeblendet wurde. OPTIONAL + additiv (alte Agents senden
+  // das Feld nicht); nur Agent-Turns (Mapping unten). Gegen die echte
+  // Set-Größe klemmt erst appendVoiceTurns (dort liegt der Snapshot vor).
+  shownStimulusPosition: z.number().int().min(1).max(99).nullable().optional(),
 });
 
 const TranscriptBodySchema = z.object({
@@ -83,10 +89,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const turns: VoiceTurnInput[] = parsed.data.turns.map((turn) => {
     const role = toConversationRole(turn.role);
-    // E5: why nur auf Agent-Turns durchreichen (s. TurnSchema-Kommentar).
-    return role === "agent" && turn.why
-      ? { index: turn.index, role, text: turn.content, why: turn.why }
-      : { index: turn.index, role, text: turn.content };
+    // E5/E6: why + shownStimulusPosition nur auf Agent-Turns durchreichen
+    // (s. TurnSchema-Kommentar); ohne beide Felder bleibt der Turn
+    // byte-identisch zur bisherigen Form.
+    const base: VoiceTurnInput = { index: turn.index, role, text: turn.content };
+    if (role === "agent" && turn.why) base.why = turn.why;
+    if (role === "agent" && typeof turn.shownStimulusPosition === "number") {
+      base.shownStimulusPosition = turn.shownStimulusPosition;
+    }
+    return base;
   });
 
   try {
