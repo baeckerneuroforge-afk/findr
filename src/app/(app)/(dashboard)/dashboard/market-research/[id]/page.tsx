@@ -14,7 +14,9 @@ import {
 import {
   countCompletedSessionsForPlan,
   getResearchPlan,
+  listPlanStimuli,
   listSessionsForPlan,
+  resolveStimulusSet,
   type PlanSessionStatus,
 } from "@/lib/research/plans-service";
 import { getOpenLinkForPlan } from "@/lib/research/open-links";
@@ -163,6 +165,13 @@ export default async function MarketCampaignDetailPage({
   }
 
   const invites = await listInvitesForPlan(orgId, planId);
+  // Multi-Stimulus E3 — Dual-Read (D1): Set-Zeilen gewinnen, sonst wird ein
+  // Legacy-Single-Asset als 1-Element-Set angezeigt. Leer → Sektion entfällt
+  // (byte-identisch zu vorher für Pläne ohne Stimulus).
+  const stimulusSet = resolveStimulusSet(
+    plan,
+    await listPlanStimuli(orgId, planId),
+  );
 
   // Pool + Quoten + offener Link + Ziel-Pool-Fortschritt + Prolific-Credential
   // + persistierter Prolific-Draft — alle unabhängig, parallel (kein N+1). Der
@@ -238,7 +247,7 @@ export default async function MarketCampaignDetailPage({
       label: tm("railSetup"),
       items: [
         { id: "s-ziel", label: t("objective") },
-        ...(plan.stimulusUrl
+        ...(stimulusSet.length > 0
           ? [{ id: "s-stimulus", label: t("stimulusSectionTitle") }]
           : []),
         { id: "s-leitfaden", label: t("topicsTitle") },
@@ -412,7 +421,7 @@ export default async function MarketCampaignDetailPage({
           bei 'done' eine aufklappbare (native <details>, collapsed by default,
           kein Client-JS) Darstellung des analysis-Objekts aus dem Envelope —
           bewusst NICHT der textBlock, der ist fürs Modell gerendert. */}
-      {plan.stimulusUrl && (
+      {stimulusSet.length > 0 && (
         <section id="s-stimulus" className="scroll-mt-28 space-y-3">
           <div>
             <h2 className="text-h3 text-neutral-900">
@@ -422,20 +431,29 @@ export default async function MarketCampaignDetailPage({
               {t("stimulusSectionDesc")}
             </p>
           </div>
-          <Card>
+          {/* Multi-Stimulus E3: eine Karte pro Set-Element, in Positions-
+              Reihenfolge (= Regie-Reihenfolge im Interview). Single/Legacy
+              rendert als genau eine Karte — inhaltlich wie zuvor. */}
+          {stimulusSet.map((item, index) => (
+          <Card key={item.id}>
             <CardBody className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
-                {plan.stimulusType === "image" ? (
+                {stimulusSet.length > 1 && (
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-caption font-semibold text-neutral-600">
+                    {index + 1}
+                  </span>
+                )}
+                {item.stimulusType === "image" ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={plan.stimulusUrl}
+                    src={item.url}
                     alt={t("stimulusThumbAlt")}
                     className="h-20 w-20 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-1"
                   />
-                ) : plan.stimulusType === "video" ? (
+                ) : item.stimulusType === "video" ? (
                   // Abspielbare Vorschau des Video-Stimulus (Etappe 3).
                   <video
-                    src={plan.stimulusUrl}
+                    src={item.url}
                     controls
                     playsInline
                     preload="metadata"
@@ -444,25 +462,30 @@ export default async function MarketCampaignDetailPage({
                   />
                 ) : (
                   <a
-                    href={plan.stimulusUrl}
+                    href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="min-w-0 flex-1 truncate text-small text-primary-700 underline underline-offset-2 hover:text-primary-800"
                   >
-                    {plan.stimulusUrl}
+                    {item.url}
                   </a>
                 )}
                 <Badge variant="default">
-                  {plan.stimulusType === "image"
+                  {item.stimulusType === "image"
                     ? t("stimulusModeImage")
-                    : plan.stimulusType === "video"
+                    : item.stimulusType === "video"
                       ? t("stimulusModeVideo")
                       : t("stimulusModeLink")}
                 </Badge>
+                {item.label && (
+                  <span className="text-body-strong text-neutral-900">
+                    {item.label}
+                  </span>
+                )}
                 {/* Analyse-Status — derselbe Stand wie im Formular (DB-Read).
                     'pending' ist hier nur nach einem abgebrochenen Status-Write
                     sichtbar (die Analyse selbst läuft synchron im Upload). */}
-                {plan.stimulusAnalysisStatus === "pending" && (
+                {item.analysisStatus === "pending" && (
                   <span className="inline-flex items-center gap-2 text-caption text-neutral-500">
                     <span
                       className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin"
@@ -471,32 +494,32 @@ export default async function MarketCampaignDetailPage({
                     {t("stimulusAnalysisPending")}
                   </span>
                 )}
-                {plan.stimulusAnalysisStatus === "done" && (
+                {item.analysisStatus === "done" && (
                   <Badge variant="success">{t("stimulusAnalysisDone")}</Badge>
                 )}
               </div>
 
-              {plan.stimulusDescription && (
+              {item.description && (
                 <div>
                   <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
                     {t("stimulusDetailDescLabel")}
                   </div>
                   <p className="mt-1 whitespace-pre-wrap text-body text-neutral-700">
-                    {plan.stimulusDescription}
+                    {item.description}
                   </p>
                 </div>
               )}
 
               {/* failed — dezent (neutral, kein Alarm): das Interview nutzt den
                   Stimulus auch ohne Analyse. */}
-              {plan.stimulusAnalysisStatus === "failed" && (
+              {item.analysisStatus === "failed" && (
                 <p className="text-caption text-neutral-500">
                   {t("stimulusAnalysisFailed")}
                 </p>
               )}
 
-              {plan.stimulusAnalysisStatus === "done" &&
-                plan.stimulusAnalysis && (
+              {item.analysisStatus === "done" &&
+                item.analysis && (
                   <details className="group rounded-md border border-neutral-200">
                     <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-small font-medium text-neutral-700 hover:text-neutral-900 [&::-webkit-details-marker]:hidden">
                       <svg
@@ -519,7 +542,7 @@ export default async function MarketCampaignDetailPage({
                           {t("saLayout")}
                         </div>
                         <p className="mt-1 text-small text-neutral-700">
-                          {plan.stimulusAnalysis.analysis.layout}
+                          {item.analysis.analysis.layout}
                         </p>
                       </div>
                       <div>
@@ -527,7 +550,7 @@ export default async function MarketCampaignDetailPage({
                           {t("saFarbwelt")}
                         </div>
                         <p className="mt-1 text-small text-neutral-700">
-                          {plan.stimulusAnalysis.analysis.farbwelt}
+                          {item.analysis.analysis.farbwelt}
                         </p>
                       </div>
                       <div>
@@ -535,7 +558,7 @@ export default async function MarketCampaignDetailPage({
                           {t("saBildelemente")}
                         </div>
                         <ul className="mt-1 list-disc space-y-1 pl-5">
-                          {plan.stimulusAnalysis.analysis.bildelemente.map(
+                          {item.analysis.analysis.bildelemente.map(
                             (item, i) => (
                               <li
                                 key={i}
@@ -547,13 +570,13 @@ export default async function MarketCampaignDetailPage({
                           )}
                         </ul>
                       </div>
-                      {plan.stimulusAnalysis.analysis.textImBild.length > 0 && (
+                      {item.analysis.analysis.textImBild.length > 0 && (
                         <div>
                           <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
                             {t("saTextImBild")}
                           </div>
                           <ul className="mt-1 list-disc space-y-1 pl-5">
-                            {plan.stimulusAnalysis.analysis.textImBild.map(
+                            {item.analysis.analysis.textImBild.map(
                               (item, i) => (
                                 <li
                                   key={i}
@@ -571,17 +594,17 @@ export default async function MarketCampaignDetailPage({
                           {t("saClaim")}
                         </div>
                         <p className="mt-1 text-small text-neutral-700">
-                          {plan.stimulusAnalysis.analysis.claimBotschaft}
+                          {item.analysis.analysis.claimBotschaft}
                         </p>
                       </div>
-                      {plan.stimulusAnalysis.analysis.gestaltungsentscheidungen
+                      {item.analysis.analysis.gestaltungsentscheidungen
                         .length > 0 && (
                         <div>
                           <div className="text-caption font-medium uppercase tracking-wider text-neutral-400">
                             {t("saGestaltung")}
                           </div>
                           <ul className="mt-1 list-disc space-y-1 pl-5">
-                            {plan.stimulusAnalysis.analysis.gestaltungsentscheidungen.map(
+                            {item.analysis.analysis.gestaltungsentscheidungen.map(
                               (item, i) => (
                                 <li
                                   key={i}
@@ -599,7 +622,7 @@ export default async function MarketCampaignDetailPage({
                           {t("saFrageansaetze")}
                         </div>
                         <ol className="mt-1 list-decimal space-y-1 pl-5">
-                          {plan.stimulusAnalysis.analysis.frageansaetze.map(
+                          {item.analysis.analysis.frageansaetze.map(
                             (item, i) => (
                               <li
                                 key={i}
@@ -617,7 +640,7 @@ export default async function MarketCampaignDetailPage({
                       <p className="text-caption text-neutral-400">
                         {t("stimulusAnalysisGeneratedAt", {
                           date: formatDate(
-                            plan.stimulusAnalysis.generatedAt,
+                            item.analysis.generatedAt,
                             locale,
                           ),
                         })}
@@ -627,6 +650,7 @@ export default async function MarketCampaignDetailPage({
                 )}
             </CardBody>
           </Card>
+          ))}
         </section>
       )}
 
