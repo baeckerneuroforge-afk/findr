@@ -55,8 +55,11 @@ interface VoiceInterviewViewProps {
   logoUrl?: string | null;
   /** Panel provider complete-return URL — redirect on the completed screen. */
   panelCompleteRedirect?: string | null;
-  /** Stimulus split-view (image/link only in E1; "video" coerces to null
-   *  exactly like InterviewChat does today — video rendering is E3). */
+  /** Stimulus split-view. E4: voice renders image, link AND video (the text
+   *  chat still coerces "video" to null — untouched). The panel starts hidden
+   *  behind a placeholder and is revealed by the agent's
+   *  {"type":"stimulus","action":"show"} DataPacket (play/pause steer the
+   *  video), with a timed fallback if the agent never sends one. */
   stimulusUrl?: string | null;
   stimulusType?: string | null;
 }
@@ -103,6 +106,11 @@ const AGENT_JOIN_TIMEOUT_MS = 20_000;
 const ENDED_CHECK_ATTEMPTS = 4;
 const ENDED_CHECK_INTERVAL_MS = 1_500;
 
+/** E4: if the agent never sends the {"type":"stimulus","action":"show"}
+ *  DataPacket (it could forget the tool call), reveal the panel anyway this
+ *  long after the room connection was established. */
+const STIMULUS_REVEAL_FALLBACK_MS = 90_000;
+
 /** Collapse whitespace + case for the opening-echo comparison. */
 function normalizeForEcho(text: string): string {
   return text.toLowerCase().replace(/\s+/g, " ").trim();
@@ -139,9 +147,36 @@ function MicGlyph({ size = 16, muted = false }: { size?: number; muted?: boolean
   );
 }
 
+/** Reveal transition for the stimulus panel (E4) — opacity/transform only,
+ *  frozen entirely under prefers-reduced-motion (the placeholder→panel swap
+ *  then happens instantly, which is the reduced-motion-correct behavior). */
+const STIMULUS_CSS = `
+@keyframes voice-stimulus-reveal {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.voice-stimulus-reveal {
+  animation: voice-stimulus-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-stimulus-reveal { animation: none; }
+}
+`;
+
 /** Local copy of the chat's stimulus panel (it is module-private there and
- *  InterviewChat stays untouched by design). Same i18n keys, same markup. */
-function VoiceStimulusPanel({ url, kind }: { url: string; kind: "image" | "link" }) {
+ *  InterviewChat stays untouched by design). Same i18n keys, same markup —
+ *  plus a video branch the chat doesn't have (E4: the agent steers playback
+ *  via play/pause DataPackets; controls stay on for the participant since
+ *  un-gestured play() may be blocked by autoplay policies). */
+function VoiceStimulusPanel({
+  url,
+  kind,
+  videoRef,
+}: {
+  url: string;
+  kind: "image" | "link" | "video";
+  videoRef?: (el: HTMLVideoElement | null) => void;
+}) {
   const t = useTranslations("interview");
   return (
     <div>
@@ -153,6 +188,16 @@ function VoiceStimulusPanel({ url, kind }: { url: string; kind: "image" | "link"
         <img
           src={url}
           alt={t("stimulus.imageAlt")}
+          className="max-h-[32vh] w-full rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] object-contain lg:max-h-[80vh]"
+        />
+      ) : kind === "video" ? (
+        <video
+          ref={videoRef}
+          src={url}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={t("stimulus.videoAria")}
           className="max-h-[32vh] w-full rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] object-contain lg:max-h-[80vh]"
         />
       ) : (
@@ -314,9 +359,11 @@ export function VoiceInterviewView({
     accentColor && HEX_COLOR.test(accentColor) ? accentColor : DEFAULT_ACCENT;
   const hasBrand = Boolean(logoUrl || brandName);
 
-  // Same narrowing as InterviewChat: "video" (E3) and anything unknown → null.
-  const stimulusKind: "image" | "link" | null =
-    stimulusType === "image" || stimulusType === "link" ? stimulusType : null;
+  // InterviewChat's narrowing + "video" (E4, voice-only); unknown → null.
+  const stimulusKind: "image" | "link" | "video" | null =
+    stimulusType === "image" || stimulusType === "link" || stimulusType === "video"
+      ? stimulusType
+      : null;
   const stimulus =
     stimulusUrl && stimulusKind ? { url: stimulusUrl, kind: stimulusKind } : null;
 
@@ -334,6 +381,10 @@ export function VoiceInterviewView({
   const [agentState, setAgentState] = useState<AgentState | null>(null);
   const [showLastQuestion, setShowLastQuestion] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  /** E4: stimulus panel hidden behind the placeholder until the agent's
+   *  "show" DataPacket (or the timed fallback) reveals it. Reveal is one-way
+   *  for the session — repeated show events are no-ops. */
+  const [stimulusRevealed, setStimulusRevealed] = useState(false);
 
   const roomRef = useRef<Room | null>(null);
   const phaseRef = useRef<Phase>(phase);
@@ -341,6 +392,12 @@ export function VoiceInterviewView({
   const intentionalCloseRef = useRef(false);
   const agentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioHostRef = useRef<HTMLDivElement | null>(null);
+  const stimulusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stimulusRevealedRef = useRef(false);
+  const stimulusVideoRef = useRef<HTMLVideoElement | null>(null);
+  /** Agent sent "play" before the (just-revealed) <video> mounted — honor it
+   *  from the ref callback once the element exists. */
+  const stimulusPendingPlayRef = useRef(false);
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -354,9 +411,22 @@ export function VoiceInterviewView({
     return () => {
       intentionalCloseRef.current = true;
       if (agentTimerRef.current) clearTimeout(agentTimerRef.current);
+      if (stimulusTimerRef.current) clearTimeout(stimulusTimerRef.current);
       void roomRef.current?.disconnect();
     };
   }, []);
+
+  /** E4 — idempotent: clears the fallback timer and flips the panel visible
+   *  exactly once (duplicate "show" packets and a late timer are no-ops). */
+  function revealStimulus() {
+    if (stimulusTimerRef.current) {
+      clearTimeout(stimulusTimerRef.current);
+      stimulusTimerRef.current = null;
+    }
+    if (stimulusRevealedRef.current) return;
+    stimulusRevealedRef.current = true;
+    setStimulusRevealed(true);
+  }
 
   // Ended → bounded status re-checks. router.refresh() re-renders the server
   // component; client state survives, only the props update. The status-flip
@@ -399,6 +469,10 @@ export function VoiceInterviewView({
     if (agentTimerRef.current) {
       clearTimeout(agentTimerRef.current);
       agentTimerRef.current = null;
+    }
+    if (stimulusTimerRef.current) {
+      clearTimeout(stimulusTimerRef.current);
+      stimulusTimerRef.current = null;
     }
     const room = roomRef.current;
     if (room) {
@@ -544,6 +618,42 @@ export function VoiceInterviewView({
     });
     room.on(lk.RoomEvent.Reconnecting, () => setReconnecting(true));
     room.on(lk.RoomEvent.Reconnected, () => setReconnecting(false));
+    // E4 — stimulus control packets from the agent. Strictly defensive:
+    // anything that isn't valid JSON of the expected shape is silently
+    // ignored (the topic is shared, other packet types may appear later).
+    if (stimulus) {
+      // (DataReceived only ever delivers remote packets — no local guard.)
+      room.on(lk.RoomEvent.DataReceived, (payload) => {
+        let message: unknown;
+        try {
+          message = JSON.parse(new TextDecoder().decode(payload));
+        } catch {
+          return;
+        }
+        if (typeof message !== "object" || message === null) return;
+        const { type, action } = message as { type?: unknown; action?: unknown };
+        if (type !== "stimulus") return;
+        if (action === "show") {
+          revealStimulus();
+        } else if (action === "play" || action === "pause") {
+          // Playback steering implies visibility — reveal first if needed.
+          revealStimulus();
+          const video = stimulusVideoRef.current;
+          if (action === "play") {
+            if (video) {
+              // Autoplay policies may still block un-gestured play() — the
+              // participant keeps the native controls as fallback.
+              void video.play().catch(() => {});
+            } else {
+              stimulusPendingPlayRef.current = true;
+            }
+          } else {
+            stimulusPendingPlayRef.current = false;
+            video?.pause();
+          }
+        }
+      });
+    }
     room.on(lk.RoomEvent.ParticipantDisconnected, () => {
       // Agent left. Normal end of the interview → verify the status flip.
       if (phaseRef.current === "live" && room.remoteParticipants.size === 0) {
@@ -597,6 +707,16 @@ export function VoiceInterviewView({
     } catch {
       fail("unavailable");
       return;
+    }
+
+    // E4 — fallback: connection established but no "show" packet after 90 s
+    // (agent forgot the tool) → reveal anyway. Cleared by revealStimulus.
+    if (stimulus && !stimulusRevealedRef.current) {
+      if (stimulusTimerRef.current) clearTimeout(stimulusTimerRef.current);
+      stimulusTimerRef.current = setTimeout(() => {
+        stimulusTimerRef.current = null;
+        revealStimulus();
+      }, STIMULUS_REVEAL_FALLBACK_MS);
     }
 
     if (room.remoteParticipants.size > 0) {
@@ -900,7 +1020,38 @@ export function VoiceInterviewView({
         // left column.
         <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-5 py-6 lg:flex-row lg:items-start">
           <aside className="sticky top-0 z-20 self-stretch border-b border-[#E8E4F2] bg-white py-3 lg:top-6 lg:z-0 lg:w-2/5 lg:max-w-sm lg:shrink-0 lg:self-auto lg:border-b-0 lg:py-0">
-            <VoiceStimulusPanel url={stimulus.url} kind={stimulus.kind} />
+            <style>{STIMULUS_CSS}</style>
+            {/* "done" shows the panel directly — the conversation is over,
+                there is nothing left to choreograph and the placeholder's
+                "will appear during the conversation" would mislead. */}
+            {stimulusRevealed || phase === "done" ? (
+              <div className="voice-stimulus-reveal">
+                <VoiceStimulusPanel
+                  url={stimulus.url}
+                  kind={stimulus.kind}
+                  videoRef={(el) => {
+                    stimulusVideoRef.current = el;
+                    if (el && stimulusPendingPlayRef.current) {
+                      stimulusPendingPlayRef.current = false;
+                      void el.play().catch(() => {});
+                    }
+                  }}
+                />
+              </div>
+            ) : (
+              // E4 placeholder — the split-view frame is stable from first
+              // paint; only the panel content swaps in on reveal.
+              <div>
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
+                  {t("stimulus.label")}
+                </p>
+                <div className="flex min-h-[120px] items-center justify-center rounded-xl border border-dashed border-[#E8E4F2] bg-[#FAFAFE] px-5 py-6 lg:min-h-[200px]">
+                  <p className="max-w-[28ch] text-center text-[13px] leading-relaxed text-[#8A85A0]">
+                    {t("stimulus.hiddenHint")}
+                  </p>
+                </div>
+              </div>
+            )}
           </aside>
           <div className="flex w-full flex-1 flex-col lg:max-w-2xl lg:self-stretch">
             <div className="mb-6">

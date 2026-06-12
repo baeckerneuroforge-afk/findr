@@ -42,7 +42,9 @@
       "linkTitle": "View the prototype",
       "linkBody": "Open the prototype in a new tab and refer to it as you answer.",
       "openLink": "Open prototype",
-      "newTab": "Opens in a new tab"
+      "newTab": "Opens in a new tab",
+      "videoAria": "The video discussed in this interview",
+      "hiddenHint": "The material will appear during the conversation."
     },
     "error": {
       "requestFailed": "Request failed. Please try again.",
