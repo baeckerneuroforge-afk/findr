@@ -1,6 +1,11 @@
 # findr — Dark Mode / System-Farbschema: Plan
 
-**Status:** Nur Plan, kein Code geändert. Stand 2026-06-12.
+**Status:** UMGESETZT (E1–E4, 2026-06-12, gleicher Branch). Abweichung von G4: statt
+Komponenten-Migration auf Semantik-Tokens wurde die gemessen hochkonsistente Nutzung
+per **Rampen-Override unter `.dark`** geschaltet (Neutral-/Primary-Rampen rollengerecht
+umdefiniert) + gezielte Seds (bg-white→bg-card 200×, primary-hover-Token gegen den
+700er-Dual-Use, Scrims→bg-black/x, Ink-Buttons text-neutral-0) — gleiche Wirkung,
+~10× kleinerer Diff, minimale Konfliktfläche. E5 (DB-Persistenz) bewusst offen.
 **Scope:** Plattform (Dashboard) UND Marketing-Webseite. System-adaptiv (`prefers-color-scheme`) als Kern-Anforderung, manueller Override optional.
 
 ---
