@@ -1550,3 +1550,108 @@
   font-style: italic;
   color: var(--st-ink-60);
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   TWILIGHT-KONSOLE — NACHT-FASSUNG (Dark Mode, rein system-folgend).
+
+   Kein Toggle, kein JS, kein FOUC: die Marketing-Site folgt ausschließlich
+   prefers-color-scheme. Die Erzählung dreht sich um — tagsüber wandert die
+   Seite vom hellen Lab in die Dämmerung, nachts IST der Canvas die Nacht
+   (#0e0d1a, unter violet-950) und die Dämmerungs-Anker (--st-dark #141734,
+   Tape-Cards, Footer) sitzen als HELLERE Inseln darüber. Cream- und
+   On-Dark-Konstanten (--st-cream*, st-dusk, st-stars) bleiben unverändert —
+   sie waren immer schon für Dunkel gebaut.
+
+   Geltungsbereich: nur .studio (Marketing). Die Plattform schaltet separat
+   über die .dark-Klasse (globals.css); Teilnehmer-/Shared-/PDF-Flächen
+   bleiben in beiden Welten hell. */
+@media (prefers-color-scheme: dark) {
+  .studio {
+    color-scheme: dark;
+
+    /* ── Flächen ── */
+    --color-canvas: #0e0d1a;            /* Nacht-Canvas */
+    --color-warm: #131228;              /* „Rest“-Band, eine Stufe gehoben */
+    /* --color-anchor bleibt #141734 — liegt nun knapp ÜBER dem Canvas. */
+
+    /* ── Neutrals → violett getönte Nacht-Tinten (Rollen gespiegelt) ── */
+    --color-neutral-0: #1a1933;         /* Konsolen-Karte */
+    --color-neutral-50: #131228;
+    --color-neutral-100: #232045;
+    --color-neutral-200: #2c2950;
+    --color-neutral-300: #3a3766;
+    --color-neutral-400: #7d7aa0;
+    --color-neutral-500: #a3a0c0;
+    --color-neutral-700: #d0cee2;
+    --color-neutral-900: #f1f0f9;
+
+    /* ── Konsolen-Konstanten ──
+       Das Signal hellt eine Stufe auf (#6f74ba), damit es auf Nacht trägt;
+       rec-deep ist im Dunkel der HELLE Stempel-/Textton (Rolle gespiegelt,
+       nicht der Name). Tinten-Rollen von ink/line/paper drehen auf Cream. */
+    --st-rec: #6f74ba;
+    --st-rec-deep: #9398cc;
+    --st-rec-bright: #9398cc;
+    --st-ink: #eeeff8;
+    --st-ink-60: rgba(238, 239, 248, 0.62);
+    --st-ink-35: rgba(238, 239, 248, 0.38);
+    --st-line: rgba(238, 239, 248, 0.1);
+    --st-line-strong: rgba(238, 239, 248, 0.26);
+    --st-paper: #1a1933;
+    --st-paper-shade: #232045;
+    --st-live: #34d399;
+    --st-indigo-50: #252849;
+    --st-indigo-200: #3a4078;
+    --st-indigo-300: #565d9d;
+  }
+
+  /* Auswahl: helles Indigo mit Nacht-Text (invertiert zur Tag-Fassung). */
+  .studio ::selection {
+    background: var(--st-rec);
+    color: #0e0d1a;
+  }
+
+  /* Punktraster: Cream-Tinte statt Ink. */
+  .st-grid {
+    background-image: radial-gradient(rgba(238, 239, 248, 0.045) 1px, transparent 1.1px);
+  }
+
+  /* Header-Milchglas: Nacht-Canvas statt Lab-Weiß. */
+  .st-top.solid {
+    background: rgba(14, 13, 26, 0.84);
+  }
+
+  /* Ghost-Button-Hover: Cream-Wash statt Ink-Wash (wie .st-on-dark). */
+  .st-btn-ghost:hover {
+    background: rgba(238, 239, 248, 0.07);
+  }
+
+  /* Halbtransparente Weiß-Flächen → halbtransparente Nacht-Flächen. */
+  .st-marquee {
+    background: rgba(26, 25, 51, 0.4);
+  }
+  .st-numbers {
+    background: rgba(26, 25, 51, 0.5);
+  }
+  .st-findings {
+    background: #161530;
+  }
+
+  /* Stempel: Cream-Tint-Hintergründe drehen auf Indigo-Nacht-Tints. */
+  .st-stamp {
+    background: rgba(31, 35, 80, 0.7);
+  }
+  .st-stamp--2 {
+    color: #fbbf24;
+  }
+  .st-stamp--3 {
+    background: var(--color-canvas);
+  }
+  .st-bigstamp {
+    background: rgba(31, 35, 80, 0.7);
+  }
+  .st-bigstamp--rec {
+    color: rgba(184, 187, 221, 0.85);
+    background: rgba(31, 35, 80, 0.7);
+  }
+}

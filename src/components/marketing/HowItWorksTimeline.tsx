@@ -79,7 +79,7 @@ export function HowItWorksTimeline({ steps }: { steps: HowStep[] }) {
 
             {/* Node sits ON the rail (z-10, opaque bg masks the line). Number is
                 ink; the violet activation ring fades in as the thread arrives. */}
-            <span className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white text-sm font-semibold tabular-nums text-neutral-900">
+            <span className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-0 text-sm font-semibold tabular-nums text-neutral-900">
               {i + 1}
               <span
                 aria-hidden

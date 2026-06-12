@@ -197,7 +197,7 @@ export function ProofPoints({
               key={p.title}
               y={0}
               delay={i * 0.06}
-              className="flex h-full flex-col gap-3 bg-white p-7"
+              className="flex h-full flex-col gap-3 bg-neutral-0 p-7"
             >
               <div className="flex items-center justify-between">
                 <p.Icon className="h-6 w-6 text-primary-600" />

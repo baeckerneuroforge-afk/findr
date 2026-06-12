@@ -200,7 +200,7 @@ function NarrativeBand({
 /** Bordered accent callout used inside the narrative bands. */
 function Callout({ strong, body }: { strong: string; body: ReactNode }) {
   return (
-    <div className="rounded border-l-2 border-primary-300 bg-white py-4 pl-4 pr-3 text-[15px] leading-relaxed text-neutral-700">
+    <div className="rounded border-l-2 border-primary-300 bg-neutral-0 py-4 pl-4 pr-3 text-[15px] leading-relaxed text-neutral-700">
       <strong className="font-semibold text-neutral-900">{strong}</strong>
       <br />
       {body}
@@ -228,7 +228,7 @@ function MethodGrid({ current }: { current: string }) {
                 <Link
                   key={m.href}
                   href={m.href}
-                  className="group flex h-full flex-col gap-3 bg-white p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+                  className="group flex h-full flex-col gap-3 bg-neutral-0 p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                 >
                   <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-neutral-900">
                     {m.name}
@@ -247,7 +247,7 @@ function MethodGrid({ current }: { current: string }) {
               ))}
               <Link
                 href="/produkt"
-                className="group flex h-full flex-col gap-3 bg-white p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+                className="group flex h-full flex-col gap-3 bg-neutral-0 p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
               >
                 <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-primary-700">
                   Die Engine dahinter

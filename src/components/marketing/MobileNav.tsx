@@ -98,7 +98,7 @@ export function MobileNav({ nav }: { nav: NavEntry[] }) {
           />
           <div
             id="mobile-nav"
-            className="fixed inset-x-0 top-16 z-40 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-neutral-200 bg-white"
+            className="fixed inset-x-0 top-16 z-40 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-neutral-200 bg-neutral-0"
           >
             <nav
               className="flex flex-col gap-1 px-6 py-4"

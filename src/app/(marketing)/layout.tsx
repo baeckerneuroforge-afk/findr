@@ -79,7 +79,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fafafa",
+  // Browser-Chrome folgt dem System wie die Seite selbst (studio.css trägt
+  // den prefers-color-scheme-Block): Lab-Canvas am Tag, Nacht-Canvas nachts.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e0d1a" },
+  ],
+  colorScheme: "light dark",
 };
 
 /**

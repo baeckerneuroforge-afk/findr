@@ -196,7 +196,7 @@ export default function PreisePage() {
                 key={f.title}
                 y={0}
                 delay={i * 0.06}
-                className="flex h-full flex-col gap-3 bg-white p-7"
+                className="flex h-full flex-col gap-3 bg-neutral-0 p-7"
               >
                 <f.Icon className="h-6 w-6 text-primary-600" />
                 <h3 className="font-marketing text-lg font-semibold leading-snug text-neutral-900">
@@ -234,7 +234,7 @@ export default function PreisePage() {
                 key={a.label}
                 y={0}
                 delay={i * 0.05}
-                className="flex h-full items-start gap-3.5 bg-white p-7"
+                className="flex h-full items-start gap-3.5 bg-neutral-0 p-7"
               >
                 <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-primary-200 text-primary-600">
                   <a.Icon className="h-[18px] w-[18px]" />

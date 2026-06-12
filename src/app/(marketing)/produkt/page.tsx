@@ -333,7 +333,7 @@ export default function ProduktPage() {
             {["PDF-Report", "PowerPoint-Deck", "Teilbarer Link", "Eigenes Branding"].map((f) => (
               <span
                 key={f}
-                className="rounded-full border border-[var(--st-line)] bg-white px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-neutral-700"
+                className="rounded-full border border-[var(--st-line)] bg-neutral-0 px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-neutral-700"
               >
                 {f}
               </span>

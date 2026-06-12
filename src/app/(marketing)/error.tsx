@@ -15,7 +15,7 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-white px-6 text-center font-body text-neutral-900 antialiased">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-neutral-0 px-6 text-center font-body text-neutral-900 antialiased">
       <span className="font-marketing text-5xl font-semibold text-primary-600">
         Hoppla.
       </span>
@@ -36,7 +36,7 @@ export default function Error({
         </button>
         <Link
           href="/"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded border border-neutral-300 bg-white px-5 text-sm font-medium text-neutral-900 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded border border-neutral-300 bg-neutral-0 px-5 text-sm font-medium text-neutral-900 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
         >
           Zur Startseite
         </Link>
