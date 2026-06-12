@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { WithdrawDataLink } from "./WithdrawDataLink";
 import type { Room } from "livekit-client";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
+import type { StimulusSetItem } from "./InterviewChat";
 
 /**
  * Voice Phase 2 (E1) — the participant-facing LiveKit voice interview.
@@ -62,6 +63,15 @@ interface VoiceInterviewViewProps {
    *  video), with a timed fallback if the agent never sends one. */
   stimulusUrl?: string | null;
   stimulusType?: string | null;
+  /** E6 Multi-Stimulus: das Stimulus-Set der Studie aus der Public-Session-
+   *  View (Snapshot, Positions-Reihenfolge, teilnehmer-sichere Felder).
+   *  Nicht-leer → Set-Panel mit Agent-Reveal: der Agent steuert per
+   *  {"type":"stimulus","action":"show","index":n}-DataPacket, welcher
+   *  Stimulus sichtbar ist (fehlender index → 1, rückwärtskompatibel zum
+   *  E4-Single-Agenten); bereits Gezeigtes bleibt als Thumbnail wählbar
+   *  (O2). Die Page liefert die Legacy-Props dann NIE parallel. Leer/fehlend
+   *  → exakt der bisherige Single-/No-Stimulus-Pfad. */
+  stimuli?: StimulusSetItem[] | null;
 }
 
 type Phase = "intro" | "connecting" | "live" | "ended" | "done" | "error";
@@ -110,6 +120,26 @@ const ENDED_CHECK_INTERVAL_MS = 1_500;
  *  DataPacket (it could forget the tool call), reveal the panel anyway this
  *  long after the room connection was established. */
 const STIMULUS_REVEAL_FALLBACK_MS = 90_000;
+
+/** E6 — Reveal-Stand aus persistierten SHOW-Markern einer Conversation
+ *  (Reload-/Reconnect-Restore): `max` = höchste je gezeigte Position,
+ *  `last` = zuletzt gezeigte (aktive Ansicht). Lokale Kopie der modul-
+ *  privaten shownPositions aus InterviewChat — die bleibt by design
+ *  unangetastet (gleiches Muster wie VoiceStimulusPanel, E4). */
+function voiceShownPositions(turns: InterviewTurn[]): {
+  max: number;
+  last: number | null;
+} {
+  let max = 0;
+  let last: number | null = null;
+  for (const turn of turns) {
+    const p = turn.role === "agent" ? turn.shownStimulusPosition : undefined;
+    if (typeof p !== "number" || !Number.isInteger(p) || p < 1) continue;
+    last = p;
+    if (p > max) max = p;
+  }
+  return { max, last };
+}
 
 /** Collapse whitespace + case for the opening-echo comparison. */
 function normalizeForEcho(text: string): string {
@@ -217,6 +247,146 @@ function VoiceStimulusPanel({
             {t("stimulus.openLink")}
           </a>
           <p className="mt-2 text-[12px] text-[#8A85A0]">{t("stimulus.newTab")}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * E6 Multi-Stimulus — das Set-Panel der Voice-Ansicht: verborgen hinter dem
+ * Platzhalter, bis der Agent den ersten Stimulus per DataPacket einblendet;
+ * danach große Ansicht des aktiven Stimulus + Thumbnail-Leiste aller BEREITS
+ * GEZEIGTEN (klickbarer lokaler Rückblick, O2). Markup/i18n spiegeln das
+ * StimulusSetPanel des Text-Chats; zusätzlich bekommt das aktive Video einen
+ * Ref (der Agent steuert Playback per play/pause-DataPacket) und jeder
+ * Stimulus-Wechsel animiert über den keyed Reveal-Wrapper.
+ */
+function VoiceStimulusSetPanel({
+  items,
+  revealedMax,
+  active,
+  onSelect,
+  videoRef,
+}: {
+  items: StimulusSetItem[];
+  revealedMax: number;
+  active: number | null;
+  onSelect: (position: number) => void;
+  videoRef: (el: HTMLVideoElement | null) => void;
+}) {
+  const t = useTranslations("interview");
+
+  if (revealedMax < 1) {
+    return (
+      <div>
+        <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
+          {t("stimulus.label")}
+        </p>
+        <div className="flex min-h-[120px] items-center justify-center rounded-xl border border-dashed border-[#E8E4F2] bg-[#FAFAFE] px-5 py-6 lg:min-h-[200px]">
+          <p className="max-w-[28ch] text-center text-[13px] leading-relaxed text-[#8A85A0]">
+            {t("stimulus.hiddenHint")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const revealed = items.filter((item) => item.position <= revealedMax);
+  const current =
+    revealed.find((item) => item.position === active) ??
+    revealed[revealed.length - 1];
+
+  return (
+    <div>
+      <p className="mb-2 flex items-baseline gap-2 text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
+        {t("stimulus.label")}
+        {current.label && (
+          <span className="normal-case tracking-normal text-[#0E0A1F]">
+            {current.label}
+          </span>
+        )}
+      </p>
+      <div key={current.position} className="voice-stimulus-reveal">
+        {current.type === "image" ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={current.url}
+            alt={t("stimulus.imageAlt")}
+            className="max-h-[32vh] w-full rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] object-contain lg:max-h-[70vh]"
+          />
+        ) : current.type === "video" ? (
+          <video
+            src={current.url}
+            ref={videoRef}
+            controls
+            playsInline
+            preload="metadata"
+            aria-label={t("stimulus.videoAria")}
+            className="max-h-[32vh] w-full rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] object-contain lg:max-h-[70vh]"
+          />
+        ) : (
+          <div className="rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-4">
+            <h2 className="text-[14px] font-semibold text-[#0E0A1F]">
+              {t("stimulus.linkTitle")}
+            </h2>
+            <p className="mt-2 text-[13px] leading-relaxed text-[#6B6680]">
+              {t("stimulus.linkBody")}
+            </p>
+            <a
+              href={current.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex h-[40px] items-center rounded-lg bg-[var(--brand-accent)] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+            >
+              {t("stimulus.openLink")}
+            </a>
+            <p className="mt-2 text-[12px] text-[#8A85A0]">
+              {t("stimulus.newTab")}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {revealed.length > 1 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {revealed.map((item) => {
+            const isActive = item.position === current.position;
+            return (
+              <button
+                key={item.position}
+                type="button"
+                onClick={() => onSelect(item.position)}
+                aria-pressed={isActive}
+                aria-label={t("stimulus.thumbAria", {
+                  position: item.position,
+                })}
+                className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[12px] transition-colors ${
+                  isActive
+                    ? "border-[var(--brand-accent)] bg-white text-[#0E0A1F]"
+                    : "border-[#E8E4F2] bg-[#FAFAFE] text-[#6B6680] hover:border-[#CFC9E4]"
+                }`}
+              >
+                {item.type === "image" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.url}
+                    alt=""
+                    aria-hidden="true"
+                    className="h-8 w-8 rounded-md border border-[#E8E4F2] bg-white object-contain"
+                  />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E8E4F2] bg-white text-[13px]"
+                  >
+                    {item.type === "video" ? "▶" : "↗"}
+                  </span>
+                )}
+                <span>{item.label ?? item.position}</span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -350,6 +520,7 @@ export function VoiceInterviewView({
   panelCompleteRedirect = null,
   stimulusUrl = null,
   stimulusType = null,
+  stimuli = null,
 }: VoiceInterviewViewProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
@@ -366,6 +537,10 @@ export function VoiceInterviewView({
       : null;
   const stimulus =
     stimulusUrl && stimulusKind ? { url: stimulusUrl, kind: stimulusKind } : null;
+  // E6 Multi-Stimulus — ein nicht-leeres Set ersetzt den Single-Pfad komplett
+  // (die Page liefert beide nie parallel; defensiv gewinnt das Set).
+  const stimulusSet: StimulusSetItem[] = Array.isArray(stimuli) ? stimuli : [];
+  const hasStimulusSurface = stimulusSet.length > 0 || stimulus !== null;
 
   const [phase, setPhase] = useState<Phase>(() =>
     initialStatus === "open" ? "intro" : "done",
@@ -385,6 +560,16 @@ export function VoiceInterviewView({
    *  "show" DataPacket (or the timed fallback) reveals it. Reveal is one-way
    *  for the session — repeated show events are no-ops. */
   const [stimulusRevealed, setStimulusRevealed] = useState(false);
+  /** E6: Reveal-Stand des Sets — max = höchste je gezeigte Position (steuert
+   *  Thumbnails), active = aktuelle Ansicht. Lazy-Init aus den persistierten
+   *  SHOW-Markern der Conversation (Reload-/Reconnect-Restore). */
+  const [setReveal, setSetReveal] = useState<{
+    max: number;
+    active: number | null;
+  }>(() => {
+    const { max, last } = voiceShownPositions(initialConversation);
+    return { max, active: last };
+  });
 
   const roomRef = useRef<Room | null>(null);
   const phaseRef = useRef<Phase>(phase);
@@ -394,6 +579,8 @@ export function VoiceInterviewView({
   const audioHostRef = useRef<HTMLDivElement | null>(null);
   const stimulusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stimulusRevealedRef = useRef(false);
+  /** E6: Spiegel von setReveal.max für Event-Handler/Timer (kein stale state). */
+  const setRevealMaxRef = useRef(setReveal.max);
   const stimulusVideoRef = useRef<HTMLVideoElement | null>(null);
   /** Agent sent "play" before the (just-revealed) <video> mounted — honor it
    *  from the ref callback once the element exists. */
@@ -426,6 +613,29 @@ export function VoiceInterviewView({
     if (stimulusRevealedRef.current) return;
     stimulusRevealedRef.current = true;
     setStimulusRevealed(true);
+  }
+
+  /** E6 — Set-Variante des Reveals: Position 1..N wird sichtbar UND aktiv;
+   *  bereits Gezeigtes bleibt über max erhalten (Thumbnails). Ungültige
+   *  Positionen fallen still durch (fail-open). Re-Shows einer früheren
+   *  Position sind erlaubt (Vergleichsfragen) und wechseln nur die Ansicht. */
+  function revealSetPosition(position: number) {
+    if (
+      !Number.isInteger(position) ||
+      position < 1 ||
+      position > stimulusSet.length
+    ) {
+      return;
+    }
+    if (stimulusTimerRef.current) {
+      clearTimeout(stimulusTimerRef.current);
+      stimulusTimerRef.current = null;
+    }
+    setRevealMaxRef.current = Math.max(setRevealMaxRef.current, position);
+    setSetReveal((prev) => ({
+      max: Math.max(prev.max, position),
+      active: position,
+    }));
   }
 
   // Ended → bounded status re-checks. router.refresh() re-renders the server
@@ -621,7 +831,9 @@ export function VoiceInterviewView({
     // E4 — stimulus control packets from the agent. Strictly defensive:
     // anything that isn't valid JSON of the expected shape is silently
     // ignored (the topic is shared, other packet types may appear later).
-    if (stimulus) {
+    // E6 — Set-Sessions interpretieren zusätzlich `index` (1-basierte
+    // Position; fehlend → 1, rückwärtskompatibel zum E4-Single-Agenten).
+    if (hasStimulusSurface) {
       // (DataReceived only ever delivers remote packets — no local guard.)
       room.on(lk.RoomEvent.DataReceived, (payload) => {
         let message: unknown;
@@ -631,11 +843,44 @@ export function VoiceInterviewView({
           return;
         }
         if (typeof message !== "object" || message === null) return;
-        const { type, action } = message as { type?: unknown; action?: unknown };
+        const { type, action, index } = message as {
+          type?: unknown;
+          action?: unknown;
+          index?: unknown;
+        };
         if (type !== "stimulus") return;
+        if (action !== "show" && action !== "play" && action !== "pause") {
+          return;
+        }
+        if (stimulusSet.length > 0) {
+          const position =
+            typeof index === "number" && Number.isInteger(index) && index >= 1
+              ? index
+              : 1;
+          // Außerhalb des Sets → still ignorieren (der Agent klemmt bereits;
+          // das hier ist die letzte Verteidigungslinie).
+          if (position > stimulusSet.length) return;
+          revealSetPosition(position);
+          if (action === "play" || action === "pause") {
+            const video = stimulusVideoRef.current;
+            if (action === "play") {
+              if (video) {
+                void video.play().catch(() => {});
+              } else {
+                // Video-Element mountet erst nach dem Reveal/Wechsel — der
+                // Ref-Callback holt das play() nach.
+                stimulusPendingPlayRef.current = true;
+              }
+            } else {
+              stimulusPendingPlayRef.current = false;
+              video?.pause();
+            }
+          }
+          return;
+        }
         if (action === "show") {
           revealStimulus();
-        } else if (action === "play" || action === "pause") {
+        } else {
           // Playback steering implies visibility — reveal first if needed.
           revealStimulus();
           const video = stimulusVideoRef.current;
@@ -711,11 +956,17 @@ export function VoiceInterviewView({
 
     // E4 — fallback: connection established but no "show" packet after 90 s
     // (agent forgot the tool) → reveal anyway. Cleared by revealStimulus.
-    if (stimulus && !stimulusRevealedRef.current) {
+    // E6 — Set-Sessions: derselbe Schutz, aber nur Stimulus 1 (die Regie der
+    // weiteren bleibt beim Agenten); entfällt, sobald je etwas gezeigt wurde.
+    if (stimulusSet.length > 0 ? setRevealMaxRef.current === 0 : stimulus && !stimulusRevealedRef.current) {
       if (stimulusTimerRef.current) clearTimeout(stimulusTimerRef.current);
       stimulusTimerRef.current = setTimeout(() => {
         stimulusTimerRef.current = null;
-        revealStimulus();
+        if (stimulusSet.length > 0) {
+          revealSetPosition(1);
+        } else {
+          revealStimulus();
+        }
       }, STIMULUS_REVEAL_FALLBACK_MS);
     }
 
@@ -1014,7 +1265,7 @@ export function VoiceInterviewView({
 
       <WithdrawDataLink token={token} />
 
-      {stimulus ? (
+      {hasStimulusSurface ? (
         // Split-view — same responsive frame as the text interview: mobile
         // stacks (asset sticky on top), desktop puts the asset in a sticky
         // left column.
@@ -1023,8 +1274,33 @@ export function VoiceInterviewView({
             <style>{STIMULUS_CSS}</style>
             {/* "done" shows the panel directly — the conversation is over,
                 there is nothing left to choreograph and the placeholder's
-                "will appear during the conversation" would mislead. */}
-            {stimulusRevealed || phase === "done" ? (
+                "will appear during the conversation" would mislead. For the
+                set that means: everything revealed, last view stays active. */}
+            {stimulusSet.length > 0 ? (
+              <VoiceStimulusSetPanel
+                items={stimulusSet}
+                revealedMax={
+                  phase === "done" ? stimulusSet.length : setReveal.max
+                }
+                active={setReveal.active}
+                onSelect={(position) =>
+                  setSetReveal((prev) =>
+                    position <= (phase === "done"
+                      ? stimulusSet.length
+                      : prev.max)
+                      ? { ...prev, active: position }
+                      : prev,
+                  )
+                }
+                videoRef={(el) => {
+                  stimulusVideoRef.current = el;
+                  if (el && stimulusPendingPlayRef.current) {
+                    stimulusPendingPlayRef.current = false;
+                    void el.play().catch(() => {});
+                  }
+                }}
+              />
+            ) : stimulus && (stimulusRevealed || phase === "done") ? (
               <div className="voice-stimulus-reveal">
                 <VoiceStimulusPanel
                   url={stimulus.url}

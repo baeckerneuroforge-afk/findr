@@ -100,10 +100,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Spiegel der modul-privaten hasResearchStimulus-Logik in interviewer.ts:
     // der Stimulus-Fokusblock greift bei nicht-leerer Beschreibung ODER
     // Vision-Analyse (textBlock — Bestands-Snapshots tragen das Feld nicht →
-    // undefined → Verhalten unverändert).
+    // undefined → Verhalten unverändert). E6: ein Multi-Stimulus-SET zählt
+    // ebenfalls als Präsenz (Parität zu hasResearchStimulus seit E4).
+    const stimulusSet = Array.isArray(input.plan.stimuli)
+      ? [...input.plan.stimuli].sort((a, b) => a.position - b.position)
+      : [];
     const hasStimulus = Boolean(
       input.plan.stimulusDescription?.trim() ||
-        input.plan.stimulusAnalysis?.trim(),
+        input.plan.stimulusAnalysis?.trim() ||
+        stimulusSet.length > 0,
     );
     const systemPrompt = buildResearchSystemPrompt(
       input.plan.useCase,
@@ -147,6 +152,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       useCase: input.plan.useCase ?? null,
       topics: input.plan.topics,
       stimulus,
+      // E6 Multi-Stimulus — das Set aus dem deal_context-SNAPSHOT (dieselbe
+      // Quelle wie die Text-Engine und die Teilnehmer-Page, R2/R6), in
+      // Positions-Reihenfolge. BEWUSST OHNE url: der Agent braucht sie nicht
+      // (das Reveal läuft über die Position; der Browser kennt die URLs aus
+      // der Page) — so kann keine Signed-URL versehentlich in den LLM-Prompt
+      // wandern. Leer ([]) für jede Session ohne Set; ein alter Agent
+      // ignoriert das Feld — graceful wie bei `stimulus.analysis`.
+      stimuli: stimulusSet.map((item) => ({
+        position: item.position,
+        type: item.type,
+        label: item.label ?? null,
+        description: item.description ?? null,
+        analysis: item.analysis ?? null,
+      })),
       brand: input.brand ?? null,
       systemPrompt,
       conversation,
