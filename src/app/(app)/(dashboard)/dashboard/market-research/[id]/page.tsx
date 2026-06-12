@@ -294,6 +294,10 @@ export default async function MarketCampaignDetailPage({
               <Badge variant={STATUS_VARIANT[plan.status]}>
                 {t(`status.${plan.status}`)}
               </Badge>
+              {/* Voice-Kennzeichnung (preisrelevanter Interaktionsmodus). */}
+              {plan.voiceEnabled && (
+                <Badge variant="default">{t("voiceBadge")}</Badge>
+              )}
             </div>
             <p className="mt-1 text-small text-neutral-500">
               {t("createdAt", { date: formatDate(plan.createdAt, locale) })}

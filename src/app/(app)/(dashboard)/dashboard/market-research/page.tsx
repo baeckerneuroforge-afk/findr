@@ -348,9 +348,16 @@ export default async function MarketResearchOverviewPage({
                     )}
                   </TD>
                   <TD>
-                    <Badge variant={STATUS_VARIANT[plan.status]}>
-                      {tp(`status.${plan.status}`)}
-                    </Badge>
+                    {/* Voice-Studien sichtbar kennzeichnen (preisrelevanter
+                        Interaktionsmodus) — Badge nur wenn voiceEnabled. */}
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      <Badge variant={STATUS_VARIANT[plan.status]}>
+                        {tp(`status.${plan.status}`)}
+                      </Badge>
+                      {plan.voiceEnabled && (
+                        <Badge variant="default">{tp("voiceBadge")}</Badge>
+                      )}
+                    </span>
                   </TD>
                   <TD className="text-right text-neutral-700">
                     {plan.topics.length}

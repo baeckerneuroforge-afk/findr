@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { ResearchPlanForm } from "@/components/dashboard/ResearchPlanForm";
 import { ENABLED_MODULES } from "@/config/modules";
+import { getLiveKitVoiceEnv } from "@/lib/voice-interview/livekit";
 
 /**
  * /dashboard/research-plans/new — Plan-Anlage.
@@ -45,7 +46,10 @@ export default async function NewResearchPlanPage() {
         <p className="mt-1 text-body text-neutral-500">{t("newSubtitle")}</p>
       </div>
 
-      <ResearchPlanForm />
+      {/* Server-seitiger Env-Check: ohne LiveKit-Konfiguration ist die
+          Voice-Agent-Karte im Formular deaktiviert (statt 503 beim
+          Teilnehmer). */}
+      <ResearchPlanForm voiceAvailable={getLiveKitVoiceEnv() !== null} />
     </div>
   );
 }

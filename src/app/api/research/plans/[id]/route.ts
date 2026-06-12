@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
+  countSessionsForPlan,
   getResearchPlan,
   updateResearchPlan,
 } from "@/lib/research/plans-service";
@@ -134,6 +135,26 @@ export async function PATCH(
     );
   }
 
+  // Mid-Study-Flip-Warnung: ändert der Forscher den Interaktionsmodus, obwohl
+  // bereits Sessions existieren, ist das KEIN Fehler (legitimer Use-Case:
+  // LiveKit-Ausfall → auf Text umstellen) — aber meldenswert: bestehende
+  // Sessions behalten ihren gestempelten mode (Pricing zählt per Session,
+  // nicht per Plan-Flag). Warn-only, non-breaking Zusatzfeld im 200-Response;
+  // fail-open (Zähl-Fehler → keine Warnung statt falscher Warnung).
+  let warning: string | undefined;
+  if (
+    parsed.data.voiceEnabled !== undefined &&
+    parsed.data.voiceEnabled !== existing.voiceEnabled
+  ) {
+    const sessionCount = await countSessionsForPlan(orgId, planId);
+    if (sessionCount !== null && sessionCount > 0) {
+      warning = "voice_mode_changed_mid_study";
+      console.warn(
+        `[PATCH /api/research/plans/${planId}] voiceEnabled flipped to ${parsed.data.voiceEnabled} with ${sessionCount} existing session(s) — existing sessions keep their recorded mode.`,
+      );
+    }
+  }
+
   try {
     const plan = await updateResearchPlan(orgId, planId, {
       title: parsed.data.title,
@@ -160,7 +181,9 @@ export async function PATCH(
         { status: 500 },
       );
     }
-    return NextResponse.json({ success: true, plan });
+    return NextResponse.json(
+      warning ? { success: true, plan, warning } : { success: true, plan },
+    );
   } catch (err) {
     console.error(
       `[PATCH /api/research/plans/${planId}] update failed:`,
