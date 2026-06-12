@@ -118,3 +118,76 @@ describe("PATCH /api/research/plans/[id] — voiceEnabled mid-study warning", ()
     expect(data.warning).toBeUndefined();
   });
 });
+
+describe("PATCH /api/research/plans/[id] — stimulus schema hardening", () => {
+  beforeEach(() => {
+    mockGetResearchPlan.mockResolvedValue(plan(true));
+  });
+
+  it("rejects javascript: URLs in stimulusUrl (stored-XSS guard)", async () => {
+    const res = await PATCH(
+      patchRequest({
+        stimulusType: "link",
+        stimulusUrl: "javascript:alert(document.cookie)",
+      }),
+      context(),
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockUpdateResearchPlan).not.toHaveBeenCalled();
+  });
+
+  it("rejects data: URLs in stimulusUrl", async () => {
+    const res = await PATCH(
+      patchRequest({ stimulusUrl: "data:text/html,<script>1</script>" }),
+      context(),
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockUpdateResearchPlan).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown stimulusType values", async () => {
+    const res = await PATCH(
+      patchRequest({ stimulusType: "iframe" }),
+      context(),
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockUpdateResearchPlan).not.toHaveBeenCalled();
+  });
+
+  it("accepts a valid https stimulus update", async () => {
+    const res = await PATCH(
+      patchRequest({
+        stimulusType: "link",
+        stimulusUrl: "https://example.com/prototype",
+      }),
+      context(),
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateResearchPlan).toHaveBeenCalledWith(
+      ORG_ID,
+      PLAN_ID,
+      expect.objectContaining({
+        stimulusType: "link",
+        stimulusUrl: "https://example.com/prototype",
+      }),
+    );
+  });
+
+  it("keeps the legacy empty-string→null clearing behavior", async () => {
+    const res = await PATCH(
+      patchRequest({ stimulusUrl: "", stimulusType: "" }),
+      context(),
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateResearchPlan).toHaveBeenCalledWith(
+      ORG_ID,
+      PLAN_ID,
+      expect.objectContaining({ stimulusUrl: null, stimulusType: null }),
+    );
+  });
+});

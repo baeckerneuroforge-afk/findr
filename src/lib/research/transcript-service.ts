@@ -122,38 +122,71 @@ export interface ApplyVisualCaptureResult {
   createdCall: boolean;
 }
 
+export interface VisualCaptureSessionRow {
+  id: string;
+  org_id: string;
+  kind: string;
+  status: string;
+  plan_id: string | null;
+  invite_id: string | null;
+  conversation: Json | null;
+  capture_source: string | null;
+  visual_capture: Json | null;
+}
+
+export type ResolveVisualCaptureSessionResult =
+  | { ok: true; session: VisualCaptureSessionRow }
+  | { ok: false; reason: "not_found" | "wrong_kind" | "not_completed" };
+
 /**
- * Add browser-derived visual observation notes to an already completed research
- * session and rerun the existing Stage-1 Product Discovery entry point.
- *
- * Data minimization: `visualCapture` must already be text/metadata-only. This
- * helper persists no raw video and no base64 frame payloads.
+ * Resolve the token-owned session and run the cheap eligibility checks.
+ * Exposed separately from applyVisualCaptureToCompletedResearchTranscript so
+ * the route can gate BEFORE spending the vision LLM call — an invalid or
+ * ineligible token must never trigger frame analysis.
  */
-export async function applyVisualCaptureToCompletedResearchTranscript(params: {
-  accessToken: string;
-  visualCapture: Json;
-}): Promise<ApplyVisualCaptureResult> {
+export async function resolveVisualCaptureSession(
+  accessToken: string,
+): Promise<ResolveVisualCaptureSessionResult> {
   const supabase = createResearchSupabase();
   const { data: session, error: sessionError } = await supabase
     .from("interview_sessions")
     .select(
       "id, org_id, kind, status, plan_id, invite_id, conversation, capture_source, visual_capture",
     )
-    .eq("access_token", params.accessToken)
+    .eq("access_token", accessToken)
     .maybeSingle();
 
   if (sessionError) {
     throw new Error(`Failed to read interview session: ${sessionError.message}`);
   }
   if (!session) {
-    throw new Error("Interview session not found.");
+    return { ok: false, reason: "not_found" };
   }
   if (session.kind !== "research") {
-    throw new Error("Visual capture is only enabled for research interviews.");
+    return { ok: false, reason: "wrong_kind" };
   }
   if (session.status !== "completed") {
-    throw new Error("Visual capture can only be attached after completion.");
+    return { ok: false, reason: "not_completed" };
   }
+  return { ok: true, session: session as VisualCaptureSessionRow };
+}
+
+/**
+ * Add browser-derived visual observation notes to an already completed research
+ * session and rerun the existing Stage-1 Product Discovery entry point.
+ *
+ * `session` must come from resolveVisualCaptureSession — token ownership and
+ * kind/status eligibility have already been checked there.
+ *
+ * Data minimization: `visualCapture` must already be text/metadata-only. This
+ * helper persists no raw video and no base64 frame payloads.
+ */
+export async function applyVisualCaptureToCompletedResearchTranscript(params: {
+  session: VisualCaptureSessionRow;
+  visualCapture: Json;
+}): Promise<ApplyVisualCaptureResult> {
+  const supabase = createResearchSupabase();
+  const session = params.session;
 
   const { error: visualUpdateError } = await supabase
     .from("interview_sessions")

@@ -58,6 +58,11 @@
     "resend": "^6.12.3",
     "zod": "^4.4.3"
   },
+  "pnpm": {
+    "overrides": {
+      "js-cookie@<3.0.7": ">=3.0.7"
+    }
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
