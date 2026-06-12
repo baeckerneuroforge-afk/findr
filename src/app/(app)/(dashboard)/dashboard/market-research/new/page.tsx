@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { ResearchPlanForm } from "@/components/dashboard/ResearchPlanForm";
+import { getLiveKitVoiceEnv } from "@/lib/voice-interview/livekit";
 
 /**
  * /dashboard/market-research/new — Markt-Studie anlegen (Phase M3, Optik v5/E6).
@@ -173,7 +174,14 @@ export default async function NewMarketCampaignPage() {
       </div>
 
       <div className="st-rise" style={{ "--st": 3 } as React.CSSProperties}>
-        <ResearchPlanForm studyType="market_research" />
+        {/* Server-seitiger Env-Check: ohne LiveKit-Konfiguration ist die
+            Voice-Agent-Karte im Formular deaktiviert (statt 503 beim
+            Teilnehmer); Use-Case-Presets können den Modus dann nicht auf
+            Voice stellen. */}
+        <ResearchPlanForm
+          studyType="market_research"
+          voiceAvailable={getLiveKitVoiceEnv() !== null}
+        />
       </div>
     </div>
   );

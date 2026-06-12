@@ -8,6 +8,7 @@ import { findInviteByAccessToken } from "@/lib/research/scheduling";
 import {
   getPublicSession,
   loadByToken,
+  markSessionVoiceModeById,
 } from "@/lib/voice-agent/session-service";
 import {
   getLiveKitVoiceEnv,
@@ -39,7 +40,9 @@ import {
  * Antwort: { serverUrl, roomName, token } — Raum deterministisch
  * voice-<sessionId>, Token-TTL kurz (10 min), RoomConfiguration mit
  * Agent-Dispatch (VOICE_AGENT_NAME), Grants: roomJoin + canPublish +
- * canSubscribe + canPublishData.
+ * canSubscribe + canPublishData. Nach erfolgreichem Mint wird die Session
+ * idempotent als mode='voice' gestempelt (Pricing-Fundament — der Mint ist
+ * der Agent-Dispatch-Moment).
  *
  * Surface:
  *   400 — non-JSON / ungültiger Body / Token-Form ungültig
@@ -185,6 +188,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const minted = await mintParticipantVoiceToken(env, session.id);
+    // Pricing-Fundament: der Mint ist der Moment, ab dem LiveKit den Agent
+    // dispatcht (Kosten beginnen) — Session als Voice markieren. Idempotent
+    // + best-effort (blockiert den Teilnehmer nie); reine ?mode=text-
+    // Fallback-Teilnehmer holen nie einen Token und bleiben mode='text'.
+    await markSessionVoiceModeById(session.id);
     return NextResponse.json(minted);
   } catch (err) {
     console.error(
