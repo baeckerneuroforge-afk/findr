@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
+import { parseHttpUrl } from "@/lib/research/stimulus-input";
 import {
   countSessionsForPlan,
   getResearchPlan,
@@ -61,17 +62,23 @@ const UpdatePlanBodySchema = z
     ttsEnabled: z.boolean().optional(),
     signalsEnabled: z.boolean().optional(),
     useCase: UseCaseSchema.nullable().optional(),
+    // stimulusUrl/stimulusType render on the public participant page
+    // (StimulusPanel <a href>/<img>). The dedicated stimulus routes already
+    // enforce http(s) + a fixed type set — this generic PATCH must be exactly
+    // as strict, otherwise a `javascript:` URL becomes a clickable link for
+    // participants (stored XSS).
     stimulusUrl: z
       .string()
       .trim()
       .max(2048)
       .nullable()
       .optional()
-      .transform((v) => (v === "" ? null : v)),
+      .transform((v) => (v === "" ? null : v))
+      .refine((v) => v === null || v === undefined || parseHttpUrl(v) !== null, {
+        message: "stimulusUrl must be a valid http(s) URL.",
+      }),
     stimulusType: z
-      .string()
-      .trim()
-      .max(100)
+      .union([z.enum(["image", "link", "video"]), z.literal("")])
       .nullable()
       .optional()
       .transform((v) => (v === "" ? null : v)),

@@ -8,7 +8,11 @@ import {
   DEFAULT_MAX_VISUAL_FRAMES,
   DEFAULT_SAMPLE_EVERY_SECONDS,
 } from "@/lib/visual-intelligence/vision";
-import { applyVisualCaptureToCompletedResearchTranscript } from "@/lib/research/transcript-service";
+import {
+  applyVisualCaptureToCompletedResearchTranscript,
+  resolveVisualCaptureSession,
+} from "@/lib/research/transcript-service";
+import { getResearchPlan } from "@/lib/research/plans-service";
 
 /**
  * POST /api/interview/[token]/visual-capture
@@ -85,6 +89,46 @@ export async function POST(
   }
 
   try {
+    // Gate before spend: resolve the token-owned session and enforce the
+    // per-study toggle BEFORE the vision LLM call. Mirrors the plan gates on
+    // /speak (ttsEnabled) and /voice (voiceEnabled) — without this, an
+    // invalid token or a study with visual capture disabled could still burn
+    // a full vision call.
+    const resolution = await resolveVisualCaptureSession(tokenParsed.data);
+    if (!resolution.ok) {
+      if (resolution.reason === "not_found") {
+        return NextResponse.json(
+          { error: t("notFound.interview") },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json(
+        { error: "Visual capture is not available for this interview." },
+        { status: 403 },
+      );
+    }
+    const session = resolution.session;
+
+    if (!session.plan_id) {
+      return NextResponse.json(
+        { error: "Visual capture is not available for this interview." },
+        { status: 403 },
+      );
+    }
+    const plan = await getResearchPlan(session.org_id, session.plan_id);
+    if (!plan) {
+      return NextResponse.json(
+        { error: t("notFound.interview") },
+        { status: 404 },
+      );
+    }
+    if (plan.visualCaptureEnabled !== true) {
+      return NextResponse.json(
+        { error: "Visual capture is not enabled for this study." },
+        { status: 403 },
+      );
+    }
+
     const visualCapture = await createVisualCaptureFromBrowserFrames(
       parsed.data.frames,
       {
@@ -94,7 +138,7 @@ export async function POST(
       },
     );
     const result = await applyVisualCaptureToCompletedResearchTranscript({
-      accessToken: tokenParsed.data,
+      session,
       visualCapture: visualCapture as unknown as Json,
     });
 
@@ -111,12 +155,7 @@ export async function POST(
       "[visual-capture] processing failed:",
       err instanceof Error ? err.message : err,
     );
-    return NextResponse.json(
-      {
-        error: t("unexpected"),
-        detail: err instanceof Error ? err.message : "unknown",
-      },
-      { status: 500 },
-    );
+    // No `detail` in the response: raw upstream/DB messages stay server-side.
+    return NextResponse.json({ error: t("unexpected") }, { status: 500 });
   }
 }

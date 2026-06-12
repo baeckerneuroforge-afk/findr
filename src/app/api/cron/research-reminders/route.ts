@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isAuthorizedCron } from "@/lib/auth/cron";
 import { listInvitesDueForReminder } from "@/lib/research/scheduling";
 import { sendResearchReminder } from "@/lib/research/invite-orchestration";
 
@@ -35,13 +36,6 @@ import { sendResearchReminder } from "@/lib/research/invite-orchestration";
  */
 
 const MAX_REMINDERS_PER_RUN = 30;
-
-function isAuthorizedCron(request: Request): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return false;
-  const authHeader = request.headers.get("authorization");
-  return authHeader === `Bearer ${cronSecret}`;
-}
 
 type Bucket = "24h" | "1h";
 

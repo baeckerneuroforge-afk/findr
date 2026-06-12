@@ -13,14 +13,7 @@ import {
 import { analyzeRisk } from "@/lib/risk/orchestrator";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
-
-function isAuthorizedCron(request: Request): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return false;
-
-  const authHeader = request.headers.get("authorization");
-  return authHeader === `Bearer ${cronSecret}`;
-}
+import { isAuthorizedCron } from "@/lib/auth/cron";
 
 interface OrgDeals {
   org: { id: string; name: string | null };

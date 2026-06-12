@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAuthorizedCron } from "@/lib/auth/cron";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 /**
@@ -8,16 +9,11 @@ import { createAdminSupabaseClient } from "@/lib/supabase/server";
  * interview_sessions ONLY (the participant PII/transcript core; Sales/Risk is no
  * longer an offered module).
  *
- * Auth mirrors /api/cron/account-checkins: Bearer CRON_SECRET. ?dryRun=true
- * reports what WOULD be deleted without deleting; on Vercel a dry run still
- * requires the token, so the endpoint is never probeable unauthenticated.
+ * Auth mirrors /api/cron/account-checkins: Bearer CRON_SECRET (timing-safe,
+ * see lib/auth/cron). ?dryRun=true reports what WOULD be deleted without
+ * deleting; on Vercel a dry run still requires the token, so the endpoint is
+ * never probeable unauthenticated.
  */
-function isAuthorizedCron(request: Request): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return false;
-  const authHeader = request.headers.get("authorization");
-  return authHeader === `Bearer ${cronSecret}`;
-}
 
 export async function GET(request: Request) {
   const dryRun = new URL(request.url).searchParams.get("dryRun") === "true";

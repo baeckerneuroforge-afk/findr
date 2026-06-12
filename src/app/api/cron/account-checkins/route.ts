@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAuthorizedCron } from "@/lib/auth/cron";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { getCheckinEnabledAccounts } from "@/lib/accounts/service";
 import { getAccountCheckin } from "@/lib/voice-agent/session-service";
@@ -25,13 +26,6 @@ import { createAndInviteCheckin } from "@/lib/voice-agent/checkin-orchestration"
 // many accounts come due at once. Overflow is picked up on the next run. Tune
 // this single constant to raise/lower the per-run ceiling.
 const MAX_CHECKINS_PER_RUN = 10;
-
-function isAuthorizedCron(request: Request): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return false;
-  const authHeader = request.headers.get("authorization");
-  return authHeader === `Bearer ${cronSecret}`;
-}
 
 function isDue(
   lastCheckinAt: string | null,
