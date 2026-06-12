@@ -1,7 +1,6 @@
-import { OrganizationProfile } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
-import { findrDashboardClerkAppearance } from "@/lib/clerk/dashboard-appearance";
+import { ThemedOrganizationProfile } from "@/components/settings/ThemedClerkProfile";
 import { isAdminRole } from "@/lib/settings/roles";
 
 export default async function TeamSettingsPage() {
@@ -16,10 +15,7 @@ export default async function TeamSettingsPage() {
         <p className="mt-1 text-body text-neutral-500">{t("team.subtitle")}</p>
       </div>
       {isAdmin ? (
-        <OrganizationProfile
-          routing="hash"
-          appearance={findrDashboardClerkAppearance}
-        />
+        <ThemedOrganizationProfile />
       ) : (
         <div className="rounded-lg border border-neutral-200 bg-card p-5 text-body text-neutral-500">
           {t("team.adminOnly")}

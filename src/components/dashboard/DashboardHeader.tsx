@@ -5,8 +5,14 @@ import { OrgDisplay } from "@/components/dashboard/OrgDisplay";
 import { SearchHeaderWidget } from "@/components/search/SearchHeaderWidget";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
+import { useTheme } from "@/components/theme/ThemeShell";
+import { findrDashboardClerkAppearance } from "@/lib/clerk/dashboard-appearance";
 
 export default function DashboardHeader() {
+  // Der UserButton-Popover portalt nach document.body — AUSSERHALB des
+  // .dark-Wrappers. Tailwind-Klassen drehen dort nicht mit; nur Clerks
+  // variables-Satz färbt den Popover, daher kommt er pro Modus von hier.
+  const { resolvedDark } = useTheme();
   // 3-column grid (1fr / auto / 1fr) so the search widget sits at the true
   // viewport center regardless of OrgDisplay text length or UserButton
   // avatar size; flex + justify-between would float the widget at the
@@ -22,8 +28,17 @@ export default function DashboardHeader() {
         <LanguageSwitcher variant="header" />
         <UserButton
           appearance={{
+            variables: findrDashboardClerkAppearance(resolvedDark).variables,
             elements: {
               avatarBox: "w-8 h-8",
+            },
+          }}
+          // Das "Konto verwalten"-Modal portalt ebenfalls nach body —
+          // variables-only, denn die elements-Tailwind-Klassen würden dort
+          // ohne .dark-Ahnen ihre HELLEN Werte auflösen (Mischmasch).
+          userProfileProps={{
+            appearance: {
+              variables: findrDashboardClerkAppearance(resolvedDark).variables,
             },
           }}
         />
