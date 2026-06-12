@@ -147,7 +147,7 @@ Diese Liste gehört als Kommentar-Block in `globals.css` über die Dark-Tokens, 
 - `color-scheme: light dark` via Meta/CSS im Marketing-Layout
 - Favicon: `prefers-color-scheme`-Regel direkt ins SVG (Indigo-Mark heller auf dunklem Browser-Chrome)
 - Dunkle Sektionen (Footer/CTA/Tape-Cards) feinjustieren: im Dark Mode verschmelzen sie mit dem Canvas → Hairline-Abgrenzung statt Kontrast-Sprung
-- **Achtung Kollisionsfläche:** mehrere unmerged Marketing-Branches (farbsystem, mega-menu, b2b-rollen, landingpage-mr) fassen dieselben Dateien an — E4 erst NACH deren Merge-Konsolidierung beginnen, sonst Konflikt-Sumpf
+- ~~Kollisionsfläche Marketing-Branches~~ **ENTWARNT (geprüft 12.06.):** alle Marketing-Branches (farbsystem, mega-menu, b2b-rollen, landingpage-mr) sind inzwischen auf main gemerged — E4 hat freie Bahn
 - **Abnahme:** curl/Playwright beide Modi, kein FOUC (CSS-only), Lighthouse/WCAG-AA, `st-stars`/`st-dusk`-Effekte im Dark geprüft (dürfen nicht doppelt-dunkel absaufen)
 
 ### E5 — Politur & Persistenz-Upgrade (S, optional)
@@ -155,7 +155,7 @@ Diese Liste gehört als Kommentar-Block in `globals.css` über die Dark-Tokens, 
 - OG-Image-Entscheidung (ein neutrales Bild für beide Modi genügt i. d. R.)
 - Reduced-Motion×Dark-Kombination testen, Druck-Stylesheet (Print = immer hell)
 
-**Reihenfolge/Abhängigkeiten:** E1 → E2 → E3 seriell (gleiche Dateien/Tokens). E4 unabhängig davon, aber nach Marketing-Branch-Konsolidierung. Grobaufwand: E1 ~½ Tag, E2 ~1–2 Tage (parallelisierbar), E3 ~½ Tag, E4 ~1 Tag, E5 ~½ Tag.
+**Reihenfolge/Abhängigkeiten:** E1 → E2 → E3 seriell (gleiche Dateien/Tokens). E4 unabhängig, jederzeit startbar. Einzige echte Parallel-Interferenz (Stand 12.06.): Worktree-Branch `claude/ecstatic-hofstadter-417f64` (Calls/Deals/Risk-Pipeline, aktiv ausgecheckt) fasst 4 Dashboard-Komponenten an (CallDetail, DealList, DealRow, RiskBadge), die E2 re-tokenisieren würde — vor E2-Start diesen Branch mergen oder die 4 Dateien in E2 zurückstellen. Grobaufwand: E1 ~½ Tag, E2 ~1–2 Tage (parallelisierbar), E3 ~½ Tag, E4 ~1 Tag, E5 ~½ Tag.
 
 ---
 
