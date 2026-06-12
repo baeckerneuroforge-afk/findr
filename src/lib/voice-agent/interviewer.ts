@@ -828,6 +828,22 @@ export interface ResearchTopic {
   hypotheses?: string[];
 }
 
+/** Multi-Stimulus E1 — EIN Element des Stimulus-Sets im Agent-Kontext.
+ *  Reines Typ-Fundament: kein Prompt-Pfad liest dieses Feld bis E4
+ *  (formatStimulusSet). `analysis` ist — wie stimulusAnalysis unten — der
+ *  fertige, längenbegrenzte textBlock, NIE das Roh-Envelope. */
+export interface ResearchStimulusContext {
+  /** 1-basierte Forscher-Reihenfolge (= Regie-Reihenfolge, Plan O5). */
+  position: number;
+  /** 'image' | 'video' | 'link' — frei wie stimulusType. */
+  type: string;
+  url: string;
+  /** Kurz-Label ("Variante A") für Prompt-Referenzen + Auswertung. */
+  label: string | null;
+  description: string | null;
+  analysis: string | null;
+}
+
 export interface ResearchPlanContext {
   /** Plan title — shown to the participant in the opening message. */
   title: string;
@@ -848,6 +864,10 @@ export interface ResearchPlanContext {
    *  Nachhak-Material: ergänzt die Topics, ersetzt sie nie. Null/fehlend →
    *  Prompt byte-identisch zum reinen Beschreibungs-Block. */
   stimulusAnalysis?: string | null;
+  /** Multi-Stimulus E1 — Stimulus-Set (research_plan_stimuli) in Positions-
+   *  Reihenfolge. Fehlend/leer → Single-Stimulus-Legacy-Verhalten, Prompt
+   *  byte-identisch. Konsumiert erst ab E4. */
+  stimuli?: ResearchStimulusContext[];
 }
 
 /** Vendor / brand context — null for independent / external research. */
