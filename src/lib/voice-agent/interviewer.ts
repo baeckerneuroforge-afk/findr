@@ -210,7 +210,7 @@ function plainOutputBlockWithWhyAndShow(audience: string): string {
   return `OUTPUT FORMAT — reply as PLAIN TEXT, no JSON, no markdown, no preamble:
 First line: exactly \`DONE: false\` while you still want to ask another question, or \`DONE: true\` when wrapping up.
 Second line: exactly \`WHY: \` followed by ONE short sentence (max ~15 words) telling the RESEARCHER who reads the transcript later why you are asking THIS question now — e.g. which plan topic it serves, what in the previous answer you are deepening, or (when done) why you are closing. The line must start with exactly the four characters \`WHY:\` — never prefix or rename it (no labels, no self-check notes). Write it in the interview's required language. The ${audience} never sees this line; keep it factual and method-focused, never a judgment about the person.
-Third line (OPTIONAL — only in a turn where you reveal a stimulus): exactly \`SHOW: \` followed by the stimulus number (e.g. \`SHOW: 2\`). This makes that stimulus visible on the ${audience}'s screen the moment your message arrives — sending it is the ONLY way to show a stimulus; announcing one in your message without this line leaves the ${audience} in front of an unchanged screen. Omit the line entirely in every other turn. Never write it inside the message body.
+Third line (OPTIONAL — only in a turn where you reveal a stimulus): exactly \`SHOW: \` followed by the stimulus number (e.g. \`SHOW: 2\`). This makes that stimulus visible on the ${audience}'s screen the moment your message arrives — sending it is the ONLY way to show a stimulus; announcing one in your message without this line leaves the ${audience} in front of an unchanged screen. Omit the line entirely in every other turn. It is a HEADER line: it belongs BEFORE the empty line, NEVER at the end of or inside your message body.
 Then one empty line.
 Then your next message to the ${audience}, or a short warm closing if done — plain text only.
 Wherever these instructions say to set "done": true or false, express it ONLY through this first DONE line. Never repeat the DONE, WHY or SHOW line inside the message itself.`;
@@ -626,9 +626,23 @@ export function createDoneHeaderParser(): DoneHeaderParser {
         message = buffer;
       }
     }
+    // E4-Härtung (Eval-Befund, Sonnet): Modelle hängen die SHOW-Zeile
+    // gelegentlich ans ENDE des Bodys statt in den Header. Die Deltas sind
+    // dann schon gestreamt (transient sichtbar), aber der persistierte
+    // Text und die final-View werden hier bereinigt — und der Wert zählt
+    // (fail-safe statt fail-open: ohne Adoption bliebe das Panel stehen).
+    let cleaned = message.trim();
+    const trailing = /(?:^|[\s\n])show:\s*(\d{1,2})\s*$/i.exec(cleaned);
+    if (trailing) {
+      cleaned = cleaned.slice(0, trailing.index).trim();
+      if (showStimulusPosition === null) {
+        const parsed = Number.parseInt(trailing[1], 10);
+        if (parsed >= 1) showStimulusPosition = parsed;
+      }
+    }
     return {
       done,
-      message: message.trim(),
+      message: cleaned,
       why: why ? why.slice(0, WHY_VALUE_MAX_CHARS) : null,
       showStimulusPosition,
     };
@@ -1204,6 +1218,7 @@ REGIE (Stimulus-Steuerung — verbindlich):
 - DU steuerst, wann der Teilnehmer welchen Stimulus sieht: über die SHOW-Headerzeile deines Outputs (siehe OUTPUT FORMAT). Ohne SHOW-Zeile ändert sich auf dem Bildschirm NICHTS — einen Stimulus anzukündigen, ohne SHOW zu senden, lässt die Person vor einem leeren Panel sitzen.
 - Zeige die Stimuli strikt in der Reihenfolge 1…${count}. Sende \`SHOW: 1\` im selben Turn wie deine erste Frage zu Stimulus 1 (direkt nach dem Opening), \`SHOW: 2\` im Turn des Wechsels zu Stimulus 2, und so weiter.
 - Kündige den Wechsel in deiner Message kurz an („Schauen Sie sich bitte jetzt das nächste Bild an …") — im SELBEN Turn wie die SHOW-Zeile, nie früher.
+- SELBSTCHECK vor JEDEM Output: Spricht deine Message von einem „nächsten"/„neuen"/„weiteren" Bild/Motiv oder bittet sie, sich etwas anderes anzusehen? Dann MUSS genau dieser Output die SHOW-Zeile tragen — fehlt sie, ist das ein Fehler: ergänze die SHOW-Zeile oder formuliere die Frage auf den AKTUELL sichtbaren Stimulus um (COUNTERS sagt dir, welcher das ist).
 - Pro Stimulus 2–3 Fragen (erster Eindruck, dann höchstens eine Vertiefung gemäß USE-CASE FOCUS), dann weiter zum nächsten. Die Saturation-Regeln gelten pro Stimulus wie für Topics.
 - Sprich NIEMALS über einen noch nicht gezeigten Stimulus und verrate nie, was noch kommt (auch nicht die Anzahl).
 - Vergleichsfragen sind erwünscht — aber nur rückwärts auf bereits gezeigte Stimuli („Wie wirkt das im Vergleich zu dem ersten Bild?"). Ein erneutes \`SHOW: <frühere Nummer>\` ist dafür erlaubt.${preference}

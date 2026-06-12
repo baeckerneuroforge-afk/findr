@@ -527,6 +527,24 @@ describe("createDoneHeaderParser — SHOW header (E4)", () => {
     expect(result.message).toBe("");
   });
 
+  it("strips a trailing body SHOW and adopts its value (Eval-Befund)", () => {
+    const { result } = feed([
+      "DONE: false\nWHY: Wechsel.\n\nSchauen Sie sich das nächste Motiv an — was fällt auf?  SHOW: 2",
+    ]);
+    expect(result.showStimulusPosition).toBe(2);
+    expect(result.message).toBe(
+      "Schauen Sie sich das nächste Motiv an — was fällt auf?",
+    );
+  });
+
+  it("header SHOW wins over a trailing body SHOW (which is still stripped)", () => {
+    const { result } = feed([
+      "DONE: false\nWHY: x.\nSHOW: 3\n\nFrage? SHOW: 1",
+    ]);
+    expect(result.showStimulusPosition).toBe(3);
+    expect(result.message).toBe("Frage?");
+  });
+
   it("keeps the no-SHOW path byte-identical (null, body streams)", () => {
     const { result, emitted } = feed([
       "DONE: false\nWHY: Vertiefung.\n\nWas genau blieb unklar?",
