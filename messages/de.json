@@ -44,7 +44,8 @@
       "openLink": "Prototyp öffnen",
       "newTab": "Öffnet in einem neuen Tab",
       "videoAria": "Das in diesem Interview besprochene Video",
-      "hiddenHint": "Material wird im Gespräch eingeblendet."
+      "hiddenHint": "Material wird im Gespräch eingeblendet.",
+     "thumbAria": "Stimulus {position} anzeigen"
     },
     "error": {
       "requestFailed": "Anfrage fehlgeschlagen. Bitte versuchen Sie es erneut.",

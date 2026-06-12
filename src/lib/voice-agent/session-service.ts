@@ -126,6 +126,18 @@ export interface InterviewSession {
 }
 
 /** Minimal, safe-to-expose view for the public chat page. */
+/** E5 Multi-Stimulus — teilnehmer-sichere Sicht auf EIN Set-Element aus dem
+ *  deal_context-Snapshot. BEWUSST ohne description/analysis: die Forscher-
+ *  Beschreibung erzeugt Demand-Effekte (gleiche Disziplin wie das nie
+ *  durchgereichte stimulus_description der Legacy-Split-View) und die
+ *  Analyse ist Modell-Material. label ist Anzeige-Text („Variante A"). */
+export interface PublicStimulusItem {
+  position: number;
+  type: string;
+  url: string;
+  label: string | null;
+}
+
 export interface PublicInterviewView {
   status: "open" | "completed" | "abandoned";
   conversation: InterviewTurn[];
@@ -165,6 +177,10 @@ export interface PublicInterviewView {
    *  zu zeigen, die noch nicht eingewilligt haben und noch nicht begonnen
    *  wurden. Ein ISO-Zeitstempel ohne Personenbezug — unkritisch im View. */
   consentAcceptedAt: string | null;
+  /** E5 Multi-Stimulus — das Stimulus-Set der Studie (Snapshot, Positions-
+   *  Reihenfolge, teilnehmer-sichere Felder). Leer ([]) für jede Session ohne
+   *  Set — die Teilnehmer-UI rendert dann exakt den Legacy-Pfad. */
+  stimuli: PublicStimulusItem[];
 }
 
 function generateToken(): string {
@@ -253,11 +269,28 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
       )
     : null;
 
+  // E5 Multi-Stimulus — das Set aus dem SNAPSHOT (nie live vom Plan, R2):
+  // Teilnehmer-UI braucht Position/Typ/URL/Label für Reveal + Thumbnails.
+  // Leer für jede Nicht-Research-Session und jede Session ohne Set.
+  const stimuli: PublicStimulusItem[] =
+    session.kind === "research"
+      ? ((session.dealContext as unknown as ResearchInput | null)?.plan
+          ?.stimuli ?? [])
+          .map((item) => ({
+            position: item.position,
+            type: item.type,
+            url: item.url,
+            label: item.label ?? null,
+          }))
+          .sort((a, b) => a.position - b.position)
+      : [];
+
   return {
     status: session.status,
     // E3 — Teilnehmer-Payloads tragen NIE interne Turn-Felder (why): wer
     // liest, warum gefragt wird, antwortet verzerrt (Demand-Effekte, O1).
     conversation: stripTurnInternals(session.conversation),
+    stimuli,
     orgId: session.orgId,
     planId: session.planId,
     company,
