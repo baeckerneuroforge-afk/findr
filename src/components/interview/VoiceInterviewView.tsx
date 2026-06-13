@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { InterviewProgress } from "./InterviewProgress";
 import { WithdrawDataLink } from "./WithdrawDataLink";
 import type { Room } from "livekit-client";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
@@ -72,6 +73,11 @@ interface VoiceInterviewViewProps {
    *  (O2). Die Page liefert die Legacy-Props dann NIE parallel. Leer/fehlend
    *  → exakt der bisherige Single-/No-Stimulus-Pfad. */
   stimuli?: StimulusSetItem[] | null;
+  /** Fortschritts-Obergrenze (Agent-Fragen) aus der Public-Session-View —
+   *  Fallback-Nenner, solange der Voice-Agent noch kein progress-DataPacket
+   *  gesendet hat (das Packet trägt seinen eigenen estimatedTotal). Default 6
+   *  = Standard-Sättigungsdecke. */
+  progressTotal?: number;
 }
 
 type Phase = "intro" | "connecting" | "live" | "ended" | "done" | "error";
@@ -521,6 +527,7 @@ export function VoiceInterviewView({
   stimulusUrl = null,
   stimulusType = null,
   stimuli = null,
+  progressTotal = 6,
 }: VoiceInterviewViewProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
@@ -570,6 +577,13 @@ export function VoiceInterviewView({
     const { max, last } = voiceShownPositions(initialConversation);
     return { max, active: last };
   });
+  /** Fortschritt aus dem progress-DataPacket des Voice-Agenten: gestellte
+   *  Agent-Fragen + (optional) die agentenseitige Decke. Null bis zum ersten
+   *  Packet → der Balken startet bei 0 %. */
+  const [voiceProgress, setVoiceProgress] = useState<{
+    asked: number;
+    total: number | null;
+  } | null>(null);
 
   const roomRef = useRef<Room | null>(null);
   const phaseRef = useRef<Phase>(phase);
@@ -899,6 +913,41 @@ export function VoiceInterviewView({
         }
       });
     }
+
+    // Fortschritts-Packets vom Voice-Agenten — IMMER registriert (unabhängig
+    // vom Stimulus-Surface, anders als der Reveal-Listener oben). Defensiv:
+    // alles, was nicht die erwartete {type:"progress"}-Form mit numerischem
+    // questionsAsked trägt, wird still ignoriert (geteiltes Topic).
+    room.on(lk.RoomEvent.DataReceived, (payload) => {
+      let message: unknown;
+      try {
+        message = JSON.parse(new TextDecoder().decode(payload));
+      } catch {
+        return;
+      }
+      if (typeof message !== "object" || message === null) return;
+      const { type, questionsAsked, estimatedTotal } = message as {
+        type?: unknown;
+        questionsAsked?: unknown;
+        estimatedTotal?: unknown;
+      };
+      if (type !== "progress") return;
+      if (
+        typeof questionsAsked !== "number" ||
+        !Number.isFinite(questionsAsked)
+      ) {
+        return;
+      }
+      const asked = Math.max(0, Math.floor(questionsAsked));
+      const total =
+        typeof estimatedTotal === "number" &&
+        Number.isInteger(estimatedTotal) &&
+        estimatedTotal > 0
+          ? estimatedTotal
+          : null;
+      setVoiceProgress({ asked, total });
+    });
+
     room.on(lk.RoomEvent.ParticipantDisconnected, () => {
       // Agent left. Normal end of the interview → verify the status flip.
       if (phaseRef.current === "live" && room.remoteParticipants.size === 0) {
@@ -1019,6 +1068,19 @@ export function VoiceInterviewView({
     [...initialConversation].reverse().find((turn) => turn.role === "agent")
       ?.text ??
     null;
+
+  // Fortschritt (gleiche Formel wie der Text-Pfad): asked ÷ Decke, solange das
+  // Gespräch läuft unter 100 % gedeckelt; bei Abschluss (phase "done") sauber
+  // auf 100 %. Nenner = die agentenseitige Decke aus dem Packet, sonst der
+  // progressTotal-Fallback aus der Session-View. Null vor dem ersten Packet
+  // → 0 %.
+  const progressDenom = voiceProgress?.total ?? progressTotal;
+  const voiceProgressPercent =
+    phase === "done"
+      ? 100
+      : voiceProgress && progressDenom > 0
+        ? Math.min(Math.round((voiceProgress.asked / progressDenom) * 100), 95)
+        : 0;
 
   // ── Right-column content per phase ────────────────────────────────────────
   let content: React.ReactNode;
@@ -1143,6 +1205,11 @@ export function VoiceInterviewView({
             </button>
           </div>
         )}
+
+        <InterviewProgress
+          percent={voiceProgressPercent}
+          accentColor={accent}
+        />
 
         <div className="flex min-h-[320px] flex-1 flex-col items-center justify-center py-8">
           <VoiceOrb state={orbState} />

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { InterviewProgress } from "./InterviewProgress";
 import { WithdrawDataLink } from "./WithdrawDataLink";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 
@@ -78,6 +79,10 @@ interface InterviewChatProps {
    *  toggle is the always-available fallback (incl. pure text mode). Defaults
    *  false → byte-identical silent chat (no audio, no /speak calls). */
   ttsEnabled?: boolean;
+  /** Fortschritts-Obergrenze (Agent-Fragen) aus der Public-Session-View — die
+   *  System-Decke, gegen die der Balken-Prozentwert läuft. Default 6 = die
+   *  Standard-Sättigungsdecke, falls die Page (alte Reader) sie nicht liefert. */
+  progressTotal?: number;
 }
 
 /** E5 Multi-Stimulus — ein Set-Element, wie die Public-Session-View es
@@ -869,6 +874,7 @@ export function InterviewChat({
   stimulusType = null,
   stimuli = null,
   ttsEnabled = false,
+  progressTotal = 6,
 }: InterviewChatProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
@@ -1965,6 +1971,21 @@ export function InterviewChat({
     }
   }
 
+  // Fortschritt: gestellte Agent-Fragen ÷ System-Decke (progressTotal). Solange
+  // offen unter 100 % gedeckelt (95 %), damit der Balken nie vorzeitig voll
+  // wirkt; bei Abschluss (auch früher Sättigung) sauber auf 100 %. streamText
+  // (in-flight) zählt bewusst NICHT mit — der Balken steigt, sobald ein Turn
+  // final in `messages` liegt, statt während des Tippens zu flackern.
+  const agentQuestionsAsked = messages.reduce(
+    (n, m) => n + (m.role === "agent" && m.text.trim() !== "" ? 1 : 0),
+    0,
+  );
+  const progressPercent = isOpen
+    ? progressTotal > 0
+      ? Math.min(Math.round((agentQuestionsAsked / progressTotal) * 100), 95)
+      : 0
+    : 100;
+
   // Chat column — today's single-column content (heading → chat area → error →
   // sticky input / completed). A Fragment renders NO DOM node, so the
   // no-stimulus branch below (`<main>{chatColumn}</main>`) is byte-identical to
@@ -1985,6 +2006,8 @@ export function InterviewChat({
           {t("header.subtitle")}
         </p>
       </div>
+
+      <InterviewProgress percent={progressPercent} accentColor={accent} />
 
       <div className="flex-1 space-y-4">
         <VisualCapturePanel

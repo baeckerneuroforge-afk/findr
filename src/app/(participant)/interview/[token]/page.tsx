@@ -240,6 +240,9 @@ export default async function InterviewPage({
           // E6 Multi-Stimulus — Set-Panel mit Agent-Reveal per DataPacket;
           // leer → exakt der bisherige Single-/No-Stimulus-Pfad.
           stimuli={stimulusSet}
+          // Fortschrittsbalken — System-Decke als Fallback-Nenner, bis der
+          // Voice-Agent live progress-DataPackets sendet.
+          progressTotal={session.progressTotal}
         />,
         )}
       </NextIntlClientProvider>
@@ -280,6 +283,8 @@ export default async function InterviewPage({
         stimulusType={stimulusType}
         // E5 Multi-Stimulus — Set-Panel mit Agent-Reveal; leer → Legacy-Pfad.
         stimuli={stimulusSet}
+        // Fortschrittsbalken — gestellte Agent-Fragen ÷ diese System-Decke.
+        progressTotal={session.progressTotal}
         {...ttsProps}
         {...useCaseProps}
       />,

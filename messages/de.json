@@ -11,6 +11,10 @@
       "titleWithCompany": "Ein kurzes Gespräch über {company}",
       "subtitle": "Dieses Gespräch führt ein KI-Interviewer. Ihre ehrlichen Antworten helfen uns weiter — es gibt keine falschen Antworten."
     },
+    "progress": {
+      "label": "Fortschritt",
+      "aria": "Interview-Fortschritt: {percent}%"
+    },
     "withdraw": {
       "link": "Meine Daten löschen",
       "confirm": "Deine Interview-Daten (Transkript und Auswertung) endgültig löschen? Das kann nicht rückgängig gemacht werden.",

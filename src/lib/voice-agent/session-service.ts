@@ -25,6 +25,7 @@ import {
   nextCheckinMessage,
   nextInterviewMessage,
   nextResearchMessage,
+  stimulusSetCeiling,
   type CheckinInput,
   type InterviewInput,
   type InterviewLanguage,
@@ -181,6 +182,14 @@ export interface PublicInterviewView {
    *  Reihenfolge, teilnehmer-sichere Felder). Leer ([]) für jede Session ohne
    *  Set — die Teilnehmer-UI rendert dann exakt den Legacy-Pfad. */
   stimuli: PublicStimulusItem[];
+  /** Fortschritts-Obergrenze (Agent-Fragen) für diese Session — die schon
+   *  vorhandene System-Decke, einmal ans Frontend gereicht: MAX_AGENT_TURNS
+   *  für Research-ohne-Set / post_loss / checkin, sonst stimulusSetCeiling(n).
+   *  Der Client leitet daraus den Fortschrittsbalken-Prozentwert ab (NIE eine
+   *  feste Rundenzahl — das Interview bleibt sättigungsgesteuert). Stabil über
+   *  die ganze Session, da nur von der bei Erstellung fixierten Set-Größe
+   *  abhängig. Rein abgeleitet — keine DB-Spalte, kein Engine-Eingriff. */
+  progressTotal: number;
 }
 
 function generateToken(): string {
@@ -285,12 +294,22 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
           .sort((a, b) => a.position - b.position)
       : [];
 
+  // Fortschritts-Decke (Agent-Fragen): genau die Zahl, gegen die der Prompt
+  // intern abwickelt — MAX_AGENT_TURNS als Standard (Research-ohne-Set,
+  // post_loss, checkin), bei Multi-Stimulus die mit der Set-Größe skalierende
+  // Obergrenze. Rein abgeleitet, kein DB-Feld, kein Engine-Eingriff.
+  const progressTotal =
+    session.kind === "research" && stimuli.length > 0
+      ? stimulusSetCeiling(stimuli.length)
+      : MAX_AGENT_TURNS;
+
   return {
     status: session.status,
     // E3 — Teilnehmer-Payloads tragen NIE interne Turn-Felder (why): wer
     // liest, warum gefragt wird, antwortet verzerrt (Demand-Effekte, O1).
     conversation: stripTurnInternals(session.conversation),
     stimuli,
+    progressTotal,
     orgId: session.orgId,
     planId: session.planId,
     company,
