@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { DEFAULT_LOCALE } from "@/i18n/locale";
+import { sttLanguageCode } from "@/lib/voice-agent/deepgram-language";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { findInviteByAccessToken } from "@/lib/research/scheduling";
 import { VoiceUnavailableError } from "@/lib/voice-agent/interviewer";
@@ -123,10 +124,13 @@ function extractTranscript(payload: unknown): string {
     .trim();
 }
 
-async function transcribeWithDeepgram(input: {
-  bytes: ArrayBuffer;
-  contentType: string;
-}): Promise<string> {
+async function transcribeWithDeepgram(
+  input: {
+    bytes: ArrayBuffer;
+    contentType: string;
+  },
+  language: string,
+): Promise<string> {
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (!apiKey) {
     throw new DeepgramTranscriptionError("DEEPGRAM_API_KEY is not configured.", 500);
@@ -134,7 +138,10 @@ async function transcribeWithDeepgram(input: {
 
   const url = new URL(DEEPGRAM_LISTEN_URL);
   url.searchParams.set("model", "nova-3");
-  url.searchParams.set("language", "de");
+  // Per-Studie-Sprache (F2): EN-Studien dürfen nicht zwangsweise auf Deutsch
+  // transkribiert werden. nova-3 akzeptiert "de"/"en" direkt; "de" bleibt der
+  // Default, wenn keine Sprache aufgelöst werden kann.
+  url.searchParams.set("language", sttLanguageCode(language));
   // Nova-3 uses `keyterm`, not `keywords`, for vocabulary prompting.
   // See Deepgram Keyterm Prompting docs for the current parameter name.
   url.searchParams.append("keyterm", "Findr");
@@ -189,6 +196,9 @@ export async function POST(
   const accessToken = tokenParsed.data;
   const existing = await loadByToken(accessToken);
   const locale = existing?.language ?? DEFAULT_LOCALE;
+  // Effektive Interviewsprache für die Deepgram-STT (F2). Für eine bestehende
+  // Session aus der Session-Row, sonst aus dem Invite (s. else-Zweig).
+  let interviewLanguage: string = existing?.language ?? DEFAULT_LOCALE;
   let t = await getTranslations({ locale, namespace: "errors" });
 
   if (existing) {
@@ -212,6 +222,7 @@ export async function POST(
   } else {
     const invite = await findInviteByAccessToken(accessToken);
     const inviteLocale = invite?.language ?? DEFAULT_LOCALE;
+    interviewLanguage = inviteLocale;
     const inviteT = await getTranslations({
       locale: inviteLocale,
       namespace: "errors",
@@ -270,7 +281,7 @@ export async function POST(
 
   let transcript: string;
   try {
-    transcript = await transcribeWithDeepgram(audio);
+    transcript = await transcribeWithDeepgram(audio, interviewLanguage);
   } catch (err) {
     if (err instanceof DeepgramTranscriptionError) {
       console.error("[interview voice] Deepgram STT failed:", err.message);

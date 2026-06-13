@@ -395,6 +395,27 @@ export async function loadOrgSyntheses(
 }
 
 /**
+ * Lightweight companion to loadOrgSyntheses: returns ONLY the set of plan_ids
+ * that have a synthesis — no synthesis JSONB, no title/type resolution. The
+ * Heute- und MR-Übersichtsseiten brauchen genau das (eine Studie gilt als
+ * „synthetisiert", wenn ihre plan_id im Set ist) und refreshen alle 30s; der
+ * volle Synthese-Dump dort war reiner Über-Fetch. Fail-open wie loadOrgSyntheses
+ * (DB-Fehler → leeres Set). Additiv: bestehende loadOrgSyntheses-Aufrufer
+ * (Insights, Cross-Study, Mission-Control) bleiben unberührt.
+ */
+export async function loadOrgSynthesisStudyIds(
+  orgId: string,
+): Promise<Set<string>> {
+  const supabase = createMissionControlSupabase();
+  const { data, error } = await supabase
+    .from("study_synthesis")
+    .select("plan_id")
+    .eq("org_id", orgId);
+  if (error || !data) return new Set<string>();
+  return new Set(data.map((row) => row.plan_id));
+}
+
+/**
  * Org entry — load all org syntheses, then answer the cross-study question with
  * full anchor discipline. The engine is complete and ready to wire; the route +
  * UI + any persistence of the conversation are Etappe 2.

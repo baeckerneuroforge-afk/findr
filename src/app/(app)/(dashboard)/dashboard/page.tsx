@@ -14,7 +14,7 @@ import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist"
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { ENABLED_MODULES } from "@/config/modules";
 import { currentUser } from "@clerk/nextjs/server";
-import { loadOrgSyntheses } from "@/lib/mission-control/engine";
+import { loadOrgSynthesisStudyIds } from "@/lib/mission-control/engine";
 import {
   countCompletedSessionsForPlans,
   countRecentCompletedSessionsForPlans,
@@ -226,9 +226,9 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
         orgId,
         plans.map((plan) => plan.id),
       ),
-      loadOrgSyntheses(orgId)
-        .then((rows) => new Set(rows.map((row) => row.studyId)))
-        .catch(() => new Set<string>()),
+      // Nur die plan_id-Menge (welche Studien synthetisiert sind) statt der
+      // vollen Synthese-JSONB — das Dashboard refresht alle 30s.
+      loadOrgSynthesisStudyIds(orgId).catch(() => new Set<string>()),
       // Head-count statt den ganzen Pool zu laden — das Dashboard refresht
       // alle 30s. Degradiert zu 0 = liest hier als „0 Profile“.
       countPoolMembers(orgId).catch(() => 0),

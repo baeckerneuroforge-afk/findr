@@ -376,7 +376,14 @@ async function callResearchAgentClaude(
     {
       model,
       max_tokens: 2048,
-      system,
+      // Prompt-Caching: der System-Prompt (inkl. der großen, pro Session
+      // statischen Synthese-Datensektion) wird als ephemerer Cache-Block
+      // gesendet. Multi-turn-Deliverable-Chats zahlen ihn so nur einmal voll,
+      // Folge-Turns lesen ihn aus dem Cache (~1/10 Input-Preis) — genau das
+      // Muster aus anthropic/structured.ts (cacheSystemPrompt). Kein Einfluss
+      // auf die erzeugte Ausgabe; bei einem Retry (attempt>0, anderer System-
+      // Text) entfällt der Treffer, was selten und unkritisch ist.
+      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       messages,
       tools: [RESEARCH_AGENT_TOOL],
       tool_choice: { type: "tool", name: RESEARCH_AGENT_TOOL.name },

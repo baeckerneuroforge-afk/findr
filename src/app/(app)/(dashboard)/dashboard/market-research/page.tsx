@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { toBcp47 } from "@/i18n/locale";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
-import { loadOrgSyntheses } from "@/lib/mission-control/engine";
+import { loadOrgSynthesisStudyIds } from "@/lib/mission-control/engine";
 import {
   countCompletedSessionsForPlans,
   listResearchPlans,
@@ -33,10 +33,10 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
  *     Projektion + JS-Gruppierung) statt N paralleler head-COUNTs. Lebt im
  *     selben Service direkt neben dem Einzel-Zähler der Detail-Seite mit
  *     identischem Prädikat-Satz — kein driftender Parallel-Datenpfad.
- *   • loadOrgSyntheses(orgId) — EIN org-weiter Batch-Read; eine Studie gilt als
- *     "Synthese bereit", wenn dafür eine study_synthesis-Zeile existiert.
- *     Defensiv fail-open umschlossen: ein Synthese-Lesefehler degradiert nur das
- *     Flag, nie die Seite.
+ *   • loadOrgSynthesisStudyIds(orgId) — EIN org-weiter Leichtgewicht-Read (nur
+ *     plan_id, keine Synthese-JSONB); eine Studie gilt als "Synthese bereit",
+ *     wenn ihre plan_id im Set ist. Defensiv fail-open umschlossen: ein
+ *     Synthese-Lesefehler degradiert nur das Flag, nie die Seite.
  *
  * "Letzte Aktivität" bleibt bewusst WEG: research_plans hat kein updated_at und
  * es gibt keine vorhandene Quelle dafür — nichts wird erfunden, keine Migration
@@ -171,9 +171,9 @@ export default async function MarketResearchOverviewPage({
       orgId,
       plans.map((plan) => plan.id),
     ),
-    loadOrgSyntheses(orgId)
-      .then((rows) => new Set(rows.map((row) => row.studyId)))
-      .catch(() => new Set<string>()),
+    // Nur die plan_id-Menge statt der vollen Synthese-JSONB (s.
+    // loadOrgSynthesisStudyIds) — die Übersicht braucht hier nur die Existenz.
+    loadOrgSynthesisStudyIds(orgId).catch(() => new Set<string>()),
   ]);
 
   // ── Kennzahlen ────────────────────────────────────────────────────────────
