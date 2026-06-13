@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { DEFAULT_LOCALE } from "@/i18n/locale";
+import { ttsModelForLanguage } from "@/lib/voice-agent/deepgram-language";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { findInviteByAccessToken } from "@/lib/research/scheduling";
 import type {
@@ -27,7 +28,6 @@ import {
 export const maxDuration = 300;
 
 const DEEPGRAM_SPEAK_URL = "https://api.eu.deepgram.com/v1/speak";
-const DEEPGRAM_TTS_MODEL = "aura-2-aurelia-de";
 const DEEPGRAM_TTS_ENCODING = "mp3";
 const MAX_DEEPGRAM_TTS_CHARS = 2000;
 const TokenSchema = z.string().min(20).max(200);
@@ -91,7 +91,10 @@ function normalizeAudioContentType(contentType: string | null): string | null {
   return null;
 }
 
-async function synthesizeWithDeepgram(text: string): Promise<{
+async function synthesizeWithDeepgram(
+  text: string,
+  language: string,
+): Promise<{
   bytes: ArrayBuffer;
   contentType: string;
   headers: Headers;
@@ -102,7 +105,7 @@ async function synthesizeWithDeepgram(text: string): Promise<{
   }
 
   const url = new URL(DEEPGRAM_SPEAK_URL);
-  url.searchParams.set("model", DEEPGRAM_TTS_MODEL);
+  url.searchParams.set("model", ttsModelForLanguage(language));
   url.searchParams.set("encoding", DEEPGRAM_TTS_ENCODING);
 
   const response = await fetch(url, {
@@ -259,7 +262,10 @@ export async function POST(
   }
 
   try {
-    const audio = await synthesizeWithDeepgram(turn.text);
+    const audio = await synthesizeWithDeepgram(
+      turn.text,
+      session?.language ?? DEFAULT_LOCALE,
+    );
     return audioResponse(audio);
   } catch (err) {
     if (err instanceof DeepgramTtsError) {
