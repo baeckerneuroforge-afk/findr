@@ -23,7 +23,7 @@ import {
  *
  * Body shape (Zod-validated):
  *   { goal: string (3-2000 chars, mandatory),
- *     segment?: string (≤200), role?: string (≤200),
+ *     audienceType?: "b2b" | "b2c", who?: string (≤200),
  *     language?: string (≤16), topicCount?: int (3-10) }
  *
  * Surface:
@@ -38,8 +38,8 @@ import {
 const BodySchema = z.object({
   // 2 KB cap per the brief; min 3 to allow short-but-meaningful goals.
   goal: z.string().min(3).max(2000),
-  segment: z.string().max(200).optional(),
-  role: z.string().max(200).optional(),
+  audienceType: z.enum(["b2b", "b2c"]).optional(),
+  who: z.string().max(200).optional(),
   language: z.string().max(16).optional(),
   topicCount: z.number().int().min(3).max(10).optional(),
 });
@@ -93,8 +93,8 @@ export async function POST(
       orgId,
       planId,
       goal: parsed.data.goal,
-      segment: parsed.data.segment,
-      role: parsed.data.role,
+      audienceType: parsed.data.audienceType,
+      who: parsed.data.who,
       language: parsed.data.language,
       topicCount: parsed.data.topicCount,
     });

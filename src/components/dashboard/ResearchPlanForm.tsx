@@ -144,6 +144,12 @@ interface FormState {
   // interviewer focus-block already exist on main; this form only fills the
   // value and uses it to pick a preset. Discovery never sends it (byte-identical).
   useCase: UseCase;
+  // B2C/B2B audience type. Sent as `audienceType` (exact key) ONLY on the
+  // market-research path (mirrors useCase) — drives the interview Anrede
+  // (b2c → "du", b2b → "Sie") and the guide-generator example framing. Default
+  // b2c on the market path (the platform's research is predominantly B2C);
+  // discovery keeps it b2b and never sends it (byte-identical).
+  audienceType: "b2b" | "b2c";
   // F2 — interview language for the whole study (de/en). Sent as `language` in
   // the create body; the study's invites, open-links and sessions inherit it.
   language: "de" | "en";
@@ -280,14 +286,16 @@ function presetFor(
   };
 }
 
-/** Optional Generator-Inputs — leer wenn ungenutzt. */
+/** Optional Generator-Inputs — leer wenn ungenutzt. `who` is the single
+ *  free-text "Wen interviewst du?" hint that replaced the former segment+role
+ *  split; the B2C/B2B axis lives in form.audienceType (it persists on the plan,
+ *  these gen inputs don't). */
 interface GenInputs {
-  segment: string;
-  role: string;
+  who: string;
   topicCount: string;
 }
 
-const INITIAL_GEN: GenInputs = { segment: "", role: "", topicCount: "" };
+const INITIAL_GEN: GenInputs = { who: "", topicCount: "" };
 
 /** Shape returned by POST /api/research/plans/[id]/guide — kept inline
  *  here so the UI doesn't import the engine module (which is server-only).
@@ -319,6 +327,10 @@ const INITIAL_FORM: FormState = {
   // applied at mount (see the lazy useState init); on the discovery path this
   // value is never sent, so the create body stays byte-identical.
   useCase: "general_survey",
+  // Default b2b here = the safe, byte-identical Discovery default (formal
+  // "Sie", never sent on the discovery path). The market-research path
+  // overrides this to 'b2c' in the lazy init below.
+  audienceType: "b2b",
   // F2 — default German; an untouched form keeps existing behavior.
   language: "de",
   // No stimulus by default. Set via the stimulus route (asset) + this form's
@@ -375,13 +387,21 @@ export function ResearchPlanForm({
   // lazy init runs once, deterministically (same messages on server + client),
   // so there's no effect and no hydration mismatch. Discovery is untouched.
   const [form, setForm] = useState<FormState>(() =>
-    isMarket ? { ...INITIAL_FORM, ...presetFor("general_survey", t) } : INITIAL_FORM,
+    isMarket
+      ? { ...INITIAL_FORM, audienceType: "b2c", ...presetFor("general_survey", t) }
+      : INITIAL_FORM,
   );
   // Market-only create/update-payload key. On the discovery path it stays `{}`
   // so the POST/PATCH body is byte-identical to pre-selector — exactly the same
   // discipline as studyTypePayload above. Recomputed each render so it always
   // reflects the currently-picked card.
   const useCasePayload = isMarket ? { useCase: form.useCase } : {};
+  // Market-only create/update-payload key for the B2C/B2B audience. Same
+  // discipline as useCasePayload: on the discovery path it stays `{}` so the
+  // POST/PATCH body is byte-identical, and the DB DEFAULT ('b2b') applies.
+  const audienceTypePayload = isMarket
+    ? { audienceType: form.audienceType }
+    : {};
   // Single source for the stimulus-driven UI: true ONLY for creative_test +
   // concept_test. Drives both the VI recommendation hint (below) and the
   // stimulus block. Always false on the discovery path (form.useCase is fixed
@@ -535,6 +555,7 @@ export function ResearchPlanForm({
           signalsEnabled: form.signalsEnabled,
           language: form.language,
           ...useCasePayload,
+          ...audienceTypePayload,
           ...studyTypePayload,
         }),
       });
@@ -564,8 +585,9 @@ export function ResearchPlanForm({
    *   1. If no planId yet → create a draft plan with the current form fields
    *      (empty topics) so we have an id to attach to /[id]/guide.
    *   2. POST /api/research/plans/[id]/guide with goal (= objective) +
-   *      segment/role/topicCount. Server generates + writes topics. We
-   *      receive the full guide and refresh local state.
+   *      audienceType (B2C/B2B) + who (Zielgruppe) + topicCount. Server
+   *      generates + writes topics. We receive the full guide and refresh
+   *      local state.
    */
   async function handleGenerate() {
     setGenError(null);
@@ -605,12 +627,12 @@ export function ResearchPlanForm({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             goal: objective,
-            segment:
-              genInputs.segment.trim() === ""
-                ? undefined
-                : genInputs.segment.trim(),
-            role:
-              genInputs.role.trim() === "" ? undefined : genInputs.role.trim(),
+            // form.audienceType drives Sie/du in the generated guide; it
+            // matches the toggle the user sees (and, on the market path, what
+            // gets persisted on the plan).
+            audienceType: form.audienceType,
+            who:
+              genInputs.who.trim() === "" ? undefined : genInputs.who.trim(),
             topicCount,
             language: form.language,
           }),
@@ -1068,6 +1090,7 @@ export function ResearchPlanForm({
               ttsEnabled: form.ttsEnabled,
               signalsEnabled: form.signalsEnabled,
               ...useCasePayload,
+              ...audienceTypePayload,
               ...stimulusDescriptionPayload,
             }),
           },
@@ -1097,6 +1120,7 @@ export function ResearchPlanForm({
           signalsEnabled: form.signalsEnabled,
           language: form.language,
           ...useCasePayload,
+          ...audienceTypePayload,
           ...studyTypePayload,
           ...stimulusDescriptionPayload,
         }),
@@ -1844,21 +1868,48 @@ export function ResearchPlanForm({
           <p className="mt-0.5 text-small text-neutral-600">{t("genDesc")}</p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          <Field label={t("genFldSegment")} hint={t("genSegmentHint")}>
-            <input
-              value={genInputs.segment}
-              onChange={(e) => updateGen("segment", e.target.value)}
-              placeholder={t("phSegment")}
-              disabled={generating || submitting}
-              className={FIELD_INPUT_CLASS}
-            />
+        {/* B2C/B2B-Schalter — bestimmt Anrede (du/Sie) und Frage-Stil des
+            generierten Leitfadens UND (Market-Pfad) der späteren Live-Interviews.
+            Market-only: auf dem Discovery-Pfad bleibt audienceType fix 'b2b'
+            (formelles "Sie", byte-identisch). Spiegelt das Pill-Radiogroup-
+            Muster der Use-Case-Auswahl. */}
+        {isMarket && (
+          <Field label={t("genFldAudience")} hint={t("genAudienceHint")}>
+            <div
+              role="radiogroup"
+              aria-label={t("genFldAudience")}
+              className="flex flex-wrap gap-2"
+            >
+              {(["b2c", "b2b"] as const).map((aud) => {
+                const selected = form.audienceType === aud;
+                return (
+                  <button
+                    key={aud}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => update("audienceType", aud)}
+                    disabled={submitting || generating || stimulusBusy}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-small outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                      selected
+                        ? "border-primary-200 bg-primary-50 font-medium text-primary-700"
+                        : "border-neutral-200 bg-card text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
+                    }`}
+                  >
+                    {t(aud === "b2c" ? "genAudienceB2c" : "genAudienceB2b")}
+                  </button>
+                );
+              })}
+            </div>
           </Field>
-          <Field label={t("genFldRole")} hint={t("genRoleHint")}>
+        )}
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label={t("genFldWho")} hint={t("genWhoHint")}>
             <input
-              value={genInputs.role}
-              onChange={(e) => updateGen("role", e.target.value)}
-              placeholder={t("phRole")}
+              value={genInputs.who}
+              onChange={(e) => updateGen("who", e.target.value)}
+              placeholder={t("phWho")}
               disabled={generating || submitting}
               className={FIELD_INPUT_CLASS}
             />

@@ -1,8 +1,8 @@
 /**
  * Guide-Generator Eval Runner
  * ---------------------------
- * Runs generateGuideFromInputs() over GUIDE_EVAL_CASES (EXACTLY 6), applies
- * DETERMINISTIC property checks (no LLM-judge — cost-conscious), and
+ * Runs generateGuideFromInputs() over GUIDE_EVAL_CASES (8: 6 B2B + 2 B2C),
+ * applies DETERMINISTIC property checks (no LLM-judge — cost-conscious), and
  * prints a results table.
  *
  * Checks per case (alle deterministisch):
@@ -27,6 +27,9 @@
  *                              "HubSpot", "ihre Pricing-Tier", "Ihre
  *                              Integration") + topics ≤ maxTopics
  *                              hard. Sonst skip.
+ *   (h) anrede-b2c          — NUR wenn input.audienceType='b2c': keine
+ *                              formelle Sie-Ansprache leakt in mainQuestion/
+ *                              probes (sperrt die du-Form ab). Sonst skip.
  *
  * Default model: Sonnet. Approval run: GUIDE_GEN_MODEL=claude-opus-4-7.
  * Always with `env -u ANTHROPIC_API_KEY`:
@@ -127,6 +130,31 @@ const HALLUCINATED_SPECIFICS = [
   "enterprise-plan",
   "freemium",
 ];
+
+// Formal "Sie"-Ansprache markers (normalized: ä→ae, ö→oe, ü→ue, ß→ss). Used
+// ONLY for B2C cases: a consumer guide must be in the "du" form, so any of
+// these unambiguous formal 2nd-person address forms leaking in is a FAIL.
+// Deliberately narrow — verb+"sie" question/imperative forms + the dative
+// "ihnen" — so it never false-positives on "sie" meaning "they/she".
+const STRONG_SIE_ADDRESS = [
+  "erzaehlen sie",
+  "koennen sie",
+  "beschreiben sie",
+  "schildern sie",
+  "haben sie",
+  "sind sie",
+  "wuerden sie",
+  "denken sie",
+  "nutzen sie",
+  "fuehlen sie",
+  "moechten sie",
+  " ihnen ",
+];
+
+function findSieAddress(text: string): string[] {
+  const n = normalize(text);
+  return STRONG_SIE_ADDRESS.filter((t) => n.includes(t));
+}
 
 function normalize(s: string): string {
   return s
@@ -348,6 +376,35 @@ function runChecks(
     } else {
       bad(
         `minimal-mode — topic-count ${tc} > erwarteter Max ${testCase.expected.maxTopics}`,
+      );
+      failed++;
+    }
+  }
+
+  // (h) anrede — only for B2C cases. A consumer guide MUST be in the "du" form;
+  // any formal Sie-address leaking into a mainQuestion or probe is a FAIL. This
+  // is the deterministic lock that the audienceType→Anrede wiring actually took.
+  if (testCase.input.audienceType === "b2c") {
+    const sieMatches: { where: string; triggers: string[] }[] = [];
+    for (const t of guide.topics) {
+      const mq = findSieAddress(t.mainQuestion);
+      if (mq.length > 0)
+        sieMatches.push({ where: `${t.id}.mainQuestion`, triggers: mq });
+      for (let i = 0; i < t.probes.length; i++) {
+        const p = findSieAddress(t.probes[i]);
+        if (p.length > 0)
+          sieMatches.push({ where: `${t.id}.probes[${i}]`, triggers: p });
+      }
+    }
+    if (sieMatches.length === 0) {
+      ok("anrede-b2c — durchgängig du-Form, keine formelle Sie-Ansprache");
+      passed++;
+    } else {
+      bad(
+        `anrede-b2c — formelle Sie-Ansprache leakt: ${sieMatches
+          .slice(0, 3)
+          .map((m) => `${m.where}=[${m.triggers.join(",")}]`)
+          .join("; ")}`,
       );
       failed++;
     }

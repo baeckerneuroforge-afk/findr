@@ -9,6 +9,7 @@ import type {
 } from "@/lib/voice-agent/interviewer";
 import {
   createResearchSupabase,
+  type ResearchPlanAudience,
   type ResearchPlanRow,
   type ResearchPlanStimulusRow,
   type ResearchPlanStudyType,
@@ -68,6 +69,10 @@ export interface ResearchPlanRecord {
   /** Lightweight Market-Research use-case. Null means no use-case focus block
    *  and therefore unchanged interviewer behavior. */
   useCase: ResearchPlanUseCase | null;
+  /** B2C/B2B audience type. Drives the interview Anrede (b2c → "du", b2b →
+   *  "Sie") and the guide-generator example framing. Defaults 'b2b' for legacy
+   *  rows + pre-migration reads, so existing studies stay formal "Sie". */
+  audienceType: ResearchPlanAudience;
   /** Optional single stimulus metadata. The interviewer consumes the text
    *  description plus a safe type label; the URL stays presentation-only. */
   stimulusUrl: string | null;
@@ -176,6 +181,13 @@ export function coerceUseCase(raw: unknown): ResearchPlanUseCase | null {
   return null;
 }
 
+// B2C/B2B audience. Pre-migration fail-safe: only 'b2c' flips to consumer;
+// everything else (incl. undefined before the migration lands) → 'b2b', so
+// existing studies stay formal "Sie", mirroring coerceLanguage/coerceStudyType.
+export function coerceAudience(raw: unknown): ResearchPlanAudience {
+  return raw === "b2c" ? "b2c" : "b2b";
+}
+
 function coerceVisualCaptureEnabled(raw: unknown): boolean {
   return raw === true;
 }
@@ -219,6 +231,9 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
       (row as { signals_enabled?: unknown }).signals_enabled,
     ),
     useCase: coerceUseCase((row as { use_case?: unknown }).use_case),
+    audienceType: coerceAudience(
+      (row as { audience_type?: unknown }).audience_type,
+    ),
     stimulusUrl: coerceNullableString(
       (row as { stimulus_url?: unknown }).stimulus_url,
     ),
@@ -283,6 +298,10 @@ export function planToAgentContext(
     ...(plan.studyType === "market_research" && plan.useCase
       ? { useCase: plan.useCase }
       : {}),
+    // Anrede-Signal — NUR bei 'b2c' im Kontext (der nicht-Default). 'b2b'/legacy
+    // lässt den Key weg → buildResearchContext byte-identisch zu heute (formelles
+    // "Sie"), und der deal_context-Snapshot bestehender Studien bleibt unberührt.
+    ...(plan.audienceType === "b2c" ? { audienceType: "b2c" as const } : {}),
     ...(plan.studyType === "market_research"
       ? {
           stimulusUrl: plan.stimulusUrl,
@@ -676,6 +695,9 @@ export interface CreateResearchPlanInput {
   ttsEnabled?: boolean;
   signalsEnabled?: boolean;
   useCase?: ResearchPlanUseCase | null;
+  /** B2C/B2B audience. Only 'b2c' is stamped explicitly; undefined/'b2b' falls
+   *  to the DB DEFAULT 'b2b' so a Discovery create stays byte-identical. */
+  audienceType?: ResearchPlanAudience;
   stimulusUrl?: string | null;
   stimulusType?: string | null;
   stimulusDescription?: string | null;
@@ -718,6 +740,10 @@ export async function createResearchPlan(
       tts_enabled: input.ttsEnabled ?? false,
       signals_enabled: input.signalsEnabled ?? false,
       use_case: input.useCase ?? null,
+      // Only stamp 'b2c' explicitly; 'b2b'/undefined is OMITTED so the DB
+      // DEFAULT writes 'b2b' (pre-migration-safe; Discovery create byte-
+      // identical), mirroring the language/study_type insert discipline.
+      ...(input.audienceType === "b2c" ? { audience_type: "b2c" as const } : {}),
       stimulus_url: input.stimulusUrl ?? null,
       stimulus_type: input.stimulusType ?? null,
       stimulus_description: input.stimulusDescription ?? null,
@@ -756,6 +782,7 @@ export interface UpdateResearchPlanInput {
   ttsEnabled?: boolean;
   signalsEnabled?: boolean;
   useCase?: ResearchPlanUseCase | null;
+  audienceType?: ResearchPlanAudience;
   stimulusUrl?: string | null;
   stimulusType?: string | null;
   stimulusDescription?: string | null;
@@ -797,6 +824,7 @@ export async function updateResearchPlan(
     tts_enabled?: boolean;
     signals_enabled?: boolean;
     use_case?: ResearchPlanUseCase | null;
+    audience_type?: ResearchPlanAudience;
     stimulus_url?: string | null;
     stimulus_type?: string | null;
     stimulus_description?: string | null;
@@ -821,6 +849,8 @@ export async function updateResearchPlan(
   if (input.signalsEnabled !== undefined)
     update.signals_enabled = input.signalsEnabled;
   if (input.useCase !== undefined) update.use_case = input.useCase;
+  if (input.audienceType !== undefined)
+    update.audience_type = input.audienceType;
   if (input.stimulusUrl !== undefined) update.stimulus_url = input.stimulusUrl;
   if (input.stimulusType !== undefined) update.stimulus_type = input.stimulusType;
   if (input.stimulusDescription !== undefined)

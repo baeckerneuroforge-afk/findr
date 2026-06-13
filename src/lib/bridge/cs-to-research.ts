@@ -810,7 +810,9 @@ export async function approveBridgeSuggestion(
       orgId,
       planId: plan.id,
       goal: objective,
-      segment: row.segment ?? undefined,
+      // CS→Research churn bridge is a professional (B2B) context; audienceType
+      // defaults to 'b2b' (formal "Sie") when omitted, unchanged from before.
+      who: row.segment ?? undefined,
       language: "de",
     });
     guideGenerated = true;

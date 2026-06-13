@@ -44,6 +44,7 @@ function plan(overrides: Partial<ResearchPlanRecord>): ResearchPlanRecord {
     ttsEnabled: false,
     signalsEnabled: false,
     useCase: "creative_test",
+    audienceType: "b2b",
     stimulusUrl: "https://storage.example/stimulus.png",
     stimulusType: "image",
     stimulusDescription: "Anzeige mit blauem CTA",

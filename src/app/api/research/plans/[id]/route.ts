@@ -41,6 +41,8 @@ const UseCaseSchema = z.enum([
   "concept_test",
 ]);
 
+const AudienceSchema = z.enum(["b2b", "b2c"]);
+
 const UpdatePlanBodySchema = z
   .object({
     title: z.string().trim().min(3).max(200).optional(),
@@ -62,6 +64,7 @@ const UpdatePlanBodySchema = z
     ttsEnabled: z.boolean().optional(),
     signalsEnabled: z.boolean().optional(),
     useCase: UseCaseSchema.nullable().optional(),
+    audienceType: AudienceSchema.optional(),
     // stimulusUrl/stimulusType render on the public participant page
     // (StimulusPanel <a href>/<img>). The dedicated stimulus routes already
     // enforce http(s) + a fixed type set — this generic PATCH must be exactly
@@ -104,6 +107,7 @@ const UpdatePlanBodySchema = z
       data.ttsEnabled !== undefined ||
       data.signalsEnabled !== undefined ||
       data.useCase !== undefined ||
+      data.audienceType !== undefined ||
       data.stimulusUrl !== undefined ||
       data.stimulusType !== undefined ||
       data.stimulusDescription !== undefined ||
@@ -175,6 +179,7 @@ export async function PATCH(
       ttsEnabled: parsed.data.ttsEnabled,
       signalsEnabled: parsed.data.signalsEnabled,
       useCase: parsed.data.useCase,
+      audienceType: parsed.data.audienceType,
       language: parsed.data.language,
       stimulusUrl: parsed.data.stimulusUrl,
       stimulusType: parsed.data.stimulusType,

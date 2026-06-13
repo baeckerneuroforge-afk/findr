@@ -31,10 +31,10 @@ import {
  *   3. SPRACHE — Standard Deutsch (DACH-Markt); override via input.language.
  *
  * NO COST-INTENSIVE INPUTS: der Generator liest WEDER Verdichtungen NOCH
- * Transkripte — er bekommt nur den Research-Ziel-Text + optional Segment/
- * Role. Das hält den Token-Verbrauch klein (1-2 kTok pro Run statt
- * 20+ wie bei chat-with-data) und macht den Generator brauchbar für die
- * Plan-Anlage, wo noch keine Interview-Daten existieren.
+ * Transkripte — er bekommt nur den Research-Ziel-Text + Audience-Typ (B2C/B2B)
+ * + optional die Zielgruppen-Beschreibung. Das hält den Token-Verbrauch klein
+ * (1-2 kTok pro Run statt 20+ wie bei chat-with-data) und macht den Generator
+ * brauchbar für die Plan-Anlage, wo noch keine Interview-Daten existieren.
  *
  * Modell: Opus default (Output-Qualität ist Onboarding-kritisch — ein
  * schlechter Leitfaden generiert schlechte Interviews generiert schlechte
@@ -101,14 +101,19 @@ export class GuideGeneratorUnavailableError extends Error {
 // ── Input shapes ───────────────────────────────────────────────────────────
 
 export interface GuideGenInput {
-  /** Freitext-Research-Ziel ("Wir wollen verstehen, warum neue Admin-User im
-   *  Onboarding aufgeben"). The anchor; every generated topic.goalLink must
-   *  reference some part of this. */
+  /** Freitext-Research-Ziel ("Wir wollen verstehen, warum Käufer:innen einen
+   *  vollen Warenkorb doch nicht abschließen"). The anchor; every generated
+   *  topic.goalLink must reference some part of this. */
   goal: string;
-  /** Optional persona / segment hint ("SMB SaaS", "Enterprise IT"). */
-  segment?: string;
-  /** Optional role hint ("Admin-User", "Founder", "Sales-Manager"). */
-  role?: string;
+  /** B2C/B2B audience type. Drives the Anrede ('b2c' → "du", 'b2b' → "Sie")
+   *  and the example framing. Default 'b2b' (formal "Sie") preserves prior
+   *  behavior when omitted. */
+  audienceType?: "b2b" | "b2c";
+  /** Optional free-text "who are we interviewing" hint — the single combined
+   *  target-group field that replaced the former segment+role split. E.g.
+   *  "Käufer:innen von Bio-Lebensmitteln" (B2C) or "Admin-User in SMB-SaaS-
+   *  Tools" (B2B). */
+  who?: string;
   /** Output language. Default Deutsch (DACH-Markt + bestehender Stack). */
   language?: string;
   /** How many topics the LLM should aim for. Soft target — Zod enforces
@@ -128,9 +133,11 @@ export interface GenerateInterviewGuideInput extends GuideGenInput {
  * etc.) and the exact JSON output instruction. The posture is stable across
  * runs and prompt-cacheable.
  */
-export const GUIDE_GENERATOR_SYSTEM_PROMPT = `You are a senior B2B research interviewer building an INTERVIEW GUIDE — the structured plan a human researcher would use to run a 30-60 minute qualitative interview. Your output is a JSON object that a downstream system writes into a research_plan; an AI interview agent then uses it to run live conversations. Quality counts: a bad guide produces bad interviews produces bad data.
+export const GUIDE_GENERATOR_SYSTEM_PROMPT = `You are a senior qualitative research interviewer building an INTERVIEW GUIDE — the structured plan a human researcher would use to run a 30-60 minute qualitative interview. You handle both B2C studies (consumers, end-customers, everyday people) and B2B studies (professionals in a work role); the user tells you which via the ANREDE and ZIELGRUPPE fields. Your output is a JSON object that a downstream system writes into a research_plan; an AI interview agent then uses it to run live conversations. Quality counts: a bad guide produces bad interviews produces bad data.
 
-OUTPUT LANGUAGE: every string in the output (title, objective, topic labels, goalLinks, mainQuestion, probes, screeningQuestions) MUST be in the requested LANGUAGE (default: Deutsch). NO English fallback. Use the conventions of the requested language for politeness ("Sie" form in DACH research interviews unless the segment is clearly informal).
+OUTPUT LANGUAGE: every string in the output (title, objective, topic labels, goalLinks, mainQuestion, probes, screeningQuestions) MUST be in the requested LANGUAGE (default: Deutsch). NO English fallback.
+
+ANREDE (form of address): the user prompt carries an ANREDE field. When it says "du", address the participant informally throughout (German "du" / its equivalent in the requested language) — fitting for B2C / consumer research. When it says "Sie", address them formally throughout (German "Sie") — fitting for B2B / professional research. Apply the chosen form CONSISTENTLY to every mainQuestion, probe and screeningQuestion. Do not mix forms.
 
 POSTURE — Open, non-leading, story-mining.
 - Every mainQuestion and every probe MUST be OPEN. A question is open when it cannot be answered with "ja" / "nein" alone — it elicits a story, an example, a description, a reasoning. Closed (yes/no) questions are forbidden, with one narrow exception: SCREENING questions, where confirmation IS the point, may be yes/no.
@@ -153,16 +160,16 @@ STRUCTURE PER TOPIC:
 - label: 3-120 chars, short, the column header you'd write on a notepad ("Tägliches Setup", "Tooling-Wechsel", "Schmerzpunkte im Onboarding").
 - goalLink: anchoring (see above).
 - mainQuestion: 8-400 chars, ONE open question, the entry point for this topic. The researcher reads this verbatim or near-verbatim to open.
-- probes: 2-8 follow-ups. Each is an open prompt to deepen ("Können Sie ein konkretes Beispiel geben?", "Was war beim letzten Mal anders?", "Wer war noch involviert?"). Vary the verb — don't repeat the same probe pattern.
+- probes: 2-8 follow-ups. Each is an open prompt to deepen ("Was war beim letzten Mal anders?", "Wer war noch dabei?", "Erzähl mehr dazu / Erzählen Sie mehr dazu" — phrased in the ANREDE form chosen above). Vary the verb — don't repeat the same probe pattern.
 
 OVERVIEW STRUCTURE:
-- title: 3-160 chars, study-style title in the output language ("Onboarding-Studie SMB-Admin Q3").
+- title: 3-160 chars, study-style title in the output language (B2C e.g. "Kaufentscheidung Naturkosmetik Q3"; B2B e.g. "Onboarding-Studie Q3").
 - objective: 10-1200 chars, restate/sharpen the user's goal in 1-3 sentences. Keep their intent — don't drift the topic.
 - estimatedMinutes: integer 10-90, your honest estimate for the total interview length given the topic count and depth. 30-45 is typical for 5-topic studies.
 
 SCREENING QUESTIONS (optional, ≤6):
-- Used to verify a candidate fits the persona BEFORE the interview. Yes/no is acceptable here ("Sind Sie aktuell Admin-User im genannten Tool?").
-- Skip this field if the segment/role is generic enough that screening is unnecessary.
+- Used to verify a candidate fits the ZIELGRUPPE BEFORE the interview. Yes/no is acceptable here (B2C e.g. "Hast du in den letzten 4 Wochen Naturkosmetik gekauft?"; B2B e.g. "Sind Sie aktuell für die Tool-Auswahl verantwortlich?").
+- Skip this field if the ZIELGRUPPE is generic enough that screening is unnecessary.
 
 WHAT THE GUIDE IS NOT:
 - NOT a satisfaction survey. No Likert scales, no rating questions.
@@ -170,7 +177,7 @@ WHAT THE GUIDE IS NOT:
 - NOT a list of every question imaginable. 3-10 topics, each with one main + 2-8 probes. Total questions across all topics fits a 30-60 minute conversation.
 
 EDGE CASE — vague or thin goal:
-- If the Research-Ziel is very unspecific, you may still produce a guide — but keep it MINIMAL (3 topics, 2 probes each, broader phrasing). Do NOT invent specifics the user didn't supply ("Ihre HubSpot-Integration", "Ihr Pricing-Tier"). Stay at the level of generality the user gave you. A minimal but honest guide > an inflated speculative one.
+- If the Research-Ziel is very unspecific, you may still produce a guide — but keep it MINIMAL (3 topics, 2 probes each, broader phrasing). Do NOT invent specifics the user didn't supply (a named integration or pricing tier, a specific brand, a concrete past order). Stay at the level of generality the user gave you. A minimal but honest guide > an inflated speculative one.
 
 OUTPUT — return ONLY this JSON object, no markdown, no preamble:
 
@@ -199,17 +206,22 @@ function buildGuideUserPrompt(input: GuideGenInput): string {
       ? "Deutsch (DACH)"
       : language;
 
+  // Anrede drives Sie/du across every question; default 'b2b' (Sie) keeps the
+  // pre-audience behavior for any caller that omits it.
+  const anrede =
+    input.audienceType === "b2c"
+      ? `ANREDE: du (informell — B2C / Endkund:innen, Konsument:innen). Duze die teilnehmende Person durchgängig.`
+      : `ANREDE: Sie (formell — B2B / beruflicher Kontext). Sieze die teilnehmende Person durchgängig.`;
+
   const lines: string[] = [
     `RESEARCH-ZIEL (Freitext):`,
     input.goal.trim(),
     ``,
     `OUTPUT-SPRACHE: ${langLabel}`,
+    anrede,
   ];
-  if (input.segment && input.segment.trim() !== "") {
-    lines.push(`SEGMENT: ${input.segment.trim()}`);
-  }
-  if (input.role && input.role.trim() !== "") {
-    lines.push(`ROLLE: ${input.role.trim()}`);
+  if (input.who && input.who.trim() !== "") {
+    lines.push(`ZIELGRUPPE (wen wir interviewen): ${input.who.trim()}`);
   }
   // topicCount is a soft target — the LLM picks within the schema's [3,10]
   // bounds. We expose it so a study that needs a tighter scope can ask for
@@ -344,8 +356,8 @@ export async function generateInterviewGuide(
   const guide = await generateGuideFromInputs(
     {
       goal: input.goal,
-      segment: input.segment,
-      role: input.role,
+      audienceType: input.audienceType,
+      who: input.who,
       language: input.language,
       topicCount: input.topicCount,
     },

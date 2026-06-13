@@ -1,7 +1,8 @@
 /**
- * Guide-Generator Eval Dataset — EXACTLY 6 cases.
+ * Guide-Generator Eval Dataset — 8 cases.
  * ----------------------------------------------
- * 4 klar/normal · 1 vage · 1 Edge-Case (sehr unspezifisches Ziel).
+ * 4 B2B klar/normal · 1 B2B vage · 1 B2B Edge-Case (sehr unspezifisches Ziel)
+ * · 2 B2C (Endkund:innen, du-Anrede).
  *
  * Anti-Hallu-Posture: bei sparse/incoherent input darf der Generator
  * keinen "vollständigen" Leitfaden auf Phantasie-Spezifika aufblähen.
@@ -15,10 +16,13 @@
  *     Trigger erscheint in mainQuestion oder probes
  *   - Output-Sprache = Deutsch (lexikalische Markers — keine
  *     KI-Klassifikation, kein LLM-Judge)
+ *   - Anrede (NUR B2C-Cases): keine formelle Sie-Ansprache leakt — sperrt
+ *     die du-Form deterministisch ab (kein LLM-Judge)
  *
  * Die Cases sind absichtlich BREIT — der Generator muss zeigen, dass er
- * mit normalem Input einen brauchbaren Leitfaden produziert UND bei
- * vage/leer NICHT erfindet, sondern minimal + ehrlich liefert.
+ * mit normalem Input einen brauchbaren Leitfaden produziert, bei vage/leer
+ * NICHT erfindet (minimal + ehrlich), und die Anrede (du/Sie) an den
+ * audienceType bindet.
  */
 
 import type { GuideGenInput } from "@/lib/research/guide-generator";
@@ -46,7 +50,7 @@ export interface GuideEvalCase {
 }
 
 // ── Cases ──────────────────────────────────────────────────────────────────
-// 4 klar/normal · 1 vage · 1 Edge-Case.
+// 4 B2B klar/normal · 1 B2B vage · 1 B2B Edge-Case · 2 B2C (du-Anrede).
 
 export const GUIDE_EVAL_CASES: GuideEvalCase[] = [
   // ── 1/6 NORMAL — clearly-scoped onboarding study ─────────────────────────
@@ -57,8 +61,8 @@ export const GUIDE_EVAL_CASES: GuideEvalCase[] = [
       "Standard-Happy-Case. Erwartung: 5-7 saubere Topics rund um Onboarding-Schritte, alle mit goalLink auf Onboarding-Friktion, offene mainQuestions, 2-4 probes pro Topic.",
     input: {
       goal: "Wir wollen verstehen, wo neue Admin-User im Onboarding aufgeben oder hängen bleiben — von der ersten Einladung bis zum ersten erfolgreichen Setup.",
-      segment: "SMB SaaS, 10-50 Seats",
-      role: "Admin-User",
+      audienceType: "b2b",
+      who: "Admin-User in SMB-SaaS-Tools (10-50 Seats)",
       language: "de",
       topicCount: 5,
     },
@@ -73,8 +77,8 @@ export const GUIDE_EVAL_CASES: GuideEvalCase[] = [
       "B2B-Klassiker — Pricing/Value-Perception. Erwartung: Topics zu aktueller Pricing-Wahrnehmung, Wert-vs-Kosten, Konkurrenzvergleich, Buying-Process. Keine Leading-Fragen ('Finden Sie nicht auch, dass …').",
     input: {
       goal: "Wir wollen herausfinden, wie Mid-Market-Käufer (50-500 MA) unser Pricing wahrnehmen, ob es als fair empfunden wird und welche Pricing-Modelle der Mitbewerb nutzt.",
-      segment: "Mid-Market B2B, 50-500 MA",
-      role: "Procurement / Finance Lead",
+      audienceType: "b2b",
+      who: "Procurement-/Finance-Leads bei Mid-Market-Unternehmen (50-500 MA)",
       language: "de",
       topicCount: 6,
     },
@@ -89,8 +93,8 @@ export const GUIDE_EVAL_CASES: GuideEvalCase[] = [
       "Discovery-Style: Welche Probleme schmerzen heute am meisten? Welche aktuellen Workarounds? Erwartung: Topics zu Pain-Points, Workarounds, gewünschten Lösungen, Trade-offs — alle offen formuliert.",
     input: {
       goal: "Wir bauen eine neue Datenintegration-Feature und wollen verstehen, welche existierenden Workflows beim Datenexport am meisten leiden — wo verlieren Teams heute Zeit, was tun sie als Workaround?",
-      segment: "Daten-Teams in SaaS-Companies",
-      role: "Data Engineer / Analyst",
+      audienceType: "b2b",
+      who: "Data Engineers / Analysts in SaaS-Companies",
       language: "de",
       topicCount: 5,
     },
@@ -105,8 +109,8 @@ export const GUIDE_EVAL_CASES: GuideEvalCase[] = [
       "Post-Loss-Interviews. Sensibles Thema, KEIN führendes Phrasing ('Was hat Sie gestört?' impliziert Pain; besser 'Erzählen Sie mir, wie es zur Kündigung kam'). Erwartung: 4-6 Topics um den Lifecycle und Entscheidung.",
     input: {
       goal: "Wir verstehen, warum Enterprise-Kunden in den letzten 6 Monaten gekündigt haben — welche internen Veränderungen, welche Produkt-Erfahrungen, welche Konkurrenz-Wechsel haben dazu geführt.",
-      segment: "Enterprise, gekündigt in den letzten 6 Monaten",
-      role: "ehemaliger Champion / Decision-Maker",
+      audienceType: "b2b",
+      who: "ehemalige Champions / Decision-Maker bei gekündigten Enterprise-Kunden (letzte 6 Monate)",
       language: "de",
       topicCount: 5,
     },
@@ -121,6 +125,7 @@ export const GUIDE_EVAL_CASES: GuideEvalCase[] = [
       "Vage formuliertes Research-Ziel — der Generator soll nicht halluzinieren ('Ihre HubSpot-Integration', 'Ihr Pricing-Tier'), sondern auf der Generalitäts-Stufe bleiben, die der Nutzer gegeben hat. Erwartung: 3-5 Topics, breite Persona-Themen (täglicher Workflow, Pain-Points, gewünschte Verbesserungen).",
     input: {
       goal: "Wir wollen verstehen, was unsere Kunden wirklich brauchen.",
+      audienceType: "b2b",
       language: "de",
       topicCount: 4,
     },
@@ -135,6 +140,7 @@ export const GUIDE_EVAL_CASES: GuideEvalCase[] = [
       "Härtester Anti-Hallu-Test. Das Ziel hat KAUM Inhalt. Der Generator MUSS einen sinnvollen Minimal-Guide liefern — KEINE konkreten Konkurrenten/Features/Preise erfinden, KEINE 'Sind Sie zufrieden mit unserem Pricing'-Suggestivfragen. Erwartung: GENAU 3 Topics (Minimum), 2 probes pro Topic, breite offene Fragen ('Erzählen Sie von Ihrem Alltag', nicht 'Wie finden Sie unser Produkt').",
     input: {
       goal: "Mehr lernen.",
+      audienceType: "b2b",
       language: "de",
       topicCount: 3,
     },
@@ -145,5 +151,37 @@ export const GUIDE_EVAL_CASES: GuideEvalCase[] = [
       maxMinutes: 45,
       minimalMode: true,
     },
+  },
+
+  // ── 7/8 B2C — consumer grocery decision (du-Anrede) ──────────────────────
+  {
+    id: "guide_07_b2c_grocery",
+    description: "B2C: Kaufentscheidung Bio vs. konventionell im Supermarkt",
+    rationale:
+      "Reiner Consumer-Case. Erwartung: 4-6 Topics rund um den Kauf-Moment, Gewohnheiten und Trade-offs — durchgängig in der DU-Form, KEINE formelle Sie-Ansprache ('Erzähl mir...', nicht 'Erzählen Sie...'). Keine B2B-Spezifika (Pricing-Tier, Procurement).",
+    input: {
+      goal: "Wir wollen verstehen, wie Käufer:innen im Supermarkt zwischen Bio- und konventionellen Lebensmitteln entscheiden — was im Moment der Entscheidung am Regal wirklich zählt.",
+      audienceType: "b2c",
+      who: "Käufer:innen von Lebensmitteln im Supermarkt",
+      language: "de",
+      topicCount: 5,
+    },
+    expected: { minTopics: 4, maxTopics: 7, minMinutes: 20, maxMinutes: 50 },
+  },
+
+  // ── 8/8 B2C — consumer app churn (du-Anrede) ─────────────────────────────
+  {
+    id: "guide_08_b2c_app",
+    description: "B2C: Warum Privatnutzer:innen eine Meditations-App nicht weiter nutzen",
+    rationale:
+      "Consumer-App-Discovery. Sensibles, alltagsnahes Thema. Erwartung: 3-5 Topics um Alltag, erste Woche und Abbruch-Moment — DU-Form durchgängig, offene nicht-leitende Fragen, keine erfundenen Feature-Spezifika.",
+    input: {
+      goal: "Wir wollen verstehen, warum neue Nutzer:innen unsere Meditations-App nach der ersten Woche nicht mehr öffnen.",
+      audienceType: "b2c",
+      who: "Privatnutzer:innen einer Meditations-App",
+      language: "de",
+      topicCount: 4,
+    },
+    expected: { minTopics: 3, maxTopics: 6, minMinutes: 20, maxMinutes: 45 },
   },
 ];

@@ -173,6 +173,12 @@ export type ResearchPlanUseCase =
   | "creative_test"
   | "concept_test";
 
+// B2C/B2B audience type per study (20260715000000). Drives the interview
+// Anrede (b2c → "du", b2b → "Sie") and the guide-generator example framing.
+// NOT NULL DEFAULT 'b2b' in the DB; the read mapper (coerceAudience) defaults
+// undefined→'b2b' so every legacy row + pre-migration read stays formal "Sie".
+export type ResearchPlanAudience = "b2b" | "b2c";
+
 export type ResearchPlanRow = {
   id: string;
   org_id: string | null;
@@ -206,6 +212,10 @@ export type ResearchPlanRow = {
   // migration lands select("*") omits it; plans-service coerceUseCase maps that
   // to null so existing behavior stays unchanged.
   use_case: ResearchPlanUseCase | null;
+  // B2C/B2B audience type (20260715000000). NOT NULL DEFAULT 'b2b'. Before the
+  // migration lands select("*") omits it; the read mapper (coerceAudience)
+  // defaults undefined→'b2b', so existing studies stay formal "Sie".
+  audience_type: ResearchPlanAudience;
   // Optional single stimulus per study. All columns stay nullable and
   // stimulus_type intentionally remains free text so later asset types do not
   // require a DB enum migration.
@@ -247,6 +257,9 @@ type ResearchPlanInsert = {
   tts_enabled?: boolean;
   signals_enabled?: boolean;
   use_case?: ResearchPlanUseCase | null;
+  // Optional beim Insert — nur der Market-Research-Pfad stempelt 'b2c' explizit;
+  // sonst weggelassen → DB-DEFAULT 'b2b' (formal "Sie"), Discovery byte-identisch.
+  audience_type?: ResearchPlanAudience;
   stimulus_url?: string | null;
   stimulus_type?: string | null;
   stimulus_description?: string | null;
@@ -274,6 +287,7 @@ type ResearchPlanUpdate = {
   tts_enabled?: boolean;
   signals_enabled?: boolean;
   use_case?: ResearchPlanUseCase | null;
+  audience_type?: ResearchPlanAudience;
   stimulus_url?: string | null;
   stimulus_type?: string | null;
   stimulus_description?: string | null;

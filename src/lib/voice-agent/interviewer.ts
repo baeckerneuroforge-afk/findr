@@ -999,6 +999,11 @@ export interface ResearchPlanContext {
   persona?: string | null;
   /** Optional Market-Research subtype. Missing/null means no extra focus block. */
   useCase?: ResearchPlanUseCase | null;
+  /** B2C/B2B audience type. Only present (and only ever 'b2c') when the study
+   *  is a consumer study — planToAgentContext omits it for 'b2b'/legacy plans,
+   *  so the context stays byte-identical (formal "Sie") for everyone else. When
+   *  'b2c', buildResearchContext injects a "duze durchgängig" directive. */
+  audienceType?: "b2b" | "b2c";
   /** Optional single-stimulus metadata. Only stimulusDescription plus a safe
    *  type label are rendered into the prompt; URL stays out of model context. */
   stimulusUrl?: string | null;
@@ -1348,7 +1353,17 @@ export function buildResearchContext(
     ? formatStimulusSet(input.plan)
     : formatStimulus(input.plan);
 
-  return `REQUIRED LANGUAGE: ${LANGUAGE_LABELS[language]} — write your message in this language, including the opening message.
+  // B2C-Anrede: nur 'b2c' kommt überhaupt im Kontext an (planToAgentContext
+  // lässt 'b2b'/legacy weg) → dieser Block erscheint NUR bei Consumer-Studien.
+  // Für jede Bestands-/B2B-Studie bleibt der String byte-identisch zu heute,
+  // also "Sie" (so wie die Beispiele im System-Prompt). Die Direktive ist
+  // bewusst stark formuliert, damit das Modell die Sie-Beispiele überschreibt.
+  const anrede =
+    input.plan.audienceType === "b2c"
+      ? `\n\nANSPRACHE: Duze die teilnehmende Person durchgängig (informelles „du", B2C/Endkund:innen). Verwende die Du-Form in JEDER Frage und Nachfrage, auch wenn Beispiele weiter unten die Sie-Form zeigen — diese Anweisung hat Vorrang.`
+      : "";
+
+  return `REQUIRED LANGUAGE: ${LANGUAGE_LABELS[language]} — write your message in this language, including the opening message.${anrede}
 
 ${formatBrand(input.brand)}
 

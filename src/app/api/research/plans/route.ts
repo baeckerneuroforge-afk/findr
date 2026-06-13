@@ -31,6 +31,8 @@ const UseCaseSchema = z.enum([
   "concept_test",
 ]);
 
+const AudienceSchema = z.enum(["b2b", "b2c"]);
+
 const CreatePlanBodySchema = z.object({
   title: z.string().trim().min(3).max(200),
   objective: z.string().trim().min(3).max(3000),
@@ -48,6 +50,10 @@ const CreatePlanBodySchema = z.object({
   ttsEnabled: z.boolean().optional().default(false),
   signalsEnabled: z.boolean().optional().default(false),
   useCase: UseCaseSchema.nullable().optional(),
+  // B2C/B2B audience. Only the Market-Research form sends it; omitted on the
+  // Discovery path → createResearchPlan leaves the column out → DB DEFAULT
+  // 'b2b' (byte-identical Discovery create).
+  audienceType: AudienceSchema.optional(),
   stimulusUrl: z
     .string()
     .trim()
@@ -109,6 +115,7 @@ export async function POST(req: NextRequest) {
       ttsEnabled: parsed.data.ttsEnabled,
       signalsEnabled: parsed.data.signalsEnabled,
       useCase: parsed.data.useCase ?? null,
+      audienceType: parsed.data.audienceType,
       stimulusUrl: parsed.data.stimulusUrl ?? null,
       stimulusType: parsed.data.stimulusType ?? null,
       stimulusDescription: parsed.data.stimulusDescription ?? null,
