@@ -529,9 +529,9 @@ export interface PlanSessionTranscript {
   turnSignals: TurnSignalsRecord | null;
 }
 
-/** Server-seitiges Cap der Interviews-Liste (keine Pagination, E2-Scope). */
+/** Server-seitiges Cap der Interviews-Liste (keine Pagination, E2-Scope).
+ *  Wird als p_limit an die RPC list_sessions_for_plan durchgereicht. */
 const SESSION_LIST_LIMIT = 50;
-const SESSION_PREVIEW_MAX_CHARS = 140;
 
 /**
  * Lenient read-mapper für conversation (jsonb) — Stil von coerceTopics:
@@ -574,17 +574,6 @@ export function coerceConversation(raw: unknown): InterviewTurn[] {
   return out;
 }
 
-function sessionPreview(conversation: InterviewTurn[]): string | null {
-  const first = conversation.find(
-    (t) => t.role === "customer" && t.text.trim() !== "",
-  );
-  if (!first) return null;
-  const text = first.text.trim();
-  return text.length > SESSION_PREVIEW_MAX_CHARS
-    ? `${text.slice(0, SESSION_PREVIEW_MAX_CHARS).trimEnd()}…`
-    : text;
-}
-
 /**
  * Alle Interview-Sessions EINER Studie für die Forscher-Ansicht — org+plan-
  * scoped (dieselbe Trust-Boundary wie getResearchPlan: der Aufrufer hat die
@@ -594,34 +583,42 @@ function sessionPreview(conversation: InterviewTurn[]): string | null {
  * Sichtbarkeit, nicht um Fortschritt. Fail-open [] wie listResearchPlans
  * (leere Liste liest sich als "noch keine Interviews").
  *
- * conversation wird mitgeladen (PostgREST kann jsonb_array_length nicht ohne
- * RPC) und hier auf turnCount + Preview reduziert — bei ≤50 Zeilen unkritisch.
+ * Perf: turnCount + die 140-Zeichen-Vorschau berechnet die RPC
+ * list_sessions_for_plan server-seitig (Migration 20260715000000), damit NICHT
+ * mehr das volle conversation-JSONB jeder Session geladen wird — die MR-
+ * Übersicht refresht alle 30s, das war reiner Über-Fetch. Die RPC ist semantisch
+ * äquivalent zur früheren JS-Logik (coerceConversation-Zählung + erster nicht-
+ * leerer customer-Turn, getrimmt, >140 Zeichen gekürzt + "…"); empirisch über
+ * alle Echtdaten-Sessions 0 Abweichungen. Einzige bewusste Differenz: die
+ * Trunkierung zählt Codepoints statt UTF-16-Einheiten — bei Emoji in den ersten
+ * 140 Zeichen schneidet sie sauberer (kein zerschnittenes Surrogat), nie
+ * schlechter (Details in der Migration).
  */
 export async function listSessionsForPlan(
   orgId: string,
   planId: string,
 ): Promise<PlanSessionSummary[]> {
   const supabase = createResearchSupabase();
-  const { data, error } = await supabase
-    .from("interview_sessions")
-    .select("id, status, mode, conversation, created_at, completed_at")
-    .eq("org_id", orgId)
-    .eq("plan_id", planId)
-    .order("created_at", { ascending: false })
-    .limit(SESSION_LIST_LIMIT);
-  if (error || !data) return [];
-  return data.map((row) => {
-    const conversation = coerceConversation(row.conversation);
-    return {
-      id: row.id,
-      status: row.status,
-      mode: row.mode,
-      turnCount: conversation.length,
-      preview: sessionPreview(conversation),
-      createdAt: row.created_at,
-      completedAt: row.completed_at,
-    };
+  const { data, error } = await supabase.rpc("list_sessions_for_plan", {
+    p_org_id: orgId,
+    p_plan_id: planId,
+    p_limit: SESSION_LIST_LIMIT,
   });
+  if (error || !data) {
+    if (error) {
+      console.error("[listSessionsForPlan] rpc failed:", error.message);
+    }
+    return [];
+  }
+  return data.map((row) => ({
+    id: row.id,
+    status: row.status as PlanSessionStatus,
+    mode: row.mode as PlanSessionMode,
+    turnCount: row.turn_count,
+    preview: row.preview,
+    createdAt: row.created_at,
+    completedAt: row.completed_at,
+  }));
 }
 
 /**

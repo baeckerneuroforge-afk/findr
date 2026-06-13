@@ -934,7 +934,24 @@ export type DatabaseWithResearch = {
       };
     };
     Views: Database["public"]["Views"];
-    Functions: Database["public"]["Functions"];
+    // Perf: list_sessions_for_plan berechnet turnCount + Vorschau server-seitig
+    // (Migration 20260715000000), damit die MR-Übersicht nicht mehr das volle
+    // conversation-JSONB jeder Session lädt. Chirurgisch hier ergänzt statt die
+    // ganze database.ts neu zu generieren (vermeidet fremde Typ-Drift).
+    Functions: Database["public"]["Functions"] & {
+      list_sessions_for_plan: {
+        Args: { p_org_id: string; p_plan_id: string; p_limit?: number };
+        Returns: {
+          id: string;
+          status: string;
+          mode: string;
+          created_at: string;
+          completed_at: string | null;
+          turn_count: number;
+          preview: string | null;
+        }[];
+      };
+    };
     Enums: Database["public"]["Enums"];
     CompositeTypes: Database["public"]["CompositeTypes"];
   };
