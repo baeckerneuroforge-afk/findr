@@ -243,6 +243,10 @@ export default async function InterviewPage({
           // Fortschrittsbalken — System-Decke als Fallback-Nenner, bis der
           // Voice-Agent live progress-DataPackets sendet.
           progressTotal={session.progressTotal}
+          // Zeitlimit-Countdown — der Voice-Agent erzwingt das Limit hart, die
+          // UI spiegelt nur die verbleibende Zeit.
+          maxDurationSeconds={session.maxDurationSeconds}
+          startedAt={session.startedAt}
         />,
         )}
       </NextIntlClientProvider>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { InterviewProgress } from "./InterviewProgress";
+import { InterviewTimer } from "./InterviewTimer";
 import { WithdrawDataLink } from "./WithdrawDataLink";
 import type { Room } from "livekit-client";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
@@ -78,6 +79,12 @@ interface VoiceInterviewViewProps {
    *  gesendet hat (das Packet trägt seinen eigenen estimatedTotal). Default 6
    *  = Standard-Sättigungsdecke. */
   progressTotal?: number;
+  /** Zeitlimit der Studie (Sekunden) bzw. null = kein Limit. Der Voice-Agent
+   *  erzwingt es hart (Abschluss-Satz + Auflegen); diese UI spiegelt den
+   *  Countdown synchron dazu. */
+  maxDurationSeconds?: number | null;
+  /** „Raum betreten"-Zeitstempel (ISO) bzw. null — Basis des Countdowns. */
+  startedAt?: string | null;
 }
 
 type Phase = "intro" | "connecting" | "live" | "ended" | "done" | "error";
@@ -528,6 +535,8 @@ export function VoiceInterviewView({
   stimulusType = null,
   stimuli = null,
   progressTotal = 6,
+  maxDurationSeconds = null,
+  startedAt = null,
 }: VoiceInterviewViewProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
@@ -1209,6 +1218,12 @@ export function VoiceInterviewView({
         <InterviewProgress
           percent={voiceProgressPercent}
           accentColor={accent}
+        />
+
+        <InterviewTimer
+          startedAt={startedAt}
+          maxDurationSeconds={maxDurationSeconds}
+          active={phase === "live"}
         />
 
         <div className="flex min-h-[320px] flex-1 flex-col items-center justify-center py-8">
