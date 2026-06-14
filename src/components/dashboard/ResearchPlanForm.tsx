@@ -173,6 +173,12 @@ interface FormState {
   // dieses Formular füllt nur den Wert. Unabhängig vom Interaktionsmodus
   // (die Analyse liest den Transkript-TEXT, Text- wie Voice-Interviews).
   signalsEnabled: boolean;
+  // Interviewlänge — Agent-Fragen-OBERGRENZE. Sent as `maxRounds` (exact key)
+  // in jeden create/update-Body. null = System-Default (≈6; Standard-Preset)
+  // → keine Verhaltensänderung. Reine Obergrenze: die Sättigung darf früher
+  // schließen. Gilt für BEIDE Studientypen; Stimulus-Set-Studien ignorieren den
+  // Wert serverseitig (planToAgentContext lässt ihn aus dem Snapshot weg).
+  maxRounds: number | null;
   topics: TopicDraft[];
 }
 
@@ -343,6 +349,9 @@ const INITIAL_FORM: FormState = {
   // Default OFF — Turn-Signale sind opt-in pro Studie (Plan §3.2); ein
   // unberührtes Formular sendet false.
   signalsEnabled: false,
+  // Default null = Standard-Länge (System-Default ≈6) → byte-identischer
+  // Create, solange der Forscher die Länge nicht ändert.
+  maxRounds: null,
   // Start with one empty topic so the editor isn't blank — encourages the
   // user to fill at least one in. Empty topics are dropped at submit time.
   topics: [emptyTopicDraft()],
@@ -554,6 +563,7 @@ export function ResearchPlanForm({
           ttsEnabled: form.ttsEnabled,
           signalsEnabled: form.signalsEnabled,
           language: form.language,
+          maxRounds: form.maxRounds,
           ...useCasePayload,
           ...audienceTypePayload,
           ...studyTypePayload,
@@ -1065,6 +1075,19 @@ export function ResearchPlanForm({
       sampleTarget = parsed;
     }
 
+    // Optional maxRounds: null = system default. A set value must be 2..15
+    // (mirrors the Zod bound + migration CHECK) — rejected here so the user
+    // sees a precise message instead of a generic 400.
+    if (
+      form.maxRounds !== null &&
+      (!Number.isInteger(form.maxRounds) ||
+        form.maxRounds < 2 ||
+        form.maxRounds > 15)
+    ) {
+      setError(t("errMaxRounds"));
+      return;
+    }
+
     const topics = topicDraftsToResearchTopics(form.topics);
 
     setSubmitting(true);
@@ -1089,6 +1112,7 @@ export function ResearchPlanForm({
               voiceEnabled: form.voiceEnabled,
               ttsEnabled: form.ttsEnabled,
               signalsEnabled: form.signalsEnabled,
+              maxRounds: form.maxRounds,
               ...useCasePayload,
               ...audienceTypePayload,
               ...stimulusDescriptionPayload,
@@ -1119,6 +1143,7 @@ export function ResearchPlanForm({
           ttsEnabled: form.ttsEnabled,
           signalsEnabled: form.signalsEnabled,
           language: form.language,
+          maxRounds: form.maxRounds,
           ...useCasePayload,
           ...audienceTypePayload,
           ...studyTypePayload,
@@ -1796,6 +1821,117 @@ export function ResearchPlanForm({
               </span>
             </button>
           </div>
+        </div>
+
+        {/* Interviewlänge — Agent-Fragen-OBERGRENZE pro Studie. Drei Presets
+            (Kurz/Standard/Tief) setzen `maxRounds`; "Erweitert" erlaubt einen
+            exakten Wert (2–15). Standard = null = System-Default (≈6 Fragen) →
+            byte-identischer Create, solange unberührt. REINE Obergrenze: die
+            Sättigung darf das Interview jederzeit FRÜHER schließen — kein
+            erzwungenes Soll (das Produktherz bleibt adaptiv). Sichtbar für
+            BEIDE Studientypen; Stimulus-Set-Studien ignorieren den Wert
+            serverseitig (die inhaltsgetriebene stimulusSetCeiling gewinnt). */}
+        <div className="rounded-lg border border-neutral-200 bg-card p-4">
+          <span className="block text-body-strong text-neutral-900">
+            {t("fldInterviewLength")}
+          </span>
+          <span className="mt-1 block text-caption text-neutral-500">
+            {t("interviewLengthHint")}
+          </span>
+          <div
+            role="radiogroup"
+            aria-label={t("fldInterviewLength")}
+            className="mt-3 grid gap-2 sm:grid-cols-3"
+          >
+            {(
+              [
+                {
+                  key: "short",
+                  value: 4 as number | null,
+                  labelKey: "lengthShortLabel",
+                  descKey: "lengthShortDesc",
+                },
+                {
+                  key: "standard",
+                  value: null as number | null,
+                  labelKey: "lengthStandardLabel",
+                  descKey: "lengthStandardDesc",
+                },
+                {
+                  key: "deep",
+                  value: 10 as number | null,
+                  labelKey: "lengthDeepLabel",
+                  descKey: "lengthDeepDesc",
+                },
+              ] as const
+            ).map((preset) => {
+              const selected = form.maxRounds === preset.value;
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => update("maxRounds", preset.value)}
+                  disabled={submitting}
+                  className={`rounded-lg border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                    selected
+                      ? "border-primary-200 bg-primary-50"
+                      : "border-neutral-200 bg-card hover:border-neutral-300"
+                  }`}
+                >
+                  <span
+                    className={`block text-small font-medium ${
+                      selected ? "text-primary-700" : "text-neutral-900"
+                    }`}
+                  >
+                    {t(preset.labelKey)}
+                  </span>
+                  <span className="mt-0.5 block text-caption text-neutral-500">
+                    {t(preset.descKey)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <details className="mt-3">
+            <summary className="cursor-pointer text-caption text-neutral-500 outline-none hover:text-neutral-700 focus-visible:ring-2 focus-visible:ring-primary-500/40">
+              {t("lengthAdvancedSummary")}
+            </summary>
+            <div className="mt-2">
+              <label
+                htmlFor="maxRounds"
+                className="block text-caption text-neutral-600"
+              >
+                {t("lengthCustomLabel")}
+              </label>
+              <div className="mt-1 w-28">
+                <input
+                  id="maxRounds"
+                  type="number"
+                  inputMode="numeric"
+                  min={2}
+                  max={15}
+                  value={form.maxRounds ?? ""}
+                  onChange={(e) => {
+                    const raw = e.target.value.trim();
+                    if (raw === "") {
+                      update("maxRounds", null);
+                      return;
+                    }
+                    const n = Number(raw);
+                    update("maxRounds", Number.isNaN(n) ? null : n);
+                  }}
+                  placeholder="6"
+                  disabled={submitting}
+                  className={FIELD_INPUT_CLASS}
+                />
+              </div>
+              <p className="mt-1 text-caption text-neutral-500">
+                {t("lengthCustomHint")}
+              </p>
+            </div>
+          </details>
         </div>
 
         {/* Vorlesefunktion (TTS) — eigenes Feld `ttsEnabled` (exakt dieser

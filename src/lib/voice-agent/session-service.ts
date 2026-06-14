@@ -78,6 +78,16 @@ const MAX_RESEARCH_TOTAL_TURNS = 16;
 const RESEARCH_CAP_CLOSING_MESSAGE =
   "Vielen Dank für Ihre Zeit und Ihre offenen Antworten — das war sehr hilfreich.";
 
+/** Hard safety-net TOTAL-turn cap for a research session, DERIVED from the
+ *  per-study agent-question ceiling (maxRounds): 2·n alternating turns + a
+ *  4-turn buffer so the net always sits ABOVE the saturation ceiling (the agent
+ *  closes by done:true first; this only fires if it drifts). For the default 6
+ *  this is exactly MAX_RESEARCH_TOTAL_TURNS (16), so default + stimulus-set
+ *  studies — which never carry a maxRounds snapshot — stay byte-identical. */
+function researchTotalCap(maxRounds: number): number {
+  return 2 * maxRounds + 4;
+}
+
 /**
  * dealContext is the per-session input bucket consumed by the agent prompt.
  * Which shape lives inside depends on `kind`:
@@ -295,13 +305,18 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
       : [];
 
   // Fortschritts-Decke (Agent-Fragen): genau die Zahl, gegen die der Prompt
-  // intern abwickelt — MAX_AGENT_TURNS als Standard (Research-ohne-Set,
-  // post_loss, checkin), bei Multi-Stimulus die mit der Set-Größe skalierende
-  // Obergrenze. Rein abgeleitet, kein DB-Feld, kein Engine-Eingriff.
+  // intern abwickelt — bei Multi-Stimulus die mit der Set-Größe skalierende
+  // Obergrenze; sonst die konfigurierte Runden-Obergrenze der Studie
+  // (maxRounds, nur ohne Set im Snapshot) bzw. MAX_AGENT_TURNS als Default
+  // (Research-ohne-Set/-ohne-Konfiguration, post_loss, checkin). Rein
+  // abgeleitet — der Fortschrittsbalken spiegelt die eingestellte Länge mit.
   const progressTotal =
     session.kind === "research" && stimuli.length > 0
       ? stimulusSetCeiling(stimuli.length)
-      : MAX_AGENT_TURNS;
+      : session.kind === "research"
+        ? ((session.dealContext as unknown as ResearchInput | null)?.plan
+            ?.maxRounds ?? MAX_AGENT_TURNS)
+        : MAX_AGENT_TURNS;
 
   return {
     status: session.status,
@@ -1063,7 +1078,15 @@ export async function advanceInterview(
     // The cap is measured against `history.length + 1` because the agent's
     // turn isn't appended yet — we're predicting the row we're about to
     // push.
-    const wouldHitCap = history.length + 1 >= MAX_RESEARCH_TOTAL_TURNS;
+    // Per-Studie konfigurierbare Decke: ohne maxRounds (Default + JEDE Stimulus-
+    // Set-Studie, deren Snapshot maxRounds bewusst auslässt) bleibt es exakt
+    // MAX_RESEARCH_TOTAL_TURNS (16) → byte-identisch. Mit gesetztem maxRounds
+    // skaliert das Sicherheitsnetz mit (researchTotalCap = 2·n + 4).
+    const totalCap =
+      input.plan.maxRounds != null
+        ? researchTotalCap(input.plan.maxRounds)
+        : MAX_RESEARCH_TOTAL_TURNS;
+    const wouldHitCap = history.length + 1 >= totalCap;
 
     const { done, message, why, showStimulusPosition } =
       await nextResearchMessage(

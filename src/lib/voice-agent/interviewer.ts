@@ -1018,6 +1018,14 @@ export interface ResearchPlanContext {
    *  Reihenfolge. Fehlend/leer → Single-Stimulus-Legacy-Verhalten, Prompt
    *  byte-identisch. Konsumiert erst ab E4. */
   stimuli?: ResearchStimulusContext[];
+  /** Konfigurierte Runden-Obergrenze (Agent-Fragen) für diese Studie. Nur für
+   *  Studien OHNE Stimulus-Set gesetzt (planToAgentContext lässt sie bei Sets
+   *  weg). Fehlend/null ODER == Default(6) → Prompt byte-identisch (die
+   *  Basis-Regel 5/6 bleibt unverändert); ein abweichender Wert injiziert über
+   *  formatRoundCeiling einen Stop-Ceiling-Override (gleiches Muster wie der
+   *  Stimulus-Set-Override). Reine Obergrenze — die Sättigung darf früher
+   *  schließen. */
+  maxRounds?: number | null;
 }
 
 /** Vendor / brand context — null for independent / external research. */
@@ -1150,6 +1158,25 @@ function hasStimulusSet(plan: ResearchPlanContext): boolean {
  *  for unit tests. */
 export function stimulusSetCeiling(count: number): number {
   return Math.min(2 + 3 * count + (count >= 2 ? 1 : 0), 14);
+}
+
+/** Die Basis-Stop-Decke (Agent-Fragen) für Research ohne Stimulus-Set —
+ *  exakt die Zahl, die als "5/6"-Regel im RESEARCH_INTERVIEWER_CORE-Prompt
+ *  steht, und der Default von MAX_AGENT_TURNS in session-service.ts. Hier
+ *  gespiegelt, damit formatRoundCeiling einen unveränderten Default als No-Op
+ *  erkennen kann (Prompt byte-identisch). */
+export const DEFAULT_RESEARCH_AGENT_CEILING = 6;
+
+/** Konfigurierbare Runden-Obergrenze für Research OHNE Stimulus-Set. Spiegelt
+ *  exakt den Set-Override (formatStimulusSet): ERSETZT die Basis-Zahlen 5/6 der
+ *  Stop-Regeln durch die studienspezifische maxRounds. Gibt null zurück, wenn
+ *  maxRounds dem Default (6) entspricht — dann bleibt der Prompt byte-identisch.
+ *  Set-Studien erreichen diese Funktion nie (buildResearchContext gated auf
+ *  !hasStimulusSet, und planToAgentContext lässt maxRounds für Sets ohnehin aus
+ *  dem Snapshot weg). Exported for unit tests. */
+export function formatRoundCeiling(maxRounds: number): string | null {
+  if (maxRounds === DEFAULT_RESEARCH_AGENT_CEILING) return null;
+  return `ABWEICHENDES STOP-CEILING für diese Studie (ERSETZT die Basis-Zahlen 5/6 der Stop-Regeln): ab ${maxRounds - 1} Agent-Fragen aktiv abwickeln, ab ${maxRounds} "done": true setzen. Die COUNTERS in deiner User-Message liefern die verbindlichen Zählwerte.`;
 }
 
 /** D5 — Analyse-Block pro Set-Element kürzen, sobald das Set groß wird
@@ -1363,6 +1390,16 @@ export function buildResearchContext(
       ? `\n\nANSPRACHE: Duze die teilnehmende Person durchgängig (informelles „du", B2C/Endkund:innen). Verwende die Du-Form in JEDER Frage und Nachfrage, auch wenn Beispiele weiter unten die Sie-Form zeigen — diese Anweisung hat Vorrang.`
       : "";
 
+  // Konfigurierte Runden-Obergrenze: NUR ohne Stimulus-Set (ein Set bringt
+  // seinen eigenen Ceiling-Override über formatStimulusSet mit; doppelt wäre
+  // widersprüchlich). null/Default(6) → leer → Prompt byte-identisch zu heute,
+  // also gilt die Basis-Regel 5/6. Stabil pro Session (Snapshot) → cache-sicher
+  // wie der restliche Kontext.
+  const roundCeiling =
+    !hasStimulusSet(input.plan) && input.plan.maxRounds != null
+      ? formatRoundCeiling(input.plan.maxRounds)
+      : null;
+
   return `REQUIRED LANGUAGE: ${LANGUAGE_LABELS[language]} — write your message in this language, including the opening message.${anrede}
 
 ${formatBrand(input.brand)}
@@ -1373,7 +1410,7 @@ Objective: ${input.plan.objective}${persona ? `\nPersona:   ${persona}` : ""}
 ${stimulus ? `\n\n${stimulus}` : ""}
 
 TOPICS (cover naturally, 2–4 turns each, start with the lightest):
-${formatTopics(input.plan.topics)}`;
+${formatTopics(input.plan.topics)}${roundCeiling ? `\n\n${roundCeiling}` : ""}`;
 }
 
 /**

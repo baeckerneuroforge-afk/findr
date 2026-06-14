@@ -239,6 +239,12 @@ export type ResearchPlanRow = {
   // migration lands select("*") omits it; the read mapper (coerceLanguage)
   // defaults undefined→'de', so existing studies stay German byte-identically.
   language: Language;
+  // Per-study interview length — configurable agent-question UPPER BOUND
+  // (20260716000000). NULL = system default (6 for non-stimulus research;
+  // stimulus-SET studies keep stimulusSetCeiling regardless). Before the
+  // migration lands select("*") omits it; the read mapper (coerceNullableInt)
+  // defaults undefined→null → default-length behavior, byte-identical.
+  max_rounds: number | null;
   created_at: string;
 };
 
@@ -269,6 +275,9 @@ type ResearchPlanInsert = {
   // DB-DEFAULT vergibt 'product_discovery'. Verdrahtung kommt in M1/M3.
   study_type?: ResearchPlanStudyType;
   language?: Language;
+  // Optional beim Insert — nur gesetzt, wenn der Forscher eine Länge wählt;
+  // sonst weggelassen → NULL → System-Default (byte-identisch).
+  max_rounds?: number | null;
   created_at?: string;
 };
 
@@ -295,6 +304,7 @@ type ResearchPlanUpdate = {
   stimulus_analysis_status?: string | null;
   study_type?: ResearchPlanStudyType;
   language?: Language;
+  max_rounds?: number | null;
   created_at?: string;
 };
 

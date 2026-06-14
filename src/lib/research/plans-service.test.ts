@@ -53,6 +53,7 @@ function plan(overrides: Partial<ResearchPlanRecord>): ResearchPlanRecord {
     screeningQuestions: [],
     studyType: "market_research",
     language: "de",
+    maxRounds: null,
     createdAt: "2026-06-01T00:00:00.000Z",
     ...overrides,
   };
@@ -98,6 +99,28 @@ describe("planToAgentContext — stimulus analysis gating", () => {
 
     expect("stimulusAnalysis" in ctx).toBe(false);
     expect("stimulusDescription" in ctx).toBe(false);
+  });
+});
+
+describe("planToAgentContext — maxRounds snapshot gating (Paket 1)", () => {
+  it("carries maxRounds for a study WITHOUT a stimulus set", () => {
+    const ctx = planToAgentContext(plan({ maxRounds: 10 }));
+    expect(ctx.maxRounds).toBe(10);
+  });
+
+  it("OMITS maxRounds when a stimulus set is present (set ceiling wins)", () => {
+    const ctx = planToAgentContext(plan({ maxRounds: 10 }), [
+      stimulus({}),
+      stimulus({ id: "s2", position: 2, label: "Variante B" }),
+    ]);
+    // Decision 4: stimulus-set studies keep stimulusSetCeiling, so the manual
+    // length must never reach their snapshot.
+    expect("maxRounds" in ctx).toBe(false);
+  });
+
+  it("omits maxRounds when unset (system-default length)", () => {
+    const ctx = planToAgentContext(plan({ maxRounds: null }));
+    expect("maxRounds" in ctx).toBe(false);
   });
 });
 

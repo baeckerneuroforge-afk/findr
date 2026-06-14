@@ -86,6 +86,9 @@ const CreatePlanBodySchema = z.object({
   // F2 — interview language for the whole study; inherited by its invites,
   // open-links and sessions. Defaults to 'de' (existing behavior).
   language: z.enum(["de", "en"]).optional().default("de"),
+  // Per-study interview length — agent-question UPPER BOUND. Optional; omitted
+  // → DB stays NULL → system default (6). Bound mirrors the migration CHECK.
+  maxRounds: z.number().int().min(2).max(15).nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -121,6 +124,7 @@ export async function POST(req: NextRequest) {
       stimulusDescription: parsed.data.stimulusDescription ?? null,
       studyType: parsed.data.studyType,
       language: parsed.data.language,
+      maxRounds: parsed.data.maxRounds ?? null,
     });
     return NextResponse.json({ success: true, planId: plan.id, plan });
   } catch (err) {

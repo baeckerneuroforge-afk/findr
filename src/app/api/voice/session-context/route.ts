@@ -168,6 +168,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       })),
       brand: input.brand ?? null,
       systemPrompt,
+      // Konfigurierte Runden-Obergrenze (Agent-Fragen) für diese Studie — der
+      // Voice-Agent (eigenes Repo) schließt ab diesem Wert sanft ab. Null für
+      // Default-Länge UND für JEDE Stimulus-Set-Studie (deren Snapshot maxRounds
+      // bewusst auslässt → der Agent nutzt dort seine eigene stimulus_set-
+      // Decke). Ein alter Agent ignoriert das Feld — graceful.
+      maxRounds: input.plan.maxRounds ?? null,
       conversation,
       nextTurnIndex: conversation.length,
     });

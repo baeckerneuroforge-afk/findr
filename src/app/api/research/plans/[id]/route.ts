@@ -93,6 +93,9 @@ const UpdatePlanBodySchema = z
       .optional()
       .transform((v) => (v === "" ? null : v)),
     language: z.enum(["de", "en"]).optional(),
+    // Per-study interview length. `null` clears it back to the system default,
+    // a number sets the ceiling. Bound mirrors the migration CHECK.
+    maxRounds: z.number().int().min(2).max(15).nullable().optional(),
   })
   .refine(
     (data) =>
@@ -111,7 +114,8 @@ const UpdatePlanBodySchema = z
       data.stimulusUrl !== undefined ||
       data.stimulusType !== undefined ||
       data.stimulusDescription !== undefined ||
-      data.language !== undefined,
+      data.language !== undefined ||
+      data.maxRounds !== undefined,
     { message: "At least one field must be present in the update body." },
   );
 
@@ -184,6 +188,7 @@ export async function PATCH(
       stimulusUrl: parsed.data.stimulusUrl,
       stimulusType: parsed.data.stimulusType,
       stimulusDescription: parsed.data.stimulusDescription,
+      maxRounds: parsed.data.maxRounds,
     });
     if (!plan) {
       // Defensive: the existence check above passed, so this only fires on

@@ -6,6 +6,8 @@ import {
   buildResearchTail,
   buildTurnMessages,
   createDoneHeaderParser,
+  DEFAULT_RESEARCH_AGENT_CEILING,
+  formatRoundCeiling,
   formatStimulusSet,
   stimulusSetCeiling,
   stripTurnInternals,
@@ -627,6 +629,56 @@ describe("buildResearchTail — Stimulus-COUNTERS (E4)", () => {
   it("stays byte-identical without a set", () => {
     const tail = buildResearchTail(BASE_INPUT, history);
     expect(tail).not.toContain("stimuli");
+  });
+});
+
+describe("formatRoundCeiling — configurable round ceiling (Paket 1)", () => {
+  it("returns null at the default ceiling (no override → byte-identical)", () => {
+    expect(formatRoundCeiling(DEFAULT_RESEARCH_AGENT_CEILING)).toBeNull();
+    expect(formatRoundCeiling(6)).toBeNull();
+  });
+
+  it("emits a 5/6-replacing override for a non-default ceiling", () => {
+    const short = formatRoundCeiling(4);
+    expect(short).toContain("ERSETZT die Basis-Zahlen 5/6");
+    expect(short).toContain("ab 3 Agent-Fragen aktiv abwickeln, ab 4");
+
+    const deep = formatRoundCeiling(10);
+    expect(deep).toContain("ab 9 Agent-Fragen aktiv abwickeln, ab 10");
+  });
+
+  it("injects the override into the context for non-stimulus studies", () => {
+    const withCeiling = buildResearchContext(
+      { ...BASE_INPUT, plan: { ...BASE_INPUT.plan, maxRounds: 10 } },
+      "de",
+    );
+    expect(withCeiling).toContain("ab 9 Agent-Fragen aktiv abwickeln, ab 10");
+  });
+
+  it("stays byte-identical at the default ceiling and when unset", () => {
+    const base = buildResearchContext(BASE_INPUT, "de");
+    const atDefault = buildResearchContext(
+      { ...BASE_INPUT, plan: { ...BASE_INPUT.plan, maxRounds: 6 } },
+      "de",
+    );
+    const unset = buildResearchContext(
+      { ...BASE_INPUT, plan: { ...BASE_INPUT.plan, maxRounds: null } },
+      "de",
+    );
+    expect(atDefault).toBe(base);
+    expect(unset).toBe(base);
+    expect(base).not.toContain("ABWEICHENDES STOP-CEILING");
+  });
+
+  it("does NOT add the round override when a stimulus set is present (set ceiling wins)", () => {
+    const withSetAndRounds = buildResearchContext(
+      { ...setInput(TWO_SET), plan: { ...setInput(TWO_SET).plan, maxRounds: 10 } },
+      "de",
+    );
+    // The set's own ceiling (N=2 → 9) renders; the maxRounds override (…ab 10)
+    // must NOT, because buildResearchContext gates it on !hasStimulusSet.
+    expect(withSetAndRounds).toContain("ab 8 Agent-Fragen aktiv abwickeln, ab 9");
+    expect(withSetAndRounds).not.toContain("ab 10");
   });
 });
 
