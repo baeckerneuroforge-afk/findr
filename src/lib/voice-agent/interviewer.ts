@@ -1026,6 +1026,11 @@ export interface ResearchPlanContext {
    *  Stimulus-Set-Override). Reine Obergrenze — die Sättigung darf früher
    *  schließen. */
   maxRounds?: number | null;
+  /** Konfiguriertes Zeitlimit (Sekunden) für diese Studie. Wird im Prompt NICHT
+   *  verwendet — nur im Snapshot mitgeführt, damit advanceInterview (Text-weich)
+   *  und der Voice-Agent (hart) es aus dem deal_context lesen können. Fehlend/
+   *  null → kein Limit. Gilt für ALLE Studien, auch mit Stimulus-Set. */
+  maxDurationSeconds?: number | null;
 }
 
 /** Vendor / brand context — null for independent / external research. */

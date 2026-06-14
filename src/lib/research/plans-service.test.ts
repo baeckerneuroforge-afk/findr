@@ -54,6 +54,7 @@ function plan(overrides: Partial<ResearchPlanRecord>): ResearchPlanRecord {
     studyType: "market_research",
     language: "de",
     maxRounds: null,
+    maxDurationSeconds: null,
     createdAt: "2026-06-01T00:00:00.000Z",
     ...overrides,
   };
@@ -121,6 +122,27 @@ describe("planToAgentContext — maxRounds snapshot gating (Paket 1)", () => {
   it("omits maxRounds when unset (system-default length)", () => {
     const ctx = planToAgentContext(plan({ maxRounds: null }));
     expect("maxRounds" in ctx).toBe(false);
+  });
+});
+
+describe("planToAgentContext — maxDurationSeconds snapshot (Paket 2)", () => {
+  it("carries maxDurationSeconds for a study WITHOUT a stimulus set", () => {
+    const ctx = planToAgentContext(plan({ maxDurationSeconds: 600 }));
+    expect(ctx.maxDurationSeconds).toBe(600);
+  });
+
+  it("STILL carries maxDurationSeconds WITH a stimulus set (time cap applies to all)", () => {
+    const ctx = planToAgentContext(plan({ maxDurationSeconds: 600 }), [
+      stimulus({}),
+      stimulus({ id: "s2", position: 2, label: "Variante B" }),
+    ]);
+    // Unlike maxRounds, the time limit is NOT suppressed for set-studies.
+    expect(ctx.maxDurationSeconds).toBe(600);
+  });
+
+  it("omits maxDurationSeconds when unset (no limit)", () => {
+    const ctx = planToAgentContext(plan({ maxDurationSeconds: null }));
+    expect("maxDurationSeconds" in ctx).toBe(false);
   });
 });
 

@@ -89,6 +89,9 @@ const CreatePlanBodySchema = z.object({
   // Per-study interview length — agent-question UPPER BOUND. Optional; omitted
   // → DB stays NULL → system default (6). Bound mirrors the migration CHECK.
   maxRounds: z.number().int().min(2).max(15).nullable().optional(),
+  // Per-study time limit in seconds (3..60 min). Optional; omitted → NULL → no
+  // limit. Bound mirrors the migration CHECK.
+  maxDurationSeconds: z.number().int().min(180).max(3600).nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -125,6 +128,7 @@ export async function POST(req: NextRequest) {
       studyType: parsed.data.studyType,
       language: parsed.data.language,
       maxRounds: parsed.data.maxRounds ?? null,
+      maxDurationSeconds: parsed.data.maxDurationSeconds ?? null,
     });
     return NextResponse.json({ success: true, planId: plan.id, plan });
   } catch (err) {

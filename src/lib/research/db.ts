@@ -62,6 +62,10 @@ type InterviewSessionsRow = {
   completed_at: string | null;
   conversation: Json;
   created_at: string;
+  // "Room entered" timestamp (20260716000002) — stamped when the opening turn
+  // is first persisted. Basis for the per-study time limit. Pre-migration
+  // select("*") omits it → read mapper defaults undefined→null (no clock).
+  started_at: string | null;
   deal_context: Json | null;
   deal_id: string | null;
   evidence: string | null;
@@ -97,6 +101,7 @@ type InterviewSessionsInsert = {
   completed_at?: string | null;
   conversation?: Json;
   created_at?: string;
+  started_at?: string | null;
   deal_context?: Json | null;
   deal_id?: string | null;
   evidence?: string | null;
@@ -132,6 +137,7 @@ type InterviewSessionsUpdate = {
   completed_at?: string | null;
   conversation?: Json;
   created_at?: string;
+  started_at?: string | null;
   deal_context?: Json | null;
   deal_id?: string | null;
   evidence?: string | null;
@@ -245,6 +251,11 @@ export type ResearchPlanRow = {
   // migration lands select("*") omits it; the read mapper (coerceNullableInt)
   // defaults undefined→null → default-length behavior, byte-identical.
   max_rounds: number | null;
+  // Per-study interview time limit in seconds (20260716000001). NULL = no
+  // limit. Voice = hard (agent timer), Text = soft (countdown + close on next
+  // send). Pre-migration select("*") omits it; read mapper (coerceNullableInt)
+  // defaults undefined→null → no time limit, byte-identical.
+  max_duration_seconds: number | null;
   created_at: string;
 };
 
@@ -278,6 +289,7 @@ type ResearchPlanInsert = {
   // Optional beim Insert — nur gesetzt, wenn der Forscher eine Länge wählt;
   // sonst weggelassen → NULL → System-Default (byte-identisch).
   max_rounds?: number | null;
+  max_duration_seconds?: number | null;
   created_at?: string;
 };
 
@@ -305,6 +317,7 @@ type ResearchPlanUpdate = {
   study_type?: ResearchPlanStudyType;
   language?: Language;
   max_rounds?: number | null;
+  max_duration_seconds?: number | null;
   created_at?: string;
 };
 

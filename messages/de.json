@@ -15,6 +15,11 @@
       "label": "Fortschritt",
       "aria": "Interview-Fortschritt: {percent}%"
     },
+    "timer": {
+      "remaining": "Noch ~{minutes} Min",
+      "lastMinute": "Weniger als 1 Minute",
+      "expired": "Zeit abgelaufen"
+    },
     "withdraw": {
       "link": "Meine Daten löschen",
       "confirm": "Deine Interview-Daten (Transkript und Auswertung) endgültig löschen? Das kann nicht rückgängig gemacht werden.",
@@ -1158,6 +1163,10 @@
       "lengthCustomLabel": "Max. Fragen (2–15)",
       "lengthCustomHint": "Leer lassen für Standard. Obergrenze — das Interview kann früher enden, wenn alle Themen abgedeckt sind.",
       "errMaxRounds": "Max. Fragen muss eine ganze Zahl zwischen 2 und 15 sein.",
+      "fldTimeLimit": "Zeitlimit",
+      "timeLimitHint": "Optionales Zeitlimit. Voice-Interviews werden nach Ablauf automatisch beendet; bei Text-Interviews läuft ein sichtbarer Countdown und das Gespräch schließt bei der nächsten Antwort nach Ablauf. Leer = kein Limit.",
+      "timeLimitUnit": "Minuten (leer = kein Limit)",
+      "errMaxDuration": "Zeitlimit muss eine ganze Zahl zwischen 3 und 60 Minuten sein.",
       "modeTextLabel": "Text-Interview",
       "modeTextDesc": "Der KI-Interviewer stellt seine Fragen im Chat, Teilnehmer antworten per Tastatur. Optional liest eine KI-Stimme die Fragen vor (Vorlesefunktion unten).",
       "modeVoiceLabel": "Voice-Agent",

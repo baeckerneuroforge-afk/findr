@@ -125,6 +125,10 @@ export interface InterviewSession {
   result: InterviewResult | null;
   model: string | null;
   createdAt: string;
+  /** "Room entered" timestamp — stamped when the opening turn is first
+   *  persisted (ensureOpeningTurn). Basis for the per-study time limit. Null
+   *  for legacy/pre-opening sessions → no clock. */
+  startedAt: string | null;
   completedAt: string | null;
   /** Phase 4 Baustein 3 (Panel-Anbieter) — Inbound-Attribution der externen
    *  Teilnehmer-ID + Snapshot der Complete-Return-URL. Null für JEDE
@@ -200,6 +204,14 @@ export interface PublicInterviewView {
    *  die ganze Session, da nur von der bei Erstellung fixierten Set-Größe
    *  abhängig. Rein abgeleitet — keine DB-Spalte, kein Engine-Eingriff. */
   progressTotal: number;
+  /** Zeitlimit dieser Session (Sekunden) bzw. null = kein Limit. Aus dem
+   *  research-Plan-Snapshot; null für post_loss/checkin und jede Studie ohne
+   *  gesetztes Limit. */
+  maxDurationSeconds: number | null;
+  /** Zeitstempel „Raum betreten" (ISO) bzw. null. Zusammen mit
+   *  maxDurationSeconds berechnet der Client den sichtbaren Countdown
+   *  (startedAt + maxDurationSeconds = Deadline). Null → kein Countdown. */
+  startedAt: string | null;
 }
 
 function generateToken(): string {
@@ -231,6 +243,9 @@ function toSession(row: Row): InterviewSession {
     result: (row.result as unknown as InterviewResult | null) ?? null,
     model: row.model,
     createdAt: row.created_at,
+    // Defensive: undefined pre-migration (select("*") omits the column) → null,
+    // so every existing read stays byte-identical (no clock).
+    startedAt: (row as { started_at?: string | null }).started_at ?? null,
     completedAt: row.completed_at,
     // Defensive narrow; undefined pre-migration (select("*") omits the column) →
     // null, so every existing read stays byte-identical.
@@ -318,6 +333,15 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
             ?.maxRounds ?? MAX_AGENT_TURNS)
         : MAX_AGENT_TURNS;
 
+  // Zeitlimit der Session aus dem Plan-Snapshot (nur research; null sonst).
+  // Zusammen mit startedAt rendert der Client den Countdown. Gilt für ALLE
+  // research-Studien inkl. Stimulus-Set (anders als die Runden-Obergrenze).
+  const maxDurationSeconds =
+    session.kind === "research"
+      ? ((session.dealContext as unknown as ResearchInput | null)?.plan
+          ?.maxDurationSeconds ?? null)
+      : null;
+
   return {
     status: session.status,
     // E3 — Teilnehmer-Payloads tragen NIE interne Turn-Felder (why): wer
@@ -325,6 +349,8 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
     conversation: stripTurnInternals(session.conversation),
     stimuli,
     progressTotal,
+    maxDurationSeconds,
+    startedAt: session.startedAt,
     orgId: session.orgId,
     planId: session.planId,
     company,
@@ -984,7 +1010,14 @@ export async function ensureOpeningTurn(
   const supabase = createResearchSupabase();
   const { data, error } = await supabase
     .from("interview_sessions")
-    .update({ conversation: conversation as unknown as Json })
+    // started_at = "Raum betreten": exakt hier, wenn das Opening zum ersten Mal
+    // persistiert wird (race-guarded über conversation = '[]'). Das ist der
+    // Beginn des Interview-Inhalts und die Basis des Zeitlimits. Wird genau
+    // einmal gesetzt — dieselbe '[]'-Bedingung verhindert ein Überschreiben.
+    .update({
+      conversation: conversation as unknown as Json,
+      started_at: new Date().toISOString(),
+    })
     .eq("access_token", token)
     // jsonb equality — Postgres normalizes jsonb at parse, so '[]' matches
     // regardless of how the empty array was ever formatted on write.
@@ -1088,18 +1121,35 @@ export async function advanceInterview(
         : MAX_RESEARCH_TOTAL_TURNS;
     const wouldHitCap = history.length + 1 >= totalCap;
 
+    // Zeitlimit (Text-weich): überschreitet die seit started_at verstrichene
+    // Zeit das konfigurierte Limit, schließt DIESE Antwort das Interview — über
+    // EXAKT denselben Pfad wie der Turn-Cap (generische Closing-Message statt
+    // einer ins Leere laufenden Frage). Greift NUR bei gesetztem Limit UND
+    // vorhandenem started_at (Bestand/legacy ohne Stempel → kein Zeit-Cap,
+    // byte-identisch). Ein untätig offenes Text-Interview bleibt offen — der
+    // Server hat keinen Live-Prozess; der Schluss passiert beim nächsten Senden.
+    const maxDurationMs =
+      input.plan.maxDurationSeconds != null
+        ? input.plan.maxDurationSeconds * 1000
+        : null;
+    const wouldHitTimeCap =
+      maxDurationMs != null &&
+      session.startedAt != null &&
+      Date.now() - new Date(session.startedAt).getTime() >= maxDurationMs;
+    const wouldClose = wouldHitCap || wouldHitTimeCap;
+
     const { done, message, why, showStimulusPosition } =
       await nextResearchMessage(
         input,
         history,
         session.language,
         model,
-        wouldHitCap ? undefined : onDelta,
-        // Cap-Close-Turns dürfen auch kein Reveal-Event feuern — die Message
-        // wird gleich durch die generische Closing ersetzt.
-        wouldHitCap ? undefined : onShow,
+        wouldClose ? undefined : onDelta,
+        // Cap-/Zeit-Close-Turns dürfen auch kein Reveal-Event feuern — die
+        // Message wird gleich durch die generische Closing ersetzt.
+        wouldClose ? undefined : onShow,
       );
-    const forceCapClose = wouldHitCap && !done;
+    const forceCapClose = wouldClose && !done;
     const finalAgentText = forceCapClose
       ? RESEARCH_CAP_CLOSING_MESSAGE
       : message;

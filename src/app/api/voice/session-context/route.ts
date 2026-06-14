@@ -174,6 +174,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       // bewusst auslässt → der Agent nutzt dort seine eigene stimulus_set-
       // Decke). Ein alter Agent ignoriert das Feld — graceful.
       maxRounds: input.plan.maxRounds ?? null,
+      // Zeitlimit (Sekunden) für diese Studie — der Voice-Agent startet einen
+      // Timer und schließt nach Ablauf hart ab (Abschluss-Satz → auflegen).
+      // Null = kein Limit. Gilt für ALLE Studien (auch Stimulus-Set). Ein alter
+      // Agent ignoriert das Feld — graceful.
+      maxDurationSeconds: input.plan.maxDurationSeconds ?? null,
       conversation,
       nextTurnIndex: conversation.length,
     });

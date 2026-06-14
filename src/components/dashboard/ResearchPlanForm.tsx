@@ -179,6 +179,10 @@ interface FormState {
   // schließen. Gilt für BEIDE Studientypen; Stimulus-Set-Studien ignorieren den
   // Wert serverseitig (planToAgentContext lässt ihn aus dem Snapshot weg).
   maxRounds: number | null;
+  // Zeitlimit in MINUTEN (UI-Einheit). null = kein Limit. Wird als
+  // `maxDurationSeconds` (×60) in jeden create/update-Body gesendet. Voice
+  // erzwingt es hart, Text weich (Countdown). Gilt für ALLE Studientypen.
+  maxDurationMinutes: number | null;
   topics: TopicDraft[];
 }
 
@@ -352,6 +356,8 @@ const INITIAL_FORM: FormState = {
   // Default null = Standard-Länge (System-Default ≈6) → byte-identischer
   // Create, solange der Forscher die Länge nicht ändert.
   maxRounds: null,
+  // Default null = kein Zeitlimit → byte-identisch.
+  maxDurationMinutes: null,
   // Start with one empty topic so the editor isn't blank — encourages the
   // user to fill at least one in. Empty topics are dropped at submit time.
   topics: [emptyTopicDraft()],
@@ -564,6 +570,10 @@ export function ResearchPlanForm({
           signalsEnabled: form.signalsEnabled,
           language: form.language,
           maxRounds: form.maxRounds,
+          maxDurationSeconds:
+            form.maxDurationMinutes != null
+              ? form.maxDurationMinutes * 60
+              : null,
           ...useCasePayload,
           ...audienceTypePayload,
           ...studyTypePayload,
@@ -1088,6 +1098,18 @@ export function ResearchPlanForm({
       return;
     }
 
+    // Optional Zeitlimit (Minuten): null = kein Limit. Gesetzt muss 3..60 sein
+    // (×60 = 180..3600s, spiegelt Zod + CHECK).
+    if (
+      form.maxDurationMinutes !== null &&
+      (!Number.isInteger(form.maxDurationMinutes) ||
+        form.maxDurationMinutes < 3 ||
+        form.maxDurationMinutes > 60)
+    ) {
+      setError(t("errMaxDuration"));
+      return;
+    }
+
     const topics = topicDraftsToResearchTopics(form.topics);
 
     setSubmitting(true);
@@ -1113,6 +1135,10 @@ export function ResearchPlanForm({
               ttsEnabled: form.ttsEnabled,
               signalsEnabled: form.signalsEnabled,
               maxRounds: form.maxRounds,
+              maxDurationSeconds:
+                form.maxDurationMinutes != null
+                  ? form.maxDurationMinutes * 60
+                  : null,
               ...useCasePayload,
               ...audienceTypePayload,
               ...stimulusDescriptionPayload,
@@ -1144,6 +1170,10 @@ export function ResearchPlanForm({
           signalsEnabled: form.signalsEnabled,
           language: form.language,
           maxRounds: form.maxRounds,
+          maxDurationSeconds:
+            form.maxDurationMinutes != null
+              ? form.maxDurationMinutes * 60
+              : null,
           ...useCasePayload,
           ...audienceTypePayload,
           ...studyTypePayload,
@@ -1932,6 +1962,49 @@ export function ResearchPlanForm({
               </p>
             </div>
           </details>
+        </div>
+
+        {/* Zeitlimit — optionales Cap pro Studie (`maxDurationSeconds`,
+            Minuten×60 im Submit-Body). Voice erzwingt es HART (Timer →
+            Abschluss-Satz → auflegen), Text WEICH (sichtbarer Countdown, Schluss
+            beim nächsten Senden nach Ablauf; untätig offen bleibt offen). Leer =
+            kein Limit → byte-identisch. Sichtbar für BEIDE Studientypen; gilt
+            auch für Stimulus-Set-Studien (anders als die Runden-Obergrenze). */}
+        <div className="rounded-lg border border-neutral-200 bg-card p-4">
+          <span className="block text-body-strong text-neutral-900">
+            {t("fldTimeLimit")}
+          </span>
+          <span className="mt-1 block text-caption text-neutral-500">
+            {t("timeLimitHint")}
+          </span>
+          <div className="mt-3 flex items-center gap-2">
+            <div className="w-24">
+              <input
+                id="maxDurationMinutes"
+                type="number"
+                inputMode="numeric"
+                min={3}
+                max={60}
+                value={form.maxDurationMinutes ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  if (raw === "") {
+                    update("maxDurationMinutes", null);
+                    return;
+                  }
+                  const n = Number(raw);
+                  update("maxDurationMinutes", Number.isNaN(n) ? null : n);
+                }}
+                placeholder="—"
+                disabled={submitting}
+                className={FIELD_INPUT_CLASS}
+                aria-label={t("fldTimeLimit")}
+              />
+            </div>
+            <span className="text-small text-neutral-600">
+              {t("timeLimitUnit")}
+            </span>
+          </div>
         </div>
 
         {/* Vorlesefunktion (TTS) — eigenes Feld `ttsEnabled` (exakt dieser

@@ -285,6 +285,9 @@ export default async function InterviewPage({
         stimuli={stimulusSet}
         // Fortschrittsbalken — gestellte Agent-Fragen ÷ diese System-Decke.
         progressTotal={session.progressTotal}
+        // Zeitlimit-Countdown (Text: weich, schließt beim nächsten Senden).
+        maxDurationSeconds={session.maxDurationSeconds}
+        startedAt={session.startedAt}
         {...ttsProps}
         {...useCaseProps}
       />,

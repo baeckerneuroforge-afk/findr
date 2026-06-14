@@ -15,6 +15,11 @@
       "label": "Progress",
       "aria": "Interview progress: {percent}%"
     },
+    "timer": {
+      "remaining": "~{minutes} min left",
+      "lastMinute": "Less than 1 minute",
+      "expired": "Time's up"
+    },
     "withdraw": {
       "link": "Delete my data",
       "confirm": "Permanently delete your interview data (transcript and analysis)? This cannot be undone.",
@@ -1158,6 +1163,10 @@
       "lengthCustomLabel": "Max. questions (2–15)",
       "lengthCustomHint": "Leave empty for Standard. Upper bound — the interview can end earlier once every topic is covered.",
       "errMaxRounds": "Max. questions must be a whole number between 2 and 15.",
+      "fldTimeLimit": "Time limit",
+      "timeLimitHint": "Optional time limit. Voice interviews end automatically once it elapses; text interviews show a visible countdown and close on the next answer after it passes. Empty = no limit.",
+      "timeLimitUnit": "minutes (empty = no limit)",
+      "errMaxDuration": "Time limit must be a whole number between 3 and 60 minutes.",
       "modeTextLabel": "Text interview",
       "modeTextDesc": "The AI interviewer asks its questions in a chat; participants answer by keyboard. Optionally an AI voice reads the questions aloud (read-aloud option below).",
       "modeVoiceLabel": "Voice agent",

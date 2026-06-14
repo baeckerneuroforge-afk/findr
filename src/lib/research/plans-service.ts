@@ -97,6 +97,11 @@ export interface ResearchPlanRecord {
    *  stimulusSetCeiling regardless). The saturation engine may still close
    *  earlier — this is a ceiling, never a forced count. */
   maxRounds: number | null;
+  /** Per-study interview time limit in seconds. Null = no limit. Voice enforces
+   *  it hard (agent timer → closing line → disconnect); text enforces it softly
+   *  (visible countdown, close on next answer once elapsed). Applies to ALL
+   *  studies, including stimulus-set ones. */
+  maxDurationSeconds: number | null;
   createdAt: string;
 }
 
@@ -268,6 +273,9 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     studyType: coerceStudyType(row.study_type),
     language: coerceLanguage((row as { language?: unknown }).language),
     maxRounds: coerceNullableInt((row as { max_rounds?: unknown }).max_rounds),
+    maxDurationSeconds: coerceNullableInt(
+      (row as { max_duration_seconds?: unknown }).max_duration_seconds,
+    ),
     createdAt: row.created_at,
   };
 }
@@ -347,6 +355,13 @@ export function planToAgentContext(
     ...(plan.maxRounds != null &&
     !(plan.studyType === "market_research" && stimuli && stimuli.length > 0)
       ? { maxRounds: plan.maxRounds }
+      : {}),
+    // Zeitlimit — wandert IMMER in den Snapshot, wenn gesetzt (anders als
+    // maxRounds): das Zeit-Cap gilt für ALLE Studien, auch Stimulus-Set. Fehlt
+    // der Schlüssel → kein Limit (byte-identisch). Die Engine (Text-weich) und
+    // der Voice-Agent (hart) lesen ihn aus dem deal_context.
+    ...(plan.maxDurationSeconds != null
+      ? { maxDurationSeconds: plan.maxDurationSeconds }
       : {}),
   };
 }
@@ -737,6 +752,8 @@ export interface CreateResearchPlanInput {
   /** Per-study agent-question ceiling. Omitted/null → DB stays NULL → system
    *  default length (byte-identical create). */
   maxRounds?: number | null;
+  /** Per-study time limit in seconds. Omitted/null → DB stays NULL → no limit. */
+  maxDurationSeconds?: number | null;
 }
 
 /**
@@ -788,6 +805,9 @@ export async function createResearchPlan(
       // direktem Key) hält den Insert pre-migration-sicher: ohne angewandte
       // Migration enthält der Insert den Schlüssel gar nicht erst.
       ...(input.maxRounds != null ? { max_rounds: input.maxRounds } : {}),
+      ...(input.maxDurationSeconds != null
+        ? { max_duration_seconds: input.maxDurationSeconds }
+        : {}),
     })
     .select("*")
     .single();
@@ -825,6 +845,9 @@ export interface UpdateResearchPlanInput {
   /** Per-study agent-question ceiling. `null` clears it back to the system
    *  default; a number sets the ceiling. `undefined` leaves it untouched. */
   maxRounds?: number | null;
+  /** Per-study time limit in seconds. `null` clears it (no limit); a number
+   *  sets it. `undefined` leaves it untouched. */
+  maxDurationSeconds?: number | null;
 }
 
 /**
@@ -866,6 +889,7 @@ export async function updateResearchPlan(
     stimulus_analysis_status?: string | null;
     language?: "de" | "en";
     max_rounds?: number | null;
+    max_duration_seconds?: number | null;
   } = {};
   if (input.title !== undefined) update.title = input.title;
   if (input.objective !== undefined) update.objective = input.objective;
@@ -896,6 +920,8 @@ export async function updateResearchPlan(
     update.stimulus_analysis_status = input.stimulusAnalysisStatus;
   if (input.language !== undefined) update.language = input.language;
   if (input.maxRounds !== undefined) update.max_rounds = input.maxRounds;
+  if (input.maxDurationSeconds !== undefined)
+    update.max_duration_seconds = input.maxDurationSeconds;
 
   if (Object.keys(update).length === 0) {
     return getResearchPlan(orgId, planId);

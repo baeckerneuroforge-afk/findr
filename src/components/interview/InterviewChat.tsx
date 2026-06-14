@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { InterviewProgress } from "./InterviewProgress";
+import { InterviewTimer } from "./InterviewTimer";
 import { WithdrawDataLink } from "./WithdrawDataLink";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 
@@ -83,6 +84,11 @@ interface InterviewChatProps {
    *  System-Decke, gegen die der Balken-Prozentwert läuft. Default 6 = die
    *  Standard-Sättigungsdecke, falls die Page (alte Reader) sie nicht liefert. */
   progressTotal?: number;
+  /** Zeitlimit der Studie (Sekunden) bzw. null = kein Limit. Zusammen mit
+   *  startedAt rendert der Countdown. */
+  maxDurationSeconds?: number | null;
+  /** „Raum betreten"-Zeitstempel (ISO) bzw. null. Basis des Countdowns. */
+  startedAt?: string | null;
 }
 
 /** E5 Multi-Stimulus — ein Set-Element, wie die Public-Session-View es
@@ -875,6 +881,8 @@ export function InterviewChat({
   stimuli = null,
   ttsEnabled = false,
   progressTotal = 6,
+  maxDurationSeconds = null,
+  startedAt = null,
 }: InterviewChatProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
@@ -2008,6 +2016,12 @@ export function InterviewChat({
       </div>
 
       <InterviewProgress percent={progressPercent} accentColor={accent} />
+
+      <InterviewTimer
+        startedAt={startedAt}
+        maxDurationSeconds={maxDurationSeconds}
+        active={isOpen}
+      />
 
       <div className="flex-1 space-y-4">
         <VisualCapturePanel
