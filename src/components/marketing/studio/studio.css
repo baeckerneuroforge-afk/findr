@@ -1406,6 +1406,12 @@
   line-height: 1.04;
   letter-spacing: -0.015em;
   color: var(--st-cream);
+  /* Lange Komposita („MARKENWAHRNEHMUNG“) in der schmalen 4-Spalten-Karte
+     sonst über den overflow:hidden-Rand abgeschnitten: an der Silbe trennen
+     (hyphens greift, da das Marketing-<html> lang="de" trägt), break-word als
+     Sicherheitsnetz, falls kein Trennpunkt passt. */
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 .st-minitape p {
   font-size: 14px;
