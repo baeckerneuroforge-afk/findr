@@ -92,7 +92,7 @@ export function StudioHero() {
   }, []);
 
   return (
-    <section className="st-sky relative flex min-h-[92svh] flex-col justify-end overflow-hidden pt-28">
+    <section className="st-sky relative flex min-h-[clamp(640px,92svh,880px)] flex-col justify-end overflow-hidden pt-28">
       <HeroConstellation className="pointer-events-none absolute right-[-70px] top-[24px] z-0 w-[clamp(240px,30vw,500px)] opacity-[0.55]" />
       <canvas
         ref={waveRef}
