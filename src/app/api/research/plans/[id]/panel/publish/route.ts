@@ -14,7 +14,7 @@ import { ProlificApiError } from "@/lib/panel/prolific";
  * Prolific aus dem Workspace-Guthaben des verbundenen Accounts finanziert.
  * Kein Body; alle Preconditions erzwingt der Service serverseitig (inkl.
  * Live-Status-Check gegen Doppel-Publish). Die UI hängt davor einen
- * expliziten Confirm-Schritt — findr published nie automatisch.
+ * expliziten Confirm-Schritt — Klymeo published nie automatisch.
  *
  * Fehler-Mapping wie die Geschwister-Routen; ProlificApiError trägt
  * zusätzlich `detail` = Prolifics wörtliche Begründung (z. B. bei

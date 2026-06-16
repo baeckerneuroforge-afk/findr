@@ -26,9 +26,9 @@ import { ogDefaults } from "@/lib/marketing/seo";
 import type { ComponentType, SVGProps } from "react";
 
 const PATH = "/preise";
-const OG_TITLE = "Preise — findr.";
+const OG_TITLE = "Preise — Klymeo";
 const DESCRIPTION =
-  "Custom-based Pricing für findr.: Du zahlst für die Methoden, den Umfang und die Begleitung, die zu deinem Team passen — den konkreten Preis legen wir gemeinsam im Demo-Call fest. In Frankfurt gehostet, DSGVO-konform.";
+  "Custom-based Pricing für Klymeo: Du zahlst für die Methoden, den Umfang und die Begleitung, die zu deinem Team passen — den konkreten Preis legen wir gemeinsam im Demo-Call fest. In Frankfurt gehostet, DSGVO-konform.";
 
 export const metadata: Metadata = {
   title: "Preise",
@@ -130,11 +130,11 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
   },
   {
     q: "Ist das DSGVO-konform?",
-    a: "findr. ist in Deutschland gebaut, in Frankfurt gehostet und DSGVO-nativ, ausgerichtet auf den EU AI Act. Datenschutz ist die Grundlage der Plattform, nicht der Nachgedanke — das gilt für jede Methode und jeden Account.",
+    a: "Klymeo ist in Deutschland gebaut, in Frankfurt gehostet und DSGVO-nativ, ausgerichtet auf den EU AI Act. Datenschutz ist die Grundlage der Plattform, nicht der Nachgedanke — das gilt für jede Methode und jeden Account.",
   },
   {
     q: "Gibt es einen Piloten oder Einstieg?",
-    a: "Ein begleiteter Einstieg ist möglich. Wir definieren gemeinsam einen klaren Rahmen, in dem du findr. an deinen echten Gesprächen erlebst, bevor du dich festlegst. Wie dieser Einstieg konkret aussieht, besprechen wir im Demo-Call.",
+    a: "Ein begleiteter Einstieg ist möglich. Wir definieren gemeinsam einen klaren Rahmen, in dem du Klymeo an deinen echten Gesprächen erlebst, bevor du dich festlegst. Wie dieser Einstieg konkret aussieht, besprechen wir im Demo-Call.",
   },
 ];
 
@@ -164,7 +164,7 @@ export default function PreisePage() {
               as="h1"
               eyebrow="Preise"
               title="Du zahlst für das, was du nutzt — nicht für ein Paket, das nicht passt."
-              lead="findr. passt sich an dein Team, die Methoden und den Umfang an. Den konkreten Preis legen wir gemeinsam im Gespräch fest — transparent, ohne Schubladen-Tarif."
+              lead="Klymeo passt sich an dein Team, die Methoden und den Umfang an. Den konkreten Preis legen wir gemeinsam im Gespräch fest — transparent, ohne Schubladen-Tarif."
             />
           </Reveal>
           <Reveal>
@@ -224,7 +224,7 @@ export default function PreisePage() {
           <Reveal>
             <SectionHeading
               eyebrow="In jedem Konto"
-              title="Was bei jedem findr.-Konto dabei ist."
+              title="Was bei jedem Klymeo-Konto dabei ist."
               lead="Unabhängig davon, welche Methoden du wählst: Diese Grundlagen gelten für jeden Account — die DACH-Souveränität, auf die es in Europa ankommt, und das Beleg-Versprechen, das durch jede Methode läuft."
             />
           </Reveal>
@@ -252,7 +252,7 @@ export default function PreisePage() {
           </div>
           <Reveal>
             <p className="mx-auto mt-10 max-w-2xl text-center text-[14px] leading-relaxed text-neutral-500">
-              Du willst findr. erst an deinen eigenen Gesprächen sehen? Ein
+              Du willst Klymeo erst an deinen eigenen Gesprächen sehen? Ein
               begleiteter Einstieg ist möglich — den passenden Rahmen besprechen
               wir im Demo-Call.
             </p>
@@ -284,7 +284,7 @@ export default function PreisePage() {
               <p className="max-w-xl text-[17px] leading-relaxed text-neutral-300">
                 In einem kurzen Gespräch klären wir, welche Methoden, welcher Umfang
                 und welche Begleitung zu deinem Team passen — und du siehst, was
-                findr. an deinen echten Gesprächen leistet.
+                Klymeo an deinen echten Gesprächen leistet.
               </p>
               <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
                 <CtaLink href="/demo" variant="secondary" size="lg">

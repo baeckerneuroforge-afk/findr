@@ -7,7 +7,7 @@ import {
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/branchen/mittelstand";
-const OG_TITLE = "Market Research für den Mittelstand — findr.";
+const OG_TITLE = "Market Research für den Mittelstand — Klymeo";
 const DESCRIPTION =
   "Qualitative Marktforschung ohne Institutsbudget: KI-Interviews mit deinen Kunden und Zielgruppen auf Deutsch — auf Wunsch per Voice-Agent. Belegte Antworten statt Bauchgefühl, exportiert als PDF oder PowerPoint, DSGVO-nativ in Frankfurt.";
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const SOFTWARE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "findr. Market Research — Mittelstand",
+  name: "Klymeo Market Research — Mittelstand",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: `${SITE_URL}${PATH}`,
@@ -33,7 +33,7 @@ const CONTENT: IndustryContent = {
   eyebrow: "Branche · Mittelstand",
   heroTitle: <>Frag deinen Markt — ohne ein Institut zu beauftragen.</>,
   heroSubhead:
-    "Im Mittelstand fallen Produkt-, Preis- und Markenentscheidungen oft aus Erfahrung, weil klassische Marktforschung Wochen dauert und schnell fünfstellig kostet. findr. führt die Tiefeninterviews selbst — KI-geführt, auf Deutsch, auf Wunsch hörbar per Voice-Agent — und macht aus „das sagt der Vertrieb“ eine Antwort, die je Studie am Gespräch belegt ist.",
+    "Im Mittelstand fallen Produkt-, Preis- und Markenentscheidungen oft aus Erfahrung, weil klassische Marktforschung Wochen dauert und schnell fünfstellig kostet. Klymeo führt die Tiefeninterviews selbst — KI-geführt, auf Deutsch, auf Wunsch hörbar per Voice-Agent — und macht aus „das sagt der Vertrieb“ eine Antwort, die je Studie am Gespräch belegt ist.",
   audience:
     "Geschäftsführung, Marketing- und Produktverantwortliche im Mittelstand — vom Hersteller über den Händler bis zum Dienstleister.",
   pain: {
@@ -65,7 +65,7 @@ const CONTENT: IndustryContent = {
   solution: {
     eyebrow: "Mittelstand · Die belegte Antwort",
     title: <>Vom Vertriebs-Hörensagen zur belegten Marktstimme.</>,
-    body: "Setz für jede Frage eine eigene Studie auf — Preiswahrnehmung, neues Angebot, Markenbild. Lade deine eigenen Kunden per Link ein oder rekrutiere über Panel-Anbindung und Screening genau die Zielgruppe, die du brauchst. findr. interviewt auf Deutsch, auf Wunsch per Voice-Agent, und verdichtet alles zu Themen, Lagern und Originalzitaten — exportierbar als PDF-Report oder PowerPoint-Deck für die nächste Geschäftsführungsrunde.",
+    body: "Setz für jede Frage eine eigene Studie auf — Preiswahrnehmung, neues Angebot, Markenbild. Lade deine eigenen Kunden per Link ein oder rekrutiere über Panel-Anbindung und Screening genau die Zielgruppe, die du brauchst. Klymeo interviewt auf Deutsch, auf Wunsch per Voice-Agent, und verdichtet alles zu Themen, Lagern und Originalzitaten — exportierbar als PDF-Report oder PowerPoint-Deck für die nächste Geschäftsführungsrunde.",
     payoff: {
       strong: "Eine Zahl, die du in der Geschäftsführung verteidigst.",
       body: "Fragt jemand „woher wissen wir das?“, zeigst du die Zahl — und das Originalzitat aus der jeweiligen Studie daneben. Nichts hochgerechnet, nichts angenommen.",
@@ -124,7 +124,7 @@ const CONTENT: IndustryContent = {
     "Jede Fähigkeit arbeitet an echten Interviews mit echten Menschen — gebaut, damit Marktforschung auch ohne Insights-Abteilung funktioniert.",
   cta: {
     title: <>Hör deinem Markt zu — ab dieser Woche.</>,
-    lead: "Buch eine Demo und sieh, wie findr. eine Mittelstands-Frage über mehrere Studien beantwortet — belegt, exportierbar, ohne Institut.",
+    lead: "Buch eine Demo und sieh, wie Klymeo eine Mittelstands-Frage über mehrere Studien beantwortet — belegt, exportierbar, ohne Institut.",
   },
 };
 

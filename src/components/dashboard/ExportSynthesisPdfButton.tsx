@@ -4,7 +4,7 @@ import { useState, type MouseEvent } from "react";
 import { useTranslations } from "next-intl";
 
 /**
- * "Als PDF exportieren" — downloads the Stage-2 synthesis as a Findr-
+ * "Als PDF exportieren" — downloads the Stage-2 synthesis as a Klymeo-
  * branded PDF. Sibling to UpdateSynthesisButton; sits next to it in the
  * Synthese-Header. ADDITIVE — does not change any existing behaviour.
  *
@@ -76,7 +76,7 @@ export function ExportSynthesisPdfButton({
       const date = new Date().toISOString().split("T")[0];
       const a = document.createElement("a");
       a.href = url;
-      a.download = `findr-synthesis-${date}.pdf`;
+      a.download = `klymeo-synthesis-${date}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

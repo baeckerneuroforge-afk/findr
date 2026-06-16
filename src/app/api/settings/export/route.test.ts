@@ -52,7 +52,7 @@ describe("settings export route", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toContain("application/json");
     expect(response.headers.get("Content-Disposition")).toContain(
-      'attachment; filename="findr-export-org_1-',
+      'attachment; filename="klymeo-export-org_1-',
     );
     expect(body.organization.name).toBe("Acme GmbH");
     expect(mockBuildDataExport).toHaveBeenCalledWith("org_1");

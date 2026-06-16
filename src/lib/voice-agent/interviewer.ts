@@ -216,7 +216,7 @@ Then your next message to the ${audience}, or a short warm closing if done — p
 Wherever these instructions say to set "done": true or false, express it ONLY through this first DONE line. Never repeat the DONE, WHY or SHOW line inside the message itself.`;
 }
 
-const INTERVIEWER_CORE = `You are findr.'s post-loss interview agent. A B2B SaaS deal was just lost, and you are reaching out to the buyer (over text/chat) to learn the REAL reason it didn't go forward. This is research — you are NOT trying to win the deal back or sell anything.
+const INTERVIEWER_CORE = `You are Klymeo's post-loss interview agent. A B2B SaaS deal was just lost, and you are reaching out to the buyer (over text/chat) to learn the REAL reason it didn't go forward. This is research — you are NOT trying to win the deal back or sell anything.
 
 You work in DACH (Germany / Austria / Switzerland). LANGUAGE: every interview is conducted in a REQUIRED language, given in the context below. Write ALL of your messages in that language — including your opening message, which you send before the buyer has said anything — and stay in it for the whole conversation. The required language always takes precedence. (Fallback, only if no required language were given: mirror the buyer's language — German if they write German, otherwise English.)
 
@@ -230,7 +230,7 @@ YOUR JOB:
 - Ask at most 4–5 questions in total. As soon as you have a clear, specific reason (or the buyer plainly won't say more), STOP and close warmly with a short thank-you.
 
 PRIVATE CONTEXT (never reveal):
-- You are told what findr.'s risk analysis SUSPECTED the reason was. Use it ONLY as a private hypothesis to steer your follow-ups. Never state it, never lead the buyer toward it, never say "we think you left because…". Let the buyer tell the truth in their own words.`;
+- You are told what Klymeo's risk analysis SUSPECTED the reason was. Use it ONLY as a private hypothesis to steer your follow-ups. Never state it, never lead the buyer toward it, never say "we think you left because…". Let the buyer tell the truth in their own words.`;
 
 export const INTERVIEWER_SYSTEM_PROMPT = `${INTERVIEWER_CORE}
 
@@ -241,7 +241,7 @@ const INTERVIEWER_TURN_SYSTEM_PROMPT = `${INTERVIEWER_CORE}
 
 ${plainOutputBlock("buyer")}`;
 
-export const EXTRACTION_SYSTEM_PROMPT = `You analyze a COMPLETED post-loss interview between findr.'s agent and a B2B buyer whose deal was lost. Determine the REAL primary reason the deal was lost, in the buyer's own words — read past polite surface answers and weight what the buyer revealed when gently pressed.
+export const EXTRACTION_SYSTEM_PROMPT = `You analyze a COMPLETED post-loss interview between Klymeo's agent and a B2B buyer whose deal was lost. Determine the REAL primary reason the deal was lost, in the buyer's own words — read past polite surface answers and weight what the buyer revealed when gently pressed.
 
 Classify into EXACTLY ONE category:
 - pricing — the price/cost itself was the blocker.
@@ -255,7 +255,7 @@ Classify into EXACTLY ONE category:
 - internal_priority — deprioritized for other internal initiatives / reorg.
 - other — none genuinely fit.
 
-You are also given what findr.'s risk analysis PREDICTED (its signals + reasoning). Judge whether the real reason matches:
+You are also given what Klymeo's risk analysis PREDICTED (its signals + reasoning). Judge whether the real reason matches:
 - "yes" — the real reason matches the predicted risk.
 - "partial" — the prediction caught part of it but mis-prioritized or only partly overlaps.
 - "no" — the real reason differs from what was predicted.
@@ -306,7 +306,7 @@ function buildInterviewerContext(
 LOST DEAL CONTEXT:
 ${formatDeal(input.deal)}
 
-PRIVATE — what findr.'s risk analysis suspected (do NOT reveal to the buyer):
+PRIVATE — what Klymeo's risk analysis suspected (do NOT reveal to the buyer):
 ${formatRiskPrediction(input.riskAnalysis)}`;
 }
 
@@ -317,7 +317,7 @@ function buildExtractionPrompt(
   return `LOST DEAL CONTEXT:
 ${formatDeal(input.deal)}
 
-WHAT findr.'s RISK ANALYSIS PREDICTED:
+WHAT Klymeo's RISK ANALYSIS PREDICTED:
 ${formatRiskPrediction(input.riskAnalysis)}
 
 FULL INTERVIEW TRANSCRIPT:
@@ -839,8 +839,8 @@ export async function extractLossReasonFromInterview(
 // ----------------------------------------------------------------------------
 // Check-in agent (CS Health) — a SHORT post-sale satisfaction check-in.
 //
-// Separate from the post-loss interview: different identity (speaks in the Findr
-// CUSTOMER's name, not as findr.) and different purpose (ongoing satisfaction,
+// Separate from the post-loss interview: different identity (speaks in the Klymeo
+// CUSTOMER's name, not as Klymeo) and different purpose (ongoing satisfaction,
 // not loss research). It reuses the same conversation mechanic — the {done,
 // message} schema, turn handling, language enforcement, and the JSON/Zod/retry
 // plumbing (callJson). The completed conversation is turned into a transcript and
@@ -849,7 +849,7 @@ export async function extractLossReasonFromInterview(
 // ----------------------------------------------------------------------------
 
 export interface CheckinAccountContext {
-  /** The Findr customer — the company in whose name the agent speaks. */
+  /** The Klymeo customer — the company in whose name the agent speaks. */
   orgName: string;
   /** What the customer bought (label only; falls back upstream if unset). */
   productName: string;
@@ -955,7 +955,7 @@ export async function nextCheckinMessage(
 // (no riskAnalysis-style result column).
 //
 // brand is OPTIONAL: when the research runs on behalf of a vendor (the common
-// internal case — a Findr customer researching their own market), brand
+// internal case — a Klymeo customer researching their own market), brand
 // carries orgName + product. For external / independent research it is null;
 // the agent then frames itself as "independent research", no vendor name.
 // ----------------------------------------------------------------------------

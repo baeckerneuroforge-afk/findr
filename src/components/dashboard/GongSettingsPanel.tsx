@@ -131,7 +131,7 @@ export function GongSettingsPanel({
             Connect your Gong workspace
           </h3>
           <p className="mb-5 text-body text-neutral-700">
-            Findr imports call metadata and transcripts from Gong. We map calls
+            Klymeo imports call metadata and transcripts from Gong. We map calls
             to deals heuristically and never write back to Gong.
           </p>
           <ul className="mb-6 space-y-2 text-body text-neutral-700">

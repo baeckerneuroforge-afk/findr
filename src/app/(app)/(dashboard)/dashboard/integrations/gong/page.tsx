@@ -31,7 +31,7 @@ export default async function GongIntegrationPage({
       <div>
         <h1 className="text-display text-neutral-900">Gong Integration</h1>
         <p className="mt-1 text-body text-neutral-500">
-          Sync call recordings and transcripts from Gong into Findr.
+          Sync call recordings and transcripts from Gong into Klymeo.
         </p>
       </div>
 

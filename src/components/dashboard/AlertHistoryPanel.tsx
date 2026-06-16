@@ -28,7 +28,7 @@ export async function AlertHistoryPanel({ alerts }: AlertHistoryPanelProps) {
         <div>
           <h3 className="text-h3 text-neutral-900">Alert history</h3>
           <p className="text-small text-neutral-500">
-            Last 20 Slack alerts sent by Findr.
+            Last 20 Slack alerts sent by Klymeo.
           </p>
         </div>
       </div>

@@ -11,7 +11,7 @@ import { persistResearchTranscriptAndDiscovery } from "@/lib/research/transcript
 import type { RoutableAssignment } from "@/lib/schemas/voice-ingest";
 
 /**
- * Findr Voice — Meeting-Typ-Router (Etappe 1).
+ * Klymeo Voice — Meeting-Typ-Router (Etappe 1).
  *
  * routeIngestedCall() schaltet auf assignment.kind und ruft GENAU EINE der
  * BESTEHENDEN Engine-Eintritte. KEINE neue KI-Logik, KEINE Änderung an den
@@ -86,7 +86,7 @@ async function insertVoiceCall(
         source: "findr_voice",
         external_meeting_id: input.externalMeetingId,
         segments: input.segments ?? null,
-        hint: "Findr Voice desktop recording. Speaker prefixes parsed during analysis when present.",
+        hint: "Klymeo Voice desktop recording. Speaker prefixes parsed during analysis when present.",
       } as unknown as Json,
     })
     .select("id")

@@ -11,7 +11,7 @@ import { resolveExportBranding } from "@/lib/settings/branding-assets";
 /**
  * GET /api/research/plans/[id]/synthesis/pptx
  *
- * Streams a Findr-branded PowerPoint (.pptx) of the Stage-2 synthesis for one
+ * Streams a Klymeo-branded PowerPoint (.pptx) of the Stage-2 synthesis for one
  * plan. Second shareout format next to /synthesis/pdf — SAME auth, ownership,
  * gating and data path as that route; the only difference is buildSynthesisPptx
  * instead of buildSynthesisPdf. No parallel aggregation or re-fetch.
@@ -84,7 +84,7 @@ export async function GET(
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "Content-Disposition": `attachment; filename="findr-synthesis-${date}.pptx"`,
+        "Content-Disposition": `attachment; filename="klymeo-synthesis-${date}.pptx"`,
         "Cache-Control": "no-store",
       },
     });

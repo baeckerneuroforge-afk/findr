@@ -26,7 +26,7 @@ type Line = {
 
 const LINES: Line[] = [
   {
-    who: "findr.",
+    who: "Klymeo",
     f: true,
     text: "Erzähl mal von letzter Woche — wie hast du entschieden, was du kochst?",
   },
@@ -37,7 +37,7 @@ const LINES: Line[] = [
     stamp: { label: "Bedürfnis", cls: "" },
     finding: 1,
   },
-  { who: "findr.", f: true, text: "Und wenn dir nichts einfällt — was machst du dann?" },
+  { who: "Klymeo", f: true, text: "Und wenn dir nichts einfällt — was machst du dann?" },
   {
     who: "Person",
     f: false,
@@ -45,7 +45,7 @@ const LINES: Line[] = [
     stamp: { label: "Workaround", cls: "st-stamp--2" },
     finding: 2,
   },
-  { who: "findr.", f: true, text: "Hast du schon mal etwas ausprobiert, um das zu lösen?" },
+  { who: "Klymeo", f: true, text: "Hast du schon mal etwas ausprobiert, um das zu lösen?" },
   {
     who: "Person",
     f: false,
@@ -53,7 +53,7 @@ const LINES: Line[] = [
     stamp: { label: "Reibung", cls: "st-stamp--3" },
     finding: 3,
   },
-  { who: "findr.", f: true, text: "Danke — das ist sehr aufschlussreich." },
+  { who: "Klymeo", f: true, text: "Danke — das ist sehr aufschlussreich." },
 ];
 
 const FINDINGS = [
@@ -285,7 +285,7 @@ export function SessionDeck() {
               <span className="old">Mehr Rezepte gewünscht</span>
             </div>
             <div className="st-row">
-              <span>findr.</span>
+              <span>Klymeo</span>
               <span className="neu">Entscheidungslast, nicht Rezeptmangel</span>
             </div>
           </div>

@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="findr-loss-report-${report.period_start}.pdf"`,
+        "Content-Disposition": `attachment; filename="klymeo-loss-report-${report.period_start}.pdf"`,
         "Cache-Control": "no-store",
       },
     });

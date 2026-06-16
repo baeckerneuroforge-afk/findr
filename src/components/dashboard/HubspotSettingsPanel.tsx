@@ -109,7 +109,7 @@ export function HubspotSettingsPanel({
             Connect your Hubspot account
           </h3>
           <p className="mb-5 text-body text-neutral-700">
-            Findr will read your deals, companies, and owners. We never write
+            Klymeo will read your deals, companies, and owners. We never write
             back to Hubspot.
           </p>
           <ul className="mb-6 space-y-2 text-body text-neutral-700">

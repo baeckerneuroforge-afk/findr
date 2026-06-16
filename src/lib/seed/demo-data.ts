@@ -149,7 +149,7 @@ const DEMO_LOSS_REASONS: DemoLossReason[] = [
         call_id: "demo_loss_deal_011_call_02",
         speaker: "Claudia Neumann",
         quote:
-          "[Claudia Neumann|champion|Champion kann Compliance-Blocker nicht auflösen] Ich finde Findr fachlich stark, aber Legal hat gerade die Hand drauf. Mir fehlt intern die Freigabe für die Datenverarbeitung.",
+          "[Claudia Neumann|champion|Champion kann Compliance-Blocker nicht auflösen] Ich finde Klymeo fachlich stark, aber Legal hat gerade die Hand drauf. Mir fehlt intern die Freigabe für die Datenverarbeitung.",
         pattern_matched: "legal|datenverarbeitung",
       },
     ],
@@ -216,7 +216,7 @@ const DEMO_LOSS_REASONS: DemoLossReason[] = [
         call_id: "demo_loss_deal_014_call_01",
         speaker: "Tobias Winter",
         quote:
-          "[Tobias Winter|decision_maker|Preis liegt ueber Mittelstandsbudget] Preislich ist Findr für uns aktuell zu hoch. Wir müssten dafür ein anderes Tool streichen, und das bekomme ich nicht genehmigt.",
+          "[Tobias Winter|decision_maker|Preis liegt ueber Mittelstandsbudget] Preislich ist Klymeo für uns aktuell zu hoch. Wir müssten dafür ein anderes Tool streichen, und das bekomme ich nicht genehmigt.",
         pattern_matched: "preislich|zu\\s+hoch",
       },
       {
@@ -247,7 +247,7 @@ const DEMO_LOSS_REASONS: DemoLossReason[] = [
         call_id: "demo_loss_deal_015_call_02",
         speaker: "Kai Mertens",
         quote:
-          "[Kai Mertens|decision_maker|Konkurrent deckt Einkaufskriterien ausreichend ab] Findr ist fachlich stärker, aber Salesforce erfüllt genug Kriterien und Procurement bevorzugt ein bestehendes Vendor-Setup.",
+          "[Kai Mertens|decision_maker|Konkurrent deckt Einkaufskriterien ausreichend ab] Klymeo ist fachlich stärker, aber Salesforce erfüllt genug Kriterien und Procurement bevorzugt ein bestehendes Vendor-Setup.",
         pattern_matched: "salesforce|konkurrent",
       },
     ],
@@ -364,7 +364,7 @@ export const DEMO_RISK_SCORES: DemoRiskScore[] = [
         type: "COMPETITOR_PRESSURE",
         confidence: 0.68,
         reasoning:
-          "Hubspot remains a comparison point, though the buyer prefers Findr's depth.",
+          "Hubspot remains a comparison point, though the buyer prefers Klymeo's depth.",
         quotes: [
           "[Florian Neumann|buyer|Hubspot ist noch im Vergleich, aber nicht klar führend] Hubspot hat uns auch was gezeigt. Ihr seid da tiefer, aber ich muss den Unterschied noch sauber erklären können.",
         ],
@@ -585,7 +585,7 @@ function toDealInsert(orgId: string, deal: Deal): DealInsert {
     name: deal.name,
     amount: deal.amount,
     stage: deal.stage,
-    owner_email: `${deal.ownerName.toLowerCase().replaceAll(" ", ".")}@findr.demo`,
+    owner_email: `${deal.ownerName.toLowerCase().replaceAll(" ", ".")}@klymeo.demo`,
     closed_at: deal.closeDate,
     raw_data: {
       demo_seed: true,

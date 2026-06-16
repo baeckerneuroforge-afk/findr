@@ -9,7 +9,7 @@ import type { Metadata } from "next";
  * swapping the domain later is a one-line change.
  */
 export const SITE_URL = "https://findr.de";
-export const SITE_NAME = "findr.";
+export const SITE_NAME = "Klymeo";
 
 /**
  * Default Open Graph object. Spread into every page's `openGraph` as
@@ -29,7 +29,7 @@ export const ogDefaults: NonNullable<Metadata["openGraph"]> = {
       url: "/og-image.png",
       width: 1200,
       height: 630,
-      alt: "findr. — Qualitative Marktforschung mit KI",
+      alt: "Klymeo — Qualitative Marktforschung mit KI",
     },
   ],
 };

@@ -6,7 +6,7 @@ import type { ForecastSummary } from "@/lib/forecast/service";
 import { translate } from "@/i18n/messages";
 import { toBcp47, type Locale } from "@/i18n/locale";
 
-// Findr branding — consistent with the dashboard color polish.
+// Klymeo branding — consistent with the dashboard color polish.
 const COLORS = {
   primary: "#6366f1", // indigo accent
   text: "#18181b", // near-black headings/body
@@ -63,11 +63,11 @@ function addHeader(
   subtitle: string,
   _locale: Locale,
 ): void {
-  // "Findr" is the literal wordmark — never localized. `title`/`subtitle` are
+  // "Klymeo" is the literal wordmark — never localized. `title`/`subtitle` are
   // resolved by the callers (already locale-aware), so the only reason this
   // helper takes `locale` is to keep chrome helpers uniformly threaded.
   void _locale;
-  doc.font("Helvetica-Bold").fontSize(20).fillColor(COLORS.primary).text("Findr");
+  doc.font("Helvetica-Bold").fontSize(20).fillColor(COLORS.primary).text("Klymeo");
   doc.moveDown(0.3);
   doc.font("Helvetica-Bold").fontSize(16).fillColor(COLORS.text).text(title);
   doc.font("Helvetica").fontSize(10).fillColor(COLORS.muted).text(subtitle);

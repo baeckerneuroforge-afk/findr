@@ -6,7 +6,7 @@ import { SearchHeaderWidget } from "@/components/search/SearchHeaderWidget";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 import { useTheme } from "@/components/theme/ThemeShell";
-import { findrDashboardClerkAppearance } from "@/lib/clerk/dashboard-appearance";
+import { klymeoDashboardClerkAppearance } from "@/lib/clerk/dashboard-appearance";
 
 export default function DashboardHeader() {
   // Der UserButton-Popover portalt nach document.body — AUSSERHALB des
@@ -28,7 +28,7 @@ export default function DashboardHeader() {
         <LanguageSwitcher variant="header" />
         <UserButton
           appearance={{
-            variables: findrDashboardClerkAppearance(resolvedDark).variables,
+            variables: klymeoDashboardClerkAppearance(resolvedDark).variables,
             elements: {
               avatarBox: "w-8 h-8",
             },
@@ -38,7 +38,7 @@ export default function DashboardHeader() {
           // ohne .dark-Ahnen ihre HELLEN Werte auflösen (Mischmasch).
           userProfileProps={{
             appearance: {
-              variables: findrDashboardClerkAppearance(resolvedDark).variables,
+              variables: klymeoDashboardClerkAppearance(resolvedDark).variables,
             },
           }}
         />

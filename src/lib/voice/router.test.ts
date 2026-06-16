@@ -11,7 +11,7 @@ import { getResearchPlan } from "@/lib/research/plans-service";
 import { persistResearchTranscriptAndDiscovery } from "@/lib/research/transcript-service";
 
 /**
- * Disambiguation contract for the Findr Voice router (Etappe 1). The engines are
+ * Disambiguation contract for the Klymeo Voice router (Etappe 1). The engines are
  * mocked, so this runs with no DB / no Claude / no migration — it proves ONLY
  * the routing: each assignment.kind hits EXACTLY ONE engine, the sales path sets
  * the deal_id parent and never account_id (calls XOR), unknown targets fail

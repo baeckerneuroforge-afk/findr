@@ -15,7 +15,7 @@
  * ("ACTIVE", "APPROVED", "AWAITING REVIEW", …, "TOTAL") und Zahlen als
  * Werten. Wir übernehmen NUR string→endliche-Zahl-Einträge und kappen die
  * Key-Länge — das Vokabular gehört dem Provider und darf wachsen, ohne dass
- * findr bricht.
+ * Klymeo bricht.
  */
 
 export interface PanelStudySnapshot {

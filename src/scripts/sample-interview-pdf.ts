@@ -5,7 +5,7 @@
  * The generator imports "server-only", so run with the react-server condition:
  *   pnpm exec tsx --conditions=react-server src/scripts/sample-interview-pdf.ts
  *
- * Writes to /tmp/findr-interview-report-sample.pdf.
+ * Writes to /tmp/klymeo-interview-report-sample.pdf.
  */
 
 import { writeFileSync } from "node:fs";
@@ -31,7 +31,7 @@ async function main(): Promise<void> {
         "Unser Geschäftsführer, der das Projekt vorangetrieben hat, hat das Unternehmen verlassen — danach gab es niemanden mehr, der für die Lösung gekämpft hat.",
       matchedRiskPrediction: "yes",
       reasoning:
-        "Findrs Risk-Analyse sagte einen Champion-Verlust voraus, und das Interview bestätigt es: Der interne Fürsprecher ging, und ohne ihn fehlte die Priorität. Preis und Präsentation waren ausdrücklich nicht das Problem.",
+        "Klymeos Risk-Analyse sagte einen Champion-Verlust voraus, und das Interview bestätigt es: Der interne Fürsprecher ging, und ohne ihn fehlte die Priorität. Preis und Präsentation waren ausdrücklich nicht das Problem.",
       conversation: [
         {
           role: "agent",
@@ -59,7 +59,7 @@ async function main(): Promise<void> {
     },
   });
 
-  const out = "/tmp/findr-interview-report-sample.pdf";
+  const out = "/tmp/klymeo-interview-report-sample.pdf";
   writeFileSync(out, pdf);
   console.log(`Wrote ${pdf.length} bytes to ${out}`);
 }

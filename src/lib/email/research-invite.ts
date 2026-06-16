@@ -18,7 +18,7 @@ import { toBcp47, type Locale } from "@/i18n/locale";
  *
  * Mode-agnostic by design — text / voice / video share the same copy.
  *
- * Duration default of 30 minutes is a Findr-side product choice. If a per-plan
+ * Duration default of 30 minutes is a Klymeo-side product choice. If a per-plan
  * duration is later added to research_plans, the orchestration passes it
  * through.
  */
@@ -80,7 +80,7 @@ export interface BuiltEmail {
 
 export interface ResearchInviteParams {
   contactName: string | null;
-  /** The Findr customer running the research (vendor side). */
+  /** The Klymeo customer running the research (vendor side). */
   orgName: string;
   scheduledAt: Date;
   /** Length of the interview window. Default 30 minutes — used for the ICS
@@ -91,7 +91,7 @@ export interface ResearchInviteParams {
   /** Buyer-facing language. Defaults to "de" (DACH) when omitted. */
   locale?: Locale;
   /**
-   * White-label branding for the Findr customer. When unset (or fields null)
+   * White-label branding for the Klymeo customer. When unset (or fields null)
    * the mail falls back to today's behavior: org-name text header, #4A51A8 CTA.
    * accentColor is re-validated inside the builder before use; logoUrl is an
    * absolute Supabase public URL (required for email clients).

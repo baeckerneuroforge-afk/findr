@@ -6,7 +6,7 @@
  * InterviewChat. Kept tiny + dependency-free (used by client components).
  */
 
-/** Default Findr accent — fallback when no org accent color is set. */
+/** Default Klymeo accent — fallback when no org accent color is set. */
 export const DEFAULT_ACCENT = "#4A51A8";
 
 /** Only ever apply a caller-supplied accent if it's a strict #RRGGBB hex. */

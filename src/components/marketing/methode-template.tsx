@@ -27,12 +27,12 @@ import {
  *
  * The third public axis next to /produkt/<modul> and /branchen/<branche>: where a
  * module page explains the engine and an industry page sharpens it onto a market,
- * a method page explains ONE way findr. fragt — the methodical core that makes
+ * a method page explains ONE way Klymeo fragt — the methodical core that makes
  * the answer trustworthy. Every page composes the same blocks in the same order
  * so the four methods read as equally weighted; only the `content` varies:
  *
  *   ModuleHero (canvas, the page's single H1) → MethodStatus (warm ribbon,
- *   honest Live/Bald) → Pain "Wofür" (cream) → HowItWorks "Wie findr. fragt"
+ *   honest Live/Bald) → Pain "Wofür" (cream) → HowItWorks "Wie Klymeo fragt"
  *   (canvas, the differentiator) → Result "Was rauskommt" (cream) →
  *   ProofPoints (canvas, the shared synthesis engine) → MethodGrid (cream,
  *   cross-links) → CTASection (canvas)
@@ -47,7 +47,7 @@ import {
  * method's status plainly via MethodStatus, the status-tagged HowItWorks steps
  * and the CTA copy, never dressing a not-yet-live capability up as available. The
  * methodical essence is grounded in the real
- * in-product use-case notes; the example cards use findr.'s REAL interview
+ * in-product use-case notes; the example cards use Klymeo's REAL interview
  * questions and describe the output honestly — NO invented metrics, quotes or
  * customers. The synthesis ProofPoints reuse the vetted homepage claims (only
  * Highlight-Reels carries the conservative "Bald" tag, matching the module page).
@@ -119,7 +119,7 @@ export type MethodContent = {
     /** Red "blind spot" card — what staying with the old method cannot show. */
     blindCard: { badge: string; rows: ExampleRow[] };
   };
-  /** "Wie findr. fragt" — THE differentiator: the method's questioning logic. */
+  /** "Wie Klymeo fragt" — THE differentiator: the method's questioning logic. */
   how: { title: ReactNode; lead: ReactNode; steps: HowStep[] };
   /** "Was rauskommt" — narrative + a violet card built from REAL example
    *  questions and an honest description of the output (no invented numbers). */
@@ -307,15 +307,15 @@ export function MethodPage({ content }: { content: MethodContent }) {
         <Callout strong={content.pain.stakes.strong} body={content.pain.stakes.body} />
       </NarrativeBand>
 
-      {/* "Wie findr. fragt" — the methodical core, the page's reason to exist. */}
+      {/* "Wie Klymeo fragt" — the methodical core, the page's reason to exist. */}
       <HowItWorks
-        eyebrow="Wie findr. fragt"
+        eyebrow="Wie Klymeo fragt"
         title={content.how.title}
         lead={content.how.lead}
         steps={content.how.steps}
       />
 
-      {/* "Was rauskommt" — narrative + a violet card built from findr.'s REAL
+      {/* "Was rauskommt" — narrative + a violet card built from Klymeo's REAL
           example questions and an honest description of the output. */}
       <NarrativeBand
         eyebrow={content.result.eyebrow}

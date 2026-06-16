@@ -53,7 +53,7 @@ export const RECOMMENDATIONS_LIBRARY: Record<SignalType, Recommendation[]> = {
       signal_type: "competitor_pressure",
       priority: "medium",
       action:
-        "Create a mutual scorecard comparing Findr and the competitor across business outcomes, not only features.",
+        "Create a mutual scorecard comparing Klymeo and the competitor across business outcomes, not only features.",
       rationale:
         "Outcome-based scorecards shift the evaluation away from pricing bundles and toward business impact.",
       template_id: "competitive_scorecard",

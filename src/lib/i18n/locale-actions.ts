@@ -9,7 +9,7 @@ import { isLocale, LOCALE_COOKIE, type Locale } from "@/i18n/locale";
 /**
  * Persist the user's UI-language choice. Etappe-2 strategy = "cookie first":
  *
- *   1. findr.locale cookie         — the per-device fast path the locale
+ *   1. klymeo.locale cookie         — the per-device fast path the locale
  *      resolver (src/i18n/request.ts) actually reads today. Setting this is
  *      what flips the UI.
  *   2. Clerk publicMetadata.locale — the durable, per-user home of the

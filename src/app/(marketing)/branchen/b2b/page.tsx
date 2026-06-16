@@ -7,7 +7,7 @@ import {
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/branchen/b2b";
-const OG_TITLE = "Market Research für B2B — findr.";
+const OG_TITLE = "Market Research für B2B — Klymeo";
 const DESCRIPTION =
   "Qualitative B2B-Marktforschung mit KI-Interviews auf Deutsch: Entscheider, Anwender und Einkäufer im O-Ton — per Link in deine eigenen Kontakte, auf Wunsch per Voice-Agent. Belegte Antworten zu Bedarf, Positionierung und Angebot, DSGVO-nativ.";
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const SOFTWARE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "findr. Market Research — B2B",
+  name: "Klymeo Market Research — B2B",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: `${SITE_URL}${PATH}`,
@@ -33,7 +33,7 @@ const CONTENT: IndustryContent = {
   eyebrow: "Branche · B2B",
   heroTitle: <>Hör dem ganzen Buying-Center zu — nicht nur der lautesten Stimme.</>,
   heroSubhead:
-    "Im B2B entscheidet selten eine Person: Fachbereich, Einkauf, Geschäftsführung — jede Rolle hat eigene Gründe, und die wenigsten landen ungefiltert bei dir. findr. führt strukturierte Tiefeninterviews mit deinen Zielgruppen auf Deutsch, per Link direkt in deine Kontakte, auf Wunsch hörbar per Voice-Agent — und verdichtet die Gespräche zu belegten Antworten.",
+    "Im B2B entscheidet selten eine Person: Fachbereich, Einkauf, Geschäftsführung — jede Rolle hat eigene Gründe, und die wenigsten landen ungefiltert bei dir. Klymeo führt strukturierte Tiefeninterviews mit deinen Zielgruppen auf Deutsch, per Link direkt in deine Kontakte, auf Wunsch hörbar per Voice-Agent — und verdichtet die Gespräche zu belegten Antworten.",
   audience:
     "Marketing-, Produkt- und Strategieverantwortliche in B2B-Unternehmen — Software, Dienstleistung, Fertigung, Großhandel.",
   pain: {
@@ -65,7 +65,7 @@ const CONTENT: IndustryContent = {
   solution: {
     eyebrow: "B2B · Die belegte Antwort",
     title: <>Vom anekdotischen Feedback zur strukturierten Marktstimme.</>,
-    body: "Setz für jede Frage eine eigene Studie auf — Bedarfsanalyse, Positionierungs-Check, Angebotsverständnis. Lade Kunden, Beinahe-Kunden und Zielkontakte per Link ein; das Screening-Gate stellt sicher, dass die richtige Rolle antwortet — Anwender:in, Fachentscheider:in oder Einkauf. findr. führt das Tiefeninterview auf Deutsch, auf Wunsch per Voice-Agent für Gesprächspartner, die lieber reden als tippen, und verdichtet alles zu Themen, Lagern und Originalzitaten.",
+    body: "Setz für jede Frage eine eigene Studie auf — Bedarfsanalyse, Positionierungs-Check, Angebotsverständnis. Lade Kunden, Beinahe-Kunden und Zielkontakte per Link ein; das Screening-Gate stellt sicher, dass die richtige Rolle antwortet — Anwender:in, Fachentscheider:in oder Einkauf. Klymeo führt das Tiefeninterview auf Deutsch, auf Wunsch per Voice-Agent für Gesprächspartner, die lieber reden als tippen, und verdichtet alles zu Themen, Lagern und Originalzitaten.",
     payoff: {
       strong: "Eine Zahl, die du im Strategie-Meeting verteidigst.",
       body: "Fragt jemand „woher wissen wir das?“, zeigst du die Zahl — und das Originalzitat der jeweiligen Rolle daneben. Nichts hochgerechnet, nichts aus dritter Hand.",
@@ -124,7 +124,7 @@ const CONTENT: IndustryContent = {
     "Jede Fähigkeit arbeitet an echten Interviews mit echten Entscheidern und Anwendern — strukturiert statt anekdotisch.",
   cta: {
     title: <>Hör deinem Buying-Center zu.</>,
-    lead: "Buch eine Demo und sieh, wie findr. eine B2B-Frage über mehrere Studien beantwortet — Rolle für Rolle, je Studie belegt.",
+    lead: "Buch eine Demo und sieh, wie Klymeo eine B2B-Frage über mehrere Studien beantwortet — Rolle für Rolle, je Studie belegt.",
   },
 };
 

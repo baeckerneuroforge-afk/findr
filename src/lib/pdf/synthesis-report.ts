@@ -15,7 +15,7 @@ import { type Locale, toBcp47 } from "@/i18n/locale";
 
 /**
  * "Research Synthesis" PDF — a forwardable read-out of a Stage-2 study
- * synthesis. Same Findr style as the Post-Loss Interview Report: white,
+ * synthesis. Same Klymeo style as the Post-Loss Interview Report: white,
  * calm typography, violet #4A51A8 used sparingly as an accent.
  *
  * Typeface: Geist (brand font) is embedded as TrueType so German umlauts
@@ -30,7 +30,7 @@ import { type Locale, toBcp47 } from "@/i18n/locale";
  */
 
 const COLORS = {
-  violet: "#4A51A8", // Findr accent — used sparingly
+  violet: "#4A51A8", // Klymeo accent — used sparingly
   violetSoft: "#ededf6", // light violet for small chips
   ink: "#18181b", // headings + key content
   body: "#3f3f46", // softer paragraph text
@@ -69,7 +69,7 @@ export interface SynthesisPdfInput {
    *  Drives every chrome string + date formatting. */
   locale: Locale;
   /** Optional white-label branding (brand name / accent / embedded logo).
-   *  When unset, falls back to today's exact "Findr" + violet #4A51A8. */
+   *  When unset, falls back to today's exact "Klymeo" + violet #4A51A8. */
   branding?: ExportBranding;
 }
 
@@ -256,9 +256,9 @@ export async function buildSynthesisPdf(
   const width = contentWidth(doc);
   const { plan, synthesis, orgName, locale } = input;
 
-  // White-label brand mark + accent — fall back to today's exact "Findr" +
+  // White-label brand mark + accent — fall back to today's exact "Klymeo" +
   // violet #4A51A8 when branding is unset.
-  const brandName = input.branding?.brandName || "Findr";
+  const brandName = input.branding?.brandName || "Klymeo";
   const accent = input.branding?.accentColorHex || COLORS.violet;
 
   // ── Header ──

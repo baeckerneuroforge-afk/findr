@@ -1,17 +1,31 @@
 import Link from "next/link";
 import { SignIn } from "@clerk/nextjs";
-import { findrAuthAppearance } from "@/lib/clerk/appearance";
+import { klymeoAuthAppearance } from "@/lib/clerk/appearance";
+import { KlymeoMark } from "@/components/shared/KlymeoMark";
 
 export default function SignInPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-      <Link href="/" aria-label="Findr home" className="mb-8 inline-block">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="Findr" className="h-[30px] w-auto" />
+      <Link
+        href="/"
+        aria-label="Klymeo home"
+        className="mb-8 inline-flex items-center gap-2"
+      >
+        <KlymeoMark tone="onDark" className="h-8 w-8" />
+        <span
+          className="text-2xl text-white"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 500,
+            letterSpacing: "-0.04em",
+          }}
+        >
+          Klymeo
+        </span>
       </Link>
 
       <SignIn
-        appearance={findrAuthAppearance}
+        appearance={klymeoAuthAppearance}
         fallbackRedirectUrl="/dashboard"
         signUpFallbackRedirectUrl="/onboarding/create-org"
       />

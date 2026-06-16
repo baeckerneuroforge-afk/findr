@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { InterviewProgress } from "./InterviewProgress";
 import { InterviewTimer } from "./InterviewTimer";
 import { WithdrawDataLink } from "./WithdrawDataLink";
+import { KlymeoMark } from "@/components/shared/KlymeoMark";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 
 type Status = "open" | "completed" | "abandoned";
@@ -20,11 +21,11 @@ interface InterviewChatProps {
   initialConversation: InterviewTurn[];
   initialStatus: Status;
   company: string | null;
-  /** Drop Findr branding from the chrome — used by the research flow where
-   *  the participant is the customer of a Findr customer and has no
-   *  relationship with Findr. When true:
-   *    - the "findr." wordmark in the top bar is hidden,
-   *    - the bottom-of-input caption replaces "Powered by findr. · …"
+  /** Drop Klymeo branding from the chrome — used by the research flow where
+   *  the participant is the customer of a Klymeo customer and has no
+   *  relationship with Klymeo. When true:
+   *    - the "Klymeo" wordmark in the top bar is hidden,
+   *    - the bottom-of-input caption replaces "Powered by Klymeo · …"
    *      with a neutral "Confidential research interview." line.
    *  Defaults to false so post_loss / checkin renders unchanged. */
   brandless?: boolean;
@@ -34,12 +35,12 @@ interface InterviewChatProps {
    *  "Research interview". For post_loss / checkin this stays null and the
    *  original company-aware heading is rendered. */
   headingOverride?: string | null;
-  /** White-label (research only). When a Findr customer has set branding, the
+  /** White-label (research only). When a Klymeo customer has set branding, the
    *  brandless research header shows their logo/name instead of staying empty,
    *  and the accent color overrides the default violet. All null → byte-
    *  identical neutral fallback (today's behavior). */
   brandName?: string | null;
-  /** #RRGGBB accent; null → default Findr violet (#4A51A8). */
+  /** #RRGGBB accent; null → default Klymeo violet (#4A51A8). */
   accentColor?: string | null;
   /** Public logo URL; null → fall back to the text brand name (or nothing). */
   logoUrl?: string | null;
@@ -119,7 +120,7 @@ function shownPositions(turns: InterviewTurn[]): {
   return { max, last };
 }
 
-/** Default Findr accent — fallback when no org accent color is set. */
+/** Default Klymeo accent — fallback when no org accent color is set. */
 const DEFAULT_ACCENT = "#4A51A8";
 /** Only ever apply a caller-supplied accent if it's a strict #RRGGBB hex. */
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
@@ -2164,9 +2165,12 @@ export function InterviewChat({
           }`}
         >
           {!brandless && (
-            <span className="flex items-center text-[20px] font-extrabold tracking-[-0.02em] text-[#0E0A1F]">
-              findr
-              <span className="mb-[10px] ml-[1px] inline-block h-[4px] w-[4px] rounded-full bg-[#B00]" />
+            <span
+              className="flex items-center gap-1.5 text-[20px] tracking-[-0.04em] text-[#0E0A1F]"
+              style={{ fontFamily: "var(--font-display)", fontWeight: 500 }}
+            >
+              <KlymeoMark className="h-5 w-5 shrink-0" />
+              Klymeo
             </span>
           )}
           {hasBrand &&

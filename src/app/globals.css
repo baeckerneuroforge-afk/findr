@@ -9,7 +9,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Findr Brand Colors */
+  /* Klymeo Brand Colors */
   --color-violet-50: #eeeff8;
   --color-violet-100: #ededf6;
   --color-violet-200: #dcdeef;
@@ -146,13 +146,13 @@
   --color-neutral-700: #3f3f46;
   --color-neutral-900: #18181b;
 
-  /* Primary accent — Findr brand violet #4A51A8 (monochrome shell).
+  /* Primary accent — Klymeo brand violet #4A51A8 (monochrome shell).
      The dashboard/onboarding base is already monochrome (neutral grays);
      this is the ONE chromatic accent, used SPARINGLY by the components
      that consume primary-*: primary button background, focused-input
      border + focus ring, links / active labels, and subtle active-state
      washes (bg-primary-50). Swapped from indigo so the platform accent
-     matches the approved findr-shell-v2 design. 600 is the exact brand
+     matches the approved klymeo-shell-v2 design. 600 is the exact brand
      violet; 500 = lighter (rings/borders), 700 = darker (hover/active).
      NOTE: the full 50–900 ramp is now defined. 200/300/400/800/900 were
      referenced by components but previously UNDEFINED (dead classes); filling
@@ -183,7 +183,7 @@
   --color-danger-500: #ef4444;
   --color-danger-700: #b91c1c;
 
-  /* Risk-level mapping (Findr-specific) */
+  /* Risk-level mapping (Klymeo-specific) */
   --color-risk-low: #10b981;
   --color-risk-medium: #f59e0b;
   --color-risk-high: #f97316;

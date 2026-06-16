@@ -121,7 +121,7 @@ export function StudioHero() {
 
         <div className="mt-[clamp(28px,4vh,52px)] grid gap-7 pb-[clamp(120px,18vh,200px)] md:grid-cols-[minmax(0,560px)_auto] md:items-end md:justify-between">
           <Rv as="p" className="st-fade max-w-[54ch] text-[clamp(16px,1.4vw,19px)] leading-[1.7] text-neutral-500" d={150}>
-            findr. führt{" "}
+            Klymeo führt{" "}
             <b className="font-medium text-neutral-900">
               hunderte qualitative Tiefeninterviews
             </b>{" "}

@@ -113,7 +113,7 @@ function CompletedResult({ session }: { session: SessionView }) {
       {mp && (
         <div className={`rounded-lg border p-5 ${matchHeaderStyle(mp)}`}>
           <div className="mb-2 text-caption uppercase tracking-wider text-neutral-500">
-            {t("didFindrCallIt")}
+            {t("didKlymeoCallIt")}
           </div>
           <span
             className={`inline-block rounded-md border px-2 py-0.5 text-caption font-semibold uppercase ${matchBadgeStyle(mp)}`}
@@ -165,7 +165,7 @@ function CompletedResult({ session }: { session: SessionView }) {
               {conversation.map((turn, i) => (
                 <div key={i}>
                   <div className="mb-0.5 text-caption font-medium text-neutral-500">
-                    {turn.role === "agent" ? "Findr" : t("roleBuyer")}
+                    {turn.role === "agent" ? "Klymeo" : t("roleBuyer")}
                   </div>
                   <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-700">
                     {turn.text}

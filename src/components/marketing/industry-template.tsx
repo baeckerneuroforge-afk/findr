@@ -46,7 +46,7 @@ import {
  * the voice behind what already happened, the gap a dashboard leaves open
  * (sachlich, not fear-framed). The Proactive band is the FORWARD angle — the
  * same studies run BEFORE the decision (launch / roll-out / build, per
- * segment), to validate instead of guess. Both land on findr.'s one promise:
+ * segment), to validate instead of guess. Both land on Klymeo's one promise:
  * echte Gespräche mit echten Menschen, belegt statt geraten.
  *
  * GROUNDING: the steps and proof points below are the REAL platform
@@ -83,7 +83,7 @@ const MR_STEPS: HowStep[] = [
   {
     phase: "Vergleichen",
     title: "Cross-Study, exakt gezählt",
-    body: "Frag über alle Studien hinweg. findr. zählt deterministisch — „in 3 von 7 Studien“ — und belegt jede Zahl mit einem Zitat aus der jeweiligen Studie. Keine erfundenen Trends.",
+    body: "Frag über alle Studien hinweg. Klymeo zählt deterministisch — „in 3 von 7 Studien“ — und belegt jede Zahl mit einem Zitat aus der jeweiligen Studie. Keine erfundenen Trends.",
     tag: "Live",
   },
 ];
@@ -378,7 +378,7 @@ export function IndustryPage({ content }: { content: IndustryContent }) {
         <Callout strong={content.pain.stakes.strong} body={content.pain.stakes.body} />
       </NarrativeBand>
 
-      {/* How findr.'s Market Research solves it — the four REAL steps, with an
+      {/* How Klymeo's Market Research solves it — the four REAL steps, with an
           industry-tuned lead. */}
       <HowItWorks
         eyebrow="So funktioniert Market Research"

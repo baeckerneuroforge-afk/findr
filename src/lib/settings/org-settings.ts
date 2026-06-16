@@ -148,9 +148,9 @@ export const OrgBrandingSchema = z.object({
 export type OrgBrandingInput = z.input<typeof OrgBrandingSchema>;
 
 export interface OrgBranding {
-  /** Customer brand name shown instead of the "findr" wordmark. Null = unset. */
+  /** Customer brand name shown instead of the "Klymeo" wordmark. Null = unset. */
   brandName: string | null;
-  /** #RRGGBB accent. Null = use the default Findr accent (#4A51A8). */
+  /** #RRGGBB accent. Null = use the default Klymeo accent (#4A51A8). */
   accentColor: string | null;
   /** Public URL of the customer logo in the `org-branding` bucket. Null = none. */
   logoUrl: string | null;
@@ -178,7 +178,7 @@ function toBranding(data: {
  * Single source for an org's branding. Service-role read, so the
  * unauthenticated interview page can resolve it by org_id. Returns
  * all-null on any error or missing row → callers render the neutral
- * Findr default, nothing breaks.
+ * Klymeo default, nothing breaks.
  */
 export async function getOrgBranding(orgId: string): Promise<OrgBranding> {
   const supabase = createAdminSupabaseClient();

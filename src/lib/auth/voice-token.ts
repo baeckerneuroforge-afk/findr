@@ -8,7 +8,7 @@ import { getTranslations } from "next-intl/server";
 import type { Database } from "@/types/database";
 
 /**
- * Findr Voice — Bearer-Auth für die Desktop-/Ingest-Routes (Etappe 1).
+ * Klymeo Voice — Bearer-Auth für die Desktop-/Ingest-Routes (Etappe 1).
  *
  * E1: statische, org-gescopte Tokens (Tabelle voice_api_tokens, gehasht). Der
  * Desktop-Client (oder curl im Test) schickt `Authorization: Bearer <token>`;
@@ -77,7 +77,7 @@ function createVoiceTokenSupabase(): SupabaseClient<DatabaseWithVoiceTokens> {
   );
 }
 
-/** Findr-Voice token prefix, so a leaked string is recognizable in logs/scans. */
+/** Klymeo-Voice token prefix, so a leaked string is recognizable in logs/scans. */
 const TOKEN_PREFIX = "fv_";
 
 function sha256Hex(input: string): string {
@@ -152,7 +152,7 @@ export async function requireOrgIdFromBearer(
  */
 export async function createVoiceApiToken(
   orgId: string,
-  name = "Findr Voice token",
+  name = "Klymeo Voice token",
 ): Promise<{ id: string; token: string }> {
   const token = TOKEN_PREFIX + randomBytes(24).toString("base64url");
   const supabase = createVoiceTokenSupabase();

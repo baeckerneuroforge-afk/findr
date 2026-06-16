@@ -1,4 +1,4 @@
-# Findr
+# Klymeo
 
 AI-powered multi-tenant SaaS, built on Next.js (App Router), Clerk, Supabase, and Anthropic Claude.
 
@@ -70,7 +70,7 @@ src/
 │   │   └── sign-up/[[...sign-up]]/page.tsx   # Clerk <SignUp />
 │   ├── (dashboard)/
 │   │   └── dashboard/page.tsx                # Protected — requires Clerk session
-│   ├── globals.css                           # Tailwind v4 + Findr theme tokens
+│   ├── globals.css                           # Tailwind v4 + Klymeo theme tokens
 │   ├── layout.tsx                            # ClerkProvider + dark theme
 │   └── page.tsx                              # Public landing
 │
@@ -94,7 +94,7 @@ src/
 
 ## Brand Tokens
 
-Tailwind v4 uses a CSS-first `@theme` block in `src/app/globals.css`. The Findr palette:
+Tailwind v4 uses a CSS-first `@theme` block in `src/app/globals.css`. The Klymeo palette:
 
 | Token             | Hex       | Tailwind utility                     |
 | ----------------- | --------- | ------------------------------------ |

@@ -8,11 +8,12 @@ import {
   ENABLED_MODULES,
   type DashboardModuleKey,
 } from "@/config/modules";
+import { KlymeoMark } from "@/components/shared/KlymeoMark";
 
 /**
  * Primary navigation, grouped by product module. The grouping is the
  * navigation's main job: tell users at a glance which feature belongs to
- * which Findr capability (Sales Intelligence / Customer / Product Discovery /
+ * which Klymeo capability (Sales Intelligence / Customer / Product Discovery /
  * Market Research / cross-study analysis) and which tools are workspace-level
  * plumbing.
  *
@@ -465,16 +466,20 @@ export default function DashboardSidebar() {
       <div className="flex h-14 items-center border-b border-neutral-200 px-6">
         <Link
           href="/dashboard"
-          aria-label="Findr"
-          className="relative inline-block"
+          aria-label="Klymeo"
+          className="inline-flex items-center gap-2"
         >
-          <span className="text-lg font-semibold tracking-tight text-neutral-900">
-            findr
-          </span>
+          <KlymeoMark className="h-[22px] w-[22px] shrink-0" />
           <span
-            aria-hidden="true"
-            className="absolute -top-0.5 -right-1.5 h-1.5 w-1.5 rounded-full bg-danger-500"
-          />
+            className="text-lg text-neutral-900"
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 500,
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Klymeo
+          </span>
         </Link>
       </div>
 

@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import {
+  Inter,
+  Hanken_Grotesk,
+  JetBrains_Mono,
+  Space_Grotesk,
+} from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextIntlClientProvider } from "next-intl";
@@ -37,20 +42,26 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+// Space Grotesk → Wortmarke + Display/Headlines (--font-display). Brand-Stimme.
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-display",
+  subsets: ["latin"],
+});
+
 // App-tree metadata defaults (Perf-Etappe C: this is now the ROOT layout of
 // the (app) tree only — (marketing) has its own root layout with its own
 // metadata, so nothing can leak between the two anymore).
 //   • metadataBase is mandatory for relative canonical/OG urls to resolve
 //     (otherwise next build errors); it reads the single SITE_URL placeholder.
 //   • `title` is a PLAIN default (the de-staled fallback) — NOT a template,
-//     so there is no "— findr." suffix / findr OG on the protected interview,
+//     so there is no "— Klymeo" suffix / Klymeo OG on the protected interview,
 //     dashboard and shared-synthesis routes (important for white-label
 //     participant pages).
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "findr. — Conversation-Intelligence-Plattform für B2B-SaaS",
+  title: "Klymeo — Conversation-Intelligence-Plattform für B2B-SaaS",
   description:
-    "Ein KI-Gehirn, vier Produkte: Sales Intelligence, Customer Success Health, Product Discovery und Market Research. findr. liest jedes Kundengespräch und macht es über alle Produkte hinweg nutzbar — DSGVO-nativ, in Frankfurt gehostet.",
+    "Ein KI-Gehirn, vier Produkte: Sales Intelligence, Customer Success Health, Product Discovery und Market Research. Klymeo liest jedes Kundengespräch und macht es über alle Produkte hinweg nutzbar — DSGVO-nativ, in Frankfurt gehostet.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -106,7 +117,7 @@ export default async function RootLayout({
       <html
         lang={locale}
         data-scroll-behavior="smooth"
-        className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full scroll-smooth antialiased`}
+        className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} h-full scroll-smooth antialiased`}
       >
         <body className="min-h-full flex flex-col bg-obsidian text-white">
           <NextIntlClientProvider

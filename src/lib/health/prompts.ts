@@ -20,9 +20,9 @@ export interface HealthClassifierAccountContext {
   companyName: string;
   /** The sponsor/contact at the customer side. */
   sponsorName: string | null;
-  /** What the customer bought (the Findr customer's product). */
+  /** What the customer bought (the Klymeo customer's product). */
   productName: string | null;
-  /** The Findr customer — the company whose CSM is doing this check. */
+  /** The Klymeo customer — the company whose CSM is doing this check. */
   orgName: string | null;
 }
 

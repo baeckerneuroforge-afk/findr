@@ -3,7 +3,7 @@
 import { OrganizationProfile, UserProfile } from "@clerk/nextjs";
 
 import { useTheme } from "@/components/theme/ThemeShell";
-import { findrDashboardClerkAppearance } from "@/lib/clerk/dashboard-appearance";
+import { klymeoDashboardClerkAppearance } from "@/lib/clerk/dashboard-appearance";
 
 /**
  * Client-Brücke für die Clerk-Profilflächen: die Settings-Seiten sind Server
@@ -16,7 +16,7 @@ export function ThemedUserProfile() {
   return (
     <UserProfile
       routing="hash"
-      appearance={findrDashboardClerkAppearance(resolvedDark)}
+      appearance={klymeoDashboardClerkAppearance(resolvedDark)}
     />
   );
 }
@@ -26,7 +26,7 @@ export function ThemedOrganizationProfile() {
   return (
     <OrganizationProfile
       routing="hash"
-      appearance={findrDashboardClerkAppearance(resolvedDark)}
+      appearance={klymeoDashboardClerkAppearance(resolvedDark)}
     />
   );
 }

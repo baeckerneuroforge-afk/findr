@@ -26,10 +26,10 @@ const COACHING_RECOMMENDATIONS: Record<string, string[]> = {
   CHAMPION_LOSS: [
     "Multi-Threading früher: ab Discovery 2+ Stakeholder einbeziehen, nicht nur Champion",
     "Champion-Health-Checks: alle 2 Wochen kurzes Update-Meeting mit Champion vereinbaren",
-    "Backup-Champion identifizieren: zweite Person im Account die Findr inhaltlich versteht",
+    "Backup-Champion identifizieren: zweite Person im Account die Klymeo inhaltlich versteht",
   ],
   COMPETITOR_PRESSURE: [
-    "Discovery-Differenzierung: Findr-USPs (DACH-Fokus, Conversation-Intelligence-Tiefe) früher im Prozess platzieren",
+    "Discovery-Differenzierung: Klymeo-USPs (DACH-Fokus, Conversation-Intelligence-Tiefe) früher im Prozess platzieren",
     "Competitive-Battle-Cards nutzen: konkrete Pros/Cons vs Konkurrenz auf Abruf",
     "Wenn Konkurrent erwähnt wird: tieferes Discovery zum echten Pain - Konkurrent ist meist nicht das eigentliche Problem",
   ],

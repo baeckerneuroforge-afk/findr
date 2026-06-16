@@ -58,6 +58,6 @@ const DARK_APPEARANCE = {
   elements: SHARED_ELEMENTS,
 };
 
-export function findrDashboardClerkAppearance(dark: boolean) {
+export function klymeoDashboardClerkAppearance(dark: boolean) {
   return dark ? DARK_APPEARANCE : LIGHT_APPEARANCE;
 }

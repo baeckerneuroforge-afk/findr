@@ -95,7 +95,7 @@ export async function sampleVideoFrames(
   assertPositiveInt(maxFrames, "maxFrames");
 
   await ensureReadableFile(filePath);
-  const dir = await mkdtemp(path.join(tmpdir(), "findr-vi-frames-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "klymeo-vi-frames-"));
   const outputPattern = path.join(dir, "frame-%04d.jpg");
 
   try {

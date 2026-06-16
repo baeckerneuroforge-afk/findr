@@ -7,9 +7,9 @@ import {
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/methoden/markenwahrnehmung";
-const OG_TITLE = "Markenwahrnehmung — findr.";
+const OG_TITLE = "Markenwahrnehmung — Klymeo";
 const DESCRIPTION =
-  "Wie deine Marke wirklich wahrgenommen wird: findr. erfragt Assoziationen, Bilder und Gefühle in den eigenen Worten deiner Zielgruppe — bewusst breit. KI-Interviews auf Deutsch, DSGVO-nativ.";
+  "Wie deine Marke wirklich wahrgenommen wird: Klymeo erfragt Assoziationen, Bilder und Gefühle in den eigenen Worten deiner Zielgruppe — bewusst breit. KI-Interviews auf Deutsch, DSGVO-nativ.";
 
 export const metadata: Metadata = {
   title: "Markenwahrnehmung",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const SOFTWARE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "findr. — Markenwahrnehmung",
+  name: "Klymeo — Markenwahrnehmung",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: `${SITE_URL}${PATH}`,
@@ -34,7 +34,7 @@ const CONTENT: MethodContent = {
   eyebrow: "Methode · Markenwahrnehmung",
   heroTitle: <>Wie deine Marke wirklich im Kopf sitzt.</>,
   heroSubhead:
-    "Markenwahrnehmung lässt sich nicht ankreuzen. findr. fragt nach Assoziationen, Bildern und Gefühlen — in den eigenen Worten deiner Zielgruppe, bewusst breit, bevor eine Skala die spontane Reaktion überformt.",
+    "Markenwahrnehmung lässt sich nicht ankreuzen. Klymeo fragt nach Assoziationen, Bildern und Gefühlen — in den eigenen Worten deiner Zielgruppe, bewusst breit, bevor eine Skala die spontane Reaktion überformt.",
   audience:
     "Marken-, Marketing- und Strategie-Teams, die das echte Bild ihrer Marke hören wollen — nicht das gewünschte.",
   statusNote:
@@ -64,9 +64,9 @@ const CONTENT: MethodContent = {
     },
   },
   how: {
-    title: <>So hält findr. die Wahrnehmung offen.</>,
+    title: <>So hält Klymeo die Wahrnehmung offen.</>,
     lead:
-      "Bewusst breit statt tief: findr. fragt nach dem ersten Einfall, bevor es konkretisiert — damit die spontane Wahrnehmung nicht durch die Frage geformt wird.",
+      "Bewusst breit statt tief: Klymeo fragt nach dem ersten Einfall, bevor es konkretisiert — damit die spontane Wahrnehmung nicht durch die Frage geformt wird.",
     steps: [
       {
         phase: "Spontan",
@@ -77,19 +77,19 @@ const CONTENT: MethodContent = {
       {
         phase: "Bild & Gefühl",
         title: "Assoziationen, Bilder, Gefühle",
-        body: "findr. fragt nach Bildern und Gefühlen statt nach Skalenwerten — und bleibt bei den eigenen Worten der Person.",
+        body: "Klymeo fragt nach Bildern und Gefühlen statt nach Skalenwerten — und bleibt bei den eigenen Worten der Person.",
         tag: "Live",
       },
       {
         phase: "Breit halten",
         title: "Nicht überformen",
-        body: "Statt früh zu vertiefen, hält findr. die Frage offen — damit die Wahrnehmung nicht in eine vorgegebene Richtung gedrängt wird.",
+        body: "Statt früh zu vertiefen, hält Klymeo die Frage offen — damit die Wahrnehmung nicht in eine vorgegebene Richtung gedrängt wird.",
         tag: "Live",
       },
       {
         phase: "Kern",
         title: "Wofür die Marke steht — und wofür nicht",
-        body: "Erst am Ende verdichtet findr. zum Markenkern: „Wofür steht [Marke] — und wofür nicht?“ Belegt am Zitat.",
+        body: "Erst am Ende verdichtet Klymeo zum Markenkern: „Wofür steht [Marke] — und wofür nicht?“ Belegt am Zitat.",
         tag: "Live",
       },
     ],
@@ -97,7 +97,7 @@ const CONTENT: MethodContent = {
   result: {
     eyebrow: "Markenwahrnehmung · Was rauskommt",
     title: <>Das Markenbild in echten Worten.</>,
-    body: "findr. verdichtet die Interviews zu den wiederkehrenden Assoziationen, Bildern und Gefühlen — und zeigt, welche davon die Marke tragen und welche sie bremsen. Über mehrere Studien hinweg deterministisch gezählt, je Studie mit Zitat belegt.",
+    body: "Klymeo verdichtet die Interviews zu den wiederkehrenden Assoziationen, Bildern und Gefühlen — und zeigt, welche davon die Marke tragen und welche sie bremsen. Über mehrere Studien hinweg deterministisch gezählt, je Studie mit Zitat belegt.",
     payoff: {
       strong: "Ein Markenbild, das du zitieren kannst.",
       body: "Nicht „Attribut X liegt bei Y Prozent“, sondern das Wort, das die Zielgruppe selbst gewählt hat — belegt am Interview.",
@@ -106,12 +106,12 @@ const CONTENT: MethodContent = {
       badge: "Beispiel-Fragen · Markenwahrnehmung",
       rows: [
         {
-          label: "So fragt findr.",
+          label: "So fragt Klymeo",
           value:
             "„Was kommt Ihnen als Erstes in den Sinn bei [Marke]?“ · „Beschreiben Sie [Marke] in einem Satz.“",
         },
         {
-          label: "Was findr. heraushört",
+          label: "Was Klymeo heraushört",
           value:
             "Spontane Assoziationen, das Gefühl dahinter und den Markenkern — in den eigenen Worten, nicht in vorgegebenen Attributen.",
         },
@@ -122,7 +122,7 @@ const CONTENT: MethodContent = {
     "Was aus den Gesprächen wird, übernimmt dieselbe Synthese wie bei jeder Methode — Live, was Live ist; Bald, was kommt.",
   cta: {
     title: <>Hör, wie deine Marke wirklich klingt.</>,
-    lead: "Buch eine Demo und sieh, wie findr. spontane Assoziationen zu einem belegten Markenbild verdichtet.",
+    lead: "Buch eine Demo und sieh, wie Klymeo spontane Assoziationen zu einem belegten Markenbild verdichtet.",
   },
 };
 

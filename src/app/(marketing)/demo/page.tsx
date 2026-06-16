@@ -12,9 +12,9 @@ import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 import { ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/demo";
-const OG_TITLE = "Demo buchen — findr.";
+const OG_TITLE = "Demo buchen — Klymeo";
 const DESCRIPTION =
-  "Sieh in einer kurzen, persönlichen Demo, was findr. in echten Tiefeninterviews findet — vom Voice-Agent über Stimulus bis zum PowerPoint-Export. DSGVO-nativ, in der EU gehostet.";
+  "Sieh in einer kurzen, persönlichen Demo, was Klymeo in echten Tiefeninterviews findet — vom Voice-Agent über Stimulus bis zum PowerPoint-Export. DSGVO-nativ, in der EU gehostet.";
 
 export const metadata: Metadata = {
   title: "Demo buchen",
@@ -30,11 +30,11 @@ export default function DemoPage() {
         eyebrow="Demo"
         title={
           <>
-            Sieh, was findr. in deinen{" "}
+            Sieh, was Klymeo in deinen{" "}
             Gesprächen findet.
           </>
         }
-        subhead="In einer kurzen, persönlichen Demo zeigen wir dir findr. an einem echten Studien-Beispiel — keine Folien, sondern deine Forschungsfrage: vom Voice-Interview über den Stimulus-Test bis zur exportierten Synthese."
+        subhead="In einer kurzen, persönlichen Demo zeigen wir dir Klymeo an einem echten Studien-Beispiel — keine Folien, sondern deine Forschungsfrage: vom Voice-Interview über den Stimulus-Test bis zur exportierten Synthese."
         primary={{ label: "Termin buchen →", href: DEMO_BOOKING_URL }}
         secondary={{ label: "Lieber direkt testen", href: "/sign-up" }}
         // TODO D3: UWG-Claim — "DSGVO-nativ" ist eine werbliche Aussage, die vor
@@ -64,7 +64,7 @@ export default function DemoPage() {
               {/* TODO D6: echte Demo-Buchungs-URL bestätigen (DEMO_BOOKING_URL
                   ist Platzhalter). Bis dahin Link statt Embed. */}
               <CtaLink href={DEMO_BOOKING_URL} variant="primary" size="lg">
-                Termin bei findr. buchen →
+                Termin bei Klymeo buchen →
               </CtaLink>
               <p className="text-sm text-neutral-500">
                 Lieber sofort loslegen?{" "}

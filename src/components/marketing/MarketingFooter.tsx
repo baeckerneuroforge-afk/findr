@@ -75,13 +75,13 @@ export function MarketingFooter() {
               </li>
             ))}
           </ul>
-          <div>© {year} findr. — Aufgenommen in Frankfurt am Main</div>
+          <div>© {year} Klymeo — Aufgenommen in Frankfurt am Main</div>
         </div>
       </Container>
 
       {/* Riesige Outline-Wortmarke als unterster Abschluss der Seite. */}
       <div className="relative h-[clamp(80px,12vw,180px)]" aria-hidden>
-        <span className="st-ghostword">findr.</span>
+        <span className="st-ghostword">Klymeo</span>
       </div>
     </footer>
   );

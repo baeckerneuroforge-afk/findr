@@ -23,7 +23,7 @@ export type InsightBlock =
 export interface InsightArticle {
   /** URL segment — lowercase, kebab, stable (changing it breaks links). */
   slug: string;
-  /** Article headline → page <title> via the "%s — findr." template. */
+  /** Article headline → page <title> via the "%s — Klymeo" template. */
   title: string;
   /** Teaser + meta description (one honest sentence or two). */
   excerpt: string;

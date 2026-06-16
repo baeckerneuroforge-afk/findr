@@ -8,7 +8,7 @@ import { toBcp47, type Locale } from "@/i18n/locale";
 
 /**
  * "Post-Loss Interview Report" PDF — a clean, forwardable loss record built from
- * a completed post-loss interview. Same Findr style as the solution report:
+ * a completed post-loss interview. Same Klymeo style as the solution report:
  * white, calm typography, violet #4A51A8 used sparingly as an accent.
  *
  * Typeface: Geist (brand font) is embedded as TrueType so German umlauts
@@ -19,7 +19,7 @@ import { toBcp47, type Locale } from "@/i18n/locale";
  */
 
 const COLORS = {
-  violet: "#4A51A8", // Findr accent — used sparingly
+  violet: "#4A51A8", // Klymeo accent — used sparingly
   violetSoft: "#ededf6", // light violet for small chips
   ink: "#18181b", // headings + key content
   body: "#3f3f46", // softer paragraph text
@@ -280,7 +280,7 @@ export async function buildInterviewReportPdf(
     .font(fonts.bold)
     .fontSize(13)
     .fillColor(COLORS.violet)
-    .text("Findr", left, topY, { lineBreak: false });
+    .text("Klymeo", left, topY, { lineBreak: false });
   doc
     .font(fonts.regular)
     .fontSize(9)
@@ -474,7 +474,7 @@ export async function buildInterviewReportPdf(
     for (const turn of conversation) {
       const speaker =
         turn.role === "agent"
-          ? "Findr"
+          ? "Klymeo"
           : translate(locale, "export.interview.speakerBuyer");
       const text = cleanText(turn.text);
 

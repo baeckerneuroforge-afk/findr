@@ -14,7 +14,7 @@ type Cta = { label: string; href: string };
 export function CTASection({
   eyebrow = "Bereit?",
   title = <>Frag die echten Stimmen an deinem Markt.</>,
-  lead = "Sieh, was findr. in echten Tiefeninterviews mit deiner Zielgruppe findet — KI-geführt, auf Deutsch und DSGVO-nativ.",
+  lead = "Sieh, was Klymeo in echten Tiefeninterviews mit deiner Zielgruppe findet — KI-geführt, auf Deutsch und DSGVO-nativ.",
   primary = { label: "Demo buchen →", href: "/demo" },
   secondary = { label: "Preise ansehen", href: "/preise" },
 }: {

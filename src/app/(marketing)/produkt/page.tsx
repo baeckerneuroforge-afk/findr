@@ -9,7 +9,7 @@ import { CTASection } from "@/components/marketing/CTASection";
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/produkt";
-const OG_TITLE = "Plattform — findr.";
+const OG_TITLE = "Plattform — Klymeo";
 const DESCRIPTION =
   "Die ganze Forschungs-Konsole: KI-Tiefeninterviews auf Deutsch — auf Wunsch hörbar per Voice-Agent —, Entwürfe als Stimulus direkt im Gespräch, Screening, Quoten und Panel-Anbindung für die Rekrutierung, und eine Synthese, die als PDF-Report oder PowerPoint-Deck exportiert. DSGVO-nativ, in Frankfurt gehostet.";
 
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 const SOFTWARE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "findr.",
+  name: "Klymeo",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: `${SITE_URL}${PATH}`,
@@ -154,7 +154,7 @@ export default function ProduktPage() {
                 </span>
               </Rv>
               <Rv as="p" className="st-fade mt-6 max-w-[52ch] leading-[1.75] text-neutral-500" d={100}>
-                Der findr.-Voice-Agent führt das Tiefeninterview hörbar: Er
+                Der Klymeo-Voice-Agent führt das Tiefeninterview hörbar: Er
                 stellt die Fragen, hört zu und bohrt nach — Teilnehmer:innen
                 sprechen einfach, statt zu tippen. Das senkt die Hürde, macht
                 Antworten länger und ehrlicher und erreicht auch Zielgruppen,
@@ -190,7 +190,7 @@ export default function ProduktPage() {
               </div>
               <div className="flex flex-col gap-3">
                 <div className="st-tape-row !mb-0 !pr-0">
-                  <span className="st-who !bg-[var(--st-rec)] !text-white !border-[var(--st-rec)]">findr.</span>
+                  <span className="st-who !bg-[var(--st-rec)] !text-white !border-[var(--st-rec)]">Klymeo</span>
                   <p className="!text-[14px]">„Und wenn dir nichts einfällt — was machst du dann?“</p>
                 </div>
                 <div className="st-tape-row !mb-0 !pr-0">
@@ -311,7 +311,7 @@ export default function ProduktPage() {
               {
                 n: "02",
                 t: "Frag die Daten",
-                d: "Stell dem gesamten Studien-Korpus Rückfragen im Chat und bekomme belegte Antworten. Über mehrere Studien zählt findr. deterministisch: „in 3 von 7 Studien“ — nie geschätzt.",
+                d: "Stell dem gesamten Studien-Korpus Rückfragen im Chat und bekomme belegte Antworten. Über mehrere Studien zählt Klymeo deterministisch: „in 3 von 7 Studien“ — nie geschätzt.",
               },
               {
                 n: "03",
@@ -358,7 +358,7 @@ export default function ProduktPage() {
               </span>
             </Rv>
             <Rv as="p" className="st-fade max-w-[44ch] text-neutral-500" d={100}>
-              Eine Synthese ist nur so gut wie ihre Stichprobe. findr. bringt
+              Eine Synthese ist nur so gut wie ihre Stichprobe. Klymeo bringt
               die Werkzeuge mit, die dafür sorgen, dass die richtigen Menschen
               antworten — und nur die.
             </Rv>

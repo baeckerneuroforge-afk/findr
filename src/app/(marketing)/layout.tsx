@@ -4,6 +4,7 @@ import {
   Hanken_Grotesk,
   Instrument_Serif,
   JetBrains_Mono,
+  Space_Grotesk,
 } from "next/font/google";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
@@ -42,15 +43,20 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-display",
+  subsets: ["latin"],
+});
+
 const DEFAULT_TITLE =
-  "findr. — Qualitative Marktforschung mit KI, DSGVO-nativ & auf Deutsch";
+  "Klymeo — Qualitative Marktforschung mit KI, DSGVO-nativ & auf Deutsch";
 
 /**
  * Marketing-scoped metadata defaults. Living on THIS root layout confines
  * them to the (marketing) tree — the (app) tree has its own root layout, so
  * nothing leaks onto dashboard/interview/white-label routes:
- *   • title.template "%s — findr." → every marketing page sets just a short
- *     title; non-marketing routes are untouched (no double "— findr.",
+ *   • title.template "%s — Klymeo" → every marketing page sets just a short
+ *     title; non-marketing routes are untouched (no double "— Klymeo",
  *     no brand suffix on white-label interview pages).
  *   • openGraph defaults (siteName/locale/type/og-image) — pages still spread
  *     `{ ...ogDefaults, title, url }` per page (Befund 1: per-key REPLACE).
@@ -61,7 +67,7 @@ const DEFAULT_TITLE =
  */
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { template: "%s — findr.", default: DEFAULT_TITLE },
+  title: { template: "%s — Klymeo", default: DEFAULT_TITLE },
   openGraph: ogDefaults,
   twitter: twitterDefaults,
   icons: {
@@ -127,7 +133,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
     >
       <body className="min-h-full">
         <div
-          className={`studio ${hanken.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
+          className={`studio ${hanken.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
         >
           <div className="st-grid" aria-hidden />
           <div className="st-grain" aria-hidden />

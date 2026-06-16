@@ -9,7 +9,7 @@ import { setLocale } from "@/lib/i18n/locale-actions";
 
 /**
  * Visible DE/EN language switch for the dashboard chrome. On change it calls
- * the setLocale server action (writes the findr.locale cookie + Clerk
+ * the setLocale server action (writes the klymeo.locale cookie + Clerk
  * publicMetadata) and refreshes so Server Components re-render in the new
  * locale — the locale is resolved server-side from the cookie, not patched in
  * on the client.

@@ -12,7 +12,7 @@ import {
 import type { RoutableAssignment } from "@/lib/schemas/voice-ingest";
 
 /**
- * Findr Voice — voice_inbox: gleichzeitig Idempotenz-Ledger JEDES Ingests
+ * Klymeo Voice — voice_inbox: gleichzeitig Idempotenz-Ledger JEDES Ingests
  * (UNIQUE org+external_meeting_id) UND Posteingang (status='pending'). Spiegelt
  * das Ein-Tabellen-/Human-Gate-Muster aus src/lib/bridge/cs-to-research.ts.
  */

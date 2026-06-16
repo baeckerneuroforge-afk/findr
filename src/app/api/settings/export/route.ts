@@ -10,7 +10,7 @@ export async function GET() {
 
   try {
     const payload = await buildDataExport(admin.orgId);
-    const filename = `findr-export-${admin.orgId}-${new Date()
+    const filename = `klymeo-export-${admin.orgId}-${new Date()
       .toISOString()
       .slice(0, 10)}.json`;
 

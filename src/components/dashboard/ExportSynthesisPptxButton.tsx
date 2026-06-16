@@ -4,7 +4,7 @@ import { useState, type MouseEvent } from "react";
 import { useTranslations } from "next-intl";
 
 /**
- * "Als PowerPoint exportieren" — downloads the Stage-2 synthesis as a Findr-
+ * "Als PowerPoint exportieren" — downloads the Stage-2 synthesis as a Klymeo-
  * branded .pptx deck. Sibling to ExportSynthesisPdfButton; sits next to it in
  * the Synthese-Header with the same styling and the same ready-state gating
  * (the parent only renders it once a populated synthesis exists). ADDITIVE —
@@ -65,7 +65,7 @@ export function ExportSynthesisPptxButton({
       const date = new Date().toISOString().split("T")[0];
       const a = document.createElement("a");
       a.href = url;
-      a.download = `findr-synthesis-${date}.pptx`;
+      a.download = `klymeo-synthesis-${date}.pptx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

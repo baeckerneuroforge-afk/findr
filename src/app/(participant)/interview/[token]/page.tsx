@@ -146,8 +146,8 @@ export default async function InterviewPage({
   // the `interview` namespace is serialized to the client.
   const locale = session.language;
 
-  // White-label: ONLY the research surface gets the Findr customer's branding.
-  // post_loss / checkin keep the Findr chrome (branding null → neutral fallback).
+  // White-label: ONLY the research surface gets the Klymeo customer's branding.
+  // post_loss / checkin keep the Klymeo chrome (branding null → neutral fallback).
   const [branding, plan] = await Promise.all([
     isResearch ? getOrgBranding(session.orgId) : Promise.resolve(null),
     isResearch && session.planId
@@ -264,7 +264,7 @@ export default async function InterviewPage({
         initialConversation={session.conversation}
         initialStatus={session.status}
         company={session.company}
-        // Research-only: drop the Findr branding (logo + "Powered by …" footer)
+        // Research-only: drop the Klymeo branding (logo + "Powered by …" footer)
         // and use the plan title as the h1. For post_loss / checkin both props
         // default to false/null, so render is byte-identical.
         brandless={isResearch}

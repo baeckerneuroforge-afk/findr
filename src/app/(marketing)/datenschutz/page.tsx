@@ -7,9 +7,9 @@ import {
 import { ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/datenschutz";
-const OG_TITLE = "Datenschutz — findr.";
+const OG_TITLE = "Datenschutz — Klymeo";
 const DESCRIPTION =
-  "Informationen zur Verarbeitung personenbezogener Daten bei findr. gemäß DSGVO.";
+  "Informationen zur Verarbeitung personenbezogener Daten bei Klymeo gemäß DSGVO.";
 
 export const metadata: Metadata = {
   title: "Datenschutz",

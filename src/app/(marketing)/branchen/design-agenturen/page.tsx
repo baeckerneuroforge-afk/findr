@@ -7,7 +7,7 @@ import {
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/branchen/design-agenturen";
-const OG_TITLE = "Market Research für Design & Agenturen — findr.";
+const OG_TITLE = "Market Research für Design & Agenturen — Klymeo";
 const DESCRIPTION =
   "Konzept- und Creative-Tests mit echten Zielgruppen: Entwürfe, Key-Visuals und Kampagnen als Stimulus direkt im KI-Interview zeigen — Feedback in Tagen statt Wochen, mit Originalzitaten fürs Kunden-Deck und Export als PDF oder PowerPoint im eigenen Branding.";
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const SOFTWARE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "findr. Market Research — Design & Agenturen",
+  name: "Klymeo Market Research — Design & Agenturen",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: `${SITE_URL}${PATH}`,
@@ -33,7 +33,7 @@ const CONTENT: IndustryContent = {
   eyebrow: "Branche · Design & Agenturen",
   heroTitle: <>Zeig den Entwurf der Zielgruppe — bevor ihn der Kunde sieht.</>,
   heroSubhead:
-    "Key-Visual, Claim, Packaging, Landingpage: Irgendwann fragt der Kunde, woher ihr wisst, dass es funktioniert. findr. zeigt deine Entwürfe als Stimulus direkt im KI-Interview — echte Menschen aus der Zielgruppe reagieren, vergleichen und sagen in eigenen Worten, was hängen bleibt. Feedback in Tagen, mit Zitaten, die du ins Deck nimmst.",
+    "Key-Visual, Claim, Packaging, Landingpage: Irgendwann fragt der Kunde, woher ihr wisst, dass es funktioniert. Klymeo zeigt deine Entwürfe als Stimulus direkt im KI-Interview — echte Menschen aus der Zielgruppe reagieren, vergleichen und sagen in eigenen Worten, was hängen bleibt. Feedback in Tagen, mit Zitaten, die du ins Deck nimmst.",
   audience:
     "Design-Studios, Marken- und Werbeagenturen, Inhouse-Kreation — alle, die Entwürfe verkaufen müssen, nicht nur gestalten.",
   pain: {
@@ -124,7 +124,7 @@ const CONTENT: IndustryContent = {
     "Jede Fähigkeit arbeitet an echten Interviews mit echten Menschen — gebaut für Teams, die Kreation verkaufen müssen.",
   cta: {
     title: <>Test den Entwurf, bevor ihn der Kunde testet.</>,
-    lead: "Buch eine Demo und sieh, wie findr. zwei Kreativ-Routen gegeneinander testet — mit Stimulus im Interview und Zitaten fürs Deck.",
+    lead: "Buch eine Demo und sieh, wie Klymeo zwei Kreativ-Routen gegeneinander testet — mit Stimulus im Interview und Zitaten fürs Deck.",
   },
 };
 

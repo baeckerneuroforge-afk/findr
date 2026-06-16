@@ -30,7 +30,7 @@ export async function POST() {
       { type: "BUDGET_FRICTION", confidence: 0.65 },
     ],
     overallReasoning:
-      "This is a test alert from Findr. Your Slack integration is working correctly.",
+      "This is a test alert from Klymeo. Your Slack integration is working correctly.",
     topRecommendation: "Schedule a re-engagement call within 48 hours.",
     dashboardUrl: `${baseUrl}/dashboard`,
   });

@@ -7,9 +7,9 @@ import {
 import { ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/impressum";
-const OG_TITLE = "Impressum — findr.";
+const OG_TITLE = "Impressum — Klymeo";
 const DESCRIPTION =
-  "Anbieterkennzeichnung und Pflichtangaben gemäß § 5 DDG für findr.";
+  "Anbieterkennzeichnung und Pflichtangaben gemäß § 5 DDG für Klymeo.";
 
 export const metadata: Metadata = {
   title: "Impressum",

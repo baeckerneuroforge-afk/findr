@@ -37,10 +37,10 @@ export async function generateMetadata({
   const robots = { index: false, follow: false } as const;
 
   if (!shared) {
-    return { title: "Findr", robots };
+    return { title: "Klymeo", robots };
   }
   return {
-    title: shared.planTitle ? shared.planTitle : "Findr",
+    title: shared.planTitle ? shared.planTitle : "Klymeo",
     robots,
   };
 }
