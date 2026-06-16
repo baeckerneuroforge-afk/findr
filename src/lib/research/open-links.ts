@@ -295,20 +295,17 @@ export async function findOpenLinkSessionByParticipant(
   return match ? { accessToken: match.access_token } : null;
 }
 
-/**
- * Reiner Cap-Prädikat-Helper: ist der Link am/über seinem Cap? max_sessions=null
- * → nie voll (open-ended). count=null (Fehler) wird hier als „voll" behandelt —
- * geeignet für den fail-closed-Aufrufer (screen-Route). Die render-only-Page
- * wertet stattdessen direkt aus (fail-open), siehe page.tsx.
- */
-export function isOpenLinkAtCapacity(
-  maxSessions: number | null,
-  used: number | null,
-): boolean {
-  if (maxSessions === null) return false; // open-ended
-  if (used === null) return true; // Query-Fehler → fail-closed (Spend-Schutz)
-  return used >= maxSessions;
-}
+// Das Cap-Prädikat + der harte Deckel leben jetzt im reinen (server-only-freien)
+// Modul open-link-capacity.ts — unit-testbar, und der Deckel ist ohne Server-
+// Deps importierbar. Hier nur re-exportiert, damit bestehende Importeure
+// (screen-Route, render-only-Page) unverändert „@/lib/research/open-links" nutzen.
+// WICHTIG: es gibt KEINEN unbegrenzten Modus mehr — max_sessions=null (und jeder
+// Wert über dem Deckel) wird auf OPEN_LINK_HARD_CAP geklemmt.
+export {
+  isOpenLinkAtCapacity,
+  effectiveOpenLinkCap,
+  OPEN_LINK_HARD_CAP,
+} from "./open-link-capacity";
 
 // ── Researcher-side management (Etappe 2) ─────────────────────────────────────
 //
