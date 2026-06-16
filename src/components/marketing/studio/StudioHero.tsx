@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { CtaLink } from "../CtaLink";
 import { Rv } from "./Rv";
+import { HeroConstellation } from "./HeroConstellation";
 
 /**
  * Homepage-Hero der Studio-Bühne: „Aufnahme läuft“-Chip mit live laufendem
@@ -92,6 +93,7 @@ export function StudioHero() {
 
   return (
     <section className="st-sky relative flex min-h-[92svh] flex-col justify-end overflow-hidden pt-28">
+      <HeroConstellation className="pointer-events-none absolute right-[-70px] top-[24px] z-0 w-[clamp(240px,30vw,500px)] opacity-[0.55]" />
       <canvas
         ref={waveRef}
         className="pointer-events-none absolute inset-x-0 bottom-16 h-[110px] w-full opacity-55"

@@ -85,9 +85,9 @@
      unaffected. (Fraunces was unloaded from layout.tsx in the perf cleanup —
      to restore the serif headings, re-add it there and flip --font-heading
      back to var(--font-fraunces).) */
-  --font-heading: var(--font-hanken);
+  --font-heading: var(--font-display), var(--font-hanken);
   --font-body: var(--font-hanken);
-  --font-mono: var(--font-jetbrains-mono);
+  --font-mono: var(--font-spacemono), var(--font-jetbrains-mono);
 
   /* Marketing-site headline voice. The public (marketing) route-group renders
      headlines in Geist (Vercel's clean, modern sans — NO serif) via the

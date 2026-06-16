@@ -4,6 +4,7 @@ import {
   Hanken_Grotesk,
   JetBrains_Mono,
   Space_Grotesk,
+  Space_Mono,
 } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -46,6 +47,13 @@ const jetbrainsMono = JetBrains_Mono({
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-display",
   subsets: ["latin"],
+});
+
+// Space Mono → Etiketten / Code / Zahlen-Akzente (--font-mono).
+const spaceMono = Space_Mono({
+  variable: "--font-spacemono",
+  subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 // App-tree metadata defaults (Perf-Etappe C: this is now the ROOT layout of
@@ -117,7 +125,7 @@ export default async function RootLayout({
       <html
         lang={locale}
         data-scroll-behavior="smooth"
-        className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} h-full scroll-smooth antialiased`}
+        className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} h-full scroll-smooth antialiased`}
       >
         <body className="min-h-full flex flex-col bg-obsidian text-white">
           <NextIntlClientProvider

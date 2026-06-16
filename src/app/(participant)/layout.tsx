@@ -4,6 +4,7 @@ import {
   Hanken_Grotesk,
   JetBrains_Mono,
   Space_Grotesk,
+  Space_Mono,
 } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { NextIntlClientProvider } from "next-intl";
@@ -54,6 +55,12 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
 });
 
+const spaceMono = Space_Mono({
+  variable: "--font-spacemono",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Klymeo — Conversation-Intelligence-Plattform für B2B-SaaS",
@@ -89,7 +96,7 @@ export default async function ParticipantLayout({
     <html
       lang={locale}
       data-scroll-behavior="smooth"
-      className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} h-full scroll-smooth antialiased`}
+      className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} h-full scroll-smooth antialiased`}
     >
       <body className="min-h-full flex flex-col bg-obsidian text-white">
         <NextIntlClientProvider

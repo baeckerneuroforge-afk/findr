@@ -5,6 +5,7 @@ import {
   Instrument_Serif,
   JetBrains_Mono,
   Space_Grotesk,
+  Space_Mono,
 } from "next/font/google";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
@@ -46,6 +47,13 @@ const jetbrainsMono = JetBrains_Mono({
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-display",
   subsets: ["latin"],
+});
+
+// Space Mono → Konsolen-Etiketten / Eyebrows / Hex-Codes (--font-mono).
+const spaceMono = Space_Mono({
+  variable: "--font-spacemono-mkt",
+  subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 const DEFAULT_TITLE =
@@ -133,7 +141,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
     >
       <body className="min-h-full">
         <div
-          className={`studio ${hanken.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
+          className={`studio ${hanken.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
         >
           <div className="st-grid" aria-hidden />
           <div className="st-grain" aria-hidden />
