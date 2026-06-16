@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -200,6 +206,56 @@ function ChevronDownIcon({ className }: { className?: string }) {
   );
 }
 
+/** A single nav link with hover/focus-intent prefetching.
+ *
+ *  Default `prefetch={null}` keeps Next 16's cheap behavior: on viewport these
+ *  dynamic dashboard routes prefetch only the shell down to the section's
+ *  loading.tsx (the instant skeleton). On hover OR keyboard focus — a real
+ *  navigation intent — it upgrades to `prefetch={true}`, which warms the FULL
+ *  route INCLUDING its server data, so the click lands on finished content
+ *  rather than a skeleton that then streams. The upgrade is bounded to the one
+ *  link the user is actually targeting, so there is NO viewport-wide
+ *  full-render storm (which forcing prefetch on every item would cause).
+ *
+ *  `intent` starts false, so SSR and first client render match exactly — and
+ *  `prefetch` is a behavior prop, not a DOM attribute, so the rendered markup
+ *  is byte-identical to the previous plain <Link>; no hydration change. The
+ *  state lives per-link, so warming one item never re-renders the list or
+ *  disturbs the sliding active-pill measurement in the parent. */
+function NavItemLink({
+  href,
+  active,
+  pillCarriesBg,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  pillCarriesBg: boolean;
+  children: ReactNode;
+}) {
+  const [intent, setIntent] = useState(false);
+  const warm = () => setIntent(true);
+  return (
+    <Link
+      href={href}
+      prefetch={intent ? true : null}
+      onMouseEnter={warm}
+      onFocus={warm}
+      aria-current={active ? "page" : undefined}
+      data-nav-active={active ? "true" : undefined}
+      className={`block rounded-lg px-3 py-1.5 text-body transition-colors ${
+        active
+          ? `text-primary-700 font-medium${
+              pillCarriesBg ? "" : " bg-primary-50"
+            }`
+          : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
 /** The list of links for a group. Single source for the active-link markup so
  *  the accordion sections and the flat workspace block can never visually
  *  drift. `id` lets the accordion attach its aria-controls panel id; the flat
@@ -231,20 +287,13 @@ function NavLinkList({
         const active = isActive(item.href, pathname);
         return (
           <li key={item.href}>
-            <Link
+            <NavItemLink
               href={item.href}
-              aria-current={active ? "page" : undefined}
-              data-nav-active={active ? "true" : undefined}
-              className={`block rounded-lg px-3 py-1.5 text-body transition-colors ${
-                active
-                  ? `text-primary-700 font-medium${
-                      pillCarriesBg ? "" : " bg-primary-50"
-                    }`
-                  : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
-              }`}
+              active={active}
+              pillCarriesBg={pillCarriesBg}
             >
               {t(item.labelKey)}
-            </Link>
+            </NavItemLink>
           </li>
         );
       })}

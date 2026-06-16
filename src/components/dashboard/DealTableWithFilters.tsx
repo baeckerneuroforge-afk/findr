@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toBcp47 } from "@/i18n/locale";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { AnalyzeButton } from "@/components/dashboard/AnalyzeButton";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { Badge } from "@/components/ui/Badge";
@@ -185,28 +185,25 @@ function StaticHeader({
 export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
   const t = useTranslations("sales.table");
   const locale = useLocale();
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  // The free-text search is held in local state, not the URL: filtering is
-  // already 100% client-side (applyDealFilters), but the dashboard page is
-  // dynamic, so a URL-controlled value made every keystroke a `router.replace`
-  // → full RSC refetch (getDealsByOrg + risk scores + forecast). Local state
-  // makes typing instant. The URL `?q=` is still kept as a *shareable
-  // snapshot* via the native History API (replaceState), which syncs with
-  // useSearchParams WITHOUT a server round-trip. Seeded from `?q=` so a shared
-  // link still populates the box on first paint. Dropdown filters (rarely
-  // changed) keep their URL params.
-  const [search, setSearch] = useState(
-    () => searchParams.get("q") ?? DEFAULT_DEAL_FILTERS.search,
+  // The ENTIRE filter state lives in local state, seeded ONCE from the URL so a
+  // shared deep-link still populates the controls on first paint. Filtering and
+  // sorting are already 100% client-side (applyDealFilters over the full `deals`
+  // array), so NO control needs the server. Previously every dropdown/sort
+  // change was a `router.replace` → full RSC refetch (getDealsByOrg + risk
+  // scores + forecast) that returned byte-identical data and merely re-ran the
+  // same client-side filter. The URL is still kept as a *shareable snapshot* via
+  // the native History API (`replaceState`) — no navigation, no round-trip,
+  // which Next 16 reflects in useSearchParams. `replaceState` (not `pushState`)
+  // keeps the back button clean: per-keystroke/per-click URLs must not become
+  // history entries. This extends the search-only treatment (FUND 5.1) to the
+  // dropdowns + sort, so the whole table reacts instantly.
+  const [filters, setFilters] = useState<DealFilterState>(() =>
+    getFilterState(searchParams),
   );
-  // Memoized so its identity is stable across renders (it is the dependency
-  // of the filteredDeals memo below); recomputed only when the URL params or
-  // the local search text actually change.
-  const filters = useMemo(
-    () => ({ ...getFilterState(searchParams), search }),
-    [searchParams, search],
-  );
+  // Alias so the search-input JSX (value={search}) stays unchanged.
+  const { search } = filters;
 
   const formatLastActivity = (days: number) =>
     days === 0 ? t("today") : t("daysAgo", { days });
@@ -231,35 +228,22 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
 
   const hasFilters = hasActiveDealFilters(filters);
 
-  function replaceParams(params: URLSearchParams) {
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }
-
-  function updateParam(key: string, value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "all" || value === "") {
-      params.delete(key);
-    } else {
-      params.set(key, value);
-    }
-    replaceParams(params);
-  }
-
-  function updateSearch(value: string) {
-    // Instant: local state re-runs applyDealFilters client-side. NO navigation
-    // and NO RSC refetch — that is the whole point of FUND 5.1.
-    setSearch(value);
-    // Mirror to the URL purely as a shareable snapshot. `replaceState` (not
-    // `pushState`) keeps the back button clean — per-keystroke URLs must not
-    // become individual history entries — and per Next 16 it syncs with
-    // useSearchParams without a server round-trip.
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "") {
-      params.delete("q");
-    } else {
-      params.set("q", value);
-    }
+  // Mirror the current filter state to the URL as a shareable snapshot. Seeded
+  // from the LIVE URL so unrelated params (e.g. utm_*) survive, then each known
+  // key is set or removed (removed when it equals its default → clean URL).
+  // History API → no navigation, no RSC refetch.
+  function syncUrl(next: DealFilterState) {
+    const params = new URLSearchParams(window.location.search);
+    const setOrDelete = (key: string, value: string, fallback: string) => {
+      if (value === fallback) params.delete(key);
+      else params.set(key, value);
+    };
+    setOrDelete("q", next.search, "");
+    setOrDelete("stage", next.stage, DEFAULT_DEAL_FILTERS.stage);
+    setOrDelete("risk", next.risk, DEFAULT_DEAL_FILTERS.risk);
+    setOrDelete("owner", next.owner, DEFAULT_DEAL_FILTERS.owner);
+    setOrDelete("sort", next.sortBy, DEFAULT_DEAL_FILTERS.sortBy);
+    setOrDelete("dir", next.sortDir, DEFAULT_DEAL_FILTERS.sortDir);
     const query = params.toString();
     window.history.replaceState(
       null,
@@ -268,34 +252,45 @@ export function DealTableWithFilters({ deals }: DealTableWithFiltersProps) {
     );
   }
 
+  // Apply a partial change to the local filter state and mirror it to the URL.
+  // Reads `filters` from the current render — correct inside event handlers.
+  function applyUpdate(patch: Partial<DealFilterState>) {
+    const next = { ...filters, ...patch };
+    setFilters(next);
+    syncUrl(next);
+  }
+
+  function updateParam(key: "stage" | "risk" | "owner", value: string) {
+    // Each Select only ever emits values valid for its own field (incl. "all" =
+    // the default), so these narrowing casts are sound.
+    if (key === "stage") {
+      applyUpdate({ stage: value as DealFilterState["stage"] });
+    } else if (key === "risk") {
+      applyUpdate({ risk: value as DealRiskFilter });
+    } else {
+      applyUpdate({ owner: value });
+    }
+  }
+
+  function updateSearch(value: string) {
+    // Instant: local state re-runs applyDealFilters client-side, NO navigation
+    // and NO RSC refetch.
+    applyUpdate({ search: value });
+  }
+
   function updateSort(sortKey: DealSortKey) {
-    const params = new URLSearchParams(searchParams.toString());
-    const nextDir =
+    const sortDir =
       filters.sortBy === sortKey && filters.sortDir === "desc" ? "asc" : "desc";
-
-    if (sortKey === DEFAULT_DEAL_FILTERS.sortBy) {
-      params.delete("sort");
-    } else {
-      params.set("sort", sortKey);
-    }
-
-    if (nextDir === DEFAULT_DEAL_FILTERS.sortDir) {
-      params.delete("dir");
-    } else {
-      params.set("dir", nextDir);
-    }
-
-    replaceParams(params);
+    applyUpdate({ sortBy: sortKey, sortDir });
   }
 
   function clearFilters() {
-    setSearch("");
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("q");
-    params.delete("stage");
-    params.delete("risk");
-    params.delete("owner");
-    replaceParams(params);
+    applyUpdate({
+      search: "",
+      stage: DEFAULT_DEAL_FILTERS.stage,
+      risk: DEFAULT_DEAL_FILTERS.risk,
+      owner: DEFAULT_DEAL_FILTERS.owner,
+    });
   }
 
   return (

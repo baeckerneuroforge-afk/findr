@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getTranslations } from "next-intl/server";
@@ -71,8 +72,15 @@ async function syncClerkOrgToSupabase(clerkOrgId: string): Promise<string> {
  *
  * In local development only, ALLOW_DEV_ORG_FALLBACK=true can fall back to the
  * demo org UUID for signed-in users with no active Clerk org.
+ *
+ * Wrapped in React `cache()`: nearly every dashboard page/layout/service calls
+ * this, so within a single request the `auth()` read AND the `organizations`
+ * lookup (and the cold-start upsert) now run ONCE and are shared by all callers
+ * instead of repeating the round-trip per call. `cache()` is scoped to the
+ * current request — each request gets its own memoization, so there is no
+ * cross-request/cross-user leakage. No behavior change, fewer DB round-trips.
  */
-export async function requireOrgId(): Promise<string> {
+export const requireOrgId = cache(async (): Promise<string> => {
   const { userId, orgId: clerkOrgId } = await auth();
 
   if (!userId) {
@@ -105,13 +113,17 @@ export async function requireOrgId(): Promise<string> {
   }
 
   return (data as { id: string }).id;
-}
+});
 
 /**
  * Resolve the human-readable org name for an internal org UUID.
  * Falls back to "Your Organization" if not found — never throws.
+ *
+ * Wrapped in React `cache()`: a single render path often resolves the same
+ * org name more than once (page + the services it calls). Memoized per request
+ * and keyed by `orgId`, so repeat calls with the same id reuse one lookup.
  */
-export async function getOrgName(orgId: string): Promise<string> {
+export const getOrgName = cache(async (orgId: string): Promise<string> => {
   try {
     const supabase = createAdminSupabaseClient();
     const { data } = await supabase
@@ -124,7 +136,7 @@ export async function getOrgName(orgId: string): Promise<string> {
   } catch {
     return "Your Organization";
   }
-}
+});
 
 /**
  * Safe wrapper for API routes. Returns a discriminated union: either
