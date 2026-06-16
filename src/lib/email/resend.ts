@@ -31,12 +31,24 @@ function getResend(): Resend {
 }
 
 /**
- * Sender address. Defaults to Resend's shared test sender, which works without
- * verifying a domain. Set INTERVIEW_FROM_EMAIL to send from your own verified
- * domain.
+ * Sender address from INTERVIEW_FROM_EMAIL (a Resend-verified-domain address).
+ *
+ * In PRODUCTION this is required: without it we refuse to send rather than fall
+ * back to Resend's shared sandbox sender ("onboarding@resend.dev"), which can
+ * only deliver to the account owner — so participant invites / check-in mails
+ * would silently never arrive. Failing loud here surfaces in the route error and
+ * (post-B2) in the check-in cron summary. Local dev keeps the sandbox sender so
+ * you can test without verifying a domain.
  */
 export function defaultFrom(): string {
-  return process.env.INTERVIEW_FROM_EMAIL ?? "onboarding@resend.dev";
+  const configured = process.env.INTERVIEW_FROM_EMAIL?.trim();
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") {
+    throw new EmailError(
+      "INTERVIEW_FROM_EMAIL is not set — refusing to send from the Resend sandbox sender in production (external recipients are rejected). Set it to a verified-domain address.",
+    );
+  }
+  return "onboarding@resend.dev";
 }
 
 /** One file attachment (ICS calendar, PDF, etc.). `content` is the raw

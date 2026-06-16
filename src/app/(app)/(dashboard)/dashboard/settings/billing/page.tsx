@@ -1,5 +1,9 @@
 import { getTranslations } from "next-intl/server";
 
+// Env-driven contact address for the billing CTA (placeholder page — no checkout
+// yet). Falls back to the current value until NEXT_PUBLIC_BILLING_EMAIL is set.
+const BILLING_EMAIL = process.env.NEXT_PUBLIC_BILLING_EMAIL ?? "andre@findr.ai";
+
 export default async function BillingSettingsPage() {
   const t = await getTranslations("settings");
   const features = [
@@ -31,7 +35,7 @@ export default async function BillingSettingsPage() {
             </p>
           </div>
           <a
-            href="mailto:andre@findr.ai?subject=Klymeo%20billing%20upgrade"
+            href={`mailto:${BILLING_EMAIL}?subject=Klymeo%20billing%20upgrade`}
             className="inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
           >
             {t("billing.contact")}

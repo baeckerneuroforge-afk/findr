@@ -11,4 +11,5 @@
  * (landing-comic/constants.ts, removed in Etappe D) — André confirms the actual
  * Cal.com / Calendly link.
  */
-export const DEMO_BOOKING_URL = "https://cal.com/findr/demo";
+export const DEMO_BOOKING_URL =
+  process.env.NEXT_PUBLIC_DEMO_BOOKING_URL ?? "https://cal.com/findr/demo";

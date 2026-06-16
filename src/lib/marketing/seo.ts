@@ -3,12 +3,12 @@ import type { Metadata } from "next";
 /**
  * Single source of SEO truth for the public marketing site.
  *
- * D1 (open decision): the production domain isn't final yet. `SITE_URL` is the
- * ONE place the placeholder `https://findr.de` lives — root layout's
- * `metadataBase` reads it and every per-page canonical/OG url is relative, so
- * swapping the domain later is a one-line change.
+ * The production domain is a Vercel config value: set NEXT_PUBLIC_SITE_URL and it
+ * flows through `metadataBase` + every per-page canonical/OG url (all relative).
+ * Falls back to the `https://findr.de` placeholder until the env var is set.
  */
-export const SITE_URL = "https://findr.de";
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://findr.de";
 export const SITE_NAME = "Klymeo";
 
 /**
