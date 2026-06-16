@@ -1532,6 +1532,10 @@ export type Database = {
         Args: { p_org_id: string; p_deal_ids: string[] }
         Returns: Json
       }
+      get_latest_health_scores_for_accounts: {
+        Args: { p_org_id: string; p_account_ids: string[] }
+        Returns: Json
+      }
     }
     Enums: {
       finding_severity: "low" | "medium" | "high" | "critical"

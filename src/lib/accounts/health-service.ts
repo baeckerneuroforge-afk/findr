@@ -138,7 +138,7 @@ export async function getLatestHealthScore(
 /**
  * Fetch the latest health score for each of the given account IDs.
  * Returns a Map keyed by account_id; accounts without a stored score are absent.
- * One indexed query + JS dedup — mirrors getLatestRiskScoresForDeals. No Opus.
+ * One indexed DISTINCT ON query — mirrors getLatestRiskScoresForDeals. No Opus.
  */
 export async function getLatestHealthScoresForAccounts(
   orgId: string,
@@ -147,20 +147,21 @@ export async function getLatestHealthScoresForAccounts(
   if (accountIds.length === 0) return new Map();
 
   const supabase = createAdminSupabaseClient();
-  const { data, error } = await supabase
-    .from("account_health_scores")
-    .select("*")
-    .eq("org_id", orgId)
-    .in("account_id", accountIds)
-    .order("analyzed_at", { ascending: false });
+  // DISTINCT ON in SQL (get_latest_health_scores_fn migration) returns one
+  // latest row per account, instead of loading the full per-account history
+  // and de-duping in JS — the daily check-in/reanalyze crons append a row per
+  // account per run, so that fetch grows without bound on /dashboard/health
+  // and /dashboard/accounts. Mirrors getLatestRiskScoresForDeals.
+  const { data, error } = await supabase.rpc(
+    "get_latest_health_scores_for_accounts",
+    { p_org_id: orgId, p_account_ids: accountIds },
+  );
 
   if (error || !data) return new Map();
 
   const latest = new Map<string, HealthScoreRecord>();
-  for (const row of data) {
-    if (!latest.has(row.account_id)) {
-      latest.set(row.account_id, toRecord(row));
-    }
+  for (const row of data as unknown as HealthRow[]) {
+    latest.set(row.account_id, toRecord(row));
   }
   return latest;
 }
