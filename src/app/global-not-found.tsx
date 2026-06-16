@@ -14,7 +14,7 @@ import "./globals.css";
  */
 
 export const metadata: Metadata = {
-  title: "404 — Seite nicht gefunden | findr.",
+  title: "404 — Seite nicht gefunden | Klymeo",
   description: "Diese Seite gibt es nicht (mehr).",
 };
 

@@ -15,7 +15,7 @@ type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
  * at ~18 tables and was missing the entire research / CS / PD / panel / voice
  * surface.
  */
-export interface FindrDataExport {
+export interface KlymeoDataExport {
   exported_at: string;
   organization: Pick<
     OrganizationRow,
@@ -25,7 +25,7 @@ export interface FindrDataExport {
   data: Record<string, unknown[]>;
 }
 
-export async function buildDataExport(orgId: string): Promise<FindrDataExport> {
+export async function buildDataExport(orgId: string): Promise<KlymeoDataExport> {
   const supabase = createAdminSupabaseClient();
 
   const { data: organization, error } = await supabase

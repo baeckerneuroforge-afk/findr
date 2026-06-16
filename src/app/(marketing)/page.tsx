@@ -10,12 +10,12 @@ import { MethodStack } from "@/components/marketing/studio/MethodStack";
 import { NumbersBand } from "@/components/marketing/studio/NumbersBand";
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
-const TITLE = "findr. — Qualitative Marktforschung mit KI, DSGVO-nativ & auf Deutsch";
+const TITLE = "Klymeo — Qualitative Marktforschung mit KI, DSGVO-nativ & auf Deutsch";
 const DESCRIPTION =
-  "findr. führt hunderte qualitative Tiefeninterviews mit deiner Zielgruppe — auf Wunsch per Voice-Agent, mit Entwürfen als Stimulus direkt im Gespräch. Auf Deutsch, DSGVO-nativ in Frankfurt. Vier Methoden, eine Engine — verdichtet zu belegten Insights, exportiert als PDF oder PowerPoint.";
+  "Klymeo führt hunderte qualitative Tiefeninterviews mit deiner Zielgruppe — auf Wunsch per Voice-Agent, mit Entwürfen als Stimulus direkt im Gespräch. Auf Deutsch, DSGVO-nativ in Frankfurt. Vier Methoden, eine Engine — verdichtet zu belegten Insights, exportiert als PDF oder PowerPoint.";
 
 export const metadata: Metadata = {
-  // absolute → skip the "%s — findr." template for the homepage title.
+  // absolute → skip the "%s — Klymeo" template for the homepage title.
   title: { absolute: TITLE },
   description: DESCRIPTION,
   alternates: { canonical: "/" },
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 const ORGANIZATION_JSONLD = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "findr.",
+  name: "Klymeo",
   url: SITE_URL,
   logo: `${SITE_URL}/og-image.png`,
   description: DESCRIPTION,
@@ -116,7 +116,7 @@ export default function HomePage() {
             .
           </Rv>
           <Rv as="p" className="st-fade st-big mt-[1.2em]" d={100}>
-            findr.{" "}
+            Klymeo{" "}
             <Rv as="span" className="st-hl st-hl--soft" threshold={0.6} d={180}>
               bohrt nach
             </Rv>{" "}
@@ -155,7 +155,7 @@ export default function HomePage() {
               </span>
             </Rv>
             <Rv as="p" className="st-fade max-w-[40ch] text-neutral-500">
-              Ein Ausschnitt aus einem findr.-Tiefeninterview — vorgefertigtes
+              Ein Ausschnitt aus einem Klymeo-Tiefeninterview — vorgefertigtes
               Beispiel, kein Login, keine echten Teilnehmerdaten. Drück Play.
             </Rv>
           </div>
@@ -291,7 +291,7 @@ export default function HomePage() {
               </span>
             </Rv>
             <Rv as="p" className="st-fade max-w-[42ch] text-neutral-500">
-              findr. verdichtet jedes Interview und alle zusammen — Themen,
+              Klymeo verdichtet jedes Interview und alle zusammen — Themen,
               Lager, Originalzitate. Ohne manuelles Tagging, ohne
               Auswertungs-Wochen. Und am Ende exportierst du das Ganze als
               PDF-Report oder PowerPoint-Deck.

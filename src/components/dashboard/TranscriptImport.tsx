@@ -128,7 +128,7 @@ export function TranscriptImport({ dealId, onAdded }: TranscriptImportProps) {
             </label>
             <p className="mt-1 max-w-2xl text-small leading-relaxed text-neutral-500">
               Paste raw text. Speaker prefixes like &ldquo;Sarah: ...&rdquo;
-              help, but are optional; Findr can analyze raw transcript text.
+              help, but are optional; Klymeo can analyze raw transcript text.
             </p>
           </div>
           <button

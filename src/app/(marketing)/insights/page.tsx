@@ -12,9 +12,9 @@ import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 import { INSIGHTS_BY_DATE } from "@/lib/insights/articles";
 
 const PATH = "/insights";
-const OG_TITLE = "Insights — findr.";
+const OG_TITLE = "Insights — Klymeo";
 const DESCRIPTION =
-  "Ressourcen zu qualitativer Marktforschung, KI- und Voice-Interviews und DSGVO-nativer KI — belegt statt geraten, ohne Hype, von findr.";
+  "Ressourcen zu qualitativer Marktforschung, KI- und Voice-Interviews und DSGVO-nativer KI — belegt statt geraten, ohne Hype, von Klymeo.";
 
 export const metadata: Metadata = {
   title: "Insights",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 const BLOG_JSONLD = {
   "@context": "https://schema.org",
   "@type": "Blog",
-  name: "findr. Insights",
+  name: "Klymeo Insights",
   url: `${SITE_URL}${PATH}`,
   description: DESCRIPTION,
   inLanguage: "de-DE",
@@ -83,7 +83,7 @@ export default function InsightsPage() {
             Lieber selbst sehen als nachlesen?
           </>
         }
-        lead="Buch eine Demo und sieh, was findr. in echten Tiefeninterviews findet — über alle vier Methoden hinweg, vom Voice-Interview bis zum exportierten Deck."
+        lead="Buch eine Demo und sieh, was Klymeo in echten Tiefeninterviews findet — über alle vier Methoden hinweg, vom Voice-Interview bis zum exportierten Deck."
         secondary={{ label: "Plattform ansehen", href: "/produkt" }}
       />
     </>

@@ -7,7 +7,7 @@ import {
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/branchen/b2c";
-const OG_TITLE = "Market Research für B2C & Konsumgüter — findr.";
+const OG_TITLE = "Market Research für B2C & Konsumgüter — Klymeo";
 const DESCRIPTION =
   "KI-Interviews mit echten Verbraucher:innen auf Deutsch — Produkt, Verpackung, Marke und Preisgefühl belegt prüfen, bevor Produktion und Mediabudget laufen. Mit Stimulus-Tests für Entwürfe, je Studie verankert, DSGVO-nativ.";
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const SOFTWARE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "findr. Market Research — B2C & Konsumgüter",
+  name: "Klymeo Market Research — B2C & Konsumgüter",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: `${SITE_URL}${PATH}`,
@@ -33,7 +33,7 @@ const CONTENT: IndustryContent = {
   eyebrow: "Branche · B2C & Konsumgüter",
   heroTitle: <>Frag die Käufer, bevor das Regal antwortet.</>,
   heroSubhead:
-    "Rezeptur, Verpackung, Preis, Markenversprechen — die teuren B2C-Entscheidungen fallen lange vor dem Abverkauf. findr. führt KI-Interviews mit echten Verbraucher:innen auf Deutsch, zeigt deine Entwürfe als Stimulus direkt im Gespräch und macht aus „den meisten gefällt’s“ eine belegte Zahl: je Studie verankert, deterministisch gezählt, nichts hochgerechnet.",
+    "Rezeptur, Verpackung, Preis, Markenversprechen — die teuren B2C-Entscheidungen fallen lange vor dem Abverkauf. Klymeo führt KI-Interviews mit echten Verbraucher:innen auf Deutsch, zeigt deine Entwürfe als Stimulus direkt im Gespräch und macht aus „den meisten gefällt’s“ eine belegte Zahl: je Studie verankert, deterministisch gezählt, nichts hochgerechnet.",
   audience:
     "Marken-, Insights- und E-Commerce-Teams im B2C — Lebensmittel, Getränke, Markenartikel, Handel und Consumer-Produkte.",
   pain: {
@@ -65,7 +65,7 @@ const CONTENT: IndustryContent = {
   solution: {
     eyebrow: "B2C · Die belegte Antwort",
     title: <>Vom Bauchgefühl im Tasting-Raum zur belegten Verbraucherstimme.</>,
-    body: "Setz für jede Frage eine eigene Studie auf — Rezeptur-Test, Packaging-Vergleich, Preiswahrnehmung, Markenbild. Screening-Gate und Quoten stellen sicher, dass nur Käufer:innen deiner Kategorie ins Interview kommen, nicht zufällige Klicks. findr. interviewt auf Deutsch — auf Wunsch hörbar per Voice-Agent — und trennt mit der Markt-Linse Preis-Signal, Kaufabsicht, Segment und Wettbewerb; über mehrere Studien hinweg wird deterministisch gezählt, je Studie mit Zitat belegt.",
+    body: "Setz für jede Frage eine eigene Studie auf — Rezeptur-Test, Packaging-Vergleich, Preiswahrnehmung, Markenbild. Screening-Gate und Quoten stellen sicher, dass nur Käufer:innen deiner Kategorie ins Interview kommen, nicht zufällige Klicks. Klymeo interviewt auf Deutsch — auf Wunsch hörbar per Voice-Agent — und trennt mit der Markt-Linse Preis-Signal, Kaufabsicht, Segment und Wettbewerb; über mehrere Studien hinweg wird deterministisch gezählt, je Studie mit Zitat belegt.",
     payoff: {
       strong: "Eine Zahl, die du im Innovationsboard verteidigst.",
       body: "Fragt jemand „wie viele sagen das wirklich?“, zeigst du die Zahl — und das Zitat aus der jeweiligen Studie daneben. Nichts hochgerechnet.",
@@ -124,7 +124,7 @@ const CONTENT: IndustryContent = {
     "Jede Fähigkeit arbeitet an echten Interviews mit echten Verbraucher:innen — vom Voice-Interview bis zum PowerPoint-Export.",
   cta: {
     title: <>Frag die Käufer, bevor die Charge läuft.</>,
-    lead: "Buch eine Demo und sieh, wie findr. eine Verbraucherfrage über mehrere Studien beantwortet — deterministisch gezählt, je Studie belegt.",
+    lead: "Buch eine Demo und sieh, wie Klymeo eine Verbraucherfrage über mehrere Studien beantwortet — deterministisch gezählt, je Studie belegt.",
   },
 };
 

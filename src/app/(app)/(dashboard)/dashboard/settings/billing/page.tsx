@@ -31,7 +31,7 @@ export default async function BillingSettingsPage() {
             </p>
           </div>
           <a
-            href="mailto:andre@findr.ai?subject=Findr%20billing%20upgrade"
+            href="mailto:andre@findr.ai?subject=Klymeo%20billing%20upgrade"
             className="inline-flex h-8 items-center justify-center rounded-md bg-primary-600 px-3 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
           >
             {t("billing.contact")}

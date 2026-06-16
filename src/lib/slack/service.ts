@@ -159,7 +159,7 @@ export function buildSlackBlocks(payload: SlackAlertPayload): SlackBlock[] {
     elements: [
       {
         type: "button",
-        text: { type: "plain_text", text: "View in Findr", emoji: true },
+        text: { type: "plain_text", text: "View in Klymeo", emoji: true },
         url: payload.dashboardUrl,
         style: "primary",
       },
@@ -171,7 +171,7 @@ export function buildSlackBlocks(payload: SlackAlertPayload): SlackBlock[] {
     elements: [
       {
         type: "mrkdwn",
-        text: `Findr · Risk analysis from ${new Date().toLocaleString("de-DE")}`,
+        text: `Klymeo · Risk analysis from ${new Date().toLocaleString("de-DE")}`,
       },
     ],
   });

@@ -35,7 +35,7 @@ function subscribeNever(): () => void {
   return () => {};
 }
 function getThemeShellContainer(): HTMLElement | undefined {
-  return document.getElementById("findr-theme-shell") ?? undefined;
+  return document.getElementById("klymeo-theme-shell") ?? undefined;
 }
 function getServerContainer(): HTMLElement | undefined {
   return undefined;

@@ -7,9 +7,9 @@ import {
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/methoden/konzept-test";
-const OG_TITLE = "Konzept-Test — findr.";
+const OG_TITLE = "Konzept-Test — Klymeo";
 const DESCRIPTION =
-  "Konzepte belegt prüfen, bevor sie gebaut werden: findr. testet erst das Verständnis, dann die Relevanz — zurückhaltend bei der Kaufabsicht. KI-Interviews auf Deutsch, DSGVO-nativ.";
+  "Konzepte belegt prüfen, bevor sie gebaut werden: Klymeo testet erst das Verständnis, dann die Relevanz — zurückhaltend bei der Kaufabsicht. KI-Interviews auf Deutsch, DSGVO-nativ.";
 
 export const metadata: Metadata = {
   title: "Konzept-Test",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const SOFTWARE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "findr. — Konzept-Test",
+  name: "Klymeo — Konzept-Test",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: `${SITE_URL}${PATH}`,
@@ -34,7 +34,7 @@ const CONTENT: MethodContent = {
   eyebrow: "Methode · Konzept-Test",
   heroTitle: <>Trägt das Konzept — und woran?</>,
   heroSubhead:
-    "Bevor du ein Konzept baust, willst du wissen, ob es verstanden wird und ob es relevant ist. findr. prüft erst das Verständnis, dann die Relevanz — zurückhaltend bei „würden Sie kaufen“ — und zeigt das Konzept als echtes Asset im Interview.",
+    "Bevor du ein Konzept baust, willst du wissen, ob es verstanden wird und ob es relevant ist. Klymeo prüft erst das Verständnis, dann die Relevanz — zurückhaltend bei „würden Sie kaufen“ — und zeigt das Konzept als echtes Asset im Interview.",
   audience:
     "Produkt-, Innovations- und Konzept-Teams, die eine Idee belegt prüfen wollen, bevor sie gebaut wird.",
   statusNote:
@@ -67,12 +67,12 @@ const CONTENT: MethodContent = {
   how: {
     title: <>Erst verstehen, dann bewerten.</>,
     lead:
-      "findr. zeigt das Konzept als Asset und arbeitet sich vom Verständnis zur Relevanz — bewusst zurückhaltend bei der Kaufabsicht.",
+      "Klymeo zeigt das Konzept als Asset und arbeitet sich vom Verständnis zur Relevanz — bewusst zurückhaltend bei der Kaufabsicht.",
     steps: [
       {
         phase: "Stimulus",
         title: "Das Konzept zeigen",
-        body: "findr. präsentiert das Konzept als echtes Asset im Interview — Text, Bild oder Mockup — statt es nur zu beschreiben.",
+        body: "Klymeo präsentiert das Konzept als echtes Asset im Interview — Text, Bild oder Mockup — statt es nur zu beschreiben.",
         tag: "Live",
       },
       {
@@ -84,13 +84,13 @@ const CONTENT: MethodContent = {
       {
         phase: "Relevanz",
         title: "Was gefällt — und was nicht",
-        body: "findr. fragt nach dem, was zieht, und dem, was bremst — und bleibt zurückhaltend bei „würden Sie kaufen“: Relevanz statt erzwungener Kaufabsicht.",
+        body: "Klymeo fragt nach dem, was zieht, und dem, was bremst — und bleibt zurückhaltend bei „würden Sie kaufen“: Relevanz statt erzwungener Kaufabsicht.",
         tag: "Live",
       },
       {
         phase: "Variante",
         title: "Welche Richtung trägt",
-        body: "Stehen mehrere Varianten zur Wahl, fragt findr. nach Präferenz und Grund — woran genau eine Idee trägt oder scheitert.",
+        body: "Stehen mehrere Varianten zur Wahl, fragt Klymeo nach Präferenz und Grund — woran genau eine Idee trägt oder scheitert.",
         tag: "Live",
       },
     ],
@@ -98,7 +98,7 @@ const CONTENT: MethodContent = {
   result: {
     eyebrow: "Konzept-Test · Was rauskommt",
     title: <>Belegt, ob die Idee trägt — und woran.</>,
-    body: "findr. verdichtet, ob das Konzept verstanden wurde, was Relevanz stiftet und wo es hakt — verankert im Transkript. Über mehrere Konzept-Studien hinweg deterministisch gezählt. Dieselbe Synthese wie bei jeder anderen Methode.",
+    body: "Klymeo verdichtet, ob das Konzept verstanden wurde, was Relevanz stiftet und wo es hakt — verankert im Transkript. Über mehrere Konzept-Studien hinweg deterministisch gezählt. Dieselbe Synthese wie bei jeder anderen Methode.",
     payoff: {
       strong: "Ein Go/No-Go, das auf Verständnis fußt — nicht auf einer voreiligen Zahl.",
       body: "Du siehst nicht nur, ob die Idee ankommt, sondern woran genau — der Hebel für die nächste Version.",
@@ -107,12 +107,12 @@ const CONTENT: MethodContent = {
       badge: "Beispiel-Fragen · Konzept-Test",
       rows: [
         {
-          label: "So fragt findr.",
+          label: "So fragt Klymeo",
           value:
             "„Beschreiben Sie das Konzept in eigenen Worten.“ · „Was gefällt Ihnen, was weniger?“",
         },
         {
-          label: "Was findr. heraushört",
+          label: "Was Klymeo heraushört",
           value:
             "Ob das Konzept verstanden wurde, was Relevanz stiftet und welche Variante trägt — bevor gebaut wird.",
         },
@@ -123,7 +123,7 @@ const CONTENT: MethodContent = {
     "Was aus den Gesprächen wird, übernimmt dieselbe Synthese wie bei jeder Methode — Live, was Live ist; Bald, was kommt.",
   cta: {
     title: <>Konzepte prüfen, bevor sie gebaut werden.</>,
-    lead: "Buch eine Demo und sieh, wie findr. ein Konzept als Asset zeigt und sich vom Verständnis zur Relevanz vorarbeitet — bevor gebaut wird.",
+    lead: "Buch eine Demo und sieh, wie Klymeo ein Konzept als Asset zeigt und sich vom Verständnis zur Relevanz vorarbeitet — bevor gebaut wird.",
   },
 };
 

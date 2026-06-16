@@ -13,7 +13,7 @@ const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 /**
  * Org-level white-label branding: brand name, accent color, and logo. Brand
  * name + accent save together via PUT /api/settings/branding; the logo uploads
- * separately to /api/settings/branding/logo. Unset = today's neutral Findr
+ * separately to /api/settings/branding/logo. Unset = today's neutral Klymeo
  * default. Mirrors the AutoInterviewSettingForm pattern (admin-gated, GET on
  * mount, neutral card styling).
  */

@@ -1,11 +1,11 @@
 /**
- * Shared Findr theme for Clerk's auth components.
+ * Shared Klymeo theme for Clerk's auth components.
  * Used by both /sign-in and /sign-up pages.
  *
  * Note: `elements` keys reference Clerk's internal class names; the values are
  * Tailwind utility strings that get appended to Clerk's defaults.
  */
-export const findrAuthAppearance = {
+export const klymeoAuthAppearance = {
   variables: {
     colorPrimary: "#4A51A8",          // violet-600
     colorBackground: "#16101E",       // obsidian

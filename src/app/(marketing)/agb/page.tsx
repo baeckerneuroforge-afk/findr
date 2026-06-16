@@ -7,9 +7,9 @@ import {
 import { ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/agb";
-const OG_TITLE = "AGB — findr.";
+const OG_TITLE = "AGB — Klymeo";
 const DESCRIPTION =
-  "Allgemeine Geschäftsbedingungen für die Nutzung von findr.";
+  "Allgemeine Geschäftsbedingungen für die Nutzung von Klymeo.";
 
 export const metadata: Metadata = {
   title: "AGB",
@@ -29,7 +29,7 @@ export default function AgbPage() {
   return (
     <LegalProse
       title="Allgemeine Geschäftsbedingungen"
-      intro="Bedingungen für die Nutzung von findr. und der zugehörigen Produkte."
+      intro="Bedingungen für die Nutzung von Klymeo und der zugehörigen Produkte."
     >
       <LegalSection heading="1. Geltungsbereich">
         <Placeholder>

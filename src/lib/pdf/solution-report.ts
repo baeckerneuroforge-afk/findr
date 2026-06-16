@@ -8,7 +8,7 @@ import { toBcp47, type Locale } from "@/i18n/locale";
 
 /**
  * "Deal Solution Report" PDF — a considered internal deal-review document, not a
- * data dump. Findr style: white, calm typography, violet #4A51A8 used sparingly
+ * data dump. Klymeo style: white, calm typography, violet #4A51A8 used sparingly
  * as an accent (heading rules, the risk ring, small labels).
  *
  * Typeface: Geist (the product's brand font) is embedded as a TrueType so German
@@ -21,7 +21,7 @@ import { toBcp47, type Locale } from "@/i18n/locale";
  */
 
 const COLORS = {
-  violet: "#4A51A8", // Findr accent — used sparingly
+  violet: "#4A51A8", // Klymeo accent — used sparingly
   violetSoft: "#ededf6", // light violet for small chips
   ink: "#18181b", // headings + key content
   body: "#3f3f46", // softer paragraph text
@@ -331,7 +331,7 @@ export async function buildSolutionReportPdf(
     .font(fonts.bold)
     .fontSize(13)
     .fillColor(COLORS.violet)
-    .text("Findr", left, topY, { lineBreak: false });
+    .text("Klymeo", left, topY, { lineBreak: false });
   doc
     .font(fonts.regular)
     .fontSize(9)
@@ -715,7 +715,7 @@ export async function buildSolutionReportPdf(
       .fontSize(8)
       .fillColor(COLORS.faint)
       .text(
-        `Findr · ${translate(locale, "export.solution.title")} · ${input.solution.model}`,
+        `Klymeo · ${translate(locale, "export.solution.title")} · ${input.solution.model}`,
         left,
         fy,
         {

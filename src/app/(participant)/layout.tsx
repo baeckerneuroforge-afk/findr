@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import {
+  Inter,
+  Hanken_Grotesk,
+  JetBrains_Mono,
+  Space_Grotesk,
+  Space_Mono,
+} from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
@@ -22,7 +28,7 @@ import "../globals.css";
  *
  * BYTE-IDENTISCHES RENDERING zum bisherigen (app)-Erbe ist Absicht: gleiche
  * Fonts, gleiche <html>/<body>-Klassen, gleiches globals.css, gleicher
- * Metadata-Ansatz (PLAIN title, KEIN Template — kein "— findr."-Suffix auf
+ * Metadata-Ansatz (PLAIN title, KEIN Template — kein "— Klymeo"-Suffix auf
  * White-Label-Seiten). Einzige Unterschiede: kein ClerkProvider, und der
  * Provider trägt nur noch den `interview`-Namespace (den die Seiten ohnehin
  * selbst mit der Token-Sprache überschreiben — hier als Baseline für etwaige
@@ -44,11 +50,22 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-display",
+  subsets: ["latin"],
+});
+
+const spaceMono = Space_Mono({
+  variable: "--font-spacemono",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "findr. — Conversation-Intelligence-Plattform für B2B-SaaS",
+  title: "Klymeo — Conversation-Intelligence-Plattform für B2B-SaaS",
   description:
-    "Ein KI-Gehirn, vier Produkte: Sales Intelligence, Customer Success Health, Product Discovery und Market Research. findr. liest jedes Kundengespräch und macht es über alle Produkte hinweg nutzbar — DSGVO-nativ, in Frankfurt gehostet.",
+    "Ein KI-Gehirn, vier Produkte: Sales Intelligence, Customer Success Health, Product Discovery und Market Research. Klymeo liest jedes Kundengespräch und macht es über alle Produkte hinweg nutzbar — DSGVO-nativ, in Frankfurt gehostet.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -79,7 +96,7 @@ export default async function ParticipantLayout({
     <html
       lang={locale}
       data-scroll-behavior="smooth"
-      className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full scroll-smooth antialiased`}
+      className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} h-full scroll-smooth antialiased`}
     >
       <body className="min-h-full flex flex-col bg-obsidian text-white">
         <NextIntlClientProvider

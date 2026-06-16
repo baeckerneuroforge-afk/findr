@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { KlymeoMark } from "@/components/shared/KlymeoMark";
 
 /**
- * Die findr.-Wortmarke der Studio-Bühne: "findr" in Bricolage (Display-Stimme)
- * plus blinkender REC-Punkt (st-brand, studio.css) — der Punkt IST das
- * Markenzeichen: Aufnahme läuft. Links home.
+ * Die Klymeo-Wortmarke der Studio-Bühne: der Funken-Mark (KlymeoMark) plus
+ * "Klymeo" in der Marketing-Display-Schrift (st-brand, studio.css) — Mark links,
+ * Schriftzug rechts. Links home.
  */
 export function Wordmark({
   className = "",
@@ -13,20 +14,30 @@ export function Wordmark({
   className?: string;
   size?: "md" | "sm";
   /** "ink" = dunkle Wortmarke für helle Flächen (Header). "light" = Creme
-   * für den dunklen Studio-Footer. Der REC-Punkt bleibt in beiden rot. */
+   * für den dunklen Studio-Footer. Der Funken-Mark bleibt in beiden indigo. */
   tone?: "ink" | "light";
 }) {
   const text = size === "sm" ? "text-lg" : "text-[22px]";
+  const mark = size === "sm" ? "h-[18px] w-[18px]" : "h-[22px] w-[22px]";
   const light = tone === "light";
   const ringOffset = light ? "focus-visible:ring-offset-anchor" : "";
   return (
     <Link
       href="/"
-      aria-label="findr. — Startseite"
-      className={`st-brand ${light ? "st-brand--light" : ""} rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 ${ringOffset} ${text} ${className}`}
+      aria-label="Klymeo — Startseite"
+      className={`inline-flex items-center gap-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 ${ringOffset} ${className}`}
     >
-      <span>findr</span>
-      <i aria-hidden />
+      <KlymeoMark tone={light ? "onDark" : "brand"} className={`shrink-0 ${mark}`} />
+      <span
+        className={`st-brand ${light ? "st-brand--light" : ""} ${text}`}
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 500,
+          letterSpacing: "-0.04em",
+        }}
+      >
+        Klymeo
+      </span>
     </Link>
   );
 }

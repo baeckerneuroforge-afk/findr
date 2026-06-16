@@ -442,7 +442,7 @@ async function publishPanelStudyForPlan(
 /**
  * Persistierten Prolific-Draft eines Plans live schalten — die einzige
  * GELD-NAHE Aktion der Panel-Integration: Prolific finanziert die Studie
- * beim Publish aus dem Workspace-Guthaben des verbundenen Accounts. findr
+ * beim Publish aus dem Workspace-Guthaben des verbundenen Accounts. Klymeo
  * ruft das NIE automatisch auf; die Route hängt an einem expliziten
  * Confirm-Schritt in der UI. Ohne Guthaben schlägt die Transition beim
  * Provider fehl; die Begründung läuft als providerMessage zur UI durch.

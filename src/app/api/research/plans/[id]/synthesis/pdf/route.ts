@@ -11,7 +11,7 @@ import { resolveExportBranding } from "@/lib/settings/branding-assets";
 /**
  * GET /api/research/plans/[id]/synthesis/pdf
  *
- * Streams a Findr-branded PDF of the Stage-2 synthesis for one plan. Mirrors
+ * Streams a Klymeo-branded PDF of the Stage-2 synthesis for one plan. Mirrors
  * the auth/ownership pattern of /api/research/plans/[id]/synthesis (POST) —
  * requireOrgIdOrError → org-scoped getResearchPlan ownership check → fetch
  * the synthesis row → build PDF.
@@ -23,7 +23,7 @@ import { resolveExportBranding } from "@/lib/settings/branding-assets";
  *   500      — PDF build threw (font load, pdfkit stream)
  *   200      — application/pdf body with Content-Disposition attachment
  *
- * Filename is the generic `findr-synthesis-YYYY-MM-DD.pdf`, mirroring the
+ * Filename is the generic `klymeo-synthesis-YYYY-MM-DD.pdf`, mirroring the
  * existing forecast / loss-report routes; this stays robust against
  * special characters in plan titles (the synthesis is still uniquely
  * tied to its plan by the file content + the user's own context — the
@@ -97,7 +97,7 @@ export async function GET(
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="findr-synthesis-${date}.pdf"`,
+        "Content-Disposition": `attachment; filename="klymeo-synthesis-${date}.pdf"`,
         "Cache-Control": "no-store",
       },
     });

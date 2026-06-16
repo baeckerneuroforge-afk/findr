@@ -51,7 +51,7 @@ function formatSubmissionCounts(
   labels: { total: (n: number) => string; none: string },
 ): string {
   // Bucket-Namen sind Provider-Vokabular (ACTIVE, "AWAITING REVIEW", …) und
-  // bleiben bewusst unübersetzt — nur die findr-eigenen Tokens (gesamt /
+  // bleiben bewusst unübersetzt — nur die Klymeo-eigenen Tokens (gesamt /
   // noch keine) sind lokalisiert.
   const parts = COUNT_ORDER.filter((k) => (counts[k] ?? 0) > 0).map(
     (k) => `${counts[k]} ${k.toLowerCase()}`,
@@ -142,7 +142,7 @@ export function ProlificDraftPanel({
   // wurde; Reward-/Places-Änderungen verwerfen sie (Stale-Schutz).
   const [estimateCents, setEstimateCents] = useState<number | null>(null);
   // E7: zweistufiger Publish — erst expliziter Confirm-Schritt (geld-nah!),
-  // dann POST. findr published nie ohne diese Bestätigung.
+  // dann POST. Klymeo published nie ohne diese Bestätigung.
   const [confirmingPublish, setConfirmingPublish] = useState(false);
   const [publishing, setPublishing] = useState(false);
   // Test-Modus: gratis Klon-Publish an die Workspace-Test-Teilnehmer —

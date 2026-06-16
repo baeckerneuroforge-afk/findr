@@ -177,7 +177,7 @@ export default async function InsightArticlePage({
             Von der Theorie zum eigenen Gespräch.
           </>
         }
-        lead="Buch eine Demo und sieh, was findr. in deinen eigenen Calls findet — belegt, nicht geraten."
+        lead="Buch eine Demo und sieh, was Klymeo in deinen eigenen Calls findet — belegt, nicht geraten."
         secondary={{ label: "Plattform ansehen", href: "/produkt" }}
       />
     </>

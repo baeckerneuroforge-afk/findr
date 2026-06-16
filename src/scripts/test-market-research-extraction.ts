@@ -117,7 +117,7 @@ async function main(): Promise<void> {
   const study = {
     subject: "Konzept: gesundes Aufwärm-Abendessen-Abo (Probe-Konzepttest)",
     market: "Berufstätige Eltern in deutschen Großstädten",
-    orgName: "Findr Research",
+    orgName: "Klymeo Research",
   };
 
   // ── MARKET LENS (the M1 path) ──────────────────────────────────────────────

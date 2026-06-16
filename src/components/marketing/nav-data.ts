@@ -138,7 +138,7 @@ export const PRIMARY_NAV: NavEntry[] = [
     id: "branchen",
     groups: [
       {
-        heading: "Für wen findr. forscht",
+        heading: "Für wen Klymeo forscht",
         items: industryLeaves,
         // No "see all": there is no /branchen index page (plan O4).
       },

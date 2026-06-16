@@ -33,7 +33,7 @@ export default async function HubspotIntegrationPage({
           Hubspot integration
         </h1>
         <p className="text-body text-neutral-500">
-          Sync deals, companies, and owners from your Hubspot CRM into Findr.
+          Sync deals, companies, and owners from your Hubspot CRM into Klymeo.
         </p>
       </div>
       <HubspotSettingsPanel

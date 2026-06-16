@@ -91,7 +91,7 @@ export default async function DataSourcesPage() {
 
   const manualCount = manualCountResult.count ?? 0;
   const intro = ENABLED_MODULES.salesIntelligence
-    ? "Connect CRM and call systems, or import a deal manually when a design partner wants to test Findr before integrations are ready."
+    ? "Connect CRM and call systems, or import a deal manually when a design partner wants to test Klymeo before integrations are ready."
     : "Manage research data sources and panel providers for market campaigns.";
   const sources: SourceCard[] = [];
   if (ENABLED_MODULES.salesIntelligence) {

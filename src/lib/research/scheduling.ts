@@ -12,7 +12,7 @@ import type { InterviewLanguage } from "@/lib/voice-agent/interviewer";
  * typed Supabase reads via the admin client, narrow public record shape,
  * helpers that hide the underlying column-name pluralization.
  *
- * SCOPE per the v1 brief: a Findr user MANUALLY picks one scheduled_at per
+ * SCOPE per the v1 brief: a Klymeo user MANUALLY picks one scheduled_at per
  * invite. No Cal.com, no availability matching. proposeSlots is purely a
  * UI convenience (suggest a few default times); it does NOT reserve or
  * lock anything. The mutation that matters is scheduleInvite, which writes
@@ -82,7 +82,7 @@ function toRecord(row: ResearchInviteRow): ResearchInviteRecord {
 /**
  * Suggest a few default scheduling slots — purely a UI convenience for the
  * "schedule this invite" form. NOT a calendar / availability check; the
- * Findr user is free to ignore these and pick any timestamp.
+ * Klymeo user is free to ignore these and pick any timestamp.
  *
  * Default: next N business days (Mon–Fri) at 10:00 in Europe/Berlin. v1
  * skips weekends and does not skip German public holidays — the calendar

@@ -105,7 +105,7 @@ export function buildInterviewInvite(params: InterviewInviteParams): BuiltEmail 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f8;padding:24px 0;">
       <tr><td align="center">
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #dcdeef;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#221f2a;">
-          <tr><td style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#221f2a;padding-bottom:20px;">findr<span style="color:#b00;">.</span></td></tr>
+          <tr><td style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#221f2a;padding-bottom:20px;">Klymeo</td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3f3f46;">
             <p style="margin:0 0 14px;">${greetingHtml}</p>
             <p style="margin:0 0 14px;">${introHtml}</p>
@@ -131,7 +131,7 @@ export function buildInterviewInvite(params: InterviewInviteParams): BuiltEmail 
 
 export interface CheckinInviteParams {
   contactName?: string | null;
-  /** The Findr customer — the company in whose name the check-in is sent. */
+  /** The Klymeo customer — the company in whose name the check-in is sent. */
   orgName: string;
   /** The product to check in about. */
   productName: string;
@@ -142,8 +142,8 @@ export interface CheckinInviteParams {
 }
 
 /**
- * Builds the account check-in invitation email — friendly, short, in the Findr
- * CUSTOMER's name (not findr.), and transparent that the chat is run by an AI
+ * Builds the account check-in invitation email — friendly, short, in the Klymeo
+ * CUSTOMER's name (not Klymeo), and transparent that the chat is run by an AI
  * assistant. Locale defaults to "de" (DACH). Distinct from the post-loss invite.
  */
 export function buildCheckinInvite(params: CheckinInviteParams): BuiltEmail {

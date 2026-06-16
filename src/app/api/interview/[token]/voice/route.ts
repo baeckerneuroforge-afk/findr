@@ -144,7 +144,7 @@ async function transcribeWithDeepgram(
   url.searchParams.set("language", sttLanguageCode(language));
   // Nova-3 uses `keyterm`, not `keywords`, for vocabulary prompting.
   // See Deepgram Keyterm Prompting docs for the current parameter name.
-  url.searchParams.append("keyterm", "Findr");
+  url.searchParams.append("keyterm", "Klymeo");
 
   const response = await fetch(url, {
     method: "POST",

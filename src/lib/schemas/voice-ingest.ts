@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Findr Voice — Ingest-Request + Zuordnungs-Schema (Etappe 1).
+ * Klymeo Voice — Ingest-Request + Zuordnungs-Schema (Etappe 1).
  *
  * DISAMBIGUIERUNG IST STRUKTURELL, nicht laufzeit-geprüft. Jede Variante der
  * `assignment`-discriminated-union trägt GENAU das eine Ziel-Feld, das ihre

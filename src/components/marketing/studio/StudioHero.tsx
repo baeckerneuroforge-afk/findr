@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { CtaLink } from "../CtaLink";
 import { Rv } from "./Rv";
+import { HeroConstellation } from "./HeroConstellation";
 
 /**
  * Homepage-Hero der Studio-Bühne: „Aufnahme läuft“-Chip mit live laufendem
@@ -92,6 +93,7 @@ export function StudioHero() {
 
   return (
     <section className="st-sky relative flex min-h-[92svh] flex-col justify-end overflow-hidden pt-28">
+      <HeroConstellation className="pointer-events-none absolute right-[-70px] top-[24px] z-0 w-[clamp(240px,30vw,500px)] opacity-[0.55]" />
       <canvas
         ref={waveRef}
         className="pointer-events-none absolute inset-x-0 bottom-16 h-[110px] w-full opacity-55"
@@ -121,7 +123,7 @@ export function StudioHero() {
 
         <div className="mt-[clamp(28px,4vh,52px)] grid gap-7 pb-[clamp(120px,18vh,200px)] md:grid-cols-[minmax(0,560px)_auto] md:items-end md:justify-between">
           <Rv as="p" className="st-fade max-w-[54ch] text-[clamp(16px,1.4vw,19px)] leading-[1.7] text-neutral-500" d={150}>
-            findr. führt{" "}
+            Klymeo führt{" "}
             <b className="font-medium text-neutral-900">
               hunderte qualitative Tiefeninterviews
             </b>{" "}

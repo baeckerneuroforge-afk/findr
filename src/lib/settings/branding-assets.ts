@@ -13,7 +13,7 @@ import { getOrgBranding } from "./org-settings";
 
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 
-/** The default Findr accent used across the interview / export / mail surfaces. */
+/** The default Klymeo accent used across the interview / export / mail surfaces. */
 export const DEFAULT_ACCENT = "#4A51A8";
 
 /**
@@ -44,7 +44,7 @@ export interface FetchedLogo {
 
 /** Branding payload passed into the export generators. */
 export interface ExportBranding {
-  /** Brand name shown instead of "Findr" in headers/footers. Null = "Findr". */
+  /** Brand name shown instead of "Klymeo" in headers/footers. Null = "Klymeo". */
   brandName: string | null;
   /** Always a valid #RRGGBB (safe-hex'd, default accent when unset). */
   accentColorHex: string;

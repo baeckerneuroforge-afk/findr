@@ -10,7 +10,7 @@ import { type Locale, toBcp47 } from "@/i18n/locale";
 /**
  * "Research Synthesis" PowerPoint — a forwardable, presentable read-out of a
  * Stage-2 study synthesis. Second shareout option next to the PDF export
- * (buildSynthesisPdf). Same Findr palette (violet #4A51A8 accent on white),
+ * (buildSynthesisPdf). Same Klymeo palette (violet #4A51A8 accent on white),
  * but a slide-per-theme deck instead of a flowing document.
  *
  * SAME DATA CONTRACT as the PDF export — this deliberately reuses the exact
@@ -82,7 +82,7 @@ type Slide = PptxGenJS.Slide;
 
 /** Small brand wordmark + accent bar in the top-left of a content
  *  slide, plus a discreet footer. Returns the y-offset where body content
- *  may begin. Falls back to "Findr" + violet #4A51A8 when branding is unset. */
+ *  may begin. Falls back to "Klymeo" + violet #4A51A8 when branding is unset. */
 function chrome(
   slide: Slide,
   kicker: string,
@@ -133,10 +133,10 @@ function chrome(
 export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buffer> {
   const { plan, synthesis, orgName, locale } = input;
 
-  // White-label brand mark + accent — fall back to today's exact "Findr" +
+  // White-label brand mark + accent — fall back to today's exact "Klymeo" +
   // violet #4A51A8 when branding is unset. COLORS here are hex WITHOUT '#',
   // so strip a leading '#' from the resolved accent.
-  const brandName = input.branding?.brandName || "Findr";
+  const brandName = input.branding?.brandName || "Klymeo";
   const accentNoHash = (input.branding?.accentColorHex || "#" + COLORS.violet).replace(
     /^#/,
     "",

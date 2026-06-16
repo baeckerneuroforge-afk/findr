@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   findr. „TWILIGHT-KONSOLE“ — das Marketing-Designsystem (helle Fassung).
+   Klymeo „TWILIGHT-KONSOLE“ — das Marketing-Designsystem (helle Fassung).
 
    Idee: Die Plattform ist ein Präzisionsinstrument — die Marketing-Site IST
    dieses Instrument. Heller Lab-Canvas (Plattform-Neutrals), Hairlines,
@@ -78,9 +78,9 @@
      font-mono → JetBrains Mono (Konsole/Timecodes), Instrument Serif als
      kursiver Akzent. Die Variablen setzt next/font im (marketing)/layout.tsx
      auf genau diesem Wrapper. */
-  --font-marketing: var(--font-hanken-mkt), ui-sans-serif, system-ui, sans-serif;
+  --font-marketing: var(--font-display), var(--font-hanken-mkt), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-hanken-mkt), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jbmono-mkt), ui-monospace, monospace;
+  --font-mono: var(--font-spacemono-mkt), var(--font-jbmono-mkt), ui-monospace, monospace;
 
   background-color: var(--color-canvas);
   color: var(--st-ink);
@@ -1032,6 +1032,39 @@
 .st-sheet.in .st-theme:nth-of-type(3) .st-t-bar > b {
   transition-delay: 0.45s;
 }
+/* Hero-Konstellation: das Sternbild dreht sich sehr langsam, die Sterne
+   funkeln versetzt (Dauer/Delay je Stern inline). prefers-reduced-motion → still. */
+@keyframes st-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes st-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.st-constellation-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: st-spin 150s linear infinite;
+}
+.st-twinkle {
+  animation-name: st-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-constellation-spin,
+  .st-twinkle {
+    animation: none;
+  }
+}
+
 .st-sheet blockquote {
   margin-top: 26px;
   border-left: 3px solid var(--st-rec);

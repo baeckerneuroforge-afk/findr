@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { FONT, resolveAccent } from "./branding";
+import { KlymeoMark } from "@/components/shared/KlymeoMark";
 
 /**
  * Branded full-page chrome for the participant-facing screening + rejection
@@ -12,7 +13,7 @@ import { FONT, resolveAccent } from "./branding";
  * serves the two NEW screens (ScreeningForm, RejectionPanel).
  *
  * Screening only ever runs on the research surface (brandless = true), where a
- * Findr customer's logo/name + accent replace the Findr chrome. Children render
+ * Klymeo customer's logo/name + accent replace the Klymeo chrome. Children render
  * inside the centered max-w-2xl main.
  */
 export function ParticipantShell({
@@ -48,9 +49,12 @@ export function ParticipantShell({
           }`}
         >
           {!brandless && (
-            <span className="flex items-center text-[20px] font-extrabold tracking-[-0.02em] text-[#221F2A]">
-              findr
-              <span className="mb-[10px] ml-[1px] inline-block h-[4px] w-[4px] rounded-full bg-[#B00]" />
+            <span
+              className="flex items-center gap-1.5 text-[20px] tracking-[-0.04em] text-[#221F2A]"
+              style={{ fontFamily: "var(--font-display)", fontWeight: 500 }}
+            >
+              <KlymeoMark className="h-5 w-5 shrink-0" />
+              Klymeo
             </span>
           )}
           {hasBrand &&

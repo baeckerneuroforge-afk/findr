@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/Toast";
  * does NOT mutate the invite, does NOT touch the invite-orchestration or
  * getPublicSession flow. The token is already on the invite row (set by
  * Migration 20260615); this component just exposes the resulting public
- * interview URL as a clipboard handle so the Findr user can share it
+ * interview URL as a clipboard handle so the Klymeo user can share it
  * through any channel without going to the DB.
  *
  * The full URL is built on the server side via researchInterviewUrl() so

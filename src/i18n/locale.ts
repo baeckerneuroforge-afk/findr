@@ -21,7 +21,7 @@ export const DEFAULT_LOCALE: Locale = "en";
 
 /** Cookie that carries the chosen UI locale across requests (set by a future
  *  switcher; read by src/i18n/request.ts). */
-export const LOCALE_COOKIE = "findr.locale";
+export const LOCALE_COOKIE = "klymeo.locale";
 
 /** BCP-47 tags for locale-aware Intl.* formatting (dates, numbers). */
 const BCP47: Record<Locale, string> = {

@@ -18,7 +18,7 @@ import { buildCheckinInvite, interviewUrl } from "@/lib/email/interview-invite";
 
 /**
  * "Create the account check-in (if needed) AND email the invitation" flow — the
- * health-side mirror of createAndInviteInterview. The agent speaks in the Findr
+ * health-side mirror of createAndInviteInterview. The agent speaks in the Klymeo
  * customer's name (org name + product), and the email goes to the account's
  * sponsor. Recent churn signals are passed as private background for at most one
  * targeted follow-up. Never throws for expected conditions.

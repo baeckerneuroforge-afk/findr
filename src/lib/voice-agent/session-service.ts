@@ -168,9 +168,9 @@ export interface PublicInterviewView {
   /** A friendly company name for the greeting, if available. */
   company: string | null;
   /** Flow kind — exposed so the public page can switch on it (e.g. drop the
-   *  Findr branding for `research`, since the participant is the customer
-   *  of a Findr customer and has no relationship with Findr). post_loss
-   *  and checkin keep the existing Findr-branded chrome. */
+   *  Klymeo branding for `research`, since the participant is the customer
+   *  of a Klymeo customer and has no relationship with Klymeo). post_loss
+   *  and checkin keep the existing Klymeo-branded chrome. */
   kind: "post_loss" | "checkin" | "research";
   /** For `research` only: the research-plan title, used by the page as the
    *  visible h1 + metadata title. Null for post_loss / checkin and when

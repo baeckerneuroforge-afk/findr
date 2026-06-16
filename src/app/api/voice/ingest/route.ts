@@ -11,7 +11,7 @@ import {
 } from "@/lib/voice/inbox-service";
 
 /**
- * POST /api/voice/ingest — Findr Voice ingest (Etappe 1).
+ * POST /api/voice/ingest — Klymeo Voice ingest (Etappe 1).
  *
  * Auth: Bearer-Token (requireOrgIdFromBearer) — org-autoritativ, NIE aus dem
  * Body. Spiegelt das `.omit({orgId})`-Muster der bestehenden Routes; der Body

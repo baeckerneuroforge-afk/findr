@@ -7,7 +7,7 @@ import {
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/branchen/industrie";
-const OG_TITLE = "Market Research für die Industrie — findr.";
+const OG_TITLE = "Market Research für die Industrie — Klymeo";
 const DESCRIPTION =
   "Anwender- und Kundenforschung für Industrieunternehmen: KI-Interviews auf Deutsch mit Anwendern, Einkäufern und Partnern — per Link, auf Wunsch per Voice-Agent. Belegte Antworten zu Produkt, Service und neuen Angeboten, bevor investiert wird. DSGVO-nativ.";
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const SOFTWARE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "findr. Market Research — Industrie",
+  name: "Klymeo Market Research — Industrie",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: `${SITE_URL}${PATH}`,
@@ -33,7 +33,7 @@ const CONTENT: IndustryContent = {
   eyebrow: "Branche · Industrie",
   heroTitle: <>Hör den Anwendern zu, bevor die Linie umgebaut wird.</>,
   heroSubhead:
-    "Maschinen, Komponenten, Services: Industrieentscheidungen binden Kapital für Jahre — und das Wissen darüber, was Anwender wirklich brauchen, steckt in Messegesprächen und Service-Tickets. findr. führt strukturierte Tiefeninterviews mit Anwendern, Einkäufern und Partnern auf Deutsch, auf Wunsch hörbar per Voice-Agent — und macht daraus belegte Entscheidungsgrundlagen.",
+    "Maschinen, Komponenten, Services: Industrieentscheidungen binden Kapital für Jahre — und das Wissen darüber, was Anwender wirklich brauchen, steckt in Messegesprächen und Service-Tickets. Klymeo führt strukturierte Tiefeninterviews mit Anwendern, Einkäufern und Partnern auf Deutsch, auf Wunsch hörbar per Voice-Agent — und macht daraus belegte Entscheidungsgrundlagen.",
   audience:
     "Produktmanagement, Vertriebssteuerung und Strategie in Industrieunternehmen — Maschinenbau, Komponenten, Zulieferer, Industrieservices.",
   pain: {
@@ -65,7 +65,7 @@ const CONTENT: IndustryContent = {
   solution: {
     eyebrow: "Industrie · Die belegte Antwort",
     title: <>Vom Messe-Hörensagen zur strukturierten Anwenderstimme.</>,
-    body: "Setz für jede Frage eine eigene Studie auf — Anwenderzufriedenheit, Servicequalität, Bedarf für die nächste Produktgeneration. Lade Kunden, Anwender und Partner per Link ein; das Screening-Gate sorgt dafür, dass die richtige Rolle antwortet — Bediener:in, Instandhaltung oder Einkauf. findr. interviewt auf Deutsch, auf Wunsch per Voice-Agent für alle, die lieber reden als tippen, und verdichtet die Gespräche zu Themen, Lagern und Originalzitaten — exportierbar als PDF oder PowerPoint für den Investitionsausschuss.",
+    body: "Setz für jede Frage eine eigene Studie auf — Anwenderzufriedenheit, Servicequalität, Bedarf für die nächste Produktgeneration. Lade Kunden, Anwender und Partner per Link ein; das Screening-Gate sorgt dafür, dass die richtige Rolle antwortet — Bediener:in, Instandhaltung oder Einkauf. Klymeo interviewt auf Deutsch, auf Wunsch per Voice-Agent für alle, die lieber reden als tippen, und verdichtet die Gespräche zu Themen, Lagern und Originalzitaten — exportierbar als PDF oder PowerPoint für den Investitionsausschuss.",
     payoff: {
       strong: "Eine Zahl, die du im Investitionsausschuss verteidigst.",
       body: "Fragt jemand „woher wissen wir das?“, zeigst du die Zahl — und das Originalzitat des Anwenders daneben. Nichts hochgerechnet, nichts aus dritter Hand.",
@@ -124,7 +124,7 @@ const CONTENT: IndustryContent = {
     "Jede Fähigkeit arbeitet an echten Interviews mit echten Anwendern und Einkäufern — strukturiert statt anekdotisch.",
   cta: {
     title: <>Hör deinen Anwendern zu.</>,
-    lead: "Buch eine Demo und sieh, wie findr. eine Industrie-Frage über mehrere Studien beantwortet — vom Anwender-O-Ton bis zum PowerPoint-Export.",
+    lead: "Buch eine Demo und sieh, wie Klymeo eine Industrie-Frage über mehrere Studien beantwortet — vom Anwender-O-Ton bis zum PowerPoint-Export.",
   },
 };
 

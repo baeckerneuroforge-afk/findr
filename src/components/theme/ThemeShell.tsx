@@ -11,7 +11,7 @@ import {
 
 export type ThemePreference = "light" | "dark" | "system";
 
-const STORAGE_KEY = "findr-theme";
+const STORAGE_KEY = "klymeo-theme";
 
 /**
  * Läuft synchron beim Parsen als ERSTES Kind des Shell-Wrappers — vor First
@@ -128,7 +128,7 @@ export function ThemeShell({ children }: { children: React.ReactNode }) {
     <ThemeContext.Provider value={{ theme, resolvedDark, setTheme }}>
       <div
         ref={shellRef}
-        id="findr-theme-shell"
+        id="klymeo-theme-shell"
         suppressHydrationWarning
         className="font-body min-h-screen scheme-light bg-surface text-neutral-700"
       >

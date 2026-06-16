@@ -20,7 +20,7 @@ const STEPS: Array<{ step: Step; title: string; description: string }> = [
   {
     step: 1,
     title: "Create a deal",
-    description: "Add the pipeline context Findr needs.",
+    description: "Add the pipeline context Klymeo needs.",
   },
   {
     step: 2,
@@ -92,7 +92,7 @@ export function ManualImportFlow() {
             <StepHeader
               eyebrow="Step 1"
               title="Create a deal"
-              description="Manual imports behave like any other Findr deal. They use source=manual, so the real AI path runs instead of the demo snapshot."
+              description="Manual imports behave like any other Klymeo deal. They use source=manual, so the real AI path runs instead of the demo snapshot."
             />
             <ManualDealForm
               onCreated={(deal) => {
@@ -139,7 +139,7 @@ export function ManualImportFlow() {
             <StepHeader
               eyebrow="Step 3"
               title="Run AI risk analysis"
-              description="Findr will analyze the pasted transcript evidence and persist the score on the deal."
+              description="Klymeo will analyze the pasted transcript evidence and persist the score on the deal."
             />
 
             {!analysis && (
@@ -249,7 +249,7 @@ function AnalysisLoadingState({ message }: { message: string }) {
         <div>
           <div className="text-body-strong text-neutral-900">{message}</div>
           <p className="mt-1 max-w-xl text-small leading-relaxed text-neutral-500">
-            Findr&apos;s AI is analyzing the call evidence. Opus is thorough, so
+            Klymeo&apos;s AI is analyzing the call evidence. Opus is thorough, so
             this can take a moment for the most accurate result.
           </p>
         </div>

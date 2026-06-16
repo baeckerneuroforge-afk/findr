@@ -24,7 +24,7 @@ export async function GET() {
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="findr-forecast-${date}.pdf"`,
+        "Content-Disposition": `attachment; filename="klymeo-forecast-${date}.pdf"`,
         "Cache-Control": "no-store",
       },
     });

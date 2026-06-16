@@ -29,7 +29,7 @@ export default async function ManualImportPage() {
         </Link>
         <h1 className="text-display text-neutral-900">Manual import</h1>
         <p className="mt-1 max-w-2xl text-body text-neutral-500">
-          Create a deal, paste call transcripts, and run a real Findr risk
+          Create a deal, paste call transcripts, and run a real Klymeo risk
           analysis without waiting for Hubspot or Gong setup.
         </p>
       </div>
