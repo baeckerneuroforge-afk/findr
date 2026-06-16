@@ -10,6 +10,7 @@ import {
   updateOpenLinkSettings,
   type ResearchOpenLinkRecord,
 } from "@/lib/research/open-links";
+import { OPEN_LINK_HARD_CAP } from "@/lib/research/open-link-capacity";
 
 /**
  * Token-freie Sicht für die Researcher-Response. Der access_token verlässt den
@@ -53,7 +54,10 @@ function toResearcherView(link: ResearchOpenLinkRecord) {
  * Verdrahtung (E4). E2 ist rein additiv und ändert den Eintritts-Pfad nicht.
  */
 
-const MAX_SESSIONS = z.number().int().min(1).max(1_000_000);
+// Hard upper bound: you cannot STORE a cap above the absolute safety ceiling, so
+// no link is ever configured to mint unbounded sessions. The runtime gate clamps
+// too (defence in depth + covers any legacy rows already above the ceiling).
+const MAX_SESSIONS = z.number().int().min(1).max(OPEN_LINK_HARD_CAP);
 // Akzeptiert YYYY-MM-DD (HTML date-Input) oder vollen ISO-Timestamp; null = kein
 // Ablauf. valid_until wird in E2 nur gespeichert/angezeigt, NICHT enforced.
 const VALID_UNTIL = z

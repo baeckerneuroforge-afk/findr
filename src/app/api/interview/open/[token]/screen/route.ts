@@ -203,22 +203,17 @@ export async function POST(
   //    Only created/qualified sessions carry open_link_id, so REJECTIONS never
   //    consume the cap. At/over the cap → NO session, NO Opus turn, NO qualified
   //    quote — the friendly "study is full" denial. A transient count error fails
-  //    CLOSED (isOpenLinkAtCapacity treats null as full), consistent with this
-  //    route's fail-closed posture and protecting spend. max_sessions = null
-  //    (open-ended) skips the cap entirely. This is the ONLY guard against a
-  //    leaked/shared link becoming an open spend tor; it makes a full link cost
-  //    zero AI spend.
-  if (link.max_sessions !== null) {
-    const used = await countOpenLinkSessions(link.org_id, link.id);
-    if (isOpenLinkAtCapacity(link.max_sessions, used)) {
-      // 403 {full:true} is produced ONLY here — textually before
-      // createResearchInterview — so this response shape itself proves no Opus
-      // turn fired (the COUNT is the only DB read on this branch).
-      return NextResponse.json(
-        { available: false, full: true },
-        { status: 403 },
-      );
-    }
+  //    CLOSED (isOpenLinkAtCapacity treats used=null as full), protecting spend.
+  //    There is NO unlimited mode: an unset cap (null) is clamped to the hard
+  //    safety ceiling OPEN_LINK_HARD_CAP, so a leaked/shared link can NEVER mint
+  //    unbounded sessions — the cap is therefore ALWAYS enforced (the only guard
+  //    against an open link becoming an unbounded spend tor).
+  const used = await countOpenLinkSessions(link.org_id, link.id);
+  if (isOpenLinkAtCapacity(link.max_sessions, used)) {
+    // 403 {full:true} is produced ONLY here — textually before
+    // createResearchInterview — so this response shape itself proves no Opus
+    // turn fired (the COUNT is the only DB read on this branch).
+    return NextResponse.json({ available: false, full: true }, { status: 403 });
   }
 
   // ⑦ Qualified + under cap: mint a FRESH session via the canonical path.

@@ -14,6 +14,11 @@ import {
   getPublicSession,
   loadByToken,
 } from "@/lib/voice-agent/session-service";
+import {
+  getCachedTts,
+  setCachedTts,
+  ttsCacheKey,
+} from "@/lib/voice-interview/tts-cache";
 
 /**
  * POST /api/interview/[token]/speak
@@ -162,6 +167,20 @@ function audioResponse(audio: {
   return new Response(audio.bytes, { status: 200, headers });
 }
 
+function cachedAudioResponse(cached: {
+  bytes: ArrayBuffer;
+  contentType: string;
+}): Response {
+  return new Response(cached.bytes, {
+    status: 200,
+    headers: new Headers({
+      "Content-Type": cached.contentType,
+      "Cache-Control": "no-store",
+      "x-tts-cache": "hit",
+    }),
+  });
+}
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ token: string }> },
@@ -179,7 +198,7 @@ export async function POST(
   const accessToken = tokenParsed.data;
   const existing = await loadByToken(accessToken);
   const locale = existing?.language ?? DEFAULT_LOCALE;
-  let t = await getTranslations({ locale, namespace: "errors" });
+  const t = await getTranslations({ locale, namespace: "errors" });
   let session: SpeakableSession | null = existing;
 
   if (existing) {
@@ -261,11 +280,24 @@ export async function POST(
     );
   }
 
+  // Opportunistic cache: a repeat request for the SAME latest turn (replay, or a
+  // scripted hammer on the public URL) serves cached bytes instead of paying
+  // Deepgram again. Best-effort per-instance; a miss just re-synthesizes.
+  const language = session?.language ?? DEFAULT_LOCALE;
+  const cacheKey = ttsCacheKey(accessToken, turn.index, language);
+  const cached = getCachedTts(cacheKey);
+  if (cached) {
+    return cachedAudioResponse(cached);
+  }
+
   try {
-    const audio = await synthesizeWithDeepgram(
-      turn.text,
-      session?.language ?? DEFAULT_LOCALE,
-    );
+    const audio = await synthesizeWithDeepgram(turn.text, language);
+    // Cache a clone so the buffer handed to this response stays independent of
+    // the cached copy reused by later hits.
+    setCachedTts(cacheKey, {
+      bytes: audio.bytes.slice(0),
+      contentType: audio.contentType,
+    });
     return audioResponse(audio);
   } catch (err) {
     if (err instanceof DeepgramTtsError) {

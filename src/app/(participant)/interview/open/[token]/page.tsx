@@ -10,6 +10,7 @@ import {
   countOpenLinkSessions,
 } from "@/lib/research/open-links";
 import { isOpenLinkExpired } from "@/lib/research/open-link-expiry";
+import { effectiveOpenLinkCap } from "@/lib/research/open-link-capacity";
 import { parsePanelParams, buildPanelRedirectUrl } from "@/lib/research/panel";
 import { getOrgBranding } from "@/lib/settings/org-settings";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locale";
@@ -166,21 +167,18 @@ export default async function OpenInterviewPage({
     );
   }
 
-  // Anti-Abuse cap (E5), RENDER-ONLY: if the link's max_sessions cap is reached,
+  // Anti-Abuse cap (E5), RENDER-ONLY: if the link's effective cap is reached,
   // show the calm "study is full" screen instead of the screening form. We only
   // reach here for a LIVE, screened link (the guards above returned otherwise),
   // so this COUNT runs solely on the path that could actually mint a session.
   // The AUTHORITATIVE denial is server-side in POST /api/interview/open/[token]/
   // screen, which counts BEFORE the Opus turn — this page never creates a
   // session. Fail-OPEN on a count error (used === null): never hide a live study
-  // behind a transient DB hiccup; the route still hard-enforces. max_sessions =
-  // null (open-ended) skips the COUNT entirely.
-  const used =
-    link.max_sessions === null
-      ? null
-      : await countOpenLinkSessions(link.org_id, link.id);
-  const full =
-    link.max_sessions !== null && used !== null && used >= link.max_sessions;
+  // behind a transient DB hiccup; the route still hard-enforces. There is no
+  // unlimited mode — an unset cap is clamped to the hard ceiling — so even
+  // open-ended links are counted here.
+  const used = await countOpenLinkSessions(link.org_id, link.id);
+  const full = used !== null && used >= effectiveOpenLinkCap(link.max_sessions);
   if (full) {
     return (
       <NextIntlClientProvider locale={language} messages={messages}>
