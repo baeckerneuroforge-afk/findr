@@ -5,6 +5,12 @@ import { listInvitesDueForReminder } from "@/lib/research/scheduling";
 import { sendResearchReminder } from "@/lib/research/invite-orchestration";
 
 /**
+ * ⚠️ PARKED — intentionally NOT scheduled in vercel.json. An hourly (sub-daily)
+ * cron silently blocks EVERY deploy on the Vercel Hobby plan, so this scheduler
+ * is dormant until the project moves to Pro (or gains an alternative trigger).
+ * The handler is kept functional and CRON_SECRET-gated so it can be invoked
+ * manually or re-wired without a rewrite — it is NOT dead code, just unscheduled.
+ *
  * Hourly reminder scheduler for research interviews. Mirrors
  * /api/cron/account-checkins: Bearer CRON_SECRET auth, dryRun support
  * (local-only bypass), a per-run cap, structured summary response.
