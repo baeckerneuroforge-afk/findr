@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -119,6 +119,20 @@ export function SyntheticTestPanel({
   const settled = run !== null && run.status !== "running";
   const resumable = run !== null && run.status === "running" && !running;
   const showSetup = run === null;
+
+  // While a dry run is actively looping (each step is a real model call), guard
+  // against an accidental tab-close / navigation that would silently abandon it
+  // mid-flight — enforcing the "keep the tab open" hint. The run stays resumable
+  // server-side either way, so this only prevents accidental loss, never data.
+  useEffect(() => {
+    if (!running) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [running]);
 
   // id → persona label, to translate the synthesis's sourceInsightIds (session
   // ids) back into human persona labels.
@@ -453,6 +467,8 @@ export function SyntheticTestPanel({
               <h2 className="text-h3 text-neutral-900">
                 {t("participantsTitle")}
               </h2>
+              {running && <Badge variant="medium">{t("running")}</Badge>}
+              {resumable && <Badge variant="medium">{t("paused")}</Badge>}
               {run.status === "completed" && (
                 <Badge variant="success">{t("done")}</Badge>
               )}
@@ -484,6 +500,9 @@ export function SyntheticTestPanel({
               </div>
               {running && (
                 <p className="text-small text-neutral-500">{t("runningHint")}</p>
+              )}
+              {resumable && (
+                <p className="text-small text-neutral-500">{t("pausedHint")}</p>
               )}
             </div>
 
