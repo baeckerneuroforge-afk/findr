@@ -50,11 +50,9 @@ export async function POST() {
       );
     }
 
+    console.error("[integrations/gong/sync] failed:", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : t("unexpected"),
-      },
+      { success: false, error: t("unexpected") },
       { status: 500 },
     );
   }

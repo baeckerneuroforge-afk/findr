@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
     if (err instanceof SolutionUnavailableError) {
       return NextResponse.json(
-        { error: t("solution.generationFailed"), detail: err.message },
+        { error: t("solution.generationFailed") },
         { status: 502 },
       );
     }

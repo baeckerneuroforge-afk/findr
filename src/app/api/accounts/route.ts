@@ -35,11 +35,7 @@ export async function POST(request: NextRequest) {
     const account = await createAccount(orgOrError.orgId, parsed.data);
     return NextResponse.json({ success: true, account });
   } catch (err) {
-    return NextResponse.json(
-      {
-        error: err instanceof Error ? err.message : t("unexpected"),
-      },
-      { status: 500 },
-    );
+    console.error("[accounts] create failed:", err);
+    return NextResponse.json({ error: t("unexpected") }, { status: 500 });
   }
 }

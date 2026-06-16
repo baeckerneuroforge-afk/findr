@@ -44,7 +44,7 @@ export async function POST(
     }
     if (err instanceof SavePlayUnavailableError) {
       return NextResponse.json(
-        { error: t("accounts.savePlayFailed"), detail: err.message },
+        { error: t("accounts.savePlayFailed") },
         { status: 502 },
       );
     }

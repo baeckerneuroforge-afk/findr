@@ -53,11 +53,9 @@ export async function POST(
         { status: err.status >= 400 && err.status < 500 ? 400 : 502 },
       );
     }
+    console.error("[panel/sync] failed:", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : t("unexpected"),
-      },
+      { success: false, error: t("unexpected") },
       { status: 500 },
     );
   }

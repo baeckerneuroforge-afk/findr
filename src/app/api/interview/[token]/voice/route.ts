@@ -262,7 +262,7 @@ export async function POST(
   } catch (err) {
     if (err instanceof RequestPayloadError) {
       return NextResponse.json(
-        { error: t("invalidRequestBody"), detail: err.message },
+        { error: t("invalidRequestBody") },
         { status: err.status },
       );
     }

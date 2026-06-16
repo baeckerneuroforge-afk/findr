@@ -113,7 +113,7 @@ describe("settings delete-org route", () => {
     });
   });
 
-  it("surfaces confirmation mismatch from the delete service", async () => {
+  it("rejects a confirmation mismatch in-route with a localized 400", async () => {
     mockRequireSettingsAdminOrError.mockResolvedValue({
       orgId: "org_1",
       clerkOrgId: "org_clerk_1",
@@ -121,9 +121,6 @@ describe("settings delete-org route", () => {
       orgRole: "org:admin",
     });
     mockOrganizationLookup("Acme GmbH");
-    mockDeleteOrganizationData.mockRejectedValue(
-      new Error("Confirmation does not match organization name"),
-    );
 
     const response = await POST(
       new Request("http://localhost/api/settings/delete-org", {
@@ -134,6 +131,9 @@ describe("settings delete-org route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toBe("Confirmation does not match organization name");
+    expect(body.error).toBe("settings.invalidConfirmation");
+    // Mismatch is caught before any destructive work runs, and the raw service
+    // Error message never reaches the client.
+    expect(mockDeleteOrganizationData).not.toHaveBeenCalled();
   });
 });

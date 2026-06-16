@@ -82,9 +82,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, org: data });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : t("unexpected") },
-      { status: 500 },
-    );
+    console.error("[onboarding/sync-org] failed:", err);
+    return NextResponse.json({ error: t("unexpected") }, { status: 500 });
   }
 }

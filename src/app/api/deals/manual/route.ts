@@ -35,9 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : t("unexpected") },
-      { status: 500 },
-    );
+    console.error("[deals/manual] failed:", err);
+    return NextResponse.json({ error: t("unexpected") }, { status: 500 });
   }
 }

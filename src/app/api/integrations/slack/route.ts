@@ -29,11 +29,9 @@ export async function POST(req: NextRequest) {
     await ensureSlackAlertPreferences(orgId);
     return NextResponse.json({ success: true });
   } catch (err) {
+    console.error("[integrations/slack] failed:", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : t("unexpected"),
-      },
+      { success: false, error: t("unexpected") },
       { status: 500 },
     );
   }

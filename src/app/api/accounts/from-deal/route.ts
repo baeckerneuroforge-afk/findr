@@ -36,11 +36,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ success: true, account });
   } catch (err) {
-    return NextResponse.json(
-      {
-        error: err instanceof Error ? err.message : t("unexpected"),
-      },
-      { status: 500 },
-    );
+    console.error("[accounts/from-deal] failed:", err);
+    return NextResponse.json({ error: t("unexpected") }, { status: 500 });
   }
 }

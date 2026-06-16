@@ -71,6 +71,9 @@ describe("settings export route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.error).toBe("Supabase unavailable");
+    expect(body.success).toBe(false);
+    // The raw internal error must not leak to the client (info-disclosure).
+    expect(body.error).toBe("unexpected");
+    expect(JSON.stringify(body)).not.toContain("Supabase unavailable");
   });
 });

@@ -46,11 +46,9 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ success: true, credential: result.summary });
   } catch (err) {
+    console.error("[integrations/prolific] save failed:", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : t("unexpected"),
-      },
+      { success: false, error: t("unexpected") },
       { status: 500 },
     );
   }
@@ -79,11 +77,9 @@ export async function DELETE() {
     await disconnectProlificCredential(orgOrError.orgId);
     return NextResponse.json({ success: true });
   } catch (err) {
+    console.error("[integrations/prolific] disconnect failed:", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : t("unexpected"),
-      },
+      { success: false, error: t("unexpected") },
       { status: 500 },
     );
   }

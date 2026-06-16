@@ -16,11 +16,9 @@ export async function POST() {
       errors: result.errors.slice(0, 10),
     });
   } catch (err) {
+    console.error("[integrations/hubspot/sync] failed:", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : t("unexpected"),
-      },
+      { success: false, error: t("unexpected") },
       { status: 500 },
     );
   }
