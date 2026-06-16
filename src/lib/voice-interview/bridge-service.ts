@@ -212,16 +212,31 @@ export async function appendVoiceTurns(
   }
 
   const supabase = createResearchSupabase();
-  const { error } = await supabase
+  // B4 — make the open-check atomic with the write: a concurrent text-finalize,
+  // completeVoiceResearchSession, or withdraw can flip the row out of "open" in
+  // the window since the load above. The status CAS drops this stale append
+  // instead of clobbering a completed/withdrawn row's conversation.
+  const { data, error } = await supabase
     .from("interview_sessions")
     .update({
       conversation: conversation as unknown as Json,
       mode: "voice",
       transcript_source: "stt",
     })
-    .eq("id", session.id);
+    .eq("id", session.id)
+    .eq("status", "open")
+    .select("id")
+    .maybeSingle();
   if (error) {
     throw new Error(`Failed to persist voice turns: ${error.message}`);
+  }
+  if (!data) {
+    const latest = await loadVoiceBridgeSession(session.id);
+    return {
+      ok: false,
+      reason: "not_open",
+      status: latest?.status ?? "completed",
+    };
   }
 
   return { ok: true, appended, skipped, turnCount: conversation.length };

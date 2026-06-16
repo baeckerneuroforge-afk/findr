@@ -1168,6 +1168,10 @@ export async function advanceInterview(
     const finished = done || forceCapClose;
 
     if (finished) {
+      // B4 — idempotent completion: the status CAS (.eq status "open") lets only
+      // ONE concurrent request flip open→completed. A request that loses the race
+      // matches 0 rows, re-reads, and returns the already-completed view WITHOUT
+      // re-running the expensive Product-Discovery classifier or re-persisting.
       const { data, error } = await supabase
         .from("interview_sessions")
         .update({
@@ -1176,12 +1180,15 @@ export async function advanceInterview(
           completed_at: new Date().toISOString(),
         })
         .eq("access_token", token)
+        .eq("status", "open")
         .select()
-        .single();
-      if (error || !data) {
-        throw new Error(
-          `Failed to finalize research session: ${error?.message ?? "no row returned"}`,
-        );
+        .maybeSingle();
+      if (error) {
+        throw new Error(`Failed to finalize research session: ${error.message}`);
+      }
+      if (!data) {
+        const latest = await loadByToken(token);
+        return latest ? toPublicView(latest) : null;
       }
 
       // Persist the completed transcript as a calls row (account_id = null,
@@ -1224,12 +1231,17 @@ export async function advanceInterview(
       .from("interview_sessions")
       .update({ conversation: history as unknown as Json })
       .eq("access_token", token)
+      .eq("status", "open")
       .select()
-      .single();
-    if (error || !data) {
-      throw new Error(
-        `Failed to update research session: ${error?.message ?? "no row returned"}`,
-      );
+      .maybeSingle();
+    if (error) {
+      throw new Error(`Failed to update research session: ${error.message}`);
+    }
+    if (!data) {
+      // B4 — a concurrent request completed/withdrew the session during the Opus
+      // call; do not clobber the now-non-open row with this stale turn.
+      const latest = await loadByToken(token);
+      return latest ? toPublicView(latest) : null;
     }
     return toPublicView(toSession(data));
   }
@@ -1248,9 +1260,30 @@ export async function advanceInterview(
     const finished = done || agentTurnCount(history) >= MAX_CHECKIN_AGENT_TURNS;
 
     if (finished) {
-      // Feed the completed check-in into the account's health score. A health
-      // failure must NOT break the customer's chat — the conversation is saved
-      // regardless.
+      // B4 — idempotent completion via status CAS (see research branch). Claim
+      // completion FIRST so a concurrent loser (0 rows) returns the already-
+      // completed view without re-running the health analysis below.
+      const { data, error } = await supabase
+        .from("interview_sessions")
+        .update({
+          conversation: history as unknown as Json,
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("access_token", token)
+        .eq("status", "open")
+        .select()
+        .maybeSingle();
+      if (error) {
+        throw new Error(`Failed to finalize check-in session: ${error.message}`);
+      }
+      if (!data) {
+        const latest = await loadByToken(token);
+        return latest ? toPublicView(latest) : null;
+      }
+      // Won the completion race: feed the completed check-in into the account's
+      // health score. A health failure must NOT break the customer's chat — the
+      // conversation is saved regardless.
       if (session.accountId) {
         try {
           await analyzeAccountTranscript(
@@ -1265,21 +1298,6 @@ export async function advanceInterview(
           );
         }
       }
-      const { data, error } = await supabase
-        .from("interview_sessions")
-        .update({
-          conversation: history as unknown as Json,
-          status: "completed",
-          completed_at: new Date().toISOString(),
-        })
-        .eq("access_token", token)
-        .select()
-        .single();
-      if (error || !data) {
-        throw new Error(
-          `Failed to finalize check-in session: ${error?.message ?? "no row returned"}`,
-        );
-      }
       return toPublicView(toSession(data));
     }
 
@@ -1287,12 +1305,17 @@ export async function advanceInterview(
       .from("interview_sessions")
       .update({ conversation: history as unknown as Json })
       .eq("access_token", token)
+      .eq("status", "open")
       .select()
-      .single();
-    if (error || !data) {
-      throw new Error(
-        `Failed to update check-in session: ${error?.message ?? "no row returned"}`,
-      );
+      .maybeSingle();
+    if (error) {
+      throw new Error(`Failed to update check-in session: ${error.message}`);
+    }
+    if (!data) {
+      // B4 — a concurrent request completed/withdrew the session during the Opus
+      // call; do not clobber the now-non-open row with this stale turn.
+      const latest = await loadByToken(token);
+      return latest ? toPublicView(latest) : null;
     }
     return toPublicView(toSession(data));
   }
@@ -1323,6 +1346,9 @@ export async function advanceInterview(
     // we persist the completed status + closing message NOW and return
     // immediately, instead of making the participant wait that extra Opus call
     // before they see "completed".
+    // B4 — idempotent completion via status CAS (see research branch): only one
+    // concurrent request flips open→completed; the loser (0 rows) re-reads and
+    // returns without re-running the loss-reason extraction below.
     const { data, error } = await supabase
       .from("interview_sessions")
       .update({
@@ -1331,12 +1357,15 @@ export async function advanceInterview(
         completed_at: new Date().toISOString(),
       })
       .eq("access_token", token)
+      .eq("status", "open")
       .select()
-      .single();
-    if (error || !data) {
-      throw new Error(
-        `Failed to finalize interview_session: ${error?.message ?? "no row returned"}`,
-      );
+      .maybeSingle();
+    if (error) {
+      throw new Error(`Failed to finalize interview_session: ${error.message}`);
+    }
+    if (!data) {
+      const latest = await loadByToken(token);
+      return latest ? toPublicView(latest) : null;
     }
 
     // Run the extraction AFTER the response is sent. `after` (next/server) is
@@ -1381,12 +1410,17 @@ export async function advanceInterview(
     .from("interview_sessions")
     .update({ conversation: history as unknown as Json })
     .eq("access_token", token)
+    .eq("status", "open")
     .select()
-    .single();
-  if (error || !data) {
-    throw new Error(
-      `Failed to update interview_session: ${error?.message ?? "no row returned"}`,
-    );
+    .maybeSingle();
+  if (error) {
+    throw new Error(`Failed to update interview_session: ${error.message}`);
+  }
+  if (!data) {
+    // B4 — a concurrent request completed/withdrew the session during the Opus
+    // call; do not clobber the now-non-open row with this stale turn.
+    const latest = await loadByToken(token);
+    return latest ? toPublicView(latest) : null;
   }
   return toPublicView(toSession(data));
 }

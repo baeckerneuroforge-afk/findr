@@ -64,7 +64,14 @@ function mockSupabase(row: Record<string, unknown>) {
       }),
       update: (payload: unknown) => {
         updates.push(payload);
-        return { eq: async () => ({ error: null }) };
+        // Chainable to mirror the route: .eq("id").eq("status","open")
+        // .select("id").maybeSingle() → a row means the status CAS matched.
+        const builder = {
+          eq: () => builder,
+          select: () => builder,
+          maybeSingle: async () => ({ data: { id: row.id }, error: null }),
+        };
+        return builder;
       },
     }),
   } as never);
@@ -150,5 +157,37 @@ describe("appendVoiceTurns — SHOW marker clamp (E6)", () => {
     expect(result).toMatchObject({ ok: true, appended: 1 });
     const written = (updates[0] as { conversation: unknown[] }).conversation;
     expect(written[1]).toEqual({ role: "agent", text: "Frage" });
+  });
+
+  it("drops the append when a concurrent request already left 'open' (status CAS miss)", async () => {
+    // The read returns an open row (passes the initial check), but the UPDATE's
+    // status CAS matches 0 rows — a concurrent finalize/withdraw flipped the row
+    // out of "open". The stale append must be dropped, not clobber the row.
+    const updates: unknown[] = [];
+    mockCreateResearchSupabase.mockReturnValue({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: sessionRow(), error: null }),
+          }),
+        }),
+        update: (payload: unknown) => {
+          updates.push(payload);
+          const builder = {
+            eq: () => builder,
+            select: () => builder,
+            maybeSingle: async () => ({ data: null, error: null }),
+          };
+          return builder;
+        },
+      }),
+    } as never);
+
+    const result = await appendVoiceTurns(SESSION_ID, [
+      { index: 1, role: "customer", text: "Hallo." },
+    ]);
+
+    expect(result).toMatchObject({ ok: false, reason: "not_open" });
+    expect(updates).toHaveLength(1); // attempted, but the CAS dropped it
   });
 });
