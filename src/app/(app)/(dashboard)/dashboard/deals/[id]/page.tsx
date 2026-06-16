@@ -4,7 +4,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { toBcp47 } from "@/i18n/locale";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { getDealById } from "@/lib/deals/service";
-import { getCallsByDealId } from "@/lib/calls/service";
+import { getCallSummariesByDealId } from "@/lib/calls/service";
 import { getRiskScoreHistory } from "@/lib/risk/service";
 import { getSolutionReports } from "@/lib/solution/service";
 import { CallDetail } from "@/components/dashboard/CallDetail";
@@ -72,9 +72,9 @@ export default async function DealDetailPage({
   // interview + org settings. Stage 2 = the reads that genuinely depend on
   // stage-1 results (insights need the call ids, solution reports only make
   // sense once a risk analysis exists).
-  const [calls, history, dealInterview, autoInterviewEnabled] =
+  const [callSummaries, history, dealInterview, autoInterviewEnabled] =
     await Promise.all([
-      getCallsByDealId(orgId, id),
+      getCallSummariesByDealId(orgId, id),
       getRiskScoreHistory(orgId, id, 30),
       // A deal's post-loss interview only exists once it's lost; load it so
       // the panel can show an existing session (and avoid creating a second
@@ -99,7 +99,7 @@ export default async function DealDetailPage({
     // getLatestRiskScoresForDeals pattern. Empty for calls without an insight.
     getLatestInsightsForCalls(
       orgId,
-      calls.map((c) => c.id),
+      callSummaries.map((c) => c.id),
     ),
     // Solution layer only makes sense once a risk analysis exists. Load the
     // most recent persisted report so it survives a reload.
@@ -182,7 +182,7 @@ export default async function DealDetailPage({
             recommendations={latestRisk.recommendations}
             signals={latestRisk.signals}
             analyzedAt={latestRisk.analyzed_at}
-            sourceCallCount={calls.length}
+            sourceCallCount={callSummaries.length}
             analysisMethod={latestRisk.analysis_method}
           />
           <SolutionPanel dealId={id} initialReport={latestSolution} />
@@ -211,9 +211,9 @@ export default async function DealDetailPage({
       {/* Calls */}
       <div className="mb-8">
         <h2 className="mb-4 text-h2 text-neutral-900">
-          {t("callHistory", { count: calls.length })}
+          {t("callHistory", { count: callSummaries.length })}
         </h2>
-        {calls.length === 0 ? (
+        {callSummaries.length === 0 ? (
           <EmptyState
             icon={<PhoneIcon />}
             title={t("noCallsTitle")}
@@ -222,12 +222,12 @@ export default async function DealDetailPage({
           />
         ) : (
           <div className="space-y-6">
-            {calls.map((call) => (
-              <div key={call.id} className="space-y-3">
-                <CallDetail call={call} />
+            {callSummaries.map((summary) => (
+              <div key={summary.id} className="space-y-3">
+                <CallDetail summary={summary} />
                 <CallProductDiscoverySection
-                  callId={call.id}
-                  insight={productDiscoveryByCall.get(call.id) ?? null}
+                  callId={summary.id}
+                  insight={productDiscoveryByCall.get(summary.id) ?? null}
                 />
               </div>
             ))}

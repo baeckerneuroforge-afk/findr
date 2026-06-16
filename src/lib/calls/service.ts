@@ -63,6 +63,44 @@ export async function getCallsByDealId(
 }
 
 /**
+ * Lean per-deal call list for the Deal-Detail page header + collapsed list.
+ * Deliberately omits transcript / call_speakers / transcript_segments: those
+ * heavy joins are loaded on demand (getCallById, via the loadCallDetail server
+ * action) only when a call is expanded, so the page payload no longer carries
+ * every segment of every call. Returns ALL calls (no limit) — the columns are
+ * tiny, so length == true call count and the ids still feed the per-call
+ * Product-Discovery batch lookup. The six analysis pipelines keep using the
+ * full getCallsByDealId untouched. Same ordering as getCallsByDealId.
+ */
+export interface DealCallSummary {
+  id: string;
+  call_type: string | null;
+  duration_seconds: number | null;
+  recorded_at: string | null;
+  transcript_summary: string | null;
+}
+
+export async function getCallSummariesByDealId(
+  orgId: string,
+  dealId: string,
+): Promise<DealCallSummary[]> {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("calls")
+    .select("id, call_type, duration_seconds, recorded_at, transcript_summary")
+    .eq("org_id", orgId)
+    .eq("deal_id", dealId)
+    .order("recorded_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching call summaries:", error.message);
+    return [];
+  }
+
+  return (data ?? []) as DealCallSummary[];
+}
+
+/**
  * Lean per-account call list — only the columns the Account-Detail page's
  * Product Discovery section needs. Unlike getCallsByDealId we deliberately
  * do NOT pull speakers / transcript_segments here: the Account-Detail page
