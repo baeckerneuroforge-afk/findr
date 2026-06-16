@@ -14,6 +14,7 @@ import { analyzeRisk } from "@/lib/risk/orchestrator";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
 import { isAuthorizedCron } from "@/lib/auth/cron";
+import { cronIsTotalFailure } from "@/lib/cron/status";
 
 interface OrgDeals {
   org: { id: string; name: string | null };
@@ -220,9 +221,15 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({
-    success: true,
-    timestamp: new Date().toISOString(),
-    ...results,
-  });
+  // Fail the run only on a total failure (no deal analyzed successfully yet at
+  // least one error). Partial failures keep 200 with their errors in the body.
+  const failed = cronIsTotalFailure(results.successful, results.errors.length);
+  return NextResponse.json(
+    {
+      success: !failed,
+      timestamp: new Date().toISOString(),
+      ...results,
+    },
+    { status: failed ? 500 : 200 },
+  );
 }

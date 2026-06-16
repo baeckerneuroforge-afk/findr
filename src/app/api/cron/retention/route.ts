@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAuthorizedCron } from "@/lib/auth/cron";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { cronHadAnyError } from "@/lib/cron/status";
 
 /**
  * DSGVO G5 — daily interview-data retention sweep. For each org that set a
@@ -101,9 +102,15 @@ export async function GET(request: Request) {
     results.deleted += deleted?.length ?? 0;
   }
 
-  return NextResponse.json({
-    success: true,
-    timestamp: new Date().toISOString(),
-    ...results,
-  });
+  // DSGVO-critical: any deletion/abandon error fails the run (Vercel marks the
+  // non-2xx invocation as failed). The summary still travels in the body.
+  const failed = cronHadAnyError(results.errors.length);
+  return NextResponse.json(
+    {
+      success: !failed,
+      timestamp: new Date().toISOString(),
+      ...results,
+    },
+    { status: failed ? 500 : 200 },
+  );
 }

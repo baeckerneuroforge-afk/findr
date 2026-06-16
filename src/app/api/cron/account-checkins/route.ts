@@ -4,6 +4,7 @@ import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { getCheckinEnabledAccounts } from "@/lib/accounts/service";
 import { getAccountCheckin } from "@/lib/voice-agent/session-service";
 import { createAndInviteCheckin } from "@/lib/voice-agent/checkin-orchestration";
+import { cronIsTotalFailure } from "@/lib/cron/status";
 
 /**
  * Daily scheduler for account check-ins (Etappe B). Mirrors /api/cron/reanalyze:
@@ -144,9 +145,15 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({
-    success: true,
-    timestamp: new Date().toISOString(),
-    ...results,
-  });
+  // Fail the run only on a total failure (every triggered check-in errored); a
+  // single bad account stays in `errors[]` without flapping the daily run.
+  const failed = cronIsTotalFailure(results.triggered, results.errors.length);
+  return NextResponse.json(
+    {
+      success: !failed,
+      timestamp: new Date().toISOString(),
+      ...results,
+    },
+    { status: failed ? 500 : 200 },
+  );
 }
