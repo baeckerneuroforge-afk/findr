@@ -212,6 +212,180 @@ export const INSIGHTS: InsightArticle[] = [
       },
     ],
   },
+
+  // ── English articles (authored, NOT machine-translated; same slugs as their
+  //    German counterparts so /de/insights/<slug> ⇄ /en/insights/<slug> get
+  //    trivial reciprocal hreflang). ──────────────────────────────────────────
+  {
+    locale: "en",
+    slug: "umfrage-sagt-nicht-warum",
+    title: "The survey says 7 out of 10. It doesn't say why.",
+    excerpt:
+      "Scales and scores show WHAT your audience thinks — never why. Why the why lives in in-depth interviews, and how AI finally makes them scalable.",
+    category: "Qualitative Research",
+    date: "2026-05-20",
+    readingMinutes: 6,
+    body: [
+      {
+        kind: "p",
+        text: "Approval sits at 7 out of 10, the score has held steady since last quarter, the dashboard is green. And still, after the meeting, no one knows what to do next. That's not the survey's fault — it does exactly what it can. It's about what it fundamentally cannot do.",
+      },
+      { kind: "h2", text: "What the scale leaves out" },
+      {
+        kind: "p",
+        text: "A scale compresses a decision into a single number — and throws away exactly the information you need for the next decision:",
+      },
+      {
+        kind: "ul",
+        items: [
+          "“Price is fine” — but not whether that's compromise, habit, or real willingness to pay.",
+          "“I'd recommend it” — but not in which situation, or in whose words.",
+          "A drop-off in the funnel — but not whether confusion, distrust, or simply a better offer is behind it.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "On top of that, a quiet measurement error: scales get answered socially. A 5 feels rude, so it becomes a 7 — and the difference between genuine enthusiasm and polite indifference disappears into the same number.",
+      },
+      { kind: "h2", text: "The why lives in the conversation" },
+      {
+        kind: "p",
+        text: "In an in-depth interview, something happens that no scale can deliver: someone describes a concrete situation, and the first answer is met with a follow-up. The reason only shows up behind the first answer.",
+      },
+      {
+        kind: "quote",
+        text: "I ticked 7 because 5 felt kind of mean. Honestly, I haven't used it in weeks.",
+        cite: "From an AI-led in-depth interview",
+      },
+      {
+        kind: "p",
+        text: "That's exactly why in-depth interviews were always the tool for the important decisions — and exactly why they were done so rarely: recruiting, moderating, transcribing, analyzing. Weeks of effort for a handful of conversations.",
+      },
+      { kind: "h2", text: "AI makes the why scalable" },
+      {
+        kind: "p",
+        text: "AI-led interviews change the math. What works in practice:",
+      },
+      {
+        kind: "ul",
+        items: [
+          "Hundreds of interviews in parallel instead of eight a week — by link, your own pool, or a panel.",
+          "In German and English, with real probing — audibly led by a Voice Agent if you want.",
+          "Evidence by default: every statement in the analysis stays anchored to the original quote.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "The scale keeps its place: it shows you WHERE to look. But the decision itself deserves the why — and that's in the conversations, not in the distribution.",
+      },
+    ],
+  },
+  {
+    locale: "en",
+    slug: "voice-interviews-mehr-tiefe",
+    title: "Voice interviews: why participants who speak tell you more",
+    excerpt:
+      "Typing is a barrier — especially on mobile. When a Voice Agent leads the interview audibly, answers get longer and more spontaneous. What actually matters when they do.",
+    category: "AI Interviews",
+    date: "2026-06-03",
+    readingMinutes: 5,
+    body: [
+      {
+        kind: "p",
+        text: "An in-depth interview lives on what people volunteer. That's exactly where the typed interview has a built-in brake: writing is work. Anyone answering on their phone cuts it short — and the most interesting half-sentence falls victim to the typing.",
+      },
+      { kind: "h2", text: "The typing barrier" },
+      {
+        kind: "ul",
+        items: [
+          "Typed answers are short — side thoughts get dropped before they're ever spelled out.",
+          "On mobile, the risk of abandonment rises with every question that demands a long answer.",
+          "Writing is edited: anything that seems rude or messy gets smoothed over before it's sent.",
+        ],
+      },
+      { kind: "h2", text: "What changes when people speak" },
+      {
+        kind: "p",
+        text: "In a voice interview the agent asks the question out loud, and the person answers the way they'd actually talk — with false starts, corrections, and exactly the asides where the real reasons hide. Spoken language is less edited, and that matters for research: the first thought comes along with it.",
+      },
+      {
+        kind: "quote",
+        text: "Oh, and one more thing — this only just occurs to me: the main reason was actually something completely different …",
+        cite: "From a voice interview, transcribed live",
+      },
+      {
+        kind: "p",
+        text: "Nobody types sentences like that. People say them all the time.",
+      },
+      { kind: "h2", text: "What matters technically" },
+      {
+        kind: "ul",
+        items: [
+          "The transcript stays the source of truth — every analysis points back to the exact spot; voice changes nothing about the evidence requirement.",
+          "Interrupting has to be allowed: someone who cuts the agent off is engaged — the system should listen, not keep talking.",
+          "Typing stays available at any time — not every environment suits speaking, and switching should cost nothing.",
+          "Audio is especially personal: EU hosting and clear deletion windows aren't optional extras with voice, they're a precondition.",
+        ],
+      },
+      {
+        kind: "p",
+        text: "Voice doesn't replace the typed interview — it lowers the barrier for everyone who finds talking easier than writing. And outside our bubble, that's most people.",
+      },
+    ],
+  },
+  {
+    locale: "en",
+    slug: "dsgvo-native-ki-interviews",
+    title:
+      "GDPR-native AI interviews: what to check for Voice of Customer",
+    excerpt:
+      "AI-led interviews scale research enormously — but only if data protection, hosting, and the evidence requirement are right from the start. An honest checklist for teams in Europe.",
+    category: "GDPR & AI",
+    date: "2026-05-06",
+    readingMinutes: 7,
+    body: [
+      {
+        kind: "p",
+        text: "AI interviews make something possible that research long couldn't afford: speaking with many real users in a structured way without a human moderating every appointment. But the value hinges on questions that English-first tools rarely answer first.",
+      },
+      { kind: "h2", text: "Where is the data processed?" },
+      {
+        kind: "p",
+        text: "An interview is personal data the moment someone speaks. So what matters isn't just whether a tool says “GDPR-compliant” on its website, but where transcripts and recordings are actually processed and stored. EU hosting isn't a bonus here — it's the foundation.",
+      },
+      {
+        kind: "ul",
+        items: [
+          "Processing and storage inside the EU — ideally verifiably in Germany.",
+          "A data processing agreement (DPA) that explicitly covers the AI processing.",
+          "Clear retention and deletion windows instead of “indefinite”.",
+        ],
+      },
+      { kind: "h2", text: "Does the tool speak your users' language?" },
+      {
+        kind: "p",
+        text: "An AI interview stands or falls on the follow-up at the right moment. In a language full of dialect, filler words, and undertones, that's far more demanding than a clean script. Whoever you survey — in German, in English — test whether the AI really digs in rather than just ticking boxes.",
+      },
+      { kind: "h2", text: "Can you back up every statement?" },
+      {
+        kind: "p",
+        text: "The biggest risk in AI synthesis isn't data protection — it's the invented majority: a trend the model phrases plausibly but no one actually said. The countermeasure is an evidence requirement.",
+      },
+      {
+        kind: "quote",
+        text: "I don't want to sit through a sales pitch — just let me try it myself.",
+        cite: "From an AI-led user interview",
+      },
+      {
+        kind: "p",
+        text: "Every statement in the synthesis should be clickable back to the exact quote, and “in 3 of 7 studies” should be deterministically counted — not estimated. What isn't evidenced doesn't belong in the analysis.",
+      },
+      {
+        kind: "p",
+        text: "In short: AI interviews are an enormous lever for Voice of Customer — if hosting, language, and the evidence requirement are right from day one.",
+      },
+    ],
+  },
 ];
 
 /** Resolve an article's written locale (defaults to German). */
