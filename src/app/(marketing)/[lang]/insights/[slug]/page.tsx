@@ -17,14 +17,17 @@ import {
   type InsightBlock,
 } from "@/lib/insights/articles";
 
-type Params = { slug: string };
+// params now carries the parent [lang] segment too (/de|/en × /insights/[slug]).
+type Params = { lang: string; slug: string };
 
 // Build one static HTML per article from the same source as the sitemap (§8).
-// `dynamicParams = false` closes the set: an unknown slug 404s instead of being
-// rendered on demand. Safe here because next.config has NO `cacheComponents` —
-// with it on, dynamicParams would be unavailable and an empty array a build
-// error (§8 caveat); we have ≥1 article either way.
-export function generateStaticParams(): Params[] {
+// This segment only generates its OWN param ([slug]); Next runs it once per
+// parent [lang] and forms the lang×slug cross-product. `dynamicParams = false`
+// closes the set: an unknown slug 404s instead of being rendered on demand.
+// Safe here because next.config has NO `cacheComponents` — with it on,
+// dynamicParams would be unavailable and an empty array a build error (§8
+// caveat); we have ≥1 article either way.
+export function generateStaticParams(): { slug: string }[] {
   return getAllInsightSlugs().map((slug) => ({ slug }));
 }
 

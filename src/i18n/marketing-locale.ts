@@ -5,11 +5,13 @@ import { isLocale, LOCALES, toBcp47, type Locale } from "./locale";
  * cookie-based i18n.
  *
  * The marketing tree is a separate, deliberately-static root layout (no Clerk,
- * no NextIntlClientProvider, no cookie read — see src/app/(marketing)/layout.tsx).
- * To stay statically pre-rendered AND give crawlers a distinct hreflang-able URL
- * per language, marketing resolves its locale from the URL PATH, not the
- * `klymeo.locale` cookie the dashboard uses. German lives at the existing bare
- * paths (the x-default); English is served under a `/en` prefix.
+ * no NextIntlClientProvider, no cookie read — see
+ * src/app/(marketing)/[lang]/layout.tsx). To stay statically pre-rendered AND
+ * give crawlers a distinct hreflang-able URL per language, marketing resolves
+ * its locale from the URL [lang] PATH segment, not the `klymeo.locale` cookie
+ * the dashboard uses. BOTH locales are prefixed: German under `/de`, English
+ * under `/en`. German is the default and the hreflang x-default for this
+ * DACH-first product.
  *
  * This module owns ONLY the pure, framework-free path<->locale mapping. It
  * reuses the canonical Locale/LOCALES/isLocale/toBcp47 from ./locale so the two
@@ -22,51 +24,54 @@ import { isLocale, LOCALES, toBcp47, type Locale } from "./locale";
  *  LOCALES; declared separately so marketing's surface is self-documenting. */
 export const MARKETING_LOCALES: readonly Locale[] = LOCALES;
 
-/** Default/unprefixed marketing locale. German is the x-default for this
- *  DACH-first product, so DE keeps the bare paths and only EN is prefixed.
- *  Intentionally NOT the global DEFAULT_LOCALE ("en"), which serves the
- *  dashboard chrome. */
+/** Default marketing locale + the hreflang x-default. German for this
+ *  DACH-first product. Intentionally NOT the global DEFAULT_LOCALE ("en"),
+ *  which serves the dashboard chrome. */
 export const MARKETING_DEFAULT_LOCALE: Locale = "de";
 
-const EN_PREFIX = "/en";
-
 /**
- * Map a canonical German marketing path to its localized URL.
- *   localizePath("de", "/produkt")        -> "/produkt"        (x-default, bare)
- *   localizePath("en", "/produkt")        -> "/en/produkt"
- *   localizePath("en", "/")               -> "/en"             (not "/en/")
- *   localizePath("en", "/produkt#voice")  -> "/en/produkt#voice"
+ * Map a canonical (locale-less) marketing path to its localized URL. BOTH
+ * locales are prefixed under their [lang] segment:
+ *   localizePath("de", "/produkt")   -> "/de/produkt"
+ *   localizePath("en", "/produkt")   -> "/en/produkt"
+ *   localizePath("de", "/")          -> "/de"   (homepage, no trailing slash)
+ *   localizePath("en", "/x#voice")   -> "/en/x#voice"
  *
  * Pass ONLY internal marketing paths. External / cross-root links
  * (/sign-in, /sign-up, mailto:, https://…, bare "#anchor") must NOT be
  * localized — callers exclude them exactly like CtaLink already does.
  */
 export function localizePath(locale: Locale, path: string): string {
-  if (locale === MARKETING_DEFAULT_LOCALE) return path;
-  if (path === "/") return EN_PREFIX;
-  return `${EN_PREFIX}${path}`;
+  return path === "/" ? `/${locale}` : `/${locale}${path}`;
 }
 
 /**
- * Strip a leading `/en` to recover the canonical German path — the inverse of
- * localizePath for the prefixed locale.
- *   "/en"          -> "/"
+ * Strip the leading `/de` or `/en` to recover the canonical, locale-less path —
+ * the inverse of localizePath. Used by the language switcher to map the current
+ * URL onto the other locale.
+ *   "/de"          -> "/"
  *   "/en/produkt"  -> "/produkt"
- *   "/produkt"     -> "/produkt"   (already canonical)
- * The `"/en/"` guard avoids a false positive on unrelated paths like
- * "/ensemble" (which is left untouched).
+ *   "/produkt"     -> "/produkt"   (already locale-less; defensive)
  */
-export function deCanonicalPath(pathname: string): string {
-  if (pathname === EN_PREFIX) return "/";
-  if (pathname.startsWith(`${EN_PREFIX}/`)) return pathname.slice(EN_PREFIX.length);
+export function stripLocalePrefix(pathname: string): string {
+  for (const locale of MARKETING_LOCALES) {
+    if (pathname === `/${locale}`) return "/";
+    if (pathname.startsWith(`/${locale}/`)) {
+      return pathname.slice(locale.length + 1);
+    }
+  }
   return pathname;
 }
 
-/** Which locale a marketing pathname is rendered in (path-derived, no cookie). */
+/** Which locale a marketing pathname is rendered in (path-derived, no cookie).
+ *  Falls back to the default locale for an unprefixed path. */
 export function localeOfPath(pathname: string): Locale {
-  return pathname === EN_PREFIX || pathname.startsWith(`${EN_PREFIX}/`)
-    ? "en"
-    : MARKETING_DEFAULT_LOCALE;
+  for (const locale of MARKETING_LOCALES) {
+    if (pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)) {
+      return locale;
+    }
+  }
+  return MARKETING_DEFAULT_LOCALE;
 }
 
 export { isLocale, toBcp47, type Locale };

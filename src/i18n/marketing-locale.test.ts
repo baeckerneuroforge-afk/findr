@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  deCanonicalPath,
   localeOfPath,
   localizePath,
   MARKETING_DEFAULT_LOCALE,
   MARKETING_LOCALES,
+  stripLocalePrefix,
 } from "./marketing-locale";
 
 describe("marketing-locale", () => {
-  it("keeps German at the bare path and prefixes English with /en", () => {
-    expect(localizePath("de", "/produkt")).toBe("/produkt");
+  it("prefixes BOTH locales under their /[lang] segment", () => {
+    expect(localizePath("de", "/produkt")).toBe("/de/produkt");
     expect(localizePath("en", "/produkt")).toBe("/en/produkt");
   });
 
-  it("localizes the root without a trailing slash", () => {
-    expect(localizePath("de", "/")).toBe("/");
+  it("localizes the homepage root without a trailing slash", () => {
+    expect(localizePath("de", "/")).toBe("/de");
     expect(localizePath("en", "/")).toBe("/en");
   });
 
@@ -23,32 +23,37 @@ describe("marketing-locale", () => {
     expect(localizePath("en", "/produkt#voice")).toBe("/en/produkt#voice");
   });
 
-  it("recovers the canonical German path from a prefixed one", () => {
-    expect(deCanonicalPath("/en")).toBe("/");
-    expect(deCanonicalPath("/en/produkt")).toBe("/produkt");
-    expect(deCanonicalPath("/produkt")).toBe("/produkt");
+  it("strips the locale prefix back to the canonical path", () => {
+    expect(stripLocalePrefix("/de")).toBe("/");
+    expect(stripLocalePrefix("/en")).toBe("/");
+    expect(stripLocalePrefix("/de/produkt")).toBe("/produkt");
+    expect(stripLocalePrefix("/en/branchen/b2c")).toBe("/branchen/b2c");
   });
 
-  it("does not strip /en from unrelated paths", () => {
+  it("leaves an already-unprefixed path untouched (defensive)", () => {
     // "/ensemble" starts with "/en" but is not the en-locale prefix.
-    expect(deCanonicalPath("/ensemble")).toBe("/ensemble");
+    expect(stripLocalePrefix("/ensemble")).toBe("/ensemble");
     expect(localeOfPath("/ensemble")).toBe("de");
   });
 
-  it("derives the locale from the pathname", () => {
-    expect(localeOfPath("/")).toBe("de");
-    expect(localeOfPath("/produkt")).toBe("de");
+  it("derives the locale from the [lang] prefix", () => {
+    expect(localeOfPath("/de")).toBe("de");
+    expect(localeOfPath("/de/produkt")).toBe("de");
     expect(localeOfPath("/en")).toBe("en");
     expect(localeOfPath("/en/produkt")).toBe("en");
+    // Unprefixed → default locale (these get 301'd to /de in next.config).
+    expect(localeOfPath("/produkt")).toBe("de");
   });
 
-  it("round-trips localize(localeOf, deCanonical) back to the original path", () => {
-    for (const path of ["/", "/produkt", "/en", "/en/preise", "/branchen/b2c"]) {
-      expect(localizePath(localeOfPath(path), deCanonicalPath(path))).toBe(path);
+  it("round-trips localize(localeOf, strip) back to a prefixed path", () => {
+    for (const path of ["/de", "/de/produkt", "/en", "/en/preise"]) {
+      expect(localizePath(localeOfPath(path), stripLocalePrefix(path))).toBe(
+        path,
+      );
     }
   });
 
-  it("declares German as the unprefixed default", () => {
+  it("declares German as the default/x-default locale", () => {
     expect(MARKETING_DEFAULT_LOCALE).toBe("de");
     expect([...MARKETING_LOCALES]).toEqual(["de", "en"]);
   });

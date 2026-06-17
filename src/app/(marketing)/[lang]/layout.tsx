@@ -9,9 +9,11 @@ import {
 } from "next/font/google";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { notFound } from "next/navigation";
 import { StudioFx } from "@/components/marketing/studio/StudioFx";
 import { ogDefaults, twitterDefaults, SITE_URL } from "@/lib/marketing/seo";
-import "../globals.css";
+import { isLocale, MARKETING_LOCALES } from "@/i18n/marketing-locale";
+import "../../globals.css";
 import "@/components/marketing/studio/studio.css";
 
 // ── Twilight-Konsole-Schriftstimmen ──────────────────────────────────────────
@@ -103,14 +105,29 @@ export const viewport: Viewport = {
 };
 
 /**
+ * Pre-render one static tree per locale. The locale lives in the URL [lang]
+ * segment (/de, /en) — NOT in a cookie — so reading it never forces dynamic
+ * rendering, and each language gets its own crawlable, hreflang-able URL.
+ * `dynamicParams = false` closes the set: any [lang] other than de/en 404s (the
+ * same closed-set technique /insights/[slug] already uses), so the tree stays
+ * fully SSG.
+ */
+export function generateStaticParams() {
+  return MARKETING_LOCALES.map((lang) => ({ lang }));
+}
+
+export const dynamicParams = false;
+
+/**
  * Marketing ROOT layout — die „Twilight-Konsole“-Bühne (Perf-Etappe C, Fund 0):
  * eigenes Root-Layout im Multi-Root-Pattern statt nested unter dem App-Shell.
  * Bewusst NICHT drin: ClerkProvider (Marketing nutzt 0× Clerk → ~45 KB gz JS
  * weniger pro Public-Page), NextIntlClientProvider (0 Namespaces genutzt →
- * kein Katalog im RSC-Payload) und vor allem KEIN getLocale()-Cookie-Read —
- * der machte den gesamten Marketing-Tree ƒ-dynamisch. <html lang="de"> ist
- * hart: Marketing ist per Entscheidung DE-only. Damit rendert der Tree
- * statisch und /insights/[slug] wird wirklich SSG.
+ * kein Katalog im RSC-Payload) und vor allem KEIN getLocale()-Cookie-Read.
+ * Die UI-Sprache kommt jetzt aus dem [lang]-URL-Segment (/de, /en) statt aus
+ * dem Cookie — kein Cookie-Read heißt: der Tree bleibt vollständig statisch
+ * (jede Sprache ist eine eigene SSG-URL inkl. /insights/[slug]), und beide
+ * Sprachen sind crawlbar/hreflang-fähig. <html lang> ist jetzt pro Locale.
  *
  * Der .studio-Wrapper (Klassenname bleibt als stabiles Scope-Präfix der
  * st-*-Komponentenklassen, die Haut darunter ist jetzt Twilight):
@@ -130,12 +147,23 @@ export const viewport: Viewport = {
  * Navigation Marketing ↔ App ist seit dem Split ein Full-Page-Load (Next-
  * Verhalten zwischen Root-Layouts) — gewollt, die Welten teilen kein JS.
  */
-export default function MarketingLayout({ children }: { children: ReactNode }) {
+export default async function MarketingLayout({
+  children,
+  params,
+}: {
+  children: ReactNode;
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+  // dynamicParams=false 404t Nicht-de/en bereits; isLocale verengt lang
+  // zusätzlich vom string auf die Locale-Union für <html lang>.
+  if (!isLocale(lang)) notFound();
+
   return (
     // data-scroll-behavior: Next-16-Opt-in — Routenwechsel springen sofort
     // statt smooth hochzuscrollen; Anker-Sprünge bleiben smooth.
     <html
-      lang="de"
+      lang={lang}
       data-scroll-behavior="smooth"
       className="h-full scroll-smooth antialiased"
     >

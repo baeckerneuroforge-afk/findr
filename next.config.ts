@@ -32,11 +32,43 @@ const nextConfig: NextConfig = {
     // für genau diesen Fall (not-found.md §global-not-found).
     globalNotFound: true,
   },
-  // /pricing was the old EN static-HTML pricing route; Etappe C replaces it with
-  // the German /preise. Keep old links alive with a permanent (308) redirect.
+  // Marketing lives under /[lang] (/de, /en) since the DE/EN i18n work (Paket 2).
   async redirects() {
     return [
-      { source: "/pricing", destination: "/preise", permanent: true },
+      // Locale-less marketing URLs 30x onto the German variant so existing
+      // links + bookmarks keep working. Sources are DELIBERATELY only the
+      // marketing paths — no collision with /api, /dashboard, /sign-in,
+      // /interview, /onboarding, /shared. The homepage uses a TEMPORARY redirect
+      // (the default-locale choice may later become Accept-Language-based);
+      // the moved content paths are permanent (308).
+      { source: "/", destination: "/de", permanent: false },
+      { source: "/produkt", destination: "/de/produkt", permanent: true },
+      { source: "/preise", destination: "/de/preise", permanent: true },
+      { source: "/demo", destination: "/de/demo", permanent: true },
+      { source: "/impressum", destination: "/de/impressum", permanent: true },
+      {
+        source: "/datenschutz",
+        destination: "/de/datenschutz",
+        permanent: true,
+      },
+      { source: "/agb", destination: "/de/agb", permanent: true },
+      {
+        source: "/insights/:path*",
+        destination: "/de/insights/:path*",
+        permanent: true,
+      },
+      {
+        source: "/branchen/:slug",
+        destination: "/de/branchen/:slug",
+        permanent: true,
+      },
+      {
+        source: "/methoden/:slug",
+        destination: "/de/methoden/:slug",
+        permanent: true,
+      },
+      // /pricing was the old EN static-HTML pricing route; now → German /de/preise.
+      { source: "/pricing", destination: "/de/preise", permanent: true },
       // TODO D1: www → apex canonical redirect. The production domain isn't
       // final yet (placeholder findr.de), so this is PREPARED but inactive — a
       // guessed host would be wrong. Uncomment and confirm the host once the
