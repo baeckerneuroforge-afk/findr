@@ -201,9 +201,6 @@ export function MobileNav({ nav }: { nav: NavEntry[] }) {
                 >
                   Log in
                 </Link>
-                <CtaLink href="/sign-up" variant="secondary" className="w-full">
-                  Kostenlos testen
-                </CtaLink>
                 <CtaLink href={DEMO_BOOKING_URL} variant="primary" className="w-full">
                   Demo buchen
                 </CtaLink>

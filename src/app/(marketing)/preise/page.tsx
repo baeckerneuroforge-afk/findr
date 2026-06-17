@@ -13,7 +13,7 @@ import { PlatformModules } from "@/components/marketing/PlatformModules";
 import { FAQ, type FaqItem } from "@/components/marketing/FAQ";
 import { JsonLd } from "@/components/marketing/JsonLd";
 import {
-  LayersIcon,
+  HexagonIcon,
   TrendingUpIcon,
   NetworkIcon,
   FileCheckIcon,
@@ -29,7 +29,7 @@ import type { ComponentType, SVGProps } from "react";
 const PATH = "/preise";
 const OG_TITLE = "Preise — Klymeo";
 const DESCRIPTION =
-  "Custom-based Pricing für Klymeo: Du zahlst für die Methoden, den Umfang und die Begleitung, die zu deinem Team passen — den konkreten Preis legen wir gemeinsam im Demo-Call fest. In Frankfurt gehostet, DSGVO-konform.";
+  "Custom-based Pricing für Klymeo: Eine Lizenz, alle Methoden inklusive — du zahlst für Zugang, Umfang und Begleitung, die zu deinem Team passen. Den konkreten Preis legen wir gemeinsam im Demo-Call fest. In Frankfurt gehostet, DSGVO-konform.";
 
 export const metadata: Metadata = {
   title: "Preise",
@@ -41,23 +41,24 @@ export const metadata: Metadata = {
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
 // ── Sektion 2: Was den Preis bestimmt ──────────────────────────────────────
-// Transparenz statt Zahl: die vier Stellschrauben, aus denen sich der individuelle
-// Preis ergibt. Bewusst Fließtext, kein Bullet-Stakkato.
+// Transparenz statt Zahl: die vier Stellschrauben (Zugang, Umfang, Begleitung,
+// Laufzeit), aus denen sich der individuelle Preis ergibt — alle Methoden sind
+// inklusive. Bewusst Fließtext, kein Bullet-Stakkato.
 const FACTORS: { Icon: IconType; title: string; body: string }[] = [
   {
-    Icon: LayersIcon,
-    title: "Methoden",
-    body: "Du startest mit der Methode, die heute den größten Hebel hat, und nimmst die anderen drei dazu, wenn dein Team so weit ist. Bezahlt wird, was du wirklich einsetzt — nicht das Voll-Paket auf Verdacht.",
+    Icon: HexagonIcon,
+    title: "Zugang",
+    body: "Eine Lizenz für dein Team — und alle vier Methoden sind von Tag eins dabei. Du zahlst eine Grundgebühr für den Zugang, nicht pro Methode. Sitzplätze kommen hinzu, wie dein Team wächst.",
   },
   {
     Icon: TrendingUpIcon,
     title: "Umfang",
-    body: "Gesprächsvolumen, Interviews und Studien, Sitzplätze für dein Team — der Umfang skaliert mit dem, was zur Größe deiner Organisation und deiner tatsächlichen Nutzung passt.",
+    body: "Wie viel du erhebst: parallele Studien und Reichweite. Interviews führst du im vereinbarten Rahmen unbegrenzt — es gibt keine Abrechnung pro Gespräch. Der Umfang skaliert mit dem, was zur Größe deiner Organisation passt.",
   },
   {
     Icon: NetworkIcon,
     title: "Begleitung",
-    body: "Von Self-Serve bis zum eng begleiteten Rollout: Wie viel Onboarding, Schulung und laufende Betreuung du brauchst, fließt in den Umfang ein — manche Teams legen allein los, andere wollen uns an ihrer Seite.",
+    body: "Von schlankem Start bis zum eng begleiteten Rollout: Wie viel Onboarding, Schulung und laufende Betreuung du brauchst, ist Teil deines Pakets — manche Teams legen allein los, andere wollen uns an ihrer Seite.",
   },
   {
     Icon: FileCheckIcon,
@@ -115,15 +116,15 @@ const ALWAYS_INCLUDED: { Icon: IconType; label: string; sub: string }[] = [
 const FAQ_ITEMS: { q: string; a: string }[] = [
   {
     q: "Warum nennt ihr keine festen Preise?",
-    a: "Weil der passende Preis von den Methoden, dem Umfang und der Begleitung abhängt, die dein Team wirklich braucht. Ein Schubladen-Tarif würde die meisten Teams entweder über- oder unterversorgen. Im Demo-Call schnüren wir stattdessen genau das, was zu deiner Situation passt — transparent und nachvollziehbar.",
+    a: "Weil der passende Preis von Zugang, Umfang und Begleitung abhängt, die dein Team wirklich braucht — die Methoden sind ohnehin alle inklusive. Ein Schubladen-Tarif würde die meisten Teams entweder über- oder unterversorgen. Im Demo-Call schnüren wir stattdessen genau das, was zu deiner Situation passt — transparent und nachvollziehbar.",
   },
   {
     q: "Kann ich mit einer einzigen Methode starten?",
-    a: "Ja. Du beginnst mit der Methode, die heute den größten Hebel hat, und nimmst die anderen dazu, sobald dein Team so weit ist. Alle vier Methoden teilen sich dieselbe KI-Engine — bereits geführte Interviews zählen weiter, nichts geht beim Erweitern verloren.",
+    a: "Ja — und du musst nichts extra buchen: Alle vier Methoden sind in deiner Lizenz enthalten. Du beginnst einfach mit der, die heute den größten Hebel hat, und nutzt die anderen, sobald dein Team so weit ist. Alle teilen dieselbe KI-Engine — bereits geführte Interviews zählen durchgängig weiter.",
   },
   {
     q: "Wonach richtet sich der Umfang, und wie wird abgerechnet?",
-    a: "Der Umfang richtet sich nach dem, was du nutzt: Gesprächsvolumen, Interviews oder Studien, Sitzplätze und der Grad der Begleitung. Welche dieser Größen zu deinem Team passen, legen wir gemeinsam fest — ohne versteckte Posten und ohne Kleingedrucktes.",
+    a: "Der Umfang richtet sich nach dem Studien-Scope, den Sitzplätzen und dem Grad der Begleitung. Interviews führst du im vereinbarten Rahmen unbegrenzt — es gibt keine Abrechnung pro Gespräch. Welche Größen zu deinem Team passen, legen wir gemeinsam fest, ohne versteckte Posten und ohne Kleingedrucktes.",
   },
   {
     q: "Bekomme ich Unterstützung beim Setup?",
@@ -164,8 +165,8 @@ export default function PreisePage() {
             <SectionHeading
               as="h1"
               eyebrow="Preise"
-              title="Du zahlst für das, was du nutzt — nicht für ein Paket, das nicht passt."
-              lead="Klymeo passt sich an dein Team, die Methoden und den Umfang an. Den konkreten Preis legen wir gemeinsam im Gespräch fest — transparent, ohne Schubladen-Tarif."
+              title="Eine Lizenz, alle Methoden — der Preis passt zu deinem Team, nicht zu einem Schubladen-Tarif."
+              lead="Klymeo passt sich an dein Team und deinen Umfang an — alle vier Methoden sind dabei. Den konkreten Preis legen wir gemeinsam im Gespräch fest, transparent und ohne Schubladen-Tarif."
             />
           </Reveal>
           <Reveal>
@@ -188,7 +189,7 @@ export default function PreisePage() {
             <SectionHeading
               eyebrow="So funktioniert unser Pricing"
               title="Vier Faktoren bestimmen deinen Preis."
-              lead="Custom heißt nicht intransparent. Der Preis ergibt sich aus dem, was du tatsächlich nutzt — und genau diese vier Stellschrauben gehen wir im Demo-Call gemeinsam durch."
+              lead="Alle vier Methoden sind immer inklusive. Was den Preis bestimmt, sind vier Stellschrauben — Zugang, Umfang, Begleitung und Laufzeit —, die wir im Demo-Call gemeinsam durchgehen."
             />
           </Reveal>
           <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-4">
@@ -212,11 +213,11 @@ export default function PreisePage() {
         </Container>
       </Section>
 
-      {/* 3 ── METHODEN-BAUKASTEN (kanonische PlatformModules, einfarbige Headline) */}
+      {/* 3 ── METHODEN-BLOCK (kanonische PlatformModules, einfarbige Headline) */}
       <PlatformModules
-        eyebrow="Der Baukasten"
-        title="Starte mit einer Methode. Nimm die anderen dazu."
-        lead="Vier Methoden auf einer gemeinsamen KI-Engine. Du musst nicht alles auf einmal nehmen — wähl, was heute zählt, und erweitere, wenn dein Team so weit ist."
+        eyebrow="Vier Methoden, eine Engine"
+        title="Alle vier Methoden inklusive — du startest mit der, die heute zählt."
+        lead="Vier Facetten einer gemeinsamen KI-Engine, alle ab Tag eins freigeschaltet. Du beginnst mit der Methode, die den größten Hebel hat — die anderen stehen bereit, sobald dein Team so weit ist. Geführte Interviews zählen durchgängig weiter."
       />
 
       {/* 4 ── WAS IMMER DABEI IST ───────────────────────────────────────────── */}
@@ -283,9 +284,9 @@ export default function PreisePage() {
                 Sprich mit uns über deinen Umfang.
               </h2>
               <p className="max-w-xl text-[17px] leading-relaxed text-neutral-300">
-                In einem kurzen Gespräch klären wir, welche Methoden, welcher Umfang
-                und welche Begleitung zu deinem Team passen — und du siehst, was
-                Klymeo an deinen echten Gesprächen leistet.
+                In einem kurzen Gespräch klären wir, welcher Zugang, welcher Umfang
+                und welche Begleitung zu deinem Team passen — alle Methoden sind dabei —
+                und du siehst, was Klymeo an deinen echten Gesprächen leistet.
               </p>
               <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
                 <CtaLink href={DEMO_BOOKING_URL} variant="secondary" size="lg">

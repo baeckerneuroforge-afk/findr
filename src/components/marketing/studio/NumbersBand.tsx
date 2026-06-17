@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 /**
  * Zahlen-Band: riesige Bricolage-Ziffern mit Count-up beim Einscrollen.
  * Ehrliche Positionierungs-Anker — KEINE erfundenen Volumen-/Kundenzahlen
- * (100 % EU-Hosting, 0 US-Cloud, 4 Methoden, 14 Tage Test).
+ * (100 % EU-Hosting, 0 US-Cloud, 4 Methoden, 1 Engine).
  *
  * SSR-/no-JS-/reduced-motion-Muster wie überall: die ENDWERTE stehen bereits
  * im Markup; nur Motion-User sehen die Animation 0 → Ziel (das Band liegt
@@ -16,7 +16,7 @@ const STATS: { value: number; suffix?: string; label: string }[] = [
   { value: 100, suffix: "%", label: "EU-gehostet · DSGVO-konform" },
   { value: 0, label: "US-Cloud · null Datentransfer" },
   { value: 4, label: "Methoden · alle live" },
-  { value: 14, suffix: "d", label: "Gratis testen · ohne Kreditkarte" },
+  { value: 1, label: "Engine · alle Methoden" },
 ];
 
 export function NumbersBand() {

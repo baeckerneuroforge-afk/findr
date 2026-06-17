@@ -36,10 +36,9 @@ export default function DemoPage() {
         }
         subhead="In einer kurzen, persönlichen Demo zeigen wir dir Klymeo an einem echten Studien-Beispiel — keine Folien, sondern deine Forschungsfrage: vom Voice-Interview über den Stimulus-Test bis zur exportierten Synthese."
         primary={{ label: "Termin buchen →", href: DEMO_BOOKING_URL }}
-        secondary={{ label: "Lieber direkt testen", href: "/sign-up" }}
         // TODO D3: UWG-Claim — "DSGVO-nativ" ist eine werbliche Aussage, die vor
         // Live entweder belegt oder entschärft werden muss (Entscheidung André).
-        trust={["DSGVO-nativ", "EU-gehostet · Frankfurt", "Keine Kreditkarte nötig"]}
+        trust={["DSGVO-nativ", "EU-gehostet · Frankfurt"]}
       />
 
       {/* Buchungs-Bereich — handoff to the external Cal.com scheduler. We link
@@ -63,12 +62,6 @@ export default function DemoPage() {
               <CtaLink href={DEMO_BOOKING_URL} variant="primary" size="lg">
                 Termin bei Klymeo buchen →
               </CtaLink>
-              <p className="text-sm text-neutral-500">
-                Lieber sofort loslegen?{" "}
-                <CtaLink href="/sign-up" variant="ghost" size="md" className="!h-auto !px-0 underline underline-offset-4">
-                  14 Tage kostenlos testen
-                </CtaLink>
-              </p>
             </div>
           </Reveal>
         </Container>
@@ -85,7 +78,6 @@ export default function DemoPage() {
                 "DSGVO-nativ",
                 "In der EU gehostet · Frankfurt",
                 "EU-AI-Act-konform",
-                "Keine Kreditkarte nötig",
               ].map((t) => (
                 <li key={t} className="inline-flex items-center gap-2">
                   <span aria-hidden className="h-1 w-1 rounded-full bg-primary-400" />

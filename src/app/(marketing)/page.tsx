@@ -428,9 +428,6 @@ export default function HomePage() {
               <span className="st-dot" aria-hidden />
               Demo buchen
             </CtaLink>
-            <span className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-anchor-foreground/60">
-              14 Tage gratis · ohne Kreditkarte
-            </span>
           </Rv>
         </div>
       </section>
