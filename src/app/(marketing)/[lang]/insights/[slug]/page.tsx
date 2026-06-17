@@ -12,10 +12,15 @@ import { JsonLd } from "@/components/marketing/JsonLd";
 import { SITE_URL, SITE_NAME, ogDefaults } from "@/lib/marketing/seo";
 import {
   getInsight,
-  getAllInsightSlugs,
-  formatDateDE,
+  getInsightSlugs,
+  formatDate,
   type InsightBlock,
 } from "@/lib/insights/articles";
+import {
+  MARKETING_LOCALES,
+  resolveLocale,
+  toBcp47,
+} from "@/i18n/marketing-locale";
 
 // params now carries the parent [lang] segment too (/de|/en × /insights/[slug]).
 type Params = { lang: string; slug: string };
@@ -27,8 +32,15 @@ type Params = { lang: string; slug: string };
 // Safe here because next.config has NO `cacheComponents` — with it on,
 // dynamicParams would be unavailable and an empty array a build error (§8
 // caveat); we have ≥1 article either way.
-export function generateStaticParams(): { slug: string }[] {
-  return getAllInsightSlugs().map((slug) => ({ slug }));
+export function generateStaticParams(): { lang: string; slug: string }[] {
+  // "Bottom-up": this leaf generates the FULL (lang, slug) combos itself, only
+  // for locales that actually HAVE articles. Insights are authored, not
+  // machine-translated → German-only today, so only /de/insights/<slug> exists;
+  // /en/insights/[slug] 404s (dynamicParams=false) until EN articles are
+  // authored, at which point they appear here automatically.
+  return MARKETING_LOCALES.flatMap((locale) =>
+    getInsightSlugs(locale).map((slug) => ({ lang: locale, slug })),
+  );
 }
 
 export const dynamicParams = false;
@@ -40,8 +52,8 @@ export async function generateMetadata({
 }: {
   params: Promise<Params>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const article = getInsight(slug);
+  const { slug, lang } = await params;
+  const article = getInsight(slug, resolveLocale(lang));
   if (!article) return {};
 
   const path = `/insights/${article.slug}`;
@@ -107,8 +119,9 @@ export default async function InsightArticlePage({
 }: {
   params: Promise<Params>;
 }) {
-  const { slug } = await params;
-  const article = getInsight(slug);
+  const { slug, lang } = await params;
+  const locale = resolveLocale(lang);
+  const article = getInsight(slug, locale);
   if (!article) notFound();
 
   const path = `/insights/${article.slug}`;
@@ -119,7 +132,7 @@ export default async function InsightArticlePage({
     description: article.excerpt,
     datePublished: article.date,
     dateModified: article.date,
-    inLanguage: "de-DE",
+    inLanguage: toBcp47(locale),
     url: `${SITE_URL}${path}`,
     mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}${path}` },
     image: `${SITE_URL}/og-image.png`,
@@ -146,7 +159,7 @@ export default async function InsightArticlePage({
                   {article.title}
                 </h1>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-neutral-400">
-                  <time dateTime={article.date}>{formatDateDE(article.date)}</time>
+                  <time dateTime={article.date}>{formatDate(article.date, locale)}</time>
                   <span aria-hidden>·</span>
                   <span>{article.readingMinutes} Min. Lesezeit</span>
                 </div>

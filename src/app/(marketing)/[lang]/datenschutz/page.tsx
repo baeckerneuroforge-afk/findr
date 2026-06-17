@@ -5,6 +5,7 @@ import {
   Placeholder,
 } from "@/components/marketing/LegalProse";
 import { ogDefaults } from "@/lib/marketing/seo";
+import { resolveLocale } from "@/i18n/marketing-locale";
 
 const PATH = "/datenschutz";
 const OG_TITLE = "Datenschutz — Klymeo";
@@ -25,12 +26,18 @@ const CONTACT_LINK =
    verbindliche Rechtstext wird je Abschnitt über einen Datenschutz-Generator
    bzw. die Rechtsberatung eingesetzt. Bis dahin bewusst KEIN halluzinierter
    Datenschutztext (nichts darf als echte Zusicherung lesbar sein). */
-export default function DatenschutzPage() {
+export default async function DatenschutzPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
   return (
     <LegalProse
       title="Datenschutzerklärung"
       intro="Informationen zur Verarbeitung personenbezogener Daten gemäß Datenschutz-Grundverordnung (DSGVO) und Bundesdatenschutzgesetz (BDSG)."
       stand="Juni 2026"
+      lang={resolveLocale(lang)}
     >
       <LegalSection heading="1. Verantwortlicher">
         <div className="flex flex-col gap-3">

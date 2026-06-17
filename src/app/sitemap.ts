@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/marketing/seo";
-import { getAllInsightSlugs } from "@/lib/insights/articles";
+import { getInsightSlugs } from "@/lib/insights/articles";
 import { SITEMAP_ROUTES } from "@/components/marketing/nav-data";
 import {
   localizePath,
@@ -29,7 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const routes: { path: string; priority: number }[] = [
     ...SITEMAP_ROUTES,
-    ...getAllInsightSlugs().map((slug) => ({
+    ...getInsightSlugs(MARKETING_DEFAULT_LOCALE).map((slug) => ({
       path: `/insights/${slug}`,
       priority: 0.6,
     })),

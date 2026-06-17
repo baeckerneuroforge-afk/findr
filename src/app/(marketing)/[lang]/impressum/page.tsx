@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegalProse, LegalSection } from "@/components/marketing/LegalProse";
 import { ogDefaults } from "@/lib/marketing/seo";
+import { resolveLocale } from "@/i18n/marketing-locale";
 
 const PATH = "/impressum";
 const OG_TITLE = "Impressum — Klymeo";
@@ -17,13 +18,19 @@ export const metadata: Metadata = {
 const CONTACT_LINK =
   "text-primary-700 underline underline-offset-2 transition-colors hover:text-primary-900";
 
-export default function ImpressumPage() {
+export default async function ImpressumPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
   return (
     <LegalProse
       title="Impressum"
       intro="Anbieterkennzeichnung gemäß § 5 Digitale-Dienste-Gesetz (DDG)."
       stand="Juni 2026"
       notice={false}
+      lang={resolveLocale(lang)}
     >
       <LegalSection heading="Angaben gemäß § 5 DDG">
         <p>

@@ -1,3 +1,5 @@
+import { MARKETING_DEFAULT_LOCALE, type Locale } from "@/i18n/marketing-locale";
+
 /**
  * Insights content source (Etappe C — the SEO-Motor).
  *
@@ -21,6 +23,11 @@ export type InsightBlock =
   | { kind: "quote"; text: string; cite?: string };
 
 export interface InsightArticle {
+  /** Locale this article is WRITTEN in. Insights are editorial (du-Form German
+   *  today) — they are NOT machine-translated. English articles are authored
+   *  separately and carry locale:"en"; until then the EN insights index is empty
+   *  and EN article slugs simply don't exist. Defaults to German when omitted. */
+  locale?: Locale;
   /** URL segment — lowercase, kebab, stable (changing it breaks links). */
   slug: string;
   /** Article headline → page <title> via the "%s — Klymeo" template. */
@@ -207,43 +214,55 @@ export const INSIGHTS: InsightArticle[] = [
   },
 ];
 
-/** All slugs — for generateStaticParams and sitemap.ts (same source). */
-export function getAllInsightSlugs(): string[] {
-  return INSIGHTS.map((a) => a.slug);
-}
-
-/** Look up one article by slug (undefined → 404 in the page). */
-export function getInsight(slug: string): InsightArticle | undefined {
-  return INSIGHTS.find((a) => a.slug === slug);
-}
-
-/** Articles newest-first. ISO date strings sort correctly as plain strings. */
-export const INSIGHTS_BY_DATE: InsightArticle[] = [...INSIGHTS].sort((a, b) =>
-  a.date < b.date ? 1 : a.date > b.date ? -1 : 0,
-);
-
-const MONTHS_DE = [
-  "Januar",
-  "Februar",
-  "März",
-  "April",
-  "Mai",
-  "Juni",
-  "Juli",
-  "August",
-  "September",
-  "Oktober",
-  "November",
-  "Dezember",
-];
+/** Resolve an article's written locale (defaults to German). */
+const articleLocale = (a: InsightArticle): Locale =>
+  a.locale ?? MARKETING_DEFAULT_LOCALE;
 
 /**
- * Format an ISO date (YYYY-MM-DD) as a German long date, e.g. "20. Mai 2026".
- * Done by hand (no Date/Intl) so it's deterministic across build environments
- * and free of ICU/timezone surprises in SSR.
+ * Slugs for ONE locale — the source for generateStaticParams + sitemap.ts.
+ * English has none until EN articles are authored, so /en/insights/[slug] 404s
+ * (dynamicParams=false) and EN stays out of the sitemap.
  */
-export function formatDateDE(iso: string): string {
+export function getInsightSlugs(locale: Locale): string[] {
+  return INSIGHTS.filter((a) => articleLocale(a) === locale).map((a) => a.slug);
+}
+
+/** Look up one article by slug WITHIN a locale (undefined → 404 in the page). */
+export function getInsight(
+  slug: string,
+  locale: Locale,
+): InsightArticle | undefined {
+  return INSIGHTS.find(
+    (a) => a.slug === slug && articleLocale(a) === locale,
+  );
+}
+
+/** Articles of one locale, newest-first (ISO date strings sort as plain
+ *  strings). EN returns [] today → the EN index renders its empty state. */
+export function insightsByDate(locale: Locale): InsightArticle[] {
+  return INSIGHTS.filter((a) => articleLocale(a) === locale).sort((a, b) =>
+    a.date < b.date ? 1 : a.date > b.date ? -1 : 0,
+  );
+}
+
+const MONTH_NAMES: Record<Locale, string[]> = {
+  de: [
+    "Januar", "Februar", "März", "April", "Mai", "Juni",
+    "Juli", "August", "September", "Oktober", "November", "Dezember",
+  ],
+  en: [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ],
+};
+
+/**
+ * Format an ISO date (YYYY-MM-DD) per locale — German "20. Mai 2026", English
+ * "May 20, 2026". Done by hand (no Date/Intl) so it's deterministic across build
+ * environments and free of ICU/timezone surprises in SSR.
+ */
+export function formatDate(iso: string, locale: Locale): string {
   const [y, m, d] = iso.split("-").map(Number);
-  const month = MONTHS_DE[(m ?? 1) - 1] ?? "";
-  return `${d}. ${month} ${y}`;
+  const month = MONTH_NAMES[locale][(m ?? 1) - 1] ?? "";
+  return locale === "en" ? `${month} ${d}, ${y}` : `${d}. ${month} ${y}`;
 }

@@ -1,16 +1,21 @@
 import Link from "next/link";
 import { CornerBrackets } from "./primitives";
-import { formatDateDE, type InsightArticle } from "@/lib/insights/articles";
+import { formatDate, type InsightArticle } from "@/lib/insights/articles";
+import {
+  localizeHref,
+  MARKETING_DEFAULT_LOCALE,
+} from "@/i18n/marketing-locale";
 
 /**
  * Article card for the /insights index (and cross-links). The whole card is one
  * focusable link (editorial framed look via CornerBrackets). Title in Fraunces,
- * category eyebrow + German long date in the footer. (§2.2 InsightTeaser.)
+ * category eyebrow + locale-aware long date in the footer. (§2.2 InsightTeaser.)
  */
 export function InsightTeaser({ article }: { article: InsightArticle }) {
+  const locale = article.locale ?? MARKETING_DEFAULT_LOCALE;
   return (
     <Link
-      href={`/insights/${article.slug}`}
+      href={localizeHref(locale, `/insights/${article.slug}`)}
       className="group relative flex h-full flex-col gap-3 rounded border border-neutral-200 bg-neutral-0 p-7 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
     >
       <CornerBrackets className="border-primary-200" />
@@ -24,7 +29,7 @@ export function InsightTeaser({ article }: { article: InsightArticle }) {
         {article.excerpt}
       </p>
       <div className="mt-1 flex items-center justify-between text-xs text-neutral-400">
-        <time dateTime={article.date}>{formatDateDE(article.date)}</time>
+        <time dateTime={article.date}>{formatDate(article.date, locale)}</time>
         <span
           aria-hidden
           className="font-medium text-primary-600 transition-transform group-hover:translate-x-0.5"

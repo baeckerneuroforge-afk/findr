@@ -9,7 +9,8 @@ import { InsightTeaser } from "@/components/marketing/InsightTeaser";
 import { CTASection } from "@/components/marketing/CTASection";
 import { JsonLd } from "@/components/marketing/JsonLd";
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
-import { INSIGHTS_BY_DATE } from "@/lib/insights/articles";
+import { insightsByDate } from "@/lib/insights/articles";
+import { resolveLocale, toBcp47 } from "@/i18n/marketing-locale";
 
 const PATH = "/insights";
 const OG_TITLE = "Insights — Klymeo";
@@ -23,28 +24,35 @@ export const metadata: Metadata = {
   openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
 };
 
-// Blog JSON-LD: lists the published articles so search engines can surface them
-// as a collection. Each entry mirrors the per-article BlogPosting on [slug].
-const BLOG_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "Blog",
-  name: "Klymeo Insights",
-  url: `${SITE_URL}${PATH}`,
-  description: DESCRIPTION,
-  inLanguage: "de-DE",
-  blogPost: INSIGHTS_BY_DATE.map((a) => ({
-    "@type": "BlogPosting",
-    headline: a.title,
-    description: a.excerpt,
-    datePublished: a.date,
-    url: `${SITE_URL}/insights/${a.slug}`,
-  })),
-};
+export default async function InsightsPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const locale = resolveLocale((await params).lang);
+  const articles = insightsByDate(locale);
 
-export default function InsightsPage() {
+  // Blog JSON-LD lists THIS locale's published articles. EN has none yet → omit
+  // the block entirely rather than emit an empty Blog.
+  const blogJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Klymeo Insights",
+    url: `${SITE_URL}${PATH}`,
+    description: DESCRIPTION,
+    inLanguage: toBcp47(locale),
+    blogPost: articles.map((a) => ({
+      "@type": "BlogPosting",
+      headline: a.title,
+      description: a.excerpt,
+      datePublished: a.date,
+      url: `${SITE_URL}/insights/${a.slug}`,
+    })),
+  };
+
   return (
     <>
-      <JsonLd data={BLOG_JSONLD} />
+      {articles.length > 0 ? <JsonLd data={blogJsonLd} /> : null}
 
       <Section className="pt-14 sm:pt-20">
         <Container>
@@ -66,13 +74,24 @@ export default function InsightsPage() {
 
       <Section className="pt-0">
         <Container>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {INSIGHTS_BY_DATE.map((article, i) => (
-              <Reveal key={article.slug} delay={i * 0.05} className="h-full">
-                <InsightTeaser article={article} />
-              </Reveal>
-            ))}
-          </div>
+          {articles.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {articles.map((article, i) => (
+                <Reveal key={article.slug} delay={i * 0.05} className="h-full">
+                  <InsightTeaser article={article} />
+                </Reveal>
+              ))}
+            </div>
+          ) : (
+            // EN has no articles yet — editorial is authored, not machine-translated.
+            <Reveal>
+              <p className="mx-auto max-w-xl text-center text-[15px] leading-relaxed text-neutral-500">
+                {locale === "en"
+                  ? "English insights are coming soon. In the meantime, explore the platform — the German articles are available under DE."
+                  : "Bald erscheinen hier die ersten Insights."}
+              </p>
+            </Reveal>
+          )}
         </Container>
       </Section>
 

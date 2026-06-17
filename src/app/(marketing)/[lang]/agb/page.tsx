@@ -5,6 +5,7 @@ import {
   Placeholder,
 } from "@/components/marketing/LegalProse";
 import { ogDefaults } from "@/lib/marketing/seo";
+import { resolveLocale } from "@/i18n/marketing-locale";
 
 const PATH = "/agb";
 const OG_TITLE = "AGB — Klymeo";
@@ -24,12 +25,18 @@ export const metadata: Metadata = {
 
    Hinweis: Für zahlende B2B-Kunden ist zusätzlich ein
    Auftragsverarbeitungsvertrag (AVV) nötig — separat vom Website-AGB. */
-export default function AgbPage() {
+export default async function AgbPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
   return (
     <LegalProse
       title="Allgemeine Geschäftsbedingungen"
       intro="Bedingungen für die Nutzung von Klymeo und der zugehörigen Produkte."
       stand="Juni 2026"
+      lang={resolveLocale(lang)}
     >
       <LegalSection heading="1. Geltungsbereich">
         <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>

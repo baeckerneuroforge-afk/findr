@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Container, Section } from "./primitives";
+import { MARKETING_DEFAULT_LOCALE, type Locale } from "@/i18n/marketing-locale";
 
 /**
  * Legal-page primitives (Impressum / Datenschutz / AGB). A plain, readable
@@ -32,12 +33,16 @@ export function LegalProse({
   intro,
   stand,
   notice = true,
+  lang = MARKETING_DEFAULT_LOCALE,
   children,
 }: {
   title: ReactNode;
   intro?: ReactNode;
   stand?: ReactNode;
   notice?: boolean;
+  /** Render locale. On "en" an English courtesy banner is shown above the
+   *  (German, legally-binding) body — the German wording stays authoritative. */
+  lang?: Locale;
   children: ReactNode;
 }) {
   return (
@@ -57,8 +62,13 @@ export function LegalProse({
               Stand: {stand}
             </p>
           ) : null}
+          {lang === "en" ? <LegalLanguageNotice /> : null}
           {notice ? <LegalPlaceholderNotice /> : null}
-          <div className={`flex flex-col gap-9 ${notice ? "" : "mt-10"}`}>
+          <div
+            className={`flex flex-col gap-9 ${
+              notice || lang === "en" ? "" : "mt-10"
+            }`}
+          >
             {children}
           </div>
         </article>
@@ -85,6 +95,30 @@ export function LegalPlaceholderNotice() {
         Der verbindliche Text wird vor dem Live-Gang von André bzw. der
         Rechtsberatung eingesetzt. Bis dahin stehen unten ausschließlich
         Platzhalter — bitte nicht als Rechtsauskunft lesen.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * English courtesy banner shown on the /en legal pages. The legal bodies stay
+ * German (a German Impressum/Datenschutz/AGB derives its effect from the German
+ * wording + statute citations — a translation would be informational at best).
+ * Neutral-toned so it reads as a note, not a warning.
+ */
+export function LegalLanguageNotice() {
+  return (
+    <div
+      role="note"
+      className="mt-10 mb-2 flex flex-col gap-2 rounded border border-neutral-300 bg-neutral-50 px-5 py-4"
+    >
+      <span className="inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-neutral-700">
+        <span aria-hidden>⚖</span> Legally binding in German
+      </span>
+      <p className="text-[15px] leading-relaxed text-neutral-600">
+        This page is legally binding in German only. The German text below is the
+        authoritative version; this notice is informational and not a certified
+        translation.
       </p>
     </div>
   );
