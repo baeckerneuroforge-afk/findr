@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   localeOfPath,
+  localizedContent,
   localizeHref,
   localizePath,
   MARKETING_DEFAULT_LOCALE,
   MARKETING_LOCALES,
+  resolveLocale,
   stripLocalePrefix,
 } from "./marketing-locale";
 
@@ -83,5 +85,29 @@ describe("localizeHref", () => {
     expect(localizeHref("en", "/sign-up")).toBe("/sign-up");
     expect(localizeHref("en", "/dashboard")).toBe("/dashboard");
     expect(localizeHref("en", "/interview/abc")).toBe("/interview/abc");
+  });
+});
+
+describe("resolveLocale", () => {
+  it("narrows valid locales and falls back to German", () => {
+    expect(resolveLocale("de")).toBe("de");
+    expect(resolveLocale("en")).toBe("en");
+    expect(resolveLocale("fr")).toBe("de");
+    expect(resolveLocale("")).toBe("de");
+  });
+});
+
+describe("localizedContent", () => {
+  it("falls back to German when no English variant is authored yet", () => {
+    expect(localizedContent("en", { de: "DE" })).toBe("DE");
+    expect(localizedContent("de", { de: "DE" })).toBe("DE");
+  });
+
+  it("returns the matching variant once English exists", () => {
+    const variants = { de: "DE", en: "EN" };
+    expect(localizedContent("de", variants)).toBe("DE");
+    expect(localizedContent("en", variants)).toBe("EN");
+    // Unknown locale → German fallback.
+    expect(localizedContent("fr", variants)).toBe("DE");
   });
 });

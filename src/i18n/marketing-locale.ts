@@ -74,6 +74,28 @@ export function localeOfPath(pathname: string): Locale {
   return MARKETING_DEFAULT_LOCALE;
 }
 
+/** Narrow the raw [lang] route param (typed `string`) to a Locale, falling back
+ *  to the marketing default. dynamicParams=false already 404s anything but
+ *  de/en, so this is mainly for the string→Locale type narrowing. */
+export function resolveLocale(lang: string): Locale {
+  return isLocale(lang) ? lang : MARKETING_DEFAULT_LOCALE;
+}
+
+/**
+ * Pick the locale variant of a content object. English falls back to German
+ * until the EN copy is authored — pass only `{ de }` today, and add `en` later:
+ *   localizedContent(lang, { de: CONTENT })            // always DE (EN pending)
+ *   localizedContent(lang, { de: CONTENT, en: CONTENT_EN })  // real EN once it exists
+ */
+export function localizedContent<T>(
+  lang: string,
+  variants: { de: T; en?: T },
+): T {
+  return resolveLocale(lang) === "en" && variants.en !== undefined
+    ? variants.en
+    : variants.de;
+}
+
 /** App-tree / Clerk roots that live OUTSIDE the localized marketing subtree and
  *  must never get a /de|/en prefix (navigating to them is a full-page load to
  *  the other root layout). */

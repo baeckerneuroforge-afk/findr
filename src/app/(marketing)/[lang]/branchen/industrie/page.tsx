@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
+import { localizedContent } from "@/i18n/marketing-locale";
 import {
   IndustryPage,
   type IndustryContent,
@@ -128,11 +129,16 @@ const CONTENT: IndustryContent = {
   },
 };
 
-export default function IndustriePage() {
+export default async function IndustriePage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <IndustryPage content={CONTENT} />
+      <IndustryPage content={localizedContent(lang, { de: CONTENT })} />
     </>
   );
 }

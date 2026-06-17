@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
+import { localizedContent } from "@/i18n/marketing-locale";
 import {
   MethodPage,
   type MethodContent,
@@ -126,11 +127,16 @@ const CONTENT: MethodContent = {
   },
 };
 
-export default function MarkenwahrnehmungPage() {
+export default async function MarkenwahrnehmungPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <MethodPage content={CONTENT} />
+      <MethodPage content={localizedContent(lang, { de: CONTENT })} />
     </>
   );
 }
