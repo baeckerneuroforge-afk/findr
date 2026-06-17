@@ -6,6 +6,7 @@ import { MegaMenu } from "./MegaMenu";
 import { MobileNav } from "./MobileNav";
 import { StudioHeaderBar } from "./studio/StudioHeaderBar";
 import { PRIMARY_NAV } from "./nav-data";
+import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 
 /**
  * Studio-Header: sticky, oben transparent über dem Hero, ab dem ersten Scroll
@@ -30,7 +31,7 @@ export function MarketingHeader() {
           >
             Log in
           </Link>
-          <CtaLink href="/demo" variant="primary">
+          <CtaLink href={DEMO_BOOKING_URL} variant="primary">
             Demo buchen
           </CtaLink>
         </div>

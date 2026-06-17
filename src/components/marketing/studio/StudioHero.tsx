@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { CtaLink } from "../CtaLink";
 import { Rv } from "./Rv";
 import { HeroConstellation } from "./HeroConstellation";
+import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 
 /**
  * Homepage-Hero der Studio-Bühne: „Aufnahme läuft“-Chip mit live laufendem
@@ -152,7 +153,7 @@ export function StudioHero() {
             .
           </Rv>
           <Rv className="st-fade flex flex-wrap gap-3.5" d={250}>
-            <CtaLink href="/demo" variant="primary" size="lg" className="magnetic">
+            <CtaLink href={DEMO_BOOKING_URL} variant="primary" size="lg" className="magnetic">
               <span className="st-dot" aria-hidden />
               Demo buchen
             </CtaLink>

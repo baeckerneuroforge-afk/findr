@@ -16,6 +16,7 @@ import {
   type ExampleRow,
 } from "./module-template";
 import { CTASection } from "./CTASection";
+import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 import {
   MicIcon,
   ImageIcon,
@@ -361,7 +362,7 @@ export function IndustryPage({ content }: { content: IndustryContent }) {
         title={content.heroTitle}
         subhead={content.heroSubhead}
         audience={content.audience}
-        primary={{ label: "Demo buchen →", href: "/demo" }}
+        primary={{ label: "Demo buchen →", href: DEMO_BOOKING_URL }}
         secondary={{ label: "Plattform ansehen", href: "/produkt" }}
       />
 

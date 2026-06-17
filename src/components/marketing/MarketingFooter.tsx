@@ -48,16 +48,32 @@ export function MarketingFooter() {
                 {col.title}
               </h3>
               <ul className="flex flex-col gap-2.5">
-                {col.links.map((l) => (
-                  <li key={l.href}>
-                    <Link
-                      href={l.href}
-                      className="rounded text-sm text-anchor-foreground/75 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-anchor"
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
+                {col.links.map((l) => {
+                  // "Demo buchen" points at the external Cal.com scheduler;
+                  // render it as a new-tab anchor (rel=noopener) instead of a
+                  // next/link route. Internal links stay client-routed.
+                  const isExternal = /^https?:\/\//.test(l.href);
+                  const linkClass =
+                    "rounded text-sm text-anchor-foreground/75 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-anchor";
+                  return (
+                    <li key={l.href}>
+                      {isExternal ? (
+                        <a
+                          href={l.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={linkClass}
+                        >
+                          {l.label}
+                        </a>
+                      ) : (
+                        <Link href={l.href} className={linkClass}>
+                          {l.label}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

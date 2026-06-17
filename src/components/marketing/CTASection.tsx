@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Container } from "./primitives";
 import { CtaLink } from "./CtaLink";
 import { Reveal } from "./Reveal";
+import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 
 type Cta = { label: string; href: string };
 
@@ -15,7 +16,7 @@ export function CTASection({
   eyebrow = "Bereit?",
   title = <>Frag die echten Stimmen an deinem Markt.</>,
   lead = "Sieh, was Klymeo in echten Tiefeninterviews mit deiner Zielgruppe findet — KI-geführt, auf Deutsch und DSGVO-nativ.",
-  primary = { label: "Demo buchen →", href: "/demo" },
+  primary = { label: "Demo buchen →", href: DEMO_BOOKING_URL },
   secondary = { label: "Preise ansehen", href: "/preise" },
 }: {
   eyebrow?: ReactNode;

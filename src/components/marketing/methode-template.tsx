@@ -13,6 +13,7 @@ import {
 } from "./module-template";
 import { CTASection } from "./CTASection";
 import { MODULES } from "./PlatformModules";
+import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 import {
   LayersIcon,
   RadarIcon,
@@ -281,7 +282,7 @@ export function MethodPage({ content }: { content: MethodContent }) {
         title={content.heroTitle}
         subhead={content.heroSubhead}
         audience={content.audience}
-        primary={{ label: "Demo buchen →", href: "/demo" }}
+        primary={{ label: "Demo buchen →", href: DEMO_BOOKING_URL }}
         secondary={{ label: "Plattform ansehen", href: "/produkt" }}
       />
 

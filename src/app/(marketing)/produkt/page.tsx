@@ -7,6 +7,7 @@ import { NumbersBand } from "@/components/marketing/studio/NumbersBand";
 import { PlatformModules } from "@/components/marketing/PlatformModules";
 import { CTASection } from "@/components/marketing/CTASection";
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 
 const PATH = "/produkt";
 const OG_TITLE = "Plattform — Klymeo";
@@ -125,7 +126,7 @@ export default function ProduktPage() {
               <b className="font-medium text-neutral-900">PDF- &amp; PowerPoint-Export</b>.
             </Rv>
             <Rv className="st-fade flex flex-wrap gap-3.5" d={220}>
-              <CtaLink href="/demo" variant="primary" size="lg" className="magnetic">
+              <CtaLink href={DEMO_BOOKING_URL} variant="primary" size="lg" className="magnetic">
                 <span className="st-dot" aria-hidden />
                 Demo buchen
               </CtaLink>

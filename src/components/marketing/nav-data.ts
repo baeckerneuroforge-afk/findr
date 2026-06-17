@@ -1,6 +1,7 @@
 import { MODULES } from "./PlatformModules";
 import { INDUSTRIES } from "./industry-template";
 import type { IconName } from "./icons";
+import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 
 /**
  * Canonical marketing-navigation registry — the SINGLE source that feeds the
@@ -174,7 +175,7 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     links: [
       { label: "Preise", href: "/preise" },
       { label: "Insights", href: "/insights" },
-      { label: "Demo buchen", href: "/demo" },
+      { label: "Demo buchen", href: DEMO_BOOKING_URL },
     ],
   },
   {

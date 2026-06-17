@@ -42,10 +42,9 @@ export default function DemoPage() {
         trust={["DSGVO-nativ", "EU-gehostet · Frankfurt", "Keine Kreditkarte nötig"]}
       />
 
-      {/* Buchungs-Bereich — handoff to the external scheduler. No hard-wired
-          embed: DEMO_BOOKING_URL is still a placeholder (D6), so we link out
-          rather than iframe-embed an unconfirmed URL. Swap to an embed once the
-          real booking URL is confirmed. */}
+      {/* Buchungs-Bereich — handoff to the external Cal.com scheduler. We link
+          out rather than iframe-embed the booking page; swap to a Cal embed
+          here if an inline calendar is ever wanted. */}
       <Section tone="muted" className="pt-0 sm:pt-0">
         <Container>
           <Reveal>
@@ -61,8 +60,6 @@ export default function DemoPage() {
                 Studie zu deiner eigenen Forschungsfrage auf — du entscheidest,
                 was wir uns ansehen.
               </p>
-              {/* TODO D6: echte Demo-Buchungs-URL bestätigen (DEMO_BOOKING_URL
-                  ist Platzhalter). Bis dahin Link statt Embed. */}
               <CtaLink href={DEMO_BOOKING_URL} variant="primary" size="lg">
                 Termin bei Klymeo buchen →
               </CtaLink>

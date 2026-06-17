@@ -6,6 +6,7 @@ import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import { CtaLink } from "./CtaLink";
 import { ICONS, ChevronDownIcon } from "./icons";
 import type { NavEntry } from "./nav-data";
+import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 
 /**
  * Mobile burger menu — a "use client" island (the desktop counterpart is
@@ -203,7 +204,7 @@ export function MobileNav({ nav }: { nav: NavEntry[] }) {
                 <CtaLink href="/sign-up" variant="secondary" className="w-full">
                   Kostenlos testen
                 </CtaLink>
-                <CtaLink href="/demo" variant="primary" className="w-full">
+                <CtaLink href={DEMO_BOOKING_URL} variant="primary" className="w-full">
                   Demo buchen
                 </CtaLink>
               </div>

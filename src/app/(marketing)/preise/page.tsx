@@ -8,6 +8,7 @@ import {
 import { Reveal } from "@/components/marketing/Reveal";
 import { HeroAtmosphere } from "@/components/marketing/HeroAtmosphere";
 import { CtaLink } from "@/components/marketing/CtaLink";
+import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 import { PlatformModules } from "@/components/marketing/PlatformModules";
 import { FAQ, type FaqItem } from "@/components/marketing/FAQ";
 import { JsonLd } from "@/components/marketing/JsonLd";
@@ -169,7 +170,7 @@ export default function PreisePage() {
           </Reveal>
           <Reveal>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <CtaLink href="/demo" variant="primary" size="lg">
+              <CtaLink href={DEMO_BOOKING_URL} variant="primary" size="lg">
                 Demo buchen →
               </CtaLink>
               <CtaLink href="/produkt" variant="secondary" size="lg">
@@ -287,7 +288,7 @@ export default function PreisePage() {
                 Klymeo an deinen echten Gesprächen leistet.
               </p>
               <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
-                <CtaLink href="/demo" variant="secondary" size="lg">
+                <CtaLink href={DEMO_BOOKING_URL} variant="secondary" size="lg">
                   Demo buchen →
                 </CtaLink>
                 <Link
