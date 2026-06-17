@@ -154,9 +154,11 @@ export default function HomePage() {
                 </i>
               </span>
             </Rv>
-            <Rv as="p" className="st-fade max-w-[40ch] text-neutral-500">
-              Ein Ausschnitt aus einem Klymeo-Tiefeninterview — vorgefertigtes
-              Beispiel, kein Login, keine echten Teilnehmerdaten. Drück Play.
+            <Rv as="p" className="st-fade max-w-[42ch] text-neutral-500">
+              Ein Klymeo-Konzept-Test: Die KI zeigt einen Entwurf, bohrt hörbar
+              nach und wertet live aus. Drück Play — oder wechsle zwischen Voice
+              und Text. Vorgefertigtes Beispiel, kein Login, keine echten
+              Teilnehmerdaten.
             </Rv>
           </div>
           <Rv className="st-fade">

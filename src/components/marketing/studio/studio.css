@@ -1591,6 +1591,431 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════════
+   SESSION-DECK — VOICE/STIMULUS-AUSBAU
+   Modus-Toggle, Orb, Stimulus-Bühne, Chat-Skin, Auswertungs-Auflistung.
+   Erweitert die Deck-Basis (.st-deck …) ohne sie zu verändern.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Modus-Umschalter (Voice ⇄ Text) ──────────────────────────────── */
+.st-modetabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--st-line);
+  border-radius: 999px;
+  background: var(--st-paper-shade);
+}
+.st-modetab {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 13px;
+  border-radius: 999px;
+  color: var(--st-ink-60);
+  transition: background 0.2s, color 0.2s;
+}
+.st-modetab:hover {
+  color: var(--st-ink);
+}
+.st-modetab[aria-pressed="true"] {
+  background: var(--st-rec);
+  color: #ffffff;
+}
+
+/* ── Voice: Orb + Status + Stimmpegel ─────────────────────────────── */
+.st-orbstrip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 13px 16px;
+  border: 1px solid var(--st-line);
+  border-radius: 10px;
+  background: var(--st-paper-shade);
+}
+.st-orb {
+  position: relative;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+}
+.st-orb-core {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--st-rec-bright), var(--st-rec));
+  box-shadow: 0 0 16px -2px var(--st-rec);
+}
+.st-orb::before,
+.st-orb::after {
+  content: "";
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1.5px solid var(--st-rec);
+  opacity: 0;
+}
+@keyframes st-orb-ring {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+@keyframes st-orb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.16);
+  }
+}
+.st-orb.is-speaking .st-orb-core {
+  animation: st-orb-breathe 1.1s ease-in-out infinite;
+}
+.st-orb.is-speaking::before {
+  animation: st-orb-ring 1.1s var(--st-ease) infinite;
+}
+.st-orb.is-speaking::after {
+  animation: st-orb-ring 1.1s var(--st-ease) 0.4s infinite;
+}
+.st-orb.is-listening .st-orb-core {
+  animation: st-orb-breathe 3.6s ease-in-out infinite;
+}
+.st-orb.is-listening::before {
+  animation: st-orb-ring 3.6s var(--st-ease) infinite;
+}
+.st-orb.is-thinking .st-orb-core {
+  animation: st-orb-breathe 2.2s ease-in-out infinite;
+  opacity: 0.72;
+}
+.st-orb.is-idle .st-orb-core,
+.st-orb.is-done .st-orb-core {
+  opacity: 0.55;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-orb-core,
+  .st-orb::before,
+  .st-orb::after {
+    animation: none !important;
+  }
+}
+.st-orbstatus {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 92px;
+}
+.st-orbstatus b {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--st-rec-deep);
+}
+.st-orbstatus span {
+  font-size: 11px;
+  color: var(--st-ink-60);
+}
+.st-orbstrip .st-voicebars {
+  flex: 1;
+  height: 54px;
+  border: 0;
+  background: transparent;
+}
+
+/* ── Stimulus-Bühne: Entwurf, im Gespräch eingeblendet ────────────── */
+.st-stimstage {
+  margin-bottom: 20px;
+}
+.st-stim-ph {
+  border: 1.5px dashed var(--st-line-strong);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--st-ink-60);
+}
+.st-stimcard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--st-line);
+  border-radius: 10px;
+  background: var(--st-paper-shade);
+  padding: 12px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.55s var(--st-ease), transform 0.55s var(--st-ease);
+}
+.st-stimcard.show {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-stimcard {
+    transition: none;
+  }
+}
+/* Packshot: bewusst in BEIDEN Modi dunkel (Produkt-Mockup), daher feste
+   Hex-Werte statt Tokens — keine Dark-Mode-Überschreibung nötig. */
+.st-packshot {
+  flex: 0 0 92px;
+  height: 126px;
+  border-radius: 8px;
+  background: linear-gradient(158deg, #1d2657 0%, #0f1738 100%);
+  border: 1px solid #2b3672;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 12px 30px -14px rgba(15, 23, 56, 0.75);
+}
+.st-packshot-brand {
+  font-family: var(--font-marketing);
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  font-size: 12.5px;
+  color: #eef0fb;
+}
+.st-packshot-rule {
+  width: 32px;
+  height: 2px;
+  border-radius: 2px;
+  background: #caa24a;
+}
+.st-packshot-sub {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(238, 240, 251, 0.62);
+}
+.st-stimmeta p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--st-ink-60);
+  margin-top: 7px;
+}
+/* Sehr schmale Viewports: Packshot etwas kleiner, damit die Meta-Spalte nicht klemmt. */
+@media (max-width: 380px) {
+  .st-packshot {
+    flex-basis: 72px;
+    height: 104px;
+  }
+}
+
+/* ── Text-Modus: Chat-Bubbles + angedeutetes Eingabefeld ──────────── */
+.st-tape.is-chat .st-tape-row p {
+  background: var(--st-paper-shade);
+  border: 1px solid var(--st-line);
+  border-radius: 12px;
+  padding: 9px 13px;
+}
+.st-tape.is-chat .st-tape-row.is-f p {
+  background: rgba(74, 81, 168, 0.12); /* Fallback für Browser ohne color-mix() */
+  background: color-mix(in srgb, var(--st-rec) 12%, transparent);
+  border-color: var(--st-indigo-200);
+}
+.st-textinput {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  border: 1px solid var(--st-line);
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: var(--st-paper-shade);
+  color: var(--st-ink-35);
+  font-size: 13px;
+}
+.st-textinput b {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--st-rec);
+  color: #ffffff;
+  font-size: 12px;
+}
+
+/* ── Zeile hervorheben (Klick auf Befund springt hierher) ─────────── */
+.st-tape-row.is-hot::after {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: -5px;
+  bottom: -5px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--st-rec);
+}
+.st-tape-row.is-hot p {
+  background: rgba(74, 81, 168, 0.09); /* Fallback für Browser ohne color-mix() */
+  background: color-mix(in srgb, var(--st-rec) 9%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 0 0 6px rgba(74, 81, 168, 0.09);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--st-rec) 9%, transparent);
+}
+.st-tape-row.is-hot .st-stamp {
+  box-shadow: 0 0 0 4px rgba(74, 81, 168, 0.18); /* Fallback */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--st-rec) 18%, transparent);
+}
+
+/* ── Befund-Karten als Buttons (klickbar) ─────────────────────────────
+   Basis-Stil (Rahmen/Padding/Reveal-Transition) ist weiter oben unter
+   „Befund-Seitenspalte“ definiert; hier nur Button-Semantik-Resets +
+   Klick-/Auswahl-Zustände, da die Karten jetzt <button> sind. ── */
+.st-finding {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+.st-finding:not(.show) {
+  pointer-events: none;
+}
+.st-finding:hover.show {
+  border-color: var(--st-line-strong);
+}
+.st-finding.is-selected {
+  box-shadow: 0 0 0 2px var(--st-rec);
+}
+.st-finding:focus-visible {
+  outline: 2px solid var(--st-rec);
+  outline-offset: 2px;
+}
+.st-f-schema {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--st-ink-35);
+}
+.st-f-jump {
+  display: inline-block;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--st-rec-deep);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.st-finding:hover .st-f-jump,
+.st-finding.is-selected .st-f-jump {
+  opacity: 0.9;
+}
+
+/* ── Stimulus-Analyse (aufklappbare Auflistung) ───────────────────── */
+.st-analysis {
+  border: 1px solid var(--st-line);
+  border-radius: 8px;
+  background: var(--st-paper);
+  margin-top: 4px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(14px);
+  transition: opacity 0.5s var(--st-ease), transform 0.5s var(--st-ease);
+}
+.st-analysis.show {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-analysis {
+    transition: none;
+  }
+}
+.st-analysis-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 13px 14px;
+  cursor: pointer;
+}
+.st-analysis-head .st-f-name {
+  display: block;
+}
+.st-analysis-sub {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--st-ink-60);
+}
+.st-analysis-head:focus-visible {
+  outline: 2px solid var(--st-rec);
+  outline-offset: -2px;
+}
+.st-chevron {
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--st-ink-60);
+  transition: transform 0.25s var(--st-ease);
+}
+.st-chevron.open {
+  transform: rotate(180deg);
+}
+.st-analysis-body {
+  display: grid;
+  padding: 0 14px 10px;
+}
+.st-afield {
+  padding: 9px 8px;
+  border-top: 1px solid var(--st-line);
+  border-radius: 6px;
+  transition: background 0.25s, box-shadow 0.25s;
+}
+.st-afield-k {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--st-ink-60);
+}
+.st-afield-v {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--st-ink);
+}
+.st-afield.is-hot {
+  background: rgba(74, 81, 168, 0.09); /* Fallback für Browser ohne color-mix() */
+  background: color-mix(in srgb, var(--st-rec) 9%, transparent);
+  box-shadow: inset 0 0 0 1px var(--st-rec);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
    TWILIGHT-KONSOLE — NACHT-FASSUNG (Dark Mode, rein system-folgend).
 
    Kein Toggle, kein JS, kein FOUC: die Marketing-Site folgt ausschließlich
