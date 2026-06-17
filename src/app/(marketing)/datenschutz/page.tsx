@@ -16,75 +16,121 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: PATH },
   openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
-  // Placeholder-time only: keep the scaffold out of the index until the real
-  // text lands (then drop this `robots` block). Plan §4.9 wants Datenschutz
-  // indexable once it carries the binding content.
-  robots: { index: false, follow: true },
 };
 
-/* TODO: Rechtstext von André/Anwalt einsetzen — alle Platzhalter unten durch die
-   verbindliche Datenschutzerklärung ersetzen. Bis dahin bewusst KEIN
-   halluzinierter Datenschutztext (nichts darf als echte Zusicherung lesbar sein). */
+const CONTACT_LINK =
+  "text-primary-700 underline underline-offset-2 transition-colors hover:text-primary-900";
+
+/* Gerüst der Datenschutzerklärung: vollständige DSGVO-Abschnittsstruktur, der
+   verbindliche Rechtstext wird je Abschnitt über einen Datenschutz-Generator
+   bzw. die Rechtsberatung eingesetzt. Bis dahin bewusst KEIN halluzinierter
+   Datenschutztext (nichts darf als echte Zusicherung lesbar sein). */
 export default function DatenschutzPage() {
   return (
     <LegalProse
       title="Datenschutzerklärung"
       intro="Informationen zur Verarbeitung personenbezogener Daten gemäß Datenschutz-Grundverordnung (DSGVO) und Bundesdatenschutzgesetz (BDSG)."
+      stand="Juni 2026"
     >
-      <LegalSection heading="Verantwortlicher im Sinne des Art. 4 Nr. 7 DSGVO">
+      <LegalSection heading="1. Verantwortlicher">
+        <div className="flex flex-col gap-3">
+          <p>Verantwortlicher im Sinne des Art. 4 Nr. 7 DSGVO ist:</p>
+          <p>
+            André Bäcker
+            <br />
+            Klymeo (Einzelunternehmen)
+            <br />
+            Hopstener Straße 25
+            <br />
+            49479 Ibbenbüren
+            <br />
+            Deutschland
+            <br />
+            E-Mail:{" "}
+            <a href="mailto:support@klymeo.com" className={CONTACT_LINK}>
+              support@klymeo.com
+            </a>
+            <br />
+            Telefon:{" "}
+            <a href="tel:+4917621878801" className={CONTACT_LINK}>
+              +49 176 21878801
+            </a>
+          </p>
+          <Placeholder>
+            Rechtstext über Datenschutz-Generator/Anwalt einsetzen
+          </Placeholder>
+        </div>
+      </LegalSection>
+
+      <LegalSection heading="2. Hosting">
         <Placeholder>
-          Name und Kontaktdaten des/der Verantwortlichen
+          Rechtstext über Datenschutz-Generator/Anwalt einsetzen
         </Placeholder>
       </LegalSection>
 
-      <LegalSection heading="Datenschutzbeauftragte:r">
+      <LegalSection heading="3. Datenerfassung beim Besuch der Website (Server-Logfiles)">
         <Placeholder>
-          Kontaktdaten des/der Datenschutzbeauftragten, sofern benannt
+          Rechtstext über Datenschutz-Generator/Anwalt einsetzen
         </Placeholder>
       </LegalSection>
 
-      <LegalSection heading="Erhebung und Verarbeitung personenbezogener Daten">
+      <LegalSection heading="4. Cookies und lokale Speicherung">
         <Placeholder>
-          Welche Daten zu welchem Zweck erhoben und verarbeitet werden (Website,
-          Konto, Produktnutzung, Gesprächsdaten)
+          Rechtstext über Datenschutz-Generator/Anwalt einsetzen
         </Placeholder>
       </LegalSection>
 
-      <LegalSection heading="Rechtsgrundlagen der Verarbeitung">
+      <LegalSection heading="5. Auftragsverarbeiter und eingesetzte Drittdienste">
+        {/*
+          Eingabe für den späteren Rechtstext — eingesetzte Dienste
+          (Zweck / Anbieter / Ort):
+          - Clerk — Authentifizierung/Login — Clerk Inc., USA (Standardvertragsklauseln)
+          - Supabase — Datenbank, Speicherung der Nutzdaten — EU-Region
+          - Vercel — Hosting der Website
+          - Hetzner — Server für den Voice-Agent — Deutschland/EU
+          - Deepgram — Speech-to-Text und Text-to-Speech — EU-Endpoint
+          - Anthropic via AWS Bedrock — KI-Verarbeitung der Gespräche — EU-Region
+          - LiveKit — Echtzeit-Audioübertragung
+          - Stripe — Zahlungsabwicklung
+        */}
         <Placeholder>
-          Einschlägige Rechtsgrundlagen nach Art. 6 DSGVO je Verarbeitungszweck
+          Rechtstext über Datenschutz-Generator/Anwalt einsetzen
         </Placeholder>
       </LegalSection>
 
-      <LegalSection heading="Hosting und Auftragsverarbeitung">
+      <LegalSection heading="6. Verarbeitung von Interview- und Teilnehmerdaten">
         <Placeholder>
-          Eingesetzte Dienstleister, Hosting-Standort (EU/Frankfurt),
-          Auftragsverarbeitungsverträge gemäß Art. 28 DSGVO
+          Rechtstext über Datenschutz-Generator/Anwalt einsetzen
         </Placeholder>
       </LegalSection>
 
-      <LegalSection heading="Cookies und Reichweitenmessung">
+      <LegalSection heading="7. Rechtsgrundlagen der Verarbeitung (Art. 6 DSGVO)">
         <Placeholder>
-          Eingesetzte Cookies/Tracking, Einwilligungsmechanismus und Widerruf
+          Rechtstext über Datenschutz-Generator/Anwalt einsetzen
         </Placeholder>
       </LegalSection>
 
-      <LegalSection heading="Speicherdauer">
+      <LegalSection heading="8. Speicherdauer und Löschung">
         <Placeholder>
-          Kriterien und Fristen für die Löschung der jeweiligen Datenkategorien
+          Rechtstext über Datenschutz-Generator/Anwalt einsetzen
         </Placeholder>
       </LegalSection>
 
-      <LegalSection heading="Rechte der betroffenen Personen">
+      <LegalSection heading="9. Rechte der betroffenen Personen">
         <Placeholder>
-          Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit
-          und Widerspruch (Art. 15–22 DSGVO)
+          Rechtstext über Datenschutz-Generator/Anwalt einsetzen
         </Placeholder>
       </LegalSection>
 
-      <LegalSection heading="Beschwerderecht bei einer Aufsichtsbehörde">
+      <LegalSection heading="10. Beschwerderecht bei der Aufsichtsbehörde">
         <Placeholder>
-          Hinweis auf das Beschwerderecht und die zuständige Aufsichtsbehörde
+          Rechtstext über Datenschutz-Generator/Anwalt einsetzen
+        </Placeholder>
+      </LegalSection>
+
+      <LegalSection heading="11. SSL-/TLS-Verschlüsselung">
+        <Placeholder>
+          Rechtstext über Datenschutz-Generator/Anwalt einsetzen
         </Placeholder>
       </LegalSection>
     </LegalProse>

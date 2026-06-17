@@ -178,7 +178,8 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     ],
   },
   {
-    // DE-Pflicht: Impressum/Datenschutz/AGB (Etappe-D scaffolding, noindex).
+    // DE-Pflicht: Impressum (verbindlicher Text, indexierbar) + Datenschutz/AGB
+    // (Gerüst mit Platzhaltern bis der Rechtstext von André/Anwalt landet).
     title: "Rechtliches",
     links: [
       { label: "Impressum", href: "/impressum" },
@@ -208,7 +209,10 @@ export type SitemapRoute = { path: string; priority: number };
 /**
  * Every indexable marketing route + its priority, derived from the same leaves.
  * Article slugs are appended in sitemap.ts (they come from the insights source).
- * Legal pages are deliberately absent — they ship noindex (Etappe D, decision D8).
+ *
+ * Legal pages: /impressum carries the binding text and is listed (low priority).
+ * /datenschutz + /agb stay OUT while they hold placeholders — add them here once
+ * the real legal text lands so the sitemap doesn't advertise placeholder pages.
  */
 export const SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/", priority: 1.0 },
@@ -222,4 +226,5 @@ export const SITEMAP_ROUTES: SitemapRoute[] = [
   ...industryLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
   { path: "/insights", priority: 0.6 },
   { path: "/demo", priority: 0.5 },
+  { path: "/impressum", priority: 0.3 },
 ];

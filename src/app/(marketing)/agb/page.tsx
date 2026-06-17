@@ -16,77 +16,59 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: PATH },
   openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
-  // /agb is intentionally noindex (plan §4.9 — boilerplate terms carry no SEO
-  // value). It stays noindex even after the real text lands; this is by choice,
-  // not just the placeholder state.
-  robots: { index: false, follow: true },
 };
 
-/* TODO: Rechtstext von André/Anwalt einsetzen — alle Platzhalter unten durch die
-   verbindlichen AGB ersetzen. Bis dahin bewusst KEINE erfundenen
-   Vertragsbedingungen. */
+/* Gerüst der AGB: Standard-Abschnittsstruktur für ein B2B-SaaS, der
+   verbindliche Rechtstext wird je Abschnitt durch die Rechtsberatung
+   eingesetzt. Bis dahin bewusst KEINE erfundenen Vertragsbedingungen.
+
+   Hinweis: Für zahlende B2B-Kunden ist zusätzlich ein
+   Auftragsverarbeitungsvertrag (AVV) nötig — separat vom Website-AGB. */
 export default function AgbPage() {
   return (
     <LegalProse
       title="Allgemeine Geschäftsbedingungen"
       intro="Bedingungen für die Nutzung von Klymeo und der zugehörigen Produkte."
+      stand="Juni 2026"
     >
       <LegalSection heading="1. Geltungsbereich">
-        <Placeholder>
-          Für welche Leistungen und gegenüber welchen Vertragspartnern diese AGB
-          gelten
-        </Placeholder>
+        <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>
       </LegalSection>
 
-      <LegalSection heading="2. Vertragsgegenstand und Leistungsbeschreibung">
-        <Placeholder>
-          Umfang der bereitgestellten Software und Leistungen
-        </Placeholder>
+      <LegalSection heading="2. Leistungsbeschreibung">
+        <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>
       </LegalSection>
 
       <LegalSection heading="3. Vertragsschluss">
-        <Placeholder>
-          Wie der Vertrag zustande kommt (Registrierung, Bestellung, Annahme)
-        </Placeholder>
+        <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>
       </LegalSection>
 
-      <LegalSection heading="4. Preise und Zahlungsbedingungen">
-        <Placeholder>
-          Vergütung, Abrechnungszeitraum, Fälligkeit und Zahlungsweise
-        </Placeholder>
+      <LegalSection heading="4. Preise und Zahlung">
+        <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>
       </LegalSection>
 
       <LegalSection heading="5. Laufzeit und Kündigung">
-        <Placeholder>
-          Vertragslaufzeit, Verlängerung und Kündigungsfristen
-        </Placeholder>
+        <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>
       </LegalSection>
 
-      <LegalSection heading="6. Pflichten der Nutzer:innen">
-        <Placeholder>
-          Zulässige Nutzung, Mitwirkungspflichten und Nutzungsbeschränkungen —
-          einschließlich Acceptable-Use-Klausel zum KI-Interviewer: kein Einsatz
-          zur Bewertung von Beschäftigten oder Bewerber:innen
-          (Arbeitsplatz-Kontext, Art. 5(1)(f) KI-VO), keine Koppelung von
-          Signal-Auswertungen an Vergütungs- oder Ablehnungsentscheidungen.
-          Ausformulierter Entwurf: docs/findr-e0-aup-klausel-entwurf.md
-        </Placeholder>
+      <LegalSection heading="6. Pflichten des Kunden">
+        <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>
       </LegalSection>
 
-      <LegalSection heading="7. Haftung">
-        <Placeholder>Haftungsumfang und -beschränkungen</Placeholder>
+      <LegalSection heading="7. Verfügbarkeit">
+        <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>
       </LegalSection>
 
-      <LegalSection heading="8. Datenschutz">
-        <Placeholder>
-          Verweis auf die Datenschutzerklärung und Auftragsverarbeitung
-        </Placeholder>
+      <LegalSection heading="8. Haftung">
+        <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>
       </LegalSection>
 
-      <LegalSection heading="9. Schlussbestimmungen">
-        <Placeholder>
-          Anwendbares Recht, Gerichtsstand und salvatorische Klausel
-        </Placeholder>
+      <LegalSection heading="9. Datenschutz und Auftragsverarbeitung">
+        <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>
+      </LegalSection>
+
+      <LegalSection heading="10. Schlussbestimmungen">
+        <Placeholder>Rechtstext durch Anwalt einsetzen</Placeholder>
       </LegalSection>
     </LegalProse>
   );

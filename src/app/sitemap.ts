@@ -11,10 +11,10 @@ import { SITEMAP_ROUTES } from "@/components/marketing/nav-data";
  * generateStaticParams (getAllInsightSlugs) so prebuilt routes and sitemap stay
  * in lockstep too.
  *
- * The legal pages (/impressum, /datenschutz, /agb) are intentionally NOT listed:
- * they ship as noindex placeholders (texts come from André/Legal, D8) and are
- * therefore omitted from SITEMAP_ROUTES. Add /impressum + /datenschutz there
- * once they carry the real, indexable text; /agb stays noindex by choice (§4.9).
+ * Legal pages: /impressum carries the binding text and IS listed (via
+ * SITEMAP_ROUTES, low priority). /datenschutz + /agb are indexable but stay out
+ * of the sitemap while they still hold placeholders — add them to SITEMAP_ROUTES
+ * once the real legal text from André/Legal lands.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

@@ -6,23 +6,38 @@ import { Container, Section } from "./primitives";
  * prose surface on the light marketing canvas: Fraunces headings (font-marketing),
  * Hanken body (inherited from the (marketing) layout), a narrow measure.
  *
- * ⚠ These three pages ship as SCAFFOLDING only. The binding texts come from
- * André / Legal (open decision D8). To make sure NOTHING here can be mistaken
- * for a real, relied-upon legal statement, every page leads with
- * <LegalPlaceholderNotice/> and every section body carries a bracketed
- * <Placeholder/> token instead of invented legal prose. The section headings
- * are factual structure (the clauses a German Impressum/Datenschutzerklärung/AGB
- * must contain) — a checklist, not a fabricated text.
+ * Pages that still carry placeholder content (Datenschutz / AGB until the
+ * binding text from André/Legal lands, decision D8) lead with
+ * <LegalPlaceholderNotice/> (the default `notice`) and put a bracketed
+ * <Placeholder/> token in every section instead of invented legal prose. The
+ * section headings are factual structure (the clauses a German Impressum/
+ * Datenschutzerklärung/AGB must contain) — a checklist, not a fabricated text.
+ *
+ * Pages whose text is real and binding (e.g. the Impressum) pass
+ * `notice={false}` to drop the placeholder banner and render the actual copy.
  */
 
-/** Page shell: H1 + optional intro + the mandatory placeholder banner + body. */
+/**
+ * Page shell: H1 + optional intro + optional "Stand"-line + (optional)
+ * placeholder banner + body.
+ *
+ * @param notice  Render the amber "noch kein rechtsgültiger Text" banner.
+ *                Defaults to `true` (placeholder pages). Pass `false` once a
+ *                page carries real, binding text.
+ * @param stand   Optional "Stand"-marker (e.g. "Juni 2026") — rendered as a
+ *                muted console label under the intro.
+ */
 export function LegalProse({
   title,
   intro,
+  stand,
+  notice = true,
   children,
 }: {
   title: ReactNode;
   intro?: ReactNode;
+  stand?: ReactNode;
+  notice?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -37,8 +52,15 @@ export function LegalProse({
               {intro}
             </p>
           ) : null}
-          <LegalPlaceholderNotice />
-          <div className="flex flex-col gap-9">{children}</div>
+          {stand ? (
+            <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-400">
+              Stand: {stand}
+            </p>
+          ) : null}
+          {notice ? <LegalPlaceholderNotice /> : null}
+          <div className={`flex flex-col gap-9 ${notice ? "" : "mt-10"}`}>
+            {children}
+          </div>
         </article>
       </Container>
     </Section>
