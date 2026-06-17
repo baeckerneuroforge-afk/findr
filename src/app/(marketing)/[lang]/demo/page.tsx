@@ -10,20 +10,40 @@ import { Hero } from "@/components/marketing/Hero";
 import { CtaLink } from "@/components/marketing/CtaLink";
 import { Reveal } from "@/components/marketing/Reveal";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
-import { ogDefaults } from "@/lib/marketing/seo";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+} from "@/i18n/marketing-locale";
 
 const PATH = "/demo";
-const OG_TITLE = "Demo buchen — Klymeo";
-const DESCRIPTION =
-  "Sieh in einer kurzen, persönlichen Demo, was Klymeo in echten Tiefeninterviews findet — vom Voice-Agent über Stimulus bis zum PowerPoint-Export. DSGVO-nativ, in der EU gehostet.";
-
-export const metadata: Metadata = {
-  title: "Demo buchen",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "Demo buchen", en: "Book a demo" },
+  ogTitle: { de: "Demo buchen — Klymeo", en: "Book a demo — Klymeo" },
+  description: {
+    de: "Sieh in einer kurzen, persönlichen Demo, was Klymeo in echten Tiefeninterviews findet — vom Voice-Agent über Stimulus bis zum PowerPoint-Export. DSGVO-nativ, in der EU gehostet.",
+    en: "See in a short, personal demo what Klymeo finds in real in-depth interviews — from the Voice Agent through Stimulus to the PowerPoint export. GDPR-native, hosted in the EU.",
+  },
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
 
 /**
  * Per-locale page copy. German is the source of truth (byte-identical to the

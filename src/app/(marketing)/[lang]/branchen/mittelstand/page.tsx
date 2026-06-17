@@ -1,33 +1,67 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import {
   IndustryPage,
   type IndustryContent,
 } from "@/components/marketing/industry-template";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
 
 const PATH = "/branchen/mittelstand";
-const OG_TITLE = "Market Research für den Mittelstand — Klymeo";
-const DESCRIPTION =
-  "Qualitative Marktforschung ohne Institutsbudget: KI-Interviews mit deinen Kunden und Zielgruppen auf Deutsch — auf Wunsch per Voice-Agent. Belegte Antworten statt Bauchgefühl, exportiert als PDF oder PowerPoint, DSGVO-nativ in Frankfurt.";
-
-export const metadata: Metadata = {
-  title: "Market Research für den Mittelstand",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: {
+    de: "Market Research für den Mittelstand",
+    en: "Market Research for the Mid-Market",
+  },
+  ogTitle: {
+    de: "Market Research für den Mittelstand — Klymeo",
+    en: "Market Research for the Mid-Market — Klymeo",
+  },
+  description: {
+    de: "Qualitative Marktforschung ohne Institutsbudget: KI-Interviews mit deinen Kunden und Zielgruppen auf Deutsch — auf Wunsch per Voice-Agent. Belegte Antworten statt Bauchgefühl, exportiert als PDF oder PowerPoint, DSGVO-nativ in Frankfurt.",
+    en: "Qualitative market research without an agency-scale budget: AI interviews with your customers and target audiences in German and English — optionally via Voice Agent. Evidenced answers instead of gut feeling, exported as PDF or PowerPoint, GDPR-native in Frankfurt.",
+  },
 };
 
-const SOFTWARE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Klymeo Market Research — Mittelstand",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  url: `${SITE_URL}${PATH}`,
-  description: DESCRIPTION,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
+
+function buildJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: localizedContent(locale, {
+      de: "Klymeo Market Research — Mittelstand",
+      en: "Klymeo Market Research — Mid-Market",
+    }),
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    inLanguage: toBcp47(locale),
+    description: localizedContent(locale, META.description),
+  };
+}
 
 const CONTENT: IndustryContent = {
   slug: "mittelstand",
@@ -235,12 +269,13 @@ export default async function MittelstandPage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const locale = resolveLocale(lang);
   return (
     <>
-      <JsonLd data={SOFTWARE_JSONLD} />
+      <JsonLd data={buildJsonLd(locale)} />
       <IndustryPage
         content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
-        locale={resolveLocale(lang)}
+        locale={locale}
       />
     </>
   );

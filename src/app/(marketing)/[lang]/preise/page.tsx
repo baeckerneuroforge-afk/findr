@@ -23,21 +23,43 @@ import {
   CpuIcon,
   CheckIcon,
 } from "@/components/marketing/icons";
-import { ogDefaults } from "@/lib/marketing/seo";
-import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
+import { ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import type { ComponentType, SVGProps } from "react";
 
 const PATH = "/preise";
-const OG_TITLE = "Preise — Klymeo";
-const DESCRIPTION =
-  "Custom-based Pricing für Klymeo: Eine Lizenz, alle Methoden inklusive — du zahlst für Zugang, Umfang und Begleitung, die zu deinem Team passen. Den konkreten Preis legen wir gemeinsam im Demo-Call fest. In Frankfurt gehostet, DSGVO-konform.";
-
-export const metadata: Metadata = {
-  title: "Preise",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "Preise", en: "Pricing" },
+  ogTitle: { de: "Preise — Klymeo", en: "Pricing — Klymeo" },
+  description: {
+    de: "Custom-based Pricing für Klymeo: Eine Lizenz, alle Methoden inklusive — du zahlst für Zugang, Umfang und Begleitung, die zu deinem Team passen. Den konkreten Preis legen wir gemeinsam im Demo-Call fest. In Frankfurt gehostet, DSGVO-konform.",
+    en: "Custom pricing for Klymeo: one license, all methods included — you pay for the access, scope and support that fit your team. We set the actual price together in the demo call. Hosted in Frankfurt, GDPR-compliant.",
+  },
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -224,15 +246,24 @@ const FAQ_ITEMS_EN: { q: string; a: string }[] = [
   },
 ];
 
-const FAQPAGE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: FAQ_ITEMS_DE.map((it) => ({
-    "@type": "Question",
-    name: it.q,
-    acceptedAnswer: { "@type": "Answer", text: it.a },
-  })),
-};
+// FAQPage JSON-LD — rebuilt per-locale INSIDE the component from the resolved
+// FAQ items, so /en emits ENGLISH Q&A (not the German source) + inLanguage.
+function buildFaqJsonLd(locale: Locale) {
+  const items = localizedContent(locale, {
+    de: FAQ_ITEMS_DE,
+    en: FAQ_ITEMS_EN,
+  });
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    inLanguage: toBcp47(locale),
+    mainEntity: items.map((it) => ({
+      "@type": "Question",
+      name: it.q,
+      acceptedAnswer: { "@type": "Answer", text: it.a },
+    })),
+  };
+}
 
 // ── Seiten-Copy (DE). EN noch nicht getextet → DE-Fallback (EN=DE).
 // FAQ_ITEMS_DE bleibt die EINE deutsche Quelle und speist sowohl die
@@ -363,7 +394,7 @@ export default async function PreisePage({
   const c = localizedContent(lang, { de: CONTENT_DE, en: CONTENT_EN });
   return (
     <>
-      <JsonLd data={FAQPAGE_JSONLD} />
+      <JsonLd data={buildFaqJsonLd(locale)} />
 
       {/* 1 ── HERO ─────────────────────────────────────────────────────────── */}
       <Section className="relative overflow-hidden pt-14 sm:pt-20">

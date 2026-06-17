@@ -1,33 +1,61 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import {
   MethodPage,
   type MethodContent,
 } from "@/components/marketing/methode-template";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
 
 const PATH = "/methoden/creative-test";
-const OG_TITLE = "Creative-Test — Klymeo";
-const DESCRIPTION =
-  "Die Wirkung einer Kreation prüfen, bevor das Budget fließt: Klymeo erfasst ersten Eindruck und emotionale Wirkung. KI-Interviews auf Deutsch, DSGVO-nativ.";
-
-export const metadata: Metadata = {
-  title: "Creative-Test",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "Creative-Test", en: "Creative Test" },
+  ogTitle: { de: "Creative-Test — Klymeo", en: "Creative Test — Klymeo" },
+  description: {
+    de: "Die Wirkung einer Kreation prüfen, bevor das Budget fließt: Klymeo erfasst ersten Eindruck und emotionale Wirkung. KI-Interviews auf Deutsch, DSGVO-nativ.",
+    en: "Test how a creative lands before the budget flows: Klymeo captures first impression and emotional impact. AI interviews in German and English, GDPR-native.",
+  },
 };
 
-const SOFTWARE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Klymeo — Creative-Test",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  url: `${SITE_URL}${PATH}`,
-  description: DESCRIPTION,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
+
+function buildJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: localizedContent(locale, {
+      de: "Klymeo — Creative-Test",
+      en: "Klymeo — Creative Test",
+    }),
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    inLanguage: toBcp47(locale),
+    description: localizedContent(locale, META.description),
+  };
+}
 
 const CONTENT: MethodContent = {
   slug: "creative-test",
@@ -233,12 +261,13 @@ export default async function CreativeTestPage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const locale = resolveLocale(lang);
   return (
     <>
-      <JsonLd data={SOFTWARE_JSONLD} />
+      <JsonLd data={buildJsonLd(locale)} />
       <MethodPage
         content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
-        locale={resolveLocale(lang)}
+        locale={locale}
       />
     </>
   );

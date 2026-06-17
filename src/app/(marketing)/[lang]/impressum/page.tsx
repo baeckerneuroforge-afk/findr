@@ -1,19 +1,39 @@
 import type { Metadata } from "next";
 import { LegalProse, LegalSection } from "@/components/marketing/LegalProse";
-import { ogDefaults } from "@/lib/marketing/seo";
-import { resolveLocale } from "@/i18n/marketing-locale";
+import { ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+} from "@/i18n/marketing-locale";
 
 const PATH = "/impressum";
-const OG_TITLE = "Impressum — Klymeo";
-const DESCRIPTION =
-  "Anbieterkennzeichnung und Pflichtangaben gemäß § 5 DDG für Klymeo.";
-
-export const metadata: Metadata = {
-  title: "Impressum",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "Impressum", en: "Imprint" },
+  ogTitle: { de: "Impressum — Klymeo", en: "Imprint — Klymeo" },
+  description: {
+    de: "Anbieterkennzeichnung und Pflichtangaben gemäß § 5 DDG für Klymeo.",
+    en: "Legal notice and mandatory disclosures under § 5 DDG for Klymeo.",
+  },
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
 
 const CONTACT_LINK =
   "text-primary-700 underline underline-offset-2 transition-colors hover:text-primary-900";

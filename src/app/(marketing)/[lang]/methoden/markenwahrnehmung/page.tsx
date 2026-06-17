@@ -1,33 +1,68 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import {
   MethodPage,
   type MethodContent,
 } from "@/components/marketing/methode-template";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import {
+  SITE_URL,
+  ogDefaultsFor,
+  buildAlternates,
+} from "@/lib/marketing/seo";
 
 const PATH = "/methoden/markenwahrnehmung";
-const OG_TITLE = "Markenwahrnehmung — Klymeo";
-const DESCRIPTION =
-  "Wie deine Marke wirklich wahrgenommen wird: Klymeo erfragt Assoziationen, Bilder und Gefühle in den eigenen Worten deiner Zielgruppe — bewusst breit. KI-Interviews auf Deutsch, DSGVO-nativ.";
-
-export const metadata: Metadata = {
-  title: "Markenwahrnehmung",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "Markenwahrnehmung", en: "Brand Perception" },
+  ogTitle: {
+    de: "Markenwahrnehmung — Klymeo",
+    en: "Brand Perception — Klymeo",
+  },
+  description: {
+    de: "Wie deine Marke wirklich wahrgenommen wird: Klymeo erfragt Assoziationen, Bilder und Gefühle in den eigenen Worten deiner Zielgruppe — bewusst breit. KI-Interviews auf Deutsch, DSGVO-nativ.",
+    en: "How your brand is really perceived: Klymeo asks for associations, images, and feelings in your audience's own words — deliberately broad. AI interviews in German and English, GDPR-native.",
+  },
 };
 
-const SOFTWARE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Klymeo — Markenwahrnehmung",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  url: `${SITE_URL}${PATH}`,
-  description: DESCRIPTION,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
+
+function buildJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: localizedContent(locale, {
+      de: "Klymeo — Markenwahrnehmung",
+      en: "Klymeo — Brand Perception",
+    }),
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    inLanguage: toBcp47(locale),
+    description: localizedContent(locale, META.description),
+  };
+}
 
 const CONTENT: MethodContent = {
   slug: "markenwahrnehmung",
@@ -231,12 +266,13 @@ export default async function MarkenwahrnehmungPage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const locale = resolveLocale(lang);
   return (
     <>
-      <JsonLd data={SOFTWARE_JSONLD} />
+      <JsonLd data={buildJsonLd(locale)} />
       <MethodPage
         content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
-        locale={resolveLocale(lang)}
+        locale={locale}
       />
     </>
   );

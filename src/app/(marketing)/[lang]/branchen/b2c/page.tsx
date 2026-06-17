@@ -1,33 +1,67 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import {
   IndustryPage,
   type IndustryContent,
 } from "@/components/marketing/industry-template";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
 
 const PATH = "/branchen/b2c";
-const OG_TITLE = "Market Research für B2C & Konsumgüter — Klymeo";
-const DESCRIPTION =
-  "KI-Interviews mit echten Verbraucher:innen auf Deutsch — Produkt, Verpackung, Marke und Preisgefühl belegt prüfen, bevor Produktion und Mediabudget laufen. Mit Stimulus-Tests für Entwürfe, je Studie verankert, DSGVO-nativ.";
-
-export const metadata: Metadata = {
-  title: "Market Research für B2C & Konsumgüter",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: {
+    de: "Market Research für B2C & Konsumgüter",
+    en: "Market Research for B2C & Consumer Goods",
+  },
+  ogTitle: {
+    de: "Market Research für B2C & Konsumgüter — Klymeo",
+    en: "Market Research for B2C & Consumer Goods — Klymeo",
+  },
+  description: {
+    de: "KI-Interviews mit echten Verbraucher:innen auf Deutsch — Produkt, Verpackung, Marke und Preisgefühl belegt prüfen, bevor Produktion und Mediabudget laufen. Mit Stimulus-Tests für Entwürfe, je Studie verankert, DSGVO-nativ.",
+    en: "AI interviews with real consumers in German and English — test product, packaging, brand, and price perception with evidence before production and media budget are committed. With Stimulus tests for drafts, anchored per study, GDPR-native.",
+  },
 };
 
-const SOFTWARE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Klymeo Market Research — B2C & Konsumgüter",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  url: `${SITE_URL}${PATH}`,
-  description: DESCRIPTION,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
+
+function buildJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: localizedContent(locale, {
+      de: "Klymeo Market Research — B2C & Konsumgüter",
+      en: "Klymeo Market Research — B2C & Consumer Goods",
+    }),
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    inLanguage: toBcp47(locale),
+    description: localizedContent(locale, META.description),
+  };
+}
 
 const CONTENT: IndustryContent = {
   slug: "b2c",
@@ -235,12 +269,13 @@ export default async function B2cPage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const locale = resolveLocale(lang);
   return (
     <>
-      <JsonLd data={SOFTWARE_JSONLD} />
+      <JsonLd data={buildJsonLd(locale)} />
       <IndustryPage
         content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
-        locale={resolveLocale(lang)}
+        locale={locale}
       />
     </>
   );

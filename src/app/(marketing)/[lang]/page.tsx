@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import type { CSSProperties, ReactNode } from "react";
-import { localizedContent, type Locale } from "@/i18n/marketing-locale";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import { CtaLink } from "@/components/marketing/CtaLink";
 import { JsonLd } from "@/components/marketing/JsonLd";
 import { Rv } from "@/components/marketing/studio/Rv";
@@ -9,32 +15,55 @@ import { Marquee } from "@/components/marketing/studio/Marquee";
 import { SessionDeck } from "@/components/marketing/studio/SessionDeck";
 import { MethodStack } from "@/components/marketing/studio/MethodStack";
 import { NumbersBand } from "@/components/marketing/studio/NumbersBand";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 
-const TITLE = "Klymeo — Qualitative Marktforschung mit KI, DSGVO-nativ & auf Deutsch";
-const DESCRIPTION =
-  "Klymeo führt hunderte qualitative Tiefeninterviews mit deiner Zielgruppe — auf Wunsch per Voice-Agent, mit Entwürfen als Stimulus direkt im Gespräch. Auf Deutsch, DSGVO-nativ in Frankfurt. Vier Methoden, eine Engine — verdichtet zu belegten Insights, exportiert als PDF oder PowerPoint.";
-
-export const metadata: Metadata = {
+const PATH = "/";
+const META = {
   // absolute → skip the "%s — Klymeo" template for the homepage title.
-  title: { absolute: TITLE },
-  description: DESCRIPTION,
-  alternates: { canonical: "/" },
-  // Full openGraph object (Befund 1: per-key REPLACE, never a partial).
-  openGraph: { ...ogDefaults, title: TITLE, url: "/" },
+  title: {
+    de: "Klymeo — Qualitative Marktforschung mit KI, DSGVO-nativ & auf Deutsch",
+    en: "Klymeo — AI-powered qualitative market research, GDPR-native, in German & English",
+  },
+  description: {
+    de: "Klymeo führt hunderte qualitative Tiefeninterviews mit deiner Zielgruppe — auf Wunsch per Voice-Agent, mit Entwürfen als Stimulus direkt im Gespräch. Auf Deutsch, DSGVO-nativ in Frankfurt. Vier Methoden, eine Engine — verdichtet zu belegten Insights, exportiert als PDF oder PowerPoint.",
+    en: "Klymeo runs hundreds of qualitative in-depth interviews with your audience — optionally voice-led, with drafts shown as a Stimulus right in the conversation. In German and English, GDPR-native in Frankfurt. Four methods, one engine — distilled into evidenced insights, exported as PDF or PowerPoint.",
+  },
 };
 
-const ORGANIZATION_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "Klymeo",
-  url: SITE_URL,
-  logo: `${SITE_URL}/og-image.png`,
-  description: DESCRIPTION,
-  areaServed: "DACH",
-  foundingLocation: "Frankfurt am Main, Deutschland",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    // absolute → skip the "%s — Klymeo" template for the homepage title.
+    title: { absolute: localizedContent(locale, META.title) },
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    // Full openGraph object (Befund 1: per-key REPLACE, never a partial).
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.title),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
+
+function buildOrganizationJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Klymeo",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    logo: `${SITE_URL}/og-image.png`,
+    inLanguage: toBcp47(locale),
+    description: localizedContent(locale, META.description),
+    areaServed: "DACH",
+    foundingLocation: "Frankfurt am Main, Deutschland",
+  };
+}
 
 /** Kapitelmarke — Mono-Label + auslaufende Hairline. */
 function Kap({ label, center = false }: { label: string; center?: boolean }) {
@@ -602,11 +631,12 @@ export default async function HomePage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const locale = resolveLocale(lang);
   const c = localizedContent(lang, { de: CONTENT_DE, en: CONTENT_EN });
 
   return (
     <>
-      <JsonLd data={ORGANIZATION_JSONLD} />
+      <JsonLd data={buildOrganizationJsonLd(locale)} />
 
       {/* ── Hero: Aufnahme läuft ─────────────────────────────────────── */}
       <StudioHero lang={lang as Locale} />

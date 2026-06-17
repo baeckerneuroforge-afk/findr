@@ -8,21 +8,63 @@ import { Reveal } from "@/components/marketing/Reveal";
 import { InsightTeaser } from "@/components/marketing/InsightTeaser";
 import { CTASection } from "@/components/marketing/CTASection";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
-import { insightsByDate } from "@/lib/insights/articles";
-import { localizedContent, resolveLocale, toBcp47 } from "@/i18n/marketing-locale";
+import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
+import { insightsByDate, type InsightArticle } from "@/lib/insights/articles";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 
 const PATH = "/insights";
-const OG_TITLE = "Insights — Klymeo";
-const DESCRIPTION =
-  "Ressourcen zu qualitativer Marktforschung, KI- und Voice-Interviews und DSGVO-nativer KI — belegt statt geraten, ohne Hype, von Klymeo.";
-
-export const metadata: Metadata = {
-  title: "Insights",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "Insights", en: "Insights" },
+  ogTitle: { de: "Insights — Klymeo", en: "Insights — Klymeo" },
+  description: {
+    de: "Ressourcen zu qualitativer Marktforschung, KI- und Voice-Interviews und DSGVO-nativer KI — belegt statt geraten, ohne Hype, von Klymeo.",
+    en: "Resources on qualitative market research, AI and voice interviews, and GDPR-native AI — evidenced, not guessed, without the hype, from Klymeo.",
+  },
 };
+
+// Blog JSON-LD for THIS locale: per-locale url/inLanguage/description, plus the
+// locale's published articles. Caller omits the block when there are none.
+function buildBlogJsonLd(locale: Locale, articles: InsightArticle[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Klymeo Insights",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    description: localizedContent(locale, META.description),
+    inLanguage: toBcp47(locale),
+    blogPost: articles.map((a) => ({
+      "@type": "BlogPosting",
+      headline: a.title,
+      description: a.excerpt,
+      datePublished: a.date,
+      url: `${SITE_URL}${localizePath(locale, `${PATH}/${a.slug}`)}`,
+    })),
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
 
 export default async function InsightsPage({
   params,
@@ -35,21 +77,7 @@ export default async function InsightsPage({
 
   // Blog JSON-LD lists THIS locale's published articles. EN has none yet → omit
   // the block entirely rather than emit an empty Blog.
-  const blogJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Blog",
-    name: "Klymeo Insights",
-    url: `${SITE_URL}${PATH}`,
-    description: DESCRIPTION,
-    inLanguage: toBcp47(locale),
-    blogPost: articles.map((a) => ({
-      "@type": "BlogPosting",
-      headline: a.title,
-      description: a.excerpt,
-      datePublished: a.date,
-      url: `${SITE_URL}/insights/${a.slug}`,
-    })),
-  };
+  const blogJsonLd = buildBlogJsonLd(locale, articles);
 
   return (
     <>

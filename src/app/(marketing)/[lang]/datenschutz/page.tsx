@@ -4,20 +4,40 @@ import {
   LegalSection,
   Placeholder,
 } from "@/components/marketing/LegalProse";
-import { ogDefaults } from "@/lib/marketing/seo";
-import { resolveLocale } from "@/i18n/marketing-locale";
+import { ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+} from "@/i18n/marketing-locale";
 
 const PATH = "/datenschutz";
-const OG_TITLE = "Datenschutz — Klymeo";
-const DESCRIPTION =
-  "Informationen zur Verarbeitung personenbezogener Daten bei Klymeo gemäß DSGVO.";
-
-export const metadata: Metadata = {
-  title: "Datenschutz",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "Datenschutz", en: "Privacy" },
+  ogTitle: { de: "Datenschutz — Klymeo", en: "Privacy — Klymeo" },
+  description: {
+    de: "Informationen zur Verarbeitung personenbezogener Daten bei Klymeo gemäß DSGVO.",
+    en: "How Klymeo processes personal data in line with the GDPR.",
+  },
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
 
 const CONTACT_LINK =
   "text-primary-700 underline underline-offset-2 transition-colors hover:text-primary-900";

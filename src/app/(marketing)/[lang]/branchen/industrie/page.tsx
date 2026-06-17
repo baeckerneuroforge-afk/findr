@@ -1,33 +1,67 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import {
   IndustryPage,
   type IndustryContent,
 } from "@/components/marketing/industry-template";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
 
 const PATH = "/branchen/industrie";
-const OG_TITLE = "Market Research für die Industrie — Klymeo";
-const DESCRIPTION =
-  "Anwender- und Kundenforschung für Industrieunternehmen: KI-Interviews auf Deutsch mit Anwendern, Einkäufern und Partnern — per Link, auf Wunsch per Voice-Agent. Belegte Antworten zu Produkt, Service und neuen Angeboten, bevor investiert wird. DSGVO-nativ.";
-
-export const metadata: Metadata = {
-  title: "Market Research für die Industrie",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: {
+    de: "Market Research für die Industrie",
+    en: "Market Research for Manufacturing",
+  },
+  ogTitle: {
+    de: "Market Research für die Industrie — Klymeo",
+    en: "Market Research for Manufacturing — Klymeo",
+  },
+  description: {
+    de: "Anwender- und Kundenforschung für Industrieunternehmen: KI-Interviews auf Deutsch mit Anwendern, Einkäufern und Partnern — per Link, auf Wunsch per Voice-Agent. Belegte Antworten zu Produkt, Service und neuen Angeboten, bevor investiert wird. DSGVO-nativ.",
+    en: "User and customer research for manufacturers: AI interviews in German and English with users, buyers, and partners — by link, optionally voice-led with a Voice Agent. Evidenced answers on product, service, and new offerings before you invest. GDPR-native.",
+  },
 };
 
-const SOFTWARE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Klymeo Market Research — Industrie",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  url: `${SITE_URL}${PATH}`,
-  description: DESCRIPTION,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
+
+function buildJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: localizedContent(locale, {
+      de: "Klymeo Market Research — Industrie",
+      en: "Klymeo Market Research — Manufacturing",
+    }),
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    inLanguage: toBcp47(locale),
+    description: localizedContent(locale, META.description),
+  };
+}
 
 const CONTENT: IndustryContent = {
   slug: "industrie",
@@ -235,12 +269,13 @@ export default async function IndustriePage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const locale = resolveLocale(lang);
   return (
     <>
-      <JsonLd data={SOFTWARE_JSONLD} />
+      <JsonLd data={buildJsonLd(locale)} />
       <IndustryPage
         content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
-        locale={resolveLocale(lang)}
+        locale={locale}
       />
     </>
   );

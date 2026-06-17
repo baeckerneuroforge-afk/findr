@@ -9,7 +9,12 @@ import {
 import { Reveal } from "@/components/marketing/Reveal";
 import { CTASection } from "@/components/marketing/CTASection";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { SITE_URL, SITE_NAME, ogDefaults } from "@/lib/marketing/seo";
+import {
+  SITE_URL,
+  SITE_NAME,
+  ogDefaultsFor,
+  buildAlternates,
+} from "@/lib/marketing/seo";
 import {
   getInsight,
   getInsightSlugs,
@@ -18,6 +23,7 @@ import {
 } from "@/lib/insights/articles";
 import {
   MARKETING_LOCALES,
+  localizePath,
   resolveLocale,
   toBcp47,
 } from "@/i18n/marketing-locale";
@@ -53,20 +59,21 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug, lang } = await params;
-  const article = getInsight(slug, resolveLocale(lang));
+  const locale = resolveLocale(lang);
+  const article = getInsight(slug, locale);
   if (!article) return {};
 
   const path = `/insights/${article.slug}`;
   return {
     title: article.title,
     description: article.excerpt,
-    alternates: { canonical: path },
+    alternates: buildAlternates(locale, path),
     // Full openGraph object (Befund 1: per-key REPLACE) + article type.
     openGraph: {
-      ...ogDefaults,
+      ...ogDefaultsFor(locale),
       title: `${article.title} — ${SITE_NAME}`,
       description: article.excerpt,
-      url: path,
+      url: localizePath(locale, path),
       type: "article",
       publishedTime: article.date,
     },

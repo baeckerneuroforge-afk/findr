@@ -18,7 +18,6 @@ import {
 } from "@/lib/marketing/seo";
 import {
   isLocale,
-  MARKETING_DEFAULT_LOCALE,
   MARKETING_LOCALES,
   resolveLocale,
 } from "@/i18n/marketing-locale";
@@ -95,12 +94,12 @@ export async function generateMetadata({
     title: { template: "%s — Klymeo", default: DEFAULT_TITLE },
     openGraph: ogDefaultsFor(locale),
     twitter: twitterDefaults,
-    // EN ist heute ein deutschsprachiger Spiegel (EN=DE) — bis echte englische
-    // Texte live sind, NICHT indexieren, damit Google /en nicht als doppelten,
-    // falsch-sprachigen Inhalt wertet. /de bleibt voll indexierbar; `follow`
-    // bleibt true, damit Crawler den Links folgen. Reziprokes hreflang + die
-    // EN-Indexierung kommen, sobald die englischen Texte da sind.
-    robots: { index: locale === MARKETING_DEFAULT_LOCALE, follow: true },
+    // EN ist jetzt echt englisch getextet, mit reziprokem hreflang + per-Locale
+    // og:locale/canonical/JSON-LD-inLanguage (P1–P4) → BEIDE Sprachen werden
+    // indexiert. VORAUSSETZUNG für saubere Indexierung: NEXT_PUBLIC_SITE_URL
+    // zeigt auf die echte Produktiv-Domain — sonst vergiftet der findr.de-
+    // Fallback jeden Canonical/jede hreflang-/Sitemap-URL.
+    robots: { index: true, follow: true },
     icons: {
       icon: [
         { url: "/favicon.svg", type: "image/svg+xml" },

@@ -6,41 +6,79 @@ import { Rv } from "@/components/marketing/studio/Rv";
 import { NumbersBand } from "@/components/marketing/studio/NumbersBand";
 import { PlatformModules } from "@/components/marketing/PlatformModules";
 import { CTASection } from "@/components/marketing/CTASection";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
-import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 
 const PATH = "/produkt";
-const OG_TITLE = "Plattform — Klymeo";
-const DESCRIPTION =
-  "Die ganze Forschungs-Konsole: KI-Tiefeninterviews auf Deutsch — auf Wunsch hörbar per Voice-Agent —, Entwürfe als Stimulus direkt im Gespräch, Screening, Quoten und Panel-Anbindung für die Rekrutierung, und eine Synthese, die als PDF-Report oder PowerPoint-Deck exportiert. DSGVO-nativ, in Frankfurt gehostet.";
 
-export const metadata: Metadata = {
-  title: "Plattform",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "Plattform", en: "Platform" },
+  ogTitle: { de: "Plattform — Klymeo", en: "Platform — Klymeo" },
+  description: {
+    de: "Die ganze Forschungs-Konsole: KI-Tiefeninterviews auf Deutsch — auf Wunsch hörbar per Voice-Agent —, Entwürfe als Stimulus direkt im Gespräch, Screening, Quoten und Panel-Anbindung für die Rekrutierung, und eine Synthese, die als PDF-Report oder PowerPoint-Deck exportiert. DSGVO-nativ, in Frankfurt gehostet.",
+    en: "The whole research console: AI in-depth interviews in German and English — optionally audible via the Voice Agent —, drafts shown as Stimulus right in the conversation, screening, quotas and panel integration for recruitment, and a synthesis that exports as a PDF report or PowerPoint deck. GDPR-native, hosted in Frankfurt.",
+  },
 };
 
-const SOFTWARE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Klymeo",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  url: `${SITE_URL}${PATH}`,
-  description: DESCRIPTION,
-  featureList: [
-    "Voice-Agent-Interviews",
-    "Stimulus: Entwürfe im Interview zeigen",
-    "Synthese mit PDF- & PowerPoint-Export",
-    "Screening, Quoten & Panel-Anbindung",
-    "Bedarf & Verhalten",
-    "Markenwahrnehmung",
-    "Konzept-Test",
-    "Creative-Test",
-  ],
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
+
+function buildJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Klymeo",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    inLanguage: toBcp47(locale),
+    description: localizedContent(locale, META.description),
+    featureList: localizedContent(locale, {
+      de: [
+        "Voice-Agent-Interviews",
+        "Stimulus: Entwürfe im Interview zeigen",
+        "Synthese mit PDF- & PowerPoint-Export",
+        "Screening, Quoten & Panel-Anbindung",
+        "Bedarf & Verhalten",
+        "Markenwahrnehmung",
+        "Konzept-Test",
+        "Creative-Test",
+      ],
+      en: [
+        "Voice Agent interviews",
+        "Stimulus: show drafts in the interview",
+        "Synthesis with PDF & PowerPoint export",
+        "Screening, quotas & panel integration",
+        "Needs & Behavior",
+        "Brand Perception",
+        "Concept Test",
+        "Creative Test",
+      ],
+    }),
+  };
+}
 
 /** Kapitelmarke — Mono-Label + auslaufende Hairline (wie auf der Homepage). */
 function Kap({ label }: { label: string }) {
@@ -502,7 +540,7 @@ export default async function ProduktPage({
 
   return (
     <>
-      <JsonLd data={SOFTWARE_JSONLD} />
+      <JsonLd data={buildJsonLd(locale)} />
 
       {/* ── Poster-Kopf ──────────────────────────────────────────────── */}
       <section className="st-sky relative overflow-hidden pb-[clamp(70px,10vh,120px)] pt-[clamp(120px,16vh,180px)]">

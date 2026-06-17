@@ -4,20 +4,40 @@ import {
   LegalSection,
   Placeholder,
 } from "@/components/marketing/LegalProse";
-import { ogDefaults } from "@/lib/marketing/seo";
-import { resolveLocale } from "@/i18n/marketing-locale";
+import { ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+} from "@/i18n/marketing-locale";
 
 const PATH = "/agb";
-const OG_TITLE = "AGB — Klymeo";
-const DESCRIPTION =
-  "Allgemeine Geschäftsbedingungen für die Nutzung von Klymeo.";
-
-export const metadata: Metadata = {
-  title: "AGB",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "AGB", en: "Terms" },
+  ogTitle: { de: "AGB — Klymeo", en: "Terms — Klymeo" },
+  description: {
+    de: "Allgemeine Geschäftsbedingungen für die Nutzung von Klymeo.",
+    en: "Terms and conditions for the use of Klymeo.",
+  },
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
 
 /* Gerüst der AGB: Standard-Abschnittsstruktur für ein B2B-SaaS, der
    verbindliche Rechtstext wird je Abschnitt durch die Rechtsberatung

@@ -1,33 +1,62 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import {
   MethodPage,
   type MethodContent,
 } from "@/components/marketing/methode-template";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
 
 const PATH = "/methoden/konzept-test";
-const OG_TITLE = "Konzept-Test — Klymeo";
-const DESCRIPTION =
-  "Konzepte belegt prüfen, bevor sie gebaut werden: Klymeo testet erst das Verständnis, dann die Relevanz — zurückhaltend bei der Kaufabsicht. KI-Interviews auf Deutsch, DSGVO-nativ.";
-
-export const metadata: Metadata = {
-  title: "Konzept-Test",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "Konzept-Test", en: "Concept Test" },
+  ogTitle: { de: "Konzept-Test — Klymeo", en: "Concept Test — Klymeo" },
+  description: {
+    de: "Konzepte belegt prüfen, bevor sie gebaut werden: Klymeo testet erst das Verständnis, dann die Relevanz — zurückhaltend bei der Kaufabsicht. KI-Interviews auf Deutsch, DSGVO-nativ.",
+    en: "Test concepts with evidence before they get built: Klymeo tests understanding first, then relevance — restrained on purchase intent. AI interviews in German and English, GDPR-native.",
+  },
+  jsonLdName: {
+    de: "Klymeo — Konzept-Test",
+    en: "Klymeo — Concept Test",
+  },
 };
 
-const SOFTWARE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Klymeo — Konzept-Test",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  url: `${SITE_URL}${PATH}`,
-  description: DESCRIPTION,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
+
+function buildJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: localizedContent(locale, META.jsonLdName),
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    inLanguage: toBcp47(locale),
+    description: localizedContent(locale, META.description),
+  };
+}
 
 const CONTENT: MethodContent = {
   slug: "konzept-test",
@@ -233,12 +262,13 @@ export default async function KonzeptTestPage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const locale = resolveLocale(lang);
   return (
     <>
-      <JsonLd data={SOFTWARE_JSONLD} />
+      <JsonLd data={buildJsonLd(locale)} />
       <MethodPage
         content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
-        locale={resolveLocale(lang)}
+        locale={locale}
       />
     </>
   );

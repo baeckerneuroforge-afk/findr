@@ -1,33 +1,64 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import {
   MethodPage,
   type MethodContent,
 } from "@/components/marketing/methode-template";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
 
 const PATH = "/methoden/bedarf-verhalten";
-const OG_TITLE = "Bedarf & Verhalten — Klymeo";
-const DESCRIPTION =
-  "Klymeo fragt nach konkreten Situationen und Workarounds statt nach Hypothesen — und bohrt nach, bis echter Bedarf belegt ist. KI-Interviews auf Deutsch, DSGVO-nativ.";
-
-export const metadata: Metadata = {
-  title: "Bedarf & Verhalten",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: { de: "Bedarf & Verhalten", en: "Needs & Behavior" },
+  ogTitle: {
+    de: "Bedarf & Verhalten — Klymeo",
+    en: "Needs & Behavior — Klymeo",
+  },
+  description: {
+    de: "Klymeo fragt nach konkreten Situationen und Workarounds statt nach Hypothesen — und bohrt nach, bis echter Bedarf belegt ist. KI-Interviews auf Deutsch, DSGVO-nativ.",
+    en: "Klymeo asks about concrete situations and workarounds instead of hypotheses — and keeps digging until real need is evidenced. AI interviews in German and English, GDPR-native.",
+  },
 };
 
-const SOFTWARE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Klymeo — Bedarf & Verhalten",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  url: `${SITE_URL}${PATH}`,
-  description: DESCRIPTION,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
+
+function buildJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: localizedContent(locale, {
+      de: "Klymeo — Bedarf & Verhalten",
+      en: "Klymeo — Needs & Behavior",
+    }),
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    inLanguage: toBcp47(locale),
+    description: localizedContent(locale, META.description),
+  };
+}
 
 const CONTENT: MethodContent = {
   slug: "bedarf-verhalten",
@@ -233,12 +264,13 @@ export default async function BedarfVerhaltenPage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const locale = resolveLocale(lang);
   return (
     <>
-      <JsonLd data={SOFTWARE_JSONLD} />
+      <JsonLd data={buildJsonLd(locale)} />
       <MethodPage
         content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
-        locale={resolveLocale(lang)}
+        locale={locale}
       />
     </>
   );

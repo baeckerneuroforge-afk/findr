@@ -1,33 +1,64 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
+import {
+  localizedContent,
+  localizePath,
+  resolveLocale,
+  toBcp47,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import {
   IndustryPage,
   type IndustryContent,
 } from "@/components/marketing/industry-template";
-import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
+import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
 
 const PATH = "/branchen/b2b";
-const OG_TITLE = "Market Research für B2B — Klymeo";
-const DESCRIPTION =
-  "Qualitative B2B-Marktforschung mit KI-Interviews auf Deutsch: Entscheider, Anwender und Einkäufer im O-Ton — per Link in deine eigenen Kontakte, auf Wunsch per Voice-Agent. Belegte Antworten zu Bedarf, Positionierung und Angebot, DSGVO-nativ.";
-
-export const metadata: Metadata = {
-  title: "Market Research für B2B",
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: { ...ogDefaults, title: OG_TITLE, url: PATH },
+const META = {
+  title: {
+    de: "Market Research für B2B",
+    en: "Market Research for B2B",
+  },
+  ogTitle: {
+    de: "Market Research für B2B — Klymeo",
+    en: "Market Research for B2B — Klymeo",
+  },
+  description: {
+    de: "Qualitative B2B-Marktforschung mit KI-Interviews auf Deutsch: Entscheider, Anwender und Einkäufer im O-Ton — per Link in deine eigenen Kontakte, auf Wunsch per Voice-Agent. Belegte Antworten zu Bedarf, Positionierung und Angebot, DSGVO-nativ.",
+    en: "Qualitative B2B market research with AI interviews in German and English: decision-makers, users, and buyers verbatim — by link into your own contacts, optionally with a Voice Agent. Evidenced answers on needs, positioning, and offer, GDPR-native.",
+  },
 };
 
-const SOFTWARE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Klymeo Market Research — B2B",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  url: `${SITE_URL}${PATH}`,
-  description: DESCRIPTION,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    title: localizedContent(locale, META.title),
+    description: localizedContent(locale, META.description),
+    alternates: buildAlternates(locale, PATH),
+    openGraph: {
+      ...ogDefaultsFor(locale),
+      title: localizedContent(locale, META.ogTitle),
+      url: localizePath(locale, PATH),
+    },
+  };
+}
+
+function buildJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Klymeo Market Research — B2B",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${SITE_URL}${localizePath(locale, PATH)}`,
+    inLanguage: toBcp47(locale),
+    description: localizedContent(locale, META.description),
+  };
+}
 
 const CONTENT: IndustryContent = {
   slug: "b2b",
@@ -235,12 +266,13 @@ export default async function B2bPage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const locale = resolveLocale(lang);
   return (
     <>
-      <JsonLd data={SOFTWARE_JSONLD} />
+      <JsonLd data={buildJsonLd(locale)} />
       <IndustryPage
         content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
-        locale={resolveLocale(lang)}
+        locale={locale}
       />
     </>
   );
