@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
-import {
-  LegalProse,
-  LegalSection,
-  Placeholder,
-} from "@/components/marketing/LegalProse";
+import { LegalProse, LegalSection } from "@/components/marketing/LegalProse";
 import { ogDefaults } from "@/lib/marketing/seo";
 
 const PATH = "/impressum";
@@ -61,17 +57,12 @@ export default function ImpressumPage() {
       </LegalSection>
 
       {/*
-        Umsatzsteuer-Identifikationsnummer — nur aufnehmen, wenn eine GÜLTIGE
-        USt-IdNr. vorhanden ist: den Platzhalter unten durch die echte USt-IdNr.
-        ersetzen. Falls KEINE gültige USt-IdNr. vorhanden ist, diesen gesamten
-        <LegalSection>-Block ersatzlos entfernen. Die Steuernummer gehört NICHT
-        ins Impressum.
+        Es wird bewusst nur die USt-IdNr. (§ 27a UStG) angegeben. Die
+        Steuernummer (020 803 04663) gehört NICHT ins Impressum und wird
+        — bei vorhandener USt-IdNr. — nicht veröffentlicht (Entscheidung André).
       */}
       <LegalSection heading="Umsatzsteuer-Identifikationsnummer">
-        <p>
-          USt-IdNr. gemäß § 27a UStG:{" "}
-          <Placeholder>USt-IdNr. eintragen</Placeholder>
-        </p>
+        <p>USt-IdNr. gemäß § 27a UStG: DE459461407</p>
       </LegalSection>
 
       <LegalSection heading="Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV">
