@@ -3,6 +3,11 @@ import { Container } from "./primitives";
 import { CtaLink } from "./CtaLink";
 import { Reveal } from "./Reveal";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
+import {
+  localizedContent,
+  MARKETING_DEFAULT_LOCALE,
+  type Locale,
+} from "@/i18n/marketing-locale";
 
 type Cta = { label: string; href: string };
 
@@ -13,12 +18,26 @@ type Cta = { label: string; href: string };
  * Mono-Notiz. Pages override `title`/`lead`/CTAs as needed (gleiche API).
  */
 export function CTASection({
-  eyebrow = "Bereit?",
-  title = <>Frag die echten Stimmen an deinem Markt.</>,
-  lead = "Sieh, was Klymeo in echten Tiefeninterviews mit deiner Zielgruppe findet — KI-geführt, auf Deutsch und DSGVO-nativ.",
-  primary = { label: "Demo buchen →", href: DEMO_BOOKING_URL },
-  secondary = { label: "Preise ansehen", href: "/preise" },
+  lang = MARKETING_DEFAULT_LOCALE,
+  eyebrow = localizedContent(lang, { de: "Bereit?", en: "Ready?" }),
+  title = localizedContent(lang, {
+    de: <>Frag die echten Stimmen an deinem Markt.</>,
+    en: <>Talk to the real voices in your market.</>,
+  }),
+  lead = localizedContent(lang, {
+    de: "Sieh, was Klymeo in echten Tiefeninterviews mit deiner Zielgruppe findet — KI-geführt, auf Deutsch und DSGVO-nativ.",
+    en: "See what Klymeo uncovers in real in-depth interviews with your audience — AI-led, in German and English, and GDPR-native.",
+  }),
+  primary = {
+    label: localizedContent(lang, { de: "Demo buchen →", en: "Book a demo →" }),
+    href: DEMO_BOOKING_URL,
+  },
+  secondary = {
+    label: localizedContent(lang, { de: "Preise ansehen", en: "See pricing" }),
+    href: "/preise",
+  },
 }: {
+  lang?: Locale;
   eyebrow?: ReactNode;
   title?: ReactNode;
   lead?: ReactNode;

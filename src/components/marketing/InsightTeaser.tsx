@@ -3,6 +3,7 @@ import { CornerBrackets } from "./primitives";
 import { formatDate, type InsightArticle } from "@/lib/insights/articles";
 import {
   localizeHref,
+  localizedContent,
   MARKETING_DEFAULT_LOCALE,
 } from "@/i18n/marketing-locale";
 
@@ -34,7 +35,7 @@ export function InsightTeaser({ article }: { article: InsightArticle }) {
           aria-hidden
           className="font-medium text-primary-600 transition-transform group-hover:translate-x-0.5"
         >
-          Lesen →
+          {localizedContent(locale, { de: "Lesen", en: "Read" })} →
         </span>
       </div>
     </Link>

@@ -2,11 +2,12 @@ import Link from "next/link";
 import { Container } from "./primitives";
 import { Wordmark } from "./Wordmark";
 import {
+  getFooterColumns,
   FOOTER_COLUMNS,
   FOOTER_GRID_BY_COLS,
-  localizeFooterColumns,
 } from "./nav-data";
 import {
+  localizedContent,
   localizePath,
   MARKETING_DEFAULT_LOCALE,
   type Locale,
@@ -25,13 +26,6 @@ const GRID_COLS =
 // (Entscheidung André, vor Go-live). Bewusst UNVERÄNDERT gelassen — keine
 // erfundenen Belege. Dieselben Claims stehen auch in den Hero-Trust-Zeilen
 // (`/`, `/demo`) und einzelnen Modul-Beschreibungen.
-const COMPLIANCE = [
-  "In Deutschland gebaut",
-  "In Frankfurt gehostet",
-  "DSGVO-konform",
-  "EU-AI-Act-konform",
-];
-
 export function MarketingFooter({
   lang = MARKETING_DEFAULT_LOCALE,
 }: {
@@ -40,7 +34,21 @@ export function MarketingFooter({
   lang?: Locale;
 }) {
   const year = new Date().getFullYear();
-  const columns = localizeFooterColumns(FOOTER_COLUMNS, lang);
+  const columns = getFooterColumns(lang);
+  const compliance = localizedContent(lang, {
+    de: [
+      "In Deutschland gebaut",
+      "In Frankfurt gehostet",
+      "DSGVO-konform",
+      "EU-AI-Act-konform",
+    ],
+    en: [
+      "Built in Germany",
+      "Hosted in Frankfurt",
+      "GDPR-compliant",
+      "EU AI Act-compliant",
+    ],
+  });
   return (
     // Twilight-Dunkel (#141734, --color-anchor): die Dämmerungsstunde unter
     // jeder Seite — Dusk-Verlauf + Sternenhimmel (st-dusk/st-stars), Indigo-
@@ -52,9 +60,10 @@ export function MarketingFooter({
           <div className="flex flex-col gap-3">
             <Wordmark tone="light" href={localizePath(lang, "/")} />
             <p className="max-w-xs text-sm leading-relaxed text-anchor-foreground/70">
-              Qualitative Marktforschung mit KI — hunderte Tiefeninterviews,
-              auf Wunsch per Voice-Agent, DSGVO-nativ und auf Deutsch,
-              verdichtet zu belegten Insights.
+              {localizedContent(lang, {
+                de: "Qualitative Marktforschung mit KI — hunderte Tiefeninterviews, auf Wunsch per Voice-Agent, DSGVO-nativ und auf Deutsch, verdichtet zu belegten Insights.",
+                en: "AI-powered qualitative market research — hundreds of in-depth interviews, optionally voice-led, GDPR-native, in German and English, distilled into evidenced insights.",
+              })}
             </p>
           </div>
 
@@ -97,7 +106,7 @@ export function MarketingFooter({
 
         <div className="mt-14 flex flex-col gap-4 border-t border-white/10 pt-6 font-mono text-[10.5px] uppercase tracking-[0.16em] text-anchor-foreground/45 sm:flex-row sm:items-center sm:justify-between">
           <ul className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            {COMPLIANCE.map((c) => (
+            {compliance.map((c) => (
               <li key={c} className="inline-flex items-center gap-2">
                 <span
                   aria-hidden
@@ -107,7 +116,13 @@ export function MarketingFooter({
               </li>
             ))}
           </ul>
-          <div>© {year} Klymeo — Aufgenommen in Frankfurt am Main</div>
+          <div>
+            © {year} Klymeo —{" "}
+            {localizedContent(lang, {
+              de: "Aufgenommen in Frankfurt am Main",
+              en: "Recorded in Frankfurt am Main",
+            })}
+          </div>
         </div>
       </Container>
 

@@ -31,7 +31,14 @@ import type { NavEntry, NavGroup, NavLeaf } from "./nav-data";
 
 const CLOSE_DELAY_MS = 150;
 
-export function MegaMenu({ nav }: { nav: NavEntry[] }) {
+export function MegaMenu({
+  nav,
+  mainNav = "Hauptnavigation",
+}: {
+  nav: NavEntry[];
+  /** Localized aria-label for the <nav> (DE default for back-compat callers). */
+  mainNav?: string;
+}) {
   const [openId, setOpenId] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverCapable = useRef(false);
@@ -111,7 +118,7 @@ export function MegaMenu({ nav }: { nav: NavEntry[] }) {
   return (
     <nav
       ref={rootRef}
-      aria-label="Hauptnavigation"
+      aria-label={mainNav}
       className="hidden items-center gap-8 md:flex"
     >
       {nav.map((entry) => {

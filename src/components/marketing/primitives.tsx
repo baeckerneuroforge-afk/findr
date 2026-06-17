@@ -1,4 +1,9 @@
 import type { ElementType, ReactNode } from "react";
+import {
+  localizedContent,
+  MARKETING_DEFAULT_LOCALE,
+  type Locale,
+} from "@/i18n/marketing-locale";
 
 /**
  * Marketing layout primitives — Studio-Session-Fassung. Warmes Papier,
@@ -143,12 +148,24 @@ export function Accent({ children }: { children: ReactNode }) {
  * Live / Bald status — die Studio-Lampe: grün leuchtend = läuft heute,
  * gedimmt = Roadmap. Ehrliches Labelling, gleiche API wie zuvor.
  */
-export function StatusTag({ status }: { status: "Live" | "Bald" }) {
+export function StatusTag({
+  status,
+  lang = MARKETING_DEFAULT_LOCALE,
+}: {
+  status: "Live" | "Bald";
+  lang?: Locale;
+}) {
   const live = status === "Live";
+  // The DATA enum stays 'Live'|'Bald' (a discriminant); only the rendered LABEL
+  // localizes — on /en 'Bald' reads "Soon", 'Live' stays "Live".
+  const label = localizedContent(lang, {
+    de: status,
+    en: status === "Bald" ? "Soon" : "Live",
+  });
   return (
     <span className={`st-lamp ${live ? "st-lamp--light" : "st-lamp--soon"}`}>
       <b aria-hidden />
-      {status}
+      {label}
     </span>
   );
 }

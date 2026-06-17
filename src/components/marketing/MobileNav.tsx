@@ -20,7 +20,20 @@ import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
  * menu and Body-Scroll-Lock both stay; the panel itself scrolls when the open
  * sections outgrow the viewport.
  */
-export function MobileNav({ nav }: { nav: NavEntry[] }) {
+export function MobileNav({
+  nav,
+  mobileNav = "Mobile-Navigation",
+  openMenu = "Menü öffnen",
+  closeMenu = "Menü schließen",
+  demo = "Demo buchen",
+}: {
+  nav: NavEntry[];
+  /** Localized labels resolved by the server header (DE defaults for back-compat). */
+  mobileNav?: string;
+  openMenu?: string;
+  closeMenu?: string;
+  demo?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<string | null>(null);
   const reduceMotion = usePrefersReducedMotion();
@@ -59,7 +72,7 @@ export function MobileNav({ nav }: { nav: NavEntry[] }) {
       <button
         type="button"
         ref={burgerRef}
-        aria-label={open ? "Menü schließen" : "Menü öffnen"}
+        aria-label={open ? closeMenu : openMenu}
         aria-expanded={open}
         aria-controls="mobile-nav"
         onClick={() => {
@@ -104,7 +117,7 @@ export function MobileNav({ nav }: { nav: NavEntry[] }) {
           >
             <nav
               className="flex flex-col gap-1 px-6 py-4"
-              aria-label="Mobile-Navigation"
+              aria-label={mobileNav}
             >
               {nav.map((entry) => {
                 if (entry.kind === "flat") {
@@ -206,7 +219,7 @@ export function MobileNav({ nav }: { nav: NavEntry[] }) {
                   Log in
                 </Link>
                 <CtaLink href={DEMO_BOOKING_URL} variant="primary" className="w-full">
-                  Demo buchen
+                  {demo}
                 </CtaLink>
               </div>
             </nav>

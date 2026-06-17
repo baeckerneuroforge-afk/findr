@@ -1,8 +1,13 @@
-import { MODULES } from "./PlatformModules";
-import { INDUSTRIES } from "./industry-template";
+import { getModules } from "./PlatformModules";
+import { getIndustries } from "./industry-template";
 import type { IconName } from "./icons";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
-import { localizeHref, type Locale } from "@/i18n/marketing-locale";
+import {
+  localizeHref,
+  localizedContent,
+  MARKETING_DEFAULT_LOCALE,
+  type Locale,
+} from "@/i18n/marketing-locale";
 
 /**
  * Canonical marketing-navigation registry — the SINGLE source that feeds the
@@ -58,21 +63,26 @@ export type NavEntry =
     };
 
 // ── Leaves derived from the canonical per-surface registries ──────────────────
+// All get*Leaves factories localize BOTH the label/desc (via the per-surface
+// registries / bilingual literals) AND the href (via localizeHref). The `de`
+// branch yields the exact original strings + bare hrefs (R1: byte-identical).
 
-const moduleLeaves: NavLeaf[] = MODULES.map((m) => ({
-  label: m.name,
-  href: m.href,
-  desc: m.blurb,
-  icon: m.icon,
-  status: m.status,
-}));
+const getModuleLeaves = (locale: Locale): NavLeaf[] =>
+  getModules(locale).map((m) => ({
+    label: m.name,
+    href: localizeHref(locale, m.href),
+    desc: m.blurb,
+    icon: m.icon,
+    status: m.status,
+  }));
 
-const industryLeaves: NavLeaf[] = INDUSTRIES.map((i) => ({
-  label: i.name,
-  href: `/branchen/${i.slug}`,
-  desc: i.tagline,
-  icon: i.icon,
-}));
+const getIndustryLeaves = (locale: Locale): NavLeaf[] =>
+  getIndustries(locale).map((i) => ({
+    label: i.name,
+    href: localizeHref(locale, `/branchen/${i.slug}`),
+    desc: i.tagline,
+    icon: i.icon,
+  }));
 
 /**
  * Die Werkzeuge der Plattform — Anker auf /produkt (dort lebt je Werkzeug eine
@@ -81,74 +91,133 @@ const industryLeaves: NavLeaf[] = INDUSTRIES.map((i) => ({
  * (/api/research/plans/[id]/stimulus + Split-View im Interview), Synthese-
  * Export (synthesis/{pdf,pptx}-Routen) und Qualität/Rekrutierung (Screening-
  * Fragen, Quoten, Panel-Anbindung, offene Links, eigener Pool).
+ *
+ * `Voice-Agent`/`Stimulus` are proper nouns → not translated. Hrefs are anchors
+ * on /produkt; localizeHref prefixes the path and keeps the #fragment.
  */
-const featureLeaves: NavLeaf[] = [
+type FeatureLeafData = {
+  label: { de: string; en: string };
+  href: string;
+  desc: { de: string; en: string };
+  icon: IconName;
+};
+
+const FEATURE_LEAF_DATA: FeatureLeafData[] = [
   {
-    label: "Voice-Agent",
+    label: { de: "Voice-Agent", en: "Voice Agent" },
     href: "/produkt#voice",
-    desc: "Interviews hörbar geführt — sprechen statt tippen.",
+    desc: {
+      de: "Interviews hörbar geführt — sprechen statt tippen.",
+      en: "Interviews led audibly — speak instead of type.",
+    },
     icon: "MicIcon",
   },
   {
-    label: "Stimulus",
+    label: { de: "Stimulus", en: "Stimulus" },
     href: "/produkt#stimulus",
-    desc: "Entwürfe & Konzepte live im Interview zeigen.",
+    desc: {
+      de: "Entwürfe & Konzepte live im Interview zeigen.",
+      en: "Show drafts & concepts live in the interview.",
+    },
     icon: "ImageIcon",
   },
   {
-    label: "Synthese & Export",
+    label: { de: "Synthese & Export", en: "Synthesis & Export" },
     href: "/produkt#synthese",
-    desc: "Themen, Lager, Zitate — als PDF & PowerPoint.",
+    desc: {
+      de: "Themen, Lager, Zitate — als PDF & PowerPoint.",
+      en: "Themes, camps, quotes — as PDF & PowerPoint.",
+    },
     icon: "DownloadIcon",
   },
   {
-    label: "Qualität & Rekrutierung",
+    label: { de: "Qualität & Rekrutierung", en: "Quality & Recruitment" },
     href: "/produkt#qualitaet",
-    desc: "Screening, Quoten, Panel-Anbindung, offene Links.",
+    desc: {
+      de: "Screening, Quoten, Panel-Anbindung, offene Links.",
+      en: "Screening, quotas, panel integration, open links.",
+    },
     icon: "ShieldCheckIcon",
   },
 ];
 
+export const getFeatureLeaves = (locale: Locale): NavLeaf[] =>
+  FEATURE_LEAF_DATA.map((f) => ({
+    label: localizedContent(locale, f.label),
+    href: localizeHref(locale, f.href),
+    desc: localizedContent(locale, f.desc),
+    icon: f.icon,
+  }));
+
 // ── 1) The header navigation (mega-menu + mobile accordion) ───────────────────
 
-export const PRIMARY_NAV: NavEntry[] = [
-  {
-    kind: "panel",
-    label: "Produkt",
-    href: "/produkt",
-    id: "produkt",
-    groups: [
-      {
-        heading: "Methoden",
-        items: moduleLeaves,
-        overview: { label: "Plattform-Überblick", href: "/produkt" },
-      },
-      {
-        heading: "Werkzeuge",
-        items: featureLeaves,
-      },
-    ],
-  },
-  {
-    kind: "panel",
-    label: "Branchen",
-    // No /branchen index page exists; the panel's destinations are the
-    // per-industry pages below. `href` is the section's semantic home — NOT
-    // rendered as a link by MegaMenu/MobileNav (the trigger is a <button>), so
-    // it points at the platform page as the closest hub.
-    href: "/produkt",
-    id: "branchen",
-    groups: [
-      {
-        heading: "Für wen Klymeo forscht",
-        items: industryLeaves,
-        // No "see all": there is no /branchen index page (plan O4).
-      },
-    ],
-  },
-  { kind: "flat", label: "Preise", href: "/preise" },
-  { kind: "flat", label: "Insights", href: "/insights" },
-];
+/**
+ * The header nav, localized in ONE place: labels/headings/overview via
+ * localizedContent, leaf labels+hrefs via the get*Leaves factories, top-level
+ * hrefs via localizeHref. The `de` branch reproduces the original PRIMARY_NAV
+ * verbatim (R1). Replaces the old `localizeNav` (which rewrote hrefs only) — the
+ * server header now calls this directly and hands the result to the islands.
+ */
+export function getPrimaryNav(locale: Locale): NavEntry[] {
+  return [
+    {
+      kind: "panel",
+      label: localizedContent(locale, { de: "Produkt", en: "Product" }),
+      href: localizeHref(locale, "/produkt"),
+      id: "produkt",
+      groups: [
+        {
+          heading: localizedContent(locale, { de: "Methoden", en: "Methods" }),
+          items: getModuleLeaves(locale),
+          overview: {
+            label: localizedContent(locale, {
+              de: "Plattform-Überblick",
+              en: "Platform overview",
+            }),
+            href: localizeHref(locale, "/produkt"),
+          },
+        },
+        {
+          heading: localizedContent(locale, { de: "Werkzeuge", en: "Tools" }),
+          items: getFeatureLeaves(locale),
+        },
+      ],
+    },
+    {
+      kind: "panel",
+      label: localizedContent(locale, { de: "Branchen", en: "Industries" }),
+      // No /branchen index page exists; the panel's destinations are the
+      // per-industry pages below. `href` is the section's semantic home — NOT
+      // rendered as a link by MegaMenu/MobileNav (the trigger is a <button>), so
+      // it points at the platform page as the closest hub.
+      href: localizeHref(locale, "/produkt"),
+      id: "branchen",
+      groups: [
+        {
+          heading: localizedContent(locale, {
+            de: "Für wen Klymeo forscht",
+            en: "Who Klymeo researches for",
+          }),
+          items: getIndustryLeaves(locale),
+          // No "see all": there is no /branchen index page (plan O4).
+        },
+      ],
+    },
+    {
+      kind: "flat",
+      label: localizedContent(locale, { de: "Preise", en: "Pricing" }),
+      href: localizeHref(locale, "/preise"),
+    },
+    {
+      kind: "flat",
+      label: localizedContent(locale, { de: "Insights", en: "Insights" }),
+      href: localizeHref(locale, "/insights"),
+    },
+  ];
+}
+
+/** Back-compat DE export (importers that don't pass a locale get German). */
+export const PRIMARY_NAV: NavEntry[] = getPrimaryNav(MARKETING_DEFAULT_LOCALE);
 
 // ── 2) The footer columns ─────────────────────────────────────────────────────
 
@@ -158,38 +227,75 @@ export type FooterColumn = { title: string; links: FooterLink[] };
 const toLinks = (leaves: NavLeaf[]): FooterLink[] =>
   leaves.map((l) => ({ label: l.label, href: l.href }));
 
-export const FOOTER_COLUMNS: FooterColumn[] = [
-  {
-    title: "Produkt",
-    links: [{ label: "Plattform", href: "/produkt" }, ...toLinks(moduleLeaves)],
-  },
-  {
-    title: "Werkzeuge",
-    links: toLinks(featureLeaves),
-  },
-  {
-    title: "Branchen",
-    links: toLinks(industryLeaves),
-  },
-  {
-    title: "Unternehmen",
-    links: [
-      { label: "Preise", href: "/preise" },
-      { label: "Insights", href: "/insights" },
-      { label: "Demo buchen", href: DEMO_BOOKING_URL },
-    ],
-  },
-  {
-    // DE-Pflicht: Impressum (verbindlicher Text, indexierbar) + Datenschutz/AGB
-    // (Gerüst mit Platzhaltern bis der Rechtstext von André/Anwalt landet).
-    title: "Rechtliches",
-    links: [
-      { label: "Impressum", href: "/impressum" },
-      { label: "Datenschutz", href: "/datenschutz" },
-      { label: "AGB", href: "/agb" },
-    ],
-  },
-];
+/**
+ * The footer columns, localized in ONE place: column titles + standalone link
+ * labels via localizedContent, the module/feature/industry links via the
+ * get*Leaves factories (label + href already localized), the remaining internal
+ * hrefs via localizeHref. The external "Demo buchen" Cal link passes through
+ * untouched. The `de` branch reproduces the original FOOTER_COLUMNS verbatim
+ * (R1). Replaces the old `localizeFooterColumns` (href-only rewrite).
+ */
+export function getFooterColumns(locale: Locale): FooterColumn[] {
+  return [
+    {
+      title: localizedContent(locale, { de: "Produkt", en: "Product" }),
+      links: [
+        {
+          label: localizedContent(locale, { de: "Plattform", en: "Platform" }),
+          href: localizeHref(locale, "/produkt"),
+        },
+        ...toLinks(getModuleLeaves(locale)),
+      ],
+    },
+    {
+      title: localizedContent(locale, { de: "Werkzeuge", en: "Tools" }),
+      links: toLinks(getFeatureLeaves(locale)),
+    },
+    {
+      title: localizedContent(locale, { de: "Branchen", en: "Industries" }),
+      links: toLinks(getIndustryLeaves(locale)),
+    },
+    {
+      title: localizedContent(locale, { de: "Unternehmen", en: "Company" }),
+      links: [
+        {
+          label: localizedContent(locale, { de: "Preise", en: "Pricing" }),
+          href: localizeHref(locale, "/preise"),
+        },
+        {
+          label: localizedContent(locale, { de: "Insights", en: "Insights" }),
+          href: localizeHref(locale, "/insights"),
+        },
+        {
+          label: localizedContent(locale, { de: "Demo buchen", en: "Book a demo" }),
+          href: localizeHref(locale, DEMO_BOOKING_URL),
+        },
+      ],
+    },
+    {
+      // DE-Pflicht: Impressum (verbindlicher Text, indexierbar) + Datenschutz/AGB
+      // (Gerüst mit Platzhaltern bis der Rechtstext von André/Anwalt landet).
+      title: localizedContent(locale, { de: "Rechtliches", en: "Legal" }),
+      links: [
+        {
+          label: localizedContent(locale, { de: "Impressum", en: "Imprint" }),
+          href: localizeHref(locale, "/impressum"),
+        },
+        {
+          label: localizedContent(locale, { de: "Datenschutz", en: "Privacy" }),
+          href: localizeHref(locale, "/datenschutz"),
+        },
+        {
+          label: localizedContent(locale, { de: "AGB", en: "Terms" }),
+          href: localizeHref(locale, "/agb"),
+        },
+      ],
+    },
+  ];
+}
+
+/** Back-compat DE export (importers that don't pass a locale get German). */
+export const FOOTER_COLUMNS: FooterColumn[] = getFooterColumns(MARKETING_DEFAULT_LOCALE);
 
 /**
  * Tailwind can only emit classes it sees as literal strings, so the footer's
@@ -216,61 +322,24 @@ export type SitemapRoute = { path: string; priority: number };
  * /datenschutz + /agb stay OUT while they hold placeholders — add them here once
  * the real legal text lands so the sitemap doesn't advertise placeholder pages.
  */
+// SITEMAP paths are locale-INVARIANT bare paths — sitemap.ts applies the /de
+// prefix itself (localizePath). Derive the method/industry routes from the bare
+// hrefs/slugs in the DE registries (getModules/getIndustries), NOT from the
+// get*Leaves factories (those localize hrefs to /de/…).
+const SITEMAP_MODULES = getModules(MARKETING_DEFAULT_LOCALE);
+const SITEMAP_INDUSTRIES = getIndustries(MARKETING_DEFAULT_LOCALE);
+
 export const SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/", priority: 1.0 },
   { path: "/produkt", priority: 0.8 },
   // The four method pages (/methoden/<slug>), derived from the same MODULES
-  // leaves the mega-menu + footer use — so each route is declared exactly once.
+  // the mega-menu + footer use — so each route is declared exactly once.
   // The Werkzeuge leaves are anchors on /produkt and deliberately NOT listed
   // (fragments don't belong in a sitemap).
-  ...moduleLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
+  ...SITEMAP_MODULES.map((m) => ({ path: m.href, priority: 0.7 })),
   { path: "/preise", priority: 0.8 },
-  ...industryLeaves.map((l) => ({ path: l.href, priority: 0.7 })),
+  ...SITEMAP_INDUSTRIES.map((i) => ({ path: `/branchen/${i.slug}`, priority: 0.7 })),
   { path: "/insights", priority: 0.6 },
   { path: "/demo", priority: 0.5 },
   { path: "/impressum", priority: 0.3 },
 ];
-
-// ── 4) Locale-aware link mapping (DE/EN routing) ──────────────────────────────
-
-/**
- * Return a copy of the header nav with every INTERNAL href localized to the
- * given locale (external / cross-root hrefs pass through untouched via
- * localizeHref). Pure data → the server header maps ONCE and hands the result
- * to the client islands (MegaMenu / MobileNav), which stay locale-agnostic and
- * just render whatever hrefs they receive. Labels are unchanged here — copy
- * extraction is a later etappe.
- */
-export function localizeNav(nav: NavEntry[], locale: Locale): NavEntry[] {
-  return nav.map((entry) => {
-    if (entry.kind === "flat") {
-      return { ...entry, href: localizeHref(locale, entry.href) };
-    }
-    return {
-      ...entry,
-      href: localizeHref(locale, entry.href),
-      groups: entry.groups.map((group) => ({
-        ...group,
-        items: group.items.map((leaf) => ({
-          ...leaf,
-          href: localizeHref(locale, leaf.href),
-        })),
-        overview: group.overview
-          ? { ...group.overview, href: localizeHref(locale, group.overview.href) }
-          : undefined,
-      })),
-    };
-  });
-}
-
-/** Footer columns with every internal link localized (the external "Demo buchen"
- *  Cal link passes through untouched via localizeHref). */
-export function localizeFooterColumns(
-  columns: FooterColumn[],
-  locale: Locale,
-): FooterColumn[] {
-  return columns.map((col) => ({
-    ...col,
-    links: col.links.map((l) => ({ ...l, href: localizeHref(locale, l.href) })),
-  }));
-}

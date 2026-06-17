@@ -12,8 +12,14 @@ import {
   type ExampleRow,
 } from "./module-template";
 import { CTASection } from "./CTASection";
-import { MODULES } from "./PlatformModules";
+import { getModules } from "./PlatformModules";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
+import {
+  localizedContent,
+  localizePath,
+  MARKETING_DEFAULT_LOCALE,
+  type Locale,
+} from "@/i18n/marketing-locale";
 import {
   LayersIcon,
   RadarIcon,
@@ -59,44 +65,83 @@ import {
 // WHAT is probed; the engine that condenses the conversations is the same one
 // for every method. Highlight-Reels stays "Bald" (the conservative claim);
 // PDF & PowerPoint export are both real (synthesis/{pdf,pptx} routes).
-const SYNTHESIS_PROOFS: Proof[] = [
+type ProofData = {
+  title: { de: string; en: string };
+  body: { de: string; en: string };
+  Icon: Proof["Icon"];
+  tag: Proof["tag"];
+};
+
+const SYNTHESIS_PROOF_DATA: ProofData[] = [
   {
-    title: "Automatische Verdichtung",
-    body: "Themen, Lager und Originalzitate über alle Interviews hinweg, ohne manuelles Tagging.",
+    title: { de: "Automatische Verdichtung", en: "Automatic distillation" },
+    body: {
+      de: "Themen, Lager und Originalzitate über alle Interviews hinweg, ohne manuelles Tagging.",
+      en: "Themes, camps and verbatim quotes across all interviews, without manual tagging.",
+    },
     Icon: LayersIcon,
     tag: "Live",
   },
   {
-    title: "Studienübergreifende Muster",
-    body: "Erkenne, was sich über mehrere Studien hinweg wiederholt — deterministisch gezählt, jede Zahl je Studie mit Zitat belegt.",
+    title: { de: "Studienübergreifende Muster", en: "Cross-study patterns" },
+    body: {
+      de: "Erkenne, was sich über mehrere Studien hinweg wiederholt — deterministisch gezählt, jede Zahl je Studie mit Zitat belegt.",
+      en: "Spot what recurs across multiple studies — deterministically counted, every number backed by a quote per study.",
+    },
     Icon: RadarIcon,
     tag: "Live",
   },
   {
-    title: "Mit den Daten chatten",
-    body: "Stell dem gesamten Studien-Korpus Rückfragen und bekomme belegte Antworten.",
+    title: { de: "Mit den Daten chatten", en: "Chat with your data" },
+    body: {
+      de: "Stell dem gesamten Studien-Korpus Rückfragen und bekomme belegte Antworten.",
+      en: "Ask follow-up questions of the entire study corpus and get evidenced answers.",
+    },
     Icon: CpuIcon,
     tag: "Live",
   },
   {
-    title: "Teilbare Ergebnis-Links",
-    body: "Synthese per Link an Stakeholder, auch extern, im eigenen Branding.",
+    title: { de: "Teilbare Ergebnis-Links", en: "Shareable result links" },
+    body: {
+      de: "Synthese per Link an Stakeholder, auch extern, im eigenen Branding.",
+      en: "Share the synthesis with stakeholders by link, including externally, in your own branding.",
+    },
     Icon: NetworkIcon,
     tag: "Live",
   },
   {
-    title: "Export als PDF & PowerPoint",
-    body: "Ein klarer Report und ein fertiges Folien-Deck — im eigenen Branding, bereit fürs nächste Meeting.",
+    title: { de: "Export als PDF & PowerPoint", en: "Export as PDF & PowerPoint" },
+    body: {
+      de: "Ein klarer Report und ein fertiges Folien-Deck — im eigenen Branding, bereit fürs nächste Meeting.",
+      en: "A clear report and a ready-made slide deck — in your own branding, ready for the next meeting.",
+    },
     Icon: FileCheckIcon,
     tag: "Live",
   },
   {
-    title: "Highlight-Reels",
-    body: "Die aussagekräftigsten Momente als teilbarer Zusammenschnitt.",
+    title: { de: "Highlight-Reels", en: "Highlight reels" },
+    body: {
+      de: "Die aussagekräftigsten Momente als teilbarer Zusammenschnitt.",
+      en: "The most telling moments as a shareable cut.",
+    },
     Icon: TargetIcon,
     tag: "Bald",
   },
 ];
+
+/** The shared synthesis engine, resolved per locale. `de` returns the originals
+ *  verbatim (R1: /de byte-identical). */
+export function getSynthesisProofs(locale: Locale): Proof[] {
+  return SYNTHESIS_PROOF_DATA.map((p) => ({
+    title: localizedContent(locale, p.title),
+    body: localizedContent(locale, p.body),
+    Icon: p.Icon,
+    tag: p.tag,
+  }));
+}
+
+/** Back-compat DE export for existing importers. */
+export const SYNTHESIS_PROOFS: Proof[] = getSynthesisProofs(MARKETING_DEFAULT_LOCALE);
 
 // ── Per-method content contract ───────────────────────────────────────────────
 export type MethodContent = {
@@ -144,16 +189,18 @@ export type MethodContent = {
 function MethodStatus({
   status,
   children,
+  lang = MARKETING_DEFAULT_LOCALE,
 }: {
   status: "Live" | "Bald";
   children: ReactNode;
+  lang?: Locale;
 }) {
   return (
     <div className="border-y border-neutral-200 bg-warm">
       <Container>
         <Reveal y={0}>
           <div className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:gap-4">
-            <StatusTag status={status} />
+            <StatusTag status={status} lang={lang} />
             <p className="text-sm leading-relaxed text-neutral-700">{children}</p>
           </div>
         </Reveal>
@@ -215,20 +262,33 @@ function Callout({ strong, body }: { strong: string; body: ReactNode }) {
  * a link back to the Market-Research engine that powers the synthesis. The
  * sibling cards carry their honest Live/Bald pill. Mirrors IndustryGrid/RoleGrid.
  */
-function MethodGrid({ current }: { current: string }) {
+function MethodGrid({
+  current,
+  locale = MARKETING_DEFAULT_LOCALE,
+}: {
+  current: string;
+  locale?: Locale;
+}) {
+  // The href in MODULE data is locale-INVARIANT (/methoden/<slug>); filter on
+  // that bare href, then localize only the RENDERED href via localizePath.
   const currentHref = `/methoden/${current}`;
-  const others = MODULES.filter((m) => m.href !== currentHref);
+  const others = getModules(locale).filter((m) => m.href !== currentHref);
   return (
     <Section tone="muted">
       <Container>
         <Reveal>
           <div className="flex flex-col gap-6">
-            <Eyebrow>Weitere Methoden</Eyebrow>
+            <Eyebrow>
+              {localizedContent(locale, {
+                de: "Weitere Methoden",
+                en: "More methods",
+              })}
+            </Eyebrow>
             <div className="grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-4">
               {others.map((m) => (
                 <Link
                   key={m.href}
-                  href={m.href}
+                  href={localizePath(locale, m.href)}
                   className="group flex h-full flex-col gap-3 bg-neutral-0 p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                 >
                   <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-neutral-900">
@@ -240,18 +300,21 @@ function MethodGrid({ current }: { current: string }) {
                       →
                     </span>
                   </div>
-                  <StatusTag status={m.status} />
+                  <StatusTag status={m.status} lang={locale} />
                   <p className="text-sm leading-relaxed text-neutral-500">
                     {m.blurb}
                   </p>
                 </Link>
               ))}
               <Link
-                href="/produkt"
+                href={localizePath(locale, "/produkt")}
                 className="group flex h-full flex-col gap-3 bg-neutral-0 p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
               >
                 <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-primary-700">
-                  Die Engine dahinter
+                  {localizedContent(locale, {
+                    de: "Die Engine dahinter",
+                    en: "The engine behind it",
+                  })}
                   <span
                     aria-hidden
                     className="transition-transform group-hover:translate-x-0.5"
@@ -260,9 +323,10 @@ function MethodGrid({ current }: { current: string }) {
                   </span>
                 </div>
                 <p className="text-sm leading-relaxed text-neutral-500">
-                  Voice-Agent, Stimulus, Synthese mit PDF- & PowerPoint-Export
-                  und die deterministische Cross-Study-Zählung — die Plattform
-                  hinter allen Methoden.
+                  {localizedContent(locale, {
+                    de: "Voice-Agent, Stimulus, Synthese mit PDF- & PowerPoint-Export und die deterministische Cross-Study-Zählung — die Plattform hinter allen Methoden.",
+                    en: "Voice Agent, Stimulus, synthesis with PDF & PowerPoint export and deterministic cross-study counting — the platform behind every method.",
+                  })}
                 </p>
               </Link>
             </div>
@@ -274,20 +338,38 @@ function MethodGrid({ current }: { current: string }) {
 }
 
 // ── The full method page ──────────────────────────────────────────────────────
-export function MethodPage({ content }: { content: MethodContent }) {
+export function MethodPage({
+  content,
+  locale = MARKETING_DEFAULT_LOCALE,
+}: {
+  content: MethodContent;
+  locale?: Locale;
+}) {
+  const demoLabel = localizedContent(locale, {
+    de: "Demo buchen →",
+    en: "Book a demo →",
+  });
+  const platformLabel = localizedContent(locale, {
+    de: "Plattform ansehen",
+    en: "See the platform",
+  });
+  const platformHref = localizePath(locale, "/produkt");
   return (
     <>
       <ModuleHero
+        locale={locale}
         eyebrow={content.eyebrow}
         title={content.heroTitle}
         subhead={content.heroSubhead}
         audience={content.audience}
-        primary={{ label: "Demo buchen →", href: DEMO_BOOKING_URL }}
-        secondary={{ label: "Plattform ansehen", href: "/produkt" }}
+        primary={{ label: demoLabel, href: DEMO_BOOKING_URL }}
+        secondary={{ label: platformLabel, href: platformHref }}
       />
 
       {/* Honest availability — stated immediately under the hero. */}
-      <MethodStatus status={content.status}>{content.statusNote}</MethodStatus>
+      <MethodStatus status={content.status} lang={locale}>
+        {content.statusNote}
+      </MethodStatus>
 
       {/* "Wofür" — der Anlass. The red card makes the cost of survey-/dashboard-
           only visible (sachlich, not fear-framed). */}
@@ -310,7 +392,11 @@ export function MethodPage({ content }: { content: MethodContent }) {
 
       {/* "Wie Klymeo fragt" — the methodical core, the page's reason to exist. */}
       <HowItWorks
-        eyebrow="Wie Klymeo fragt"
+        locale={locale}
+        eyebrow={localizedContent(locale, {
+          de: "Wie Klymeo fragt",
+          en: "How Klymeo asks",
+        })}
         title={content.how.title}
         lead={content.how.lead}
         steps={content.how.steps}
@@ -340,18 +426,26 @@ export function MethodPage({ content }: { content: MethodContent }) {
 
       {/* "Was rauskommt", konkret — the shared synthesis engine, same Live/Bald. */}
       <ProofPoints
-        eyebrow="Belegt, nicht geraten"
-        title={<>Was aus den Gesprächen wird.</>}
+        locale={locale}
+        eyebrow={localizedContent(locale, {
+          de: "Belegt, nicht geraten",
+          en: "Evidenced, not guessed",
+        })}
+        title={localizedContent(locale, {
+          de: <>Was aus den Gesprächen wird.</>,
+          en: <>What the conversations become.</>,
+        })}
         lead={content.proofLead}
-        points={SYNTHESIS_PROOFS}
+        points={getSynthesisProofs(locale)}
       />
 
-      <MethodGrid current={content.slug} />
+      <MethodGrid current={content.slug} locale={locale} />
 
       <CTASection
+        lang={locale}
         title={content.cta.title}
         lead={content.cta.lead}
-        secondary={{ label: "Plattform ansehen", href: "/produkt" }}
+        secondary={{ label: platformLabel, href: platformHref }}
       />
     </>
   );

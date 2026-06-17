@@ -6,8 +6,9 @@ import { MegaMenu } from "./MegaMenu";
 import { MobileNav } from "./MobileNav";
 import { MarketingLanguageSwitcher } from "./MarketingLanguageSwitcher";
 import { StudioHeaderBar } from "./studio/StudioHeaderBar";
-import { PRIMARY_NAV, localizeNav } from "./nav-data";
+import { getPrimaryNav } from "./nav-data";
 import {
+  localizedContent,
   localizePath,
   MARKETING_DEFAULT_LOCALE,
   type Locale,
@@ -29,15 +30,31 @@ export function MarketingHeader({
   // (outside the [lang] tree) reuse this chrome and fall back to German.
   lang?: Locale;
 }) {
-  // Localize the nav hrefs server-side ONCE; the client islands (MegaMenu /
-  // MobileNav) stay locale-agnostic and just render what they receive.
-  const nav = localizeNav(PRIMARY_NAV, lang);
+  // Localize nav (labels + hrefs) server-side ONCE; the client islands (MegaMenu
+  // / MobileNav) stay locale-agnostic and just render what they receive. Chrome
+  // labels (aria-labels + the demo CTA) are resolved here and passed down as
+  // props so the islands never need the locale themselves.
+  const nav = getPrimaryNav(lang);
+  const demoLabel = localizedContent(lang, { de: "Demo buchen", en: "Book a demo" });
+  const mainNavLabel = localizedContent(lang, {
+    de: "Hauptnavigation",
+    en: "Main navigation",
+  });
+  const mobileNavLabel = localizedContent(lang, {
+    de: "Mobile-Navigation",
+    en: "Mobile navigation",
+  });
+  const openMenuLabel = localizedContent(lang, { de: "Menü öffnen", en: "Open menu" });
+  const closeMenuLabel = localizedContent(lang, {
+    de: "Menü schließen",
+    en: "Close menu",
+  });
   return (
     <StudioHeaderBar>
       <Container className="flex h-16 items-center justify-between gap-4">
         <Wordmark href={localizePath(lang, "/")} />
 
-        <MegaMenu nav={nav} />
+        <MegaMenu nav={nav} mainNav={mainNavLabel} />
 
         <div className="hidden items-center gap-3 md:flex">
           <MarketingLanguageSwitcher />
@@ -49,11 +66,17 @@ export function MarketingHeader({
             Log in
           </Link>
           <CtaLink href={DEMO_BOOKING_URL} variant="primary">
-            Demo buchen
+            {demoLabel}
           </CtaLink>
         </div>
 
-        <MobileNav nav={nav} />
+        <MobileNav
+          nav={nav}
+          mobileNav={mobileNavLabel}
+          openMenu={openMenuLabel}
+          closeMenu={closeMenuLabel}
+          demo={demoLabel}
+        />
       </Container>
     </StudioHeaderBar>
   );

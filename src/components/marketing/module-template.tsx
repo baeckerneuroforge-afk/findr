@@ -10,6 +10,11 @@ import { CtaLink } from "./CtaLink";
 import { Reveal } from "./Reveal";
 import { HeroAtmosphere } from "./HeroAtmosphere";
 import { HowItWorksTimeline, type HowStep } from "./HowItWorksTimeline";
+import {
+  localizedContent,
+  MARKETING_DEFAULT_LOCALE,
+  type Locale,
+} from "@/i18n/marketing-locale";
 
 export type { HowStep };
 
@@ -25,6 +30,7 @@ type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
 // ── ModuleHero ──────────────────────────────────────────────────────────────
 export function ModuleHero({
+  locale = MARKETING_DEFAULT_LOCALE,
   eyebrow,
   title,
   subhead,
@@ -32,6 +38,7 @@ export function ModuleHero({
   primary,
   secondary,
 }: {
+  locale?: Locale;
   eyebrow: ReactNode;
   title: ReactNode;
   subhead: ReactNode;
@@ -55,7 +62,7 @@ export function ModuleHero({
             {audience ? (
               <p className="text-sm text-neutral-700">
                 <span className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-neutral-500">
-                  Passt zu:
+                  {localizedContent(locale, { de: "Passt zu:", en: "Best for:" })}
                 </span>{" "}
                 {audience}
               </p>
@@ -81,12 +88,14 @@ export function ModuleHero({
 // `HowStep` is defined in (and re-exported from) ./HowItWorksTimeline.
 
 export function HowItWorks({
-  eyebrow = "So funktioniert's",
+  locale = MARKETING_DEFAULT_LOCALE,
+  eyebrow = localizedContent(locale, { de: "So funktioniert's", en: "How it works" }),
   title,
   lead,
   steps,
   tone = "default",
 }: {
+  locale?: Locale;
   eyebrow?: ReactNode;
   title: ReactNode;
   lead?: ReactNode;
@@ -172,11 +181,16 @@ export type Proof = {
 };
 
 export function ProofPoints({
-  eyebrow = "Belegt, nicht geraten",
+  locale = MARKETING_DEFAULT_LOCALE,
+  eyebrow = localizedContent(locale, {
+    de: "Belegt, nicht geraten",
+    en: "Evidenced, not guessed",
+  }),
   title,
   lead,
   points,
 }: {
+  locale?: Locale;
   eyebrow?: ReactNode;
   title: ReactNode;
   lead?: ReactNode;
@@ -201,7 +215,7 @@ export function ProofPoints({
             >
               <div className="flex items-center justify-between">
                 <p.Icon className="h-6 w-6 text-primary-600" />
-                {p.tag ? <StatusTag status={p.tag} /> : null}
+                {p.tag ? <StatusTag status={p.tag} lang={locale} /> : null}
               </div>
               <h3 className="font-marketing text-lg font-semibold leading-snug text-neutral-900">
                 {p.title}
