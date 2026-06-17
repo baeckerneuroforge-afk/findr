@@ -108,7 +108,6 @@ type HomeContent = {
   stamps: { top: string; em: string; r: string; rec?: boolean }[];
   finaleHeadline: ReactNode;
   finaleCta: ReactNode;
-  finaleNote: ReactNode;
 };
 
 const CONTENT_DE: HomeContent = {
@@ -353,7 +352,6 @@ const CONTENT_DE: HomeContent = {
       Demo buchen
     </>
   ),
-  finaleNote: <>14 Tage gratis · ohne Kreditkarte</>,
 };
 
 export default async function HomePage({
@@ -613,9 +611,6 @@ export default async function HomePage({
             <CtaLink href={DEMO_BOOKING_URL} variant="primary" size="lg" className="magnetic">
               {c.finaleCta}
             </CtaLink>
-            <span className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-anchor-foreground/60">
-              {c.finaleNote}
-            </span>
           </Rv>
         </div>
       </section>
