@@ -24,6 +24,7 @@ import {
   CheckIcon,
 } from "@/components/marketing/icons";
 import { ogDefaults } from "@/lib/marketing/seo";
+import { localizedContent } from "@/i18n/marketing-locale";
 import type { ComponentType, SVGProps } from "react";
 
 const PATH = "/preise";
@@ -43,7 +44,7 @@ type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 // ── Sektion 2: Was den Preis bestimmt ──────────────────────────────────────
 // Transparenz statt Zahl: die vier Stellschrauben, aus denen sich der individuelle
 // Preis ergibt. Bewusst Fließtext, kein Bullet-Stakkato.
-const FACTORS: { Icon: IconType; title: string; body: string }[] = [
+const FACTORS_DE: { Icon: IconType; title: string; body: string }[] = [
   {
     Icon: LayersIcon,
     title: "Methoden",
@@ -77,7 +78,7 @@ const FACTORS: { Icon: IconType; title: string; body: string }[] = [
 // TODO D3 (André, vor Go-live): „DSGVO-konform“ / „EU AI Act“ sind werbliche
 // Aussagen (UWG) — belegen oder entschärfen. Verbatim aus TrustBar/Footer, keine
 // erfundenen Zertifikate oder Siegel.
-const ALWAYS_INCLUDED: { Icon: IconType; label: string; sub: string }[] = [
+const ALWAYS_INCLUDED_DE: { Icon: IconType; label: string; sub: string }[] = [
   {
     Icon: MapPinIcon,
     label: "In Deutschland gebaut",
@@ -112,7 +113,7 @@ const ALWAYS_INCLUDED: { Icon: IconType; label: string; sub: string }[] = [
 
 // FAQ — nimmt die typische Custom-Pricing-Reibung vorab (Outset-Stil). Antworten
 // sind reiner Text, damit dieselbe Quelle die FAQPage-JSON-LD speist.
-const FAQ_ITEMS: { q: string; a: string }[] = [
+const FAQ_ITEMS_DE: { q: string; a: string }[] = [
   {
     q: "Warum nennt ihr keine festen Preise?",
     a: "Weil der passende Preis von den Methoden, dem Umfang und der Begleitung abhängt, die dein Team wirklich braucht. Ein Schubladen-Tarif würde die meisten Teams entweder über- oder unterversorgen. Im Demo-Call schnüren wir stattdessen genau das, was zu deiner Situation passt — transparent und nachvollziehbar.",
@@ -142,16 +143,80 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
 const FAQPAGE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  mainEntity: FAQ_ITEMS.map((it) => ({
+  mainEntity: FAQ_ITEMS_DE.map((it) => ({
     "@type": "Question",
     name: it.q,
     acceptedAnswer: { "@type": "Answer", text: it.a },
   })),
 };
 
-const faqItems: FaqItem[] = FAQ_ITEMS;
+// ── Seiten-Copy (DE). EN noch nicht getextet → DE-Fallback (EN=DE).
+// FAQ_ITEMS_DE bleibt die EINE deutsche Quelle und speist sowohl die
+// FAQPage-JSON-LD oben als auch die <FAQ items>-Prop unten.
+const CONTENT_DE = {
+  // 1 ── Hero
+  heroEyebrow: "Preise",
+  heroTitle:
+    "Du zahlst für das, was du nutzt — nicht für ein Paket, das nicht passt.",
+  heroLead:
+    "Klymeo passt sich an dein Team, die Methoden und den Umfang an. Den konkreten Preis legen wir gemeinsam im Gespräch fest — transparent, ohne Schubladen-Tarif.",
+  heroCtaPrimary: "Demo buchen →",
+  heroCtaSecondary: "Plattform ansehen",
 
-export default function PreisePage() {
+  // 2 ── Wie Custom-Pricing funktioniert
+  factorsEyebrow: "So funktioniert unser Pricing",
+  factorsTitle: "Vier Faktoren bestimmen deinen Preis.",
+  factorsLead:
+    "Custom heißt nicht intransparent. Der Preis ergibt sich aus dem, was du tatsächlich nutzt — und genau diese vier Stellschrauben gehen wir im Demo-Call gemeinsam durch.",
+  factors: FACTORS_DE,
+
+  // 3 ── Methoden-Baukasten (PlatformModules)
+  modulesEyebrow: "Der Baukasten",
+  modulesTitle: "Starte mit einer Methode. Nimm die anderen dazu.",
+  modulesLead:
+    "Vier Methoden auf einer gemeinsamen KI-Engine. Du musst nicht alles auf einmal nehmen — wähl, was heute zählt, und erweitere, wenn dein Team so weit ist.",
+
+  // 4 ── Was immer dabei ist
+  includedEyebrow: "In jedem Konto",
+  includedTitle: "Was bei jedem Klymeo-Konto dabei ist.",
+  includedLead:
+    "Unabhängig davon, welche Methoden du wählst: Diese Grundlagen gelten für jeden Account — die DACH-Souveränität, auf die es in Europa ankommt, und das Beleg-Versprechen, das durch jede Methode läuft.",
+  included: ALWAYS_INCLUDED_DE,
+  includedFootnote: (
+    <>
+      Du willst Klymeo erst an deinen eigenen Gesprächen sehen? Ein begleiteter
+      Einstieg ist möglich — den passenden Rahmen besprechen wir im Demo-Call.
+    </>
+  ),
+
+  // 6 ── FAQ
+  faqEyebrow: "Häufige Fragen",
+  faqTitle: "Alles, was du zum Pricing wissen willst.",
+  faqLead:
+    "Die Fragen, die vor einem Custom-Angebot am häufigsten kommen — ehrlich beantwortet.",
+  faqItems: FAQ_ITEMS_DE as FaqItem[],
+
+  // 6 ── Abschluss-CTA (Twilight)
+  ctaEyebrow: "Loslegen",
+  ctaTitle: "Sprich mit uns über deinen Umfang.",
+  ctaLead: (
+    <>
+      In einem kurzen Gespräch klären wir, welche Methoden, welcher Umfang und
+      welche Begleitung zu deinem Team passen — und du siehst, was Klymeo an
+      deinen echten Gesprächen leistet.
+    </>
+  ),
+  ctaPrimary: "Demo buchen →",
+  ctaSecondary: "Plattform ansehen",
+};
+
+export default async function PreisePage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+  const c = localizedContent(lang, { de: CONTENT_DE });
   return (
     <>
       <JsonLd data={FAQPAGE_JSONLD} />
@@ -163,18 +228,18 @@ export default function PreisePage() {
           <Reveal>
             <SectionHeading
               as="h1"
-              eyebrow="Preise"
-              title="Du zahlst für das, was du nutzt — nicht für ein Paket, das nicht passt."
-              lead="Klymeo passt sich an dein Team, die Methoden und den Umfang an. Den konkreten Preis legen wir gemeinsam im Gespräch fest — transparent, ohne Schubladen-Tarif."
+              eyebrow={c.heroEyebrow}
+              title={c.heroTitle}
+              lead={c.heroLead}
             />
           </Reveal>
           <Reveal>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <CtaLink href={DEMO_BOOKING_URL} variant="primary" size="lg">
-                Demo buchen →
+                {c.heroCtaPrimary}
               </CtaLink>
               <CtaLink href="/produkt" variant="secondary" size="lg">
-                Plattform ansehen
+                {c.heroCtaSecondary}
               </CtaLink>
             </div>
           </Reveal>
@@ -186,13 +251,13 @@ export default function PreisePage() {
         <Container>
           <Reveal>
             <SectionHeading
-              eyebrow="So funktioniert unser Pricing"
-              title="Vier Faktoren bestimmen deinen Preis."
-              lead="Custom heißt nicht intransparent. Der Preis ergibt sich aus dem, was du tatsächlich nutzt — und genau diese vier Stellschrauben gehen wir im Demo-Call gemeinsam durch."
+              eyebrow={c.factorsEyebrow}
+              title={c.factorsTitle}
+              lead={c.factorsLead}
             />
           </Reveal>
           <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-4">
-            {FACTORS.map((f, i) => (
+            {c.factors.map((f, i) => (
               <Reveal
                 key={f.title}
                 y={0}
@@ -214,9 +279,9 @@ export default function PreisePage() {
 
       {/* 3 ── METHODEN-BAUKASTEN (kanonische PlatformModules, einfarbige Headline) */}
       <PlatformModules
-        eyebrow="Der Baukasten"
-        title="Starte mit einer Methode. Nimm die anderen dazu."
-        lead="Vier Methoden auf einer gemeinsamen KI-Engine. Du musst nicht alles auf einmal nehmen — wähl, was heute zählt, und erweitere, wenn dein Team so weit ist."
+        eyebrow={c.modulesEyebrow}
+        title={c.modulesTitle}
+        lead={c.modulesLead}
       />
 
       {/* 4 ── WAS IMMER DABEI IST ───────────────────────────────────────────── */}
@@ -224,13 +289,13 @@ export default function PreisePage() {
         <Container>
           <Reveal>
             <SectionHeading
-              eyebrow="In jedem Konto"
-              title="Was bei jedem Klymeo-Konto dabei ist."
-              lead="Unabhängig davon, welche Methoden du wählst: Diese Grundlagen gelten für jeden Account — die DACH-Souveränität, auf die es in Europa ankommt, und das Beleg-Versprechen, das durch jede Methode läuft."
+              eyebrow={c.includedEyebrow}
+              title={c.includedTitle}
+              lead={c.includedLead}
             />
           </Reveal>
           <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-3">
-            {ALWAYS_INCLUDED.map((a, i) => (
+            {c.included.map((a, i) => (
               <Reveal
                 key={a.label}
                 y={0}
@@ -253,9 +318,7 @@ export default function PreisePage() {
           </div>
           <Reveal>
             <p className="mx-auto mt-10 max-w-2xl text-center text-[14px] leading-relaxed text-neutral-500">
-              Du willst Klymeo erst an deinen eigenen Gesprächen sehen? Ein
-              begleiteter Einstieg ist möglich — den passenden Rahmen besprechen
-              wir im Demo-Call.
+              {c.includedFootnote}
             </p>
           </Reveal>
         </Container>
@@ -263,10 +326,10 @@ export default function PreisePage() {
 
       {/* 6 ── FAQ ──────────────────────────────────────────────────────────── */}
       <FAQ
-        eyebrow="Häufige Fragen"
-        title="Alles, was du zum Pricing wissen willst."
-        lead="Die Fragen, die vor einem Custom-Angebot am häufigsten kommen — ehrlich beantwortet."
-        items={faqItems}
+        eyebrow={c.faqEyebrow}
+        title={c.faqTitle}
+        lead={c.faqLead}
+        items={c.faqItems}
         tone="muted"
       />
 
@@ -277,25 +340,23 @@ export default function PreisePage() {
             <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 text-center">
               <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-primary-300">
                 <span aria-hidden className="h-px w-6 bg-primary-400" />
-                Loslegen
+                {c.ctaEyebrow}
               </span>
               <h2 className="font-marketing text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
-                Sprich mit uns über deinen Umfang.
+                {c.ctaTitle}
               </h2>
               <p className="max-w-xl text-[17px] leading-relaxed text-neutral-300">
-                In einem kurzen Gespräch klären wir, welche Methoden, welcher Umfang
-                und welche Begleitung zu deinem Team passen — und du siehst, was
-                Klymeo an deinen echten Gesprächen leistet.
+                {c.ctaLead}
               </p>
               <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
                 <CtaLink href={DEMO_BOOKING_URL} variant="secondary" size="lg">
-                  Demo buchen →
+                  {c.ctaPrimary}
                 </CtaLink>
                 <Link
                   href="/produkt"
                   className="inline-flex h-12 items-center justify-center gap-2 rounded border border-white/25 px-6 text-[15px] font-medium text-neutral-300 transition-colors hover:border-white/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-anchor"
                 >
-                  Plattform ansehen
+                  {c.ctaSecondary}
                 </Link>
               </div>
             </div>

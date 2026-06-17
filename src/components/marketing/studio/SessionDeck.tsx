@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  localizedContent,
+  MARKETING_DEFAULT_LOCALE,
+  type Locale,
+} from "@/i18n/marketing-locale";
 
 /**
  * „Die Session“ — das Herzstück der Studio-Homepage: ein Interview, das sich
@@ -132,7 +137,7 @@ const SYNTHESIS = {
   realitaet: "Der Look überzeugt — fehlende Preis-Sichtbarkeit ist das eigentliche Conversion-Risiko.",
 };
 
-// Stimmpegel-Höhen (Theater, kein echtes Audio) — wie in K.04.
+// Stimmpegel-Höhen (Theater, kein echtes Audio) — wie in K.04. Sprachneutral.
 const VOICE_BARS = [38, 62, 24, 78, 46, 90, 30, 70, 52, 84, 36, 58, 26, 66];
 
 type Phase = "idle" | "playing" | "done";
@@ -147,9 +152,51 @@ const ORB_LABEL: Record<OrbState, string> = {
   done: "Abgeschlossen",
 };
 
+// German copy bundle. EN noch nicht getextet → DE-Fallback (EN=DE). Die
+// Demo-Objekte (STIMULUS/TURNS/FINDINGS/ANALYSIS/SYNTHESIS/ORB_LABEL) sind
+// die übersetzbare Inszenierung; die Schema-Codes (BRAND_PERCEPTION, …) und
+// alle Nicht-Text-Felder (who-Logik via f/finding/cls/k) bleiben unverändert.
+// TURNS/FINDINGS oben bleiben zusätzlich Modul-Konstanten, weil Längen-/
+// Index-Logik (turnIndexOfFinding, useState-Initialwerte) struktur- und damit
+// sprachneutral ist.
+const CONTENT_DE = {
+  stimulus: STIMULUS,
+  turns: TURNS,
+  findings: FINDINGS,
+  analysis: ANALYSIS,
+  synthesis: SYNTHESIS,
+  orbLabel: ORB_LABEL,
+  // Lose UI-Strings rund um die Bühne.
+  recLabel: "Session 001",
+  conceptTag: "Konzept-Test",
+  modeGroupLabel: "Interview-Modus",
+  modeVoice: "Voice",
+  modeText: "Text",
+  voiceInterviewLabel: "Sprach-Interview",
+  stimDesc: "Konzept-Entwurf, live im Interview gezeigt.",
+  stimPlaceholder: "Material wird im Gespräch eingeblendet …",
+  textInputPlaceholder: "Antwort eintippen …",
+  playIdle: "▶  Session abspielen",
+  playPlaying: "●  Aufnahme läuft …",
+  playReplay: "↺  Nochmal abspielen",
+  skip: "Überspringen ⏭",
+  findingsTag: "Befunde — live mitgeschnitten",
+  jumpLabel: "↧ zur Stelle",
+  analysisName: "Stimulus-Analyse",
+  analysisSub: "Was die KI im Bild sah · 6 Felder",
+  verdiktTag: "Synthese-Fazit",
+  verdiktAssumption: "Annahme",
+  verdiktBrand: "Klymeo",
+};
+
 const turnIndexOfFinding = (k: number) => TURNS.findIndex((t) => t.finding === k);
 
-export function SessionDeck() {
+export function SessionDeck({
+  lang = MARKETING_DEFAULT_LOCALE,
+}: {
+  lang?: Locale;
+}) {
+  const c = localizedContent(lang, { de: CONTENT_DE });
   // typed[i]: -1 = Zeile noch nicht da, sonst Anzahl getippter Zeichen.
   const [typed, setTyped] = useState<number[]>(() => TURNS.map(() => -1));
   const [stamped, setStamped] = useState<boolean[]>(() => TURNS.map(() => false));
@@ -335,19 +382,19 @@ export function SessionDeck() {
         <div className="flex items-center gap-3.5">
           <span className="st-deck-rec">
             <b aria-hidden />
-            Session 001
+            {c.recLabel}
           </span>
-          <span className="st-tag">Konzept-Test</span>
+          <span className="st-tag">{c.conceptTag}</span>
         </div>
         <div className="flex items-center gap-3.5">
-          <div className="st-modetabs" role="group" aria-label="Interview-Modus">
+          <div className="st-modetabs" role="group" aria-label={c.modeGroupLabel}>
             <button
               type="button"
               className="st-modetab"
               aria-pressed={mode === "voice"}
               onClick={() => setMode("voice")}
             >
-              Voice
+              {c.modeVoice}
             </button>
             <button
               type="button"
@@ -355,7 +402,7 @@ export function SessionDeck() {
               aria-pressed={mode === "text"}
               onClick={() => setMode("text")}
             >
-              Text
+              {c.modeText}
             </button>
           </div>
           <span className="st-deck-tc">{tc}</span>
@@ -372,8 +419,8 @@ export function SessionDeck() {
                 <span className="st-orb-core" />
               </div>
               <div className="st-orbstatus">
-                <b>{ORB_LABEL[orbState]}</b>
-                <span>Sprach-Interview</span>
+                <b>{c.orbLabel[orbState]}</b>
+                <span>{c.voiceInterviewLabel}</span>
               </div>
               <div className="st-voicebars" aria-hidden>
                 {VOICE_BARS.map((h, i) => (
@@ -386,27 +433,27 @@ export function SessionDeck() {
           {/* Stimulus: Entwurf, im Gespräch eingeblendet */}
           <div className="st-stimstage">
             {revealed ? (
-              <div className="st-stimcard show" aria-label={STIMULUS.alt}>
+              <div className="st-stimcard show" aria-label={c.stimulus.alt}>
                 <div className="st-packshot" aria-hidden>
-                  <span className="st-packshot-brand">{STIMULUS.brand}</span>
+                  <span className="st-packshot-brand">{c.stimulus.brand}</span>
                   <span className="st-packshot-rule" />
-                  <span className="st-packshot-sub">{STIMULUS.sub}</span>
+                  <span className="st-packshot-sub">{c.stimulus.sub}</span>
                 </div>
                 <div className="st-stimmeta">
-                  <span className="st-tag">{STIMULUS.tag}</span>
-                  <p>Konzept-Entwurf, live im Interview gezeigt.</p>
+                  <span className="st-tag">{c.stimulus.tag}</span>
+                  <p>{c.stimDesc}</p>
                 </div>
               </div>
             ) : (
               <div className="st-stim-ph" aria-hidden>
-                Material wird im Gespräch eingeblendet …
+                {c.stimPlaceholder}
               </div>
             )}
           </div>
 
           {/* Transkript / Chat */}
           <div className="st-stream" aria-live="polite">
-            {TURNS.map((line, li) =>
+            {c.turns.map((line, li) =>
               typed[li] > -1 ? (
                 <div
                   key={li}
@@ -424,11 +471,11 @@ export function SessionDeck() {
                   </p>
                   {line.finding ? (
                     <span
-                      className={`st-stamp ${FINDINGS.find((f) => f.k === line.finding)?.cls ?? ""} ${
+                      className={`st-stamp ${c.findings.find((f) => f.k === line.finding)?.cls ?? ""} ${
                         stamped[li] ? "show" : ""
                       }`}
                     >
-                      {FINDINGS.find((f) => f.k === line.finding)?.stamp}
+                      {c.findings.find((f) => f.k === line.finding)?.stamp}
                     </span>
                   ) : null}
                 </div>
@@ -439,7 +486,7 @@ export function SessionDeck() {
           {/* Text-Modus: angedeutetes Eingabefeld (verkauft die Modalität) */}
           {mode === "text" ? (
             <div className="st-textinput" aria-hidden>
-              Antwort eintippen …<b>↵</b>
+              {c.textInputPlaceholder}<b>↵</b>
             </div>
           ) : null}
 
@@ -451,21 +498,21 @@ export function SessionDeck() {
               onClick={play}
             >
               {phase === "idle"
-                ? "▶  Session abspielen"
+                ? c.playIdle
                 : phase === "playing"
-                  ? "●  Aufnahme läuft …"
-                  : "↺  Nochmal abspielen"}
+                  ? c.playPlaying
+                  : c.playReplay}
             </button>
             <button type="button" className="st-skip-btn" onClick={finishAll}>
-              Überspringen ⏭
+              {c.skip}
             </button>
           </div>
         </div>
 
         {/* ── Auswertungs-Seitenspalte ──────────────────────────────── */}
         <aside className="st-findings">
-          <span className="st-tag mb-4 block">Befunde — live mitgeschnitten</span>
-          {FINDINGS.map((f) => (
+          <span className="st-tag mb-4 block">{c.findingsTag}</span>
+          {c.findings.map((f) => (
             <button
               key={f.k}
               type="button"
@@ -483,7 +530,7 @@ export function SessionDeck() {
               <span className="st-f-schema">{f.schema}</span>
               <q>{f.quote}</q>
               <span className="st-f-jump" aria-hidden>
-                ↧ zur Stelle
+                {c.jumpLabel}
               </span>
             </button>
           ))}
@@ -497,8 +544,8 @@ export function SessionDeck() {
               onClick={() => setAnalysisOpen((v) => !v)}
             >
               <span>
-                <span className="st-f-name">Stimulus-Analyse</span>
-                <span className="st-analysis-sub">Was die KI im Bild sah · 6 Felder</span>
+                <span className="st-f-name">{c.analysisName}</span>
+                <span className="st-analysis-sub">{c.analysisSub}</span>
               </span>
               <span className={`st-chevron ${analysisOpen ? "open" : ""}`} aria-hidden>
                 ⌄
@@ -506,7 +553,7 @@ export function SessionDeck() {
             </button>
             {analysisOpen ? (
               <div className="st-analysis-body">
-                {ANALYSIS.map((a) => (
+                {c.analysis.map((a) => (
                   <div
                     key={a.k}
                     className={`st-afield ${hotField === a.k ? "is-hot" : ""}`}
@@ -521,14 +568,14 @@ export function SessionDeck() {
 
           {/* Synthese-Fazit */}
           <div className={`st-verdikt ${phase === "done" ? "show" : ""}`}>
-            <span className="st-tag mb-2.5 block">Synthese-Fazit</span>
+            <span className="st-tag mb-2.5 block">{c.verdiktTag}</span>
             <div className="st-row">
-              <span>Annahme</span>
-              <span className="old">{SYNTHESIS.annahme}</span>
+              <span>{c.verdiktAssumption}</span>
+              <span className="old">{c.synthesis.annahme}</span>
             </div>
             <div className="st-row">
-              <span>Klymeo</span>
-              <span className="neu">{SYNTHESIS.realitaet}</span>
+              <span>{c.verdiktBrand}</span>
+              <span className="neu">{c.synthesis.realitaet}</span>
             </div>
           </div>
         </aside>

@@ -1,10 +1,63 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { CtaLink } from "../CtaLink";
 import { Rv } from "./Rv";
 import { HeroConstellation } from "./HeroConstellation";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
+import {
+  localizedContent,
+  MARKETING_DEFAULT_LOCALE,
+  type Locale,
+} from "@/i18n/marketing-locale";
+
+// German copy. EN noch nicht getextet → DE-Fallback (EN=DE).
+const CONTENT_DE: {
+  recChip: ReactNode;
+  headline: ReactNode;
+  lead: ReactNode;
+  ctaPrimary: ReactNode;
+  ctaSecondary: ReactNode;
+} = {
+  recChip: (
+    <>
+      <b aria-hidden />
+      Session läuft
+    </>
+  ),
+  headline: (
+    <>
+      <span className="st-ln">
+        <i>Hör zu, was dein</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          Markt <span className="st-serif">wirklich</span> sagt.
+        </i>
+      </span>
+    </>
+  ),
+  lead: (
+    <>
+      Klymeo führt{" "}
+      <b className="font-medium text-neutral-900">
+        hunderte qualitative Tiefeninterviews
+      </b>{" "}
+      mit deiner Zielgruppe — auf Deutsch, DSGVO-nativ, gehostet in
+      Frankfurt. Eine KI, die nachbohrt wie ein erfahrener Researcher,
+      und jede Erkenntnis{" "}
+      <b className="font-medium text-neutral-900">am Transkript belegt</b>
+      .
+    </>
+  ),
+  ctaPrimary: (
+    <>
+      <span className="st-dot" aria-hidden />
+      Demo buchen
+    </>
+  ),
+  ctaSecondary: <>Session abspielen ↓</>,
+};
 
 /**
  * Homepage-Hero der Studio-Bühne: „Aufnahme läuft“-Chip mit live laufendem
@@ -16,7 +69,12 @@ import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
  * Timecode steht auf 00:00:00, die Waveform ist ein statisches Standbild,
  * die Reveals erscheinen sofort (Rv-Hard-Off).
  */
-export function StudioHero() {
+export function StudioHero({
+  lang = MARKETING_DEFAULT_LOCALE,
+}: {
+  lang?: Locale;
+}) {
+  const c = localizedContent(lang, { de: CONTENT_DE });
   const tcRef = useRef<HTMLSpanElement>(null);
   const waveRef = useRef<HTMLCanvasElement>(null);
 
@@ -120,45 +178,26 @@ export function StudioHero() {
       />
       <div className="relative mx-auto w-full max-w-[1280px] px-[clamp(20px,4vw,56px)]">
         <Rv className="st-fade mb-[clamp(24px,4vh,48px)] flex items-center justify-between">
-          <span className="st-rec-chip">
-            <b aria-hidden />
-            Session läuft
-          </span>
+          <span className="st-rec-chip">{c.recChip}</span>
           <span ref={tcRef} className="st-tc">
             00:00:00
           </span>
         </Rv>
 
         <Rv as="h1" className="st-rv st-display text-[clamp(40px,8.2vw,124px)]">
-          <span className="st-ln">
-            <i>Hör zu, was dein</i>
-          </span>
-          <span className="st-ln">
-            <i>
-              Markt <span className="st-serif">wirklich</span> sagt.
-            </i>
-          </span>
+          {c.headline}
         </Rv>
 
         <div className="mt-[clamp(28px,4vh,52px)] grid gap-7 pb-[clamp(120px,18vh,200px)] md:grid-cols-[minmax(0,560px)_auto] md:items-end md:justify-between">
           <Rv as="p" className="st-fade max-w-[54ch] text-[clamp(16px,1.4vw,19px)] leading-[1.7] text-neutral-500" d={150}>
-            Klymeo führt{" "}
-            <b className="font-medium text-neutral-900">
-              hunderte qualitative Tiefeninterviews
-            </b>{" "}
-            mit deiner Zielgruppe — auf Deutsch, DSGVO-nativ, gehostet in
-            Frankfurt. Eine KI, die nachbohrt wie ein erfahrener Researcher,
-            und jede Erkenntnis{" "}
-            <b className="font-medium text-neutral-900">am Transkript belegt</b>
-            .
+            {c.lead}
           </Rv>
           <Rv className="st-fade flex flex-wrap gap-3.5" d={250}>
             <CtaLink href={DEMO_BOOKING_URL} variant="primary" size="lg" className="magnetic">
-              <span className="st-dot" aria-hidden />
-              Demo buchen
+              {c.ctaPrimary}
             </CtaLink>
             <CtaLink href="#session" variant="secondary" size="lg" className="magnetic">
-              Session abspielen ↓
+              {c.ctaSecondary}
             </CtaLink>
           </Rv>
         </div>

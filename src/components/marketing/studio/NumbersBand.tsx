@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import {
+  localizedContent,
+  MARKETING_DEFAULT_LOCALE,
+  type Locale,
+} from "@/i18n/marketing-locale";
 
 /**
  * Zahlen-Band: riesige Bricolage-Ziffern mit Count-up beim Einscrollen.
@@ -12,14 +17,22 @@ import { useEffect, useRef } from "react";
  * unter dem Fold, der kurze Reset auf 0 ist nie sichtbar).
  */
 
-const STATS: { value: number; suffix?: string; label: string }[] = [
+// German content. EN noch nicht getextet → DE-Fallback (EN=DE); nur die
+// `label`-Strings sind übersetzbar, die Werte/Suffixe sind sprachneutral.
+const STATS_DE: { value: number; suffix?: string; label: string }[] = [
   { value: 100, suffix: "%", label: "EU-gehostet · DSGVO-konform" },
   { value: 0, label: "US-Cloud · null Datentransfer" },
   { value: 4, label: "Methoden · alle live" },
   { value: 14, suffix: "d", label: "Gratis testen · ohne Kreditkarte" },
 ];
 
-export function NumbersBand() {
+export function NumbersBand({
+  lang = MARKETING_DEFAULT_LOCALE,
+}: {
+  // Optional: home + produkt pass the page locale; defaults to German.
+  lang?: Locale;
+}) {
+  const stats = localizedContent(lang, { de: STATS_DE });
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,7 +75,7 @@ export function NumbersBand() {
   return (
     <section className="st-numbers">
       <div ref={ref} className="st-numbers-grid">
-        {STATS.map((s) => (
+        {stats.map((s) => (
           <div key={s.label} className="st-num">
             <div className="st-v">
               <span data-target={s.value}>{s.value}</span>

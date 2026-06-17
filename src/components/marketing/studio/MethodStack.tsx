@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { MODULES } from "../PlatformModules";
+import {
+  localizedContent,
+  MARKETING_DEFAULT_LOCALE,
+  type Locale,
+} from "@/i18n/marketing-locale";
 
 /**
  * „Das Repertoire“ — die vier Methoden als Tonband-Karten im Sticky-Stapel:
@@ -17,18 +22,36 @@ import { MODULES } from "../PlatformModules";
  * position:sticky, ohne Skalierung/Bewegung.
  */
 
-const EXAMPLE_QUESTIONS: Record<string, string> = {
-  "/methoden/bedarf-verhalten":
-    "„Erzähl mal von letzter Woche — wie hast du entschieden, was du kochst?“",
-  "/methoden/markenwahrnehmung":
-    "„Wenn diese Marke eine Person wäre — wie würdest du sie beschreiben?“",
-  "/methoden/konzept-test":
-    "„Erklär mir das Konzept in deinen eigenen Worten — was bleibt hängen?“",
-  "/methoden/creative-test":
-    "„Du hast die Anzeige drei Sekunden gesehen — was ist hängengeblieben?“",
+// German copy. EN noch nicht getextet → DE-Fallback (EN=DE).
+const CONTENT_DE: {
+  trackLabelPre: string; // „Spur 0“ + {i+1}
+  trackLabelMid: string; // „ / 0“ + {MODULES.length}
+  moreLink: string;
+  exampleTag: string;
+  exampleQuestions: Record<string, string>;
+} = {
+  trackLabelPre: "Spur 0",
+  trackLabelMid: " / 0",
+  moreLink: "Mehr zur Methode",
+  exampleTag: "Beispielfrage",
+  exampleQuestions: {
+    "/methoden/bedarf-verhalten":
+      "„Erzähl mal von letzter Woche — wie hast du entschieden, was du kochst?“",
+    "/methoden/markenwahrnehmung":
+      "„Wenn diese Marke eine Person wäre — wie würdest du sie beschreiben?“",
+    "/methoden/konzept-test":
+      "„Erklär mir das Konzept in deinen eigenen Worten — was bleibt hängen?“",
+    "/methoden/creative-test":
+      "„Du hast die Anzeige drei Sekunden gesehen — was ist hängengeblieben?“",
+  },
 };
 
-export function MethodStack() {
+export function MethodStack({
+  lang = MARKETING_DEFAULT_LOCALE,
+}: {
+  lang?: Locale;
+}) {
+  const c = localizedContent(lang, { de: CONTENT_DE });
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -76,7 +99,7 @@ export function MethodStack() {
         <article key={m.href} className="st-tapecard">
           <div className="flex items-center justify-between">
             <span className="st-tag">
-              Spur 0{i + 1} / 0{MODULES.length}
+              {c.trackLabelPre}{i + 1}{c.trackLabelMid}{MODULES.length}
             </span>
             <span className={`st-lamp ${m.status === "Bald" ? "st-lamp--soon" : ""}`}>
               <b aria-hidden />
@@ -89,11 +112,11 @@ export function MethodStack() {
             href={m.href}
             className="relative z-10 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-anchor-foreground/75 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60"
           >
-            Mehr zur Methode <span aria-hidden>→</span>
+            {c.moreLink + " "}<span aria-hidden>→</span>
           </Link>
           <div className="st-q">
-            <span className="st-tag !text-[10px]">Beispielfrage</span>
-            <p>{EXAMPLE_QUESTIONS[m.href] ?? m.blurb}</p>
+            <span className="st-tag !text-[10px]">{c.exampleTag}</span>
+            <p>{c.exampleQuestions[m.href] ?? m.blurb}</p>
           </div>
         </article>
       ))}
