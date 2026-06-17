@@ -1,15 +1,24 @@
 import Link from "next/link";
 import { Container } from "./primitives";
 import { Wordmark } from "./Wordmark";
-import { FOOTER_COLUMNS, FOOTER_GRID_BY_COLS } from "./nav-data";
+import {
+  FOOTER_COLUMNS,
+  FOOTER_GRID_BY_COLS,
+  localizeFooterColumns,
+} from "./nav-data";
+import {
+  localizePath,
+  MARKETING_DEFAULT_LOCALE,
+  type Locale,
+} from "@/i18n/marketing-locale";
 
 // Footer columns + the matching grid template both come from the single nav
 // registry (nav-data.ts), which composes the canonical MODULES / ROLES /
 // INDUSTRIES sets. Adding a product/role/industry there flows into the footer,
 // the header mega-menu and the sitemap at once — no hand-kept copy to drift.
-const COLUMNS = FOOTER_COLUMNS;
+// Column COUNT is locale-independent, so the grid template can stay module-level.
 const GRID_COLS =
-  FOOTER_GRID_BY_COLS[COLUMNS.length] ?? FOOTER_GRID_BY_COLS[5];
+  FOOTER_GRID_BY_COLS[FOOTER_COLUMNS.length] ?? FOOTER_GRID_BY_COLS[5];
 
 // TODO D3: UWG-Claim — "DSGVO-konform" und "EU-AI-Act-konform" sind werbliche
 // Aussagen, die vor Live entweder belegt oder entschärft werden müssen
@@ -23,8 +32,15 @@ const COMPLIANCE = [
   "EU-AI-Act-konform",
 ];
 
-export function MarketingFooter() {
+export function MarketingFooter({
+  lang = MARKETING_DEFAULT_LOCALE,
+}: {
+  // Optional: the [lang] layout always passes it; the global 404 pages reuse
+  // this chrome and fall back to German.
+  lang?: Locale;
+}) {
   const year = new Date().getFullYear();
+  const columns = localizeFooterColumns(FOOTER_COLUMNS, lang);
   return (
     // Twilight-Dunkel (#141734, --color-anchor): die Dämmerungsstunde unter
     // jeder Seite — Dusk-Verlauf + Sternenhimmel (st-dusk/st-stars), Indigo-
@@ -34,7 +50,7 @@ export function MarketingFooter() {
       <Container className="relative z-10 py-16">
         <div className={`grid gap-x-8 gap-y-12 md:grid-cols-2 ${GRID_COLS}`}>
           <div className="flex flex-col gap-3">
-            <Wordmark tone="light" />
+            <Wordmark tone="light" href={localizePath(lang, "/")} />
             <p className="max-w-xs text-sm leading-relaxed text-anchor-foreground/70">
               Qualitative Marktforschung mit KI — hunderte Tiefeninterviews,
               auf Wunsch per Voice-Agent, DSGVO-nativ und auf Deutsch,
@@ -42,7 +58,7 @@ export function MarketingFooter() {
             </p>
           </div>
 
-          {COLUMNS.map((col) => (
+          {columns.map((col) => (
             <div key={col.title} className="flex flex-col gap-3">
               <h3 className="font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-anchor-foreground/45">
                 {col.title}

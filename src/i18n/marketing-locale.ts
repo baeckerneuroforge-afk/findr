@@ -74,4 +74,39 @@ export function localeOfPath(pathname: string): Locale {
   return MARKETING_DEFAULT_LOCALE;
 }
 
+/** App-tree / Clerk roots that live OUTSIDE the localized marketing subtree and
+ *  must never get a /de|/en prefix (navigating to them is a full-page load to
+ *  the other root layout). */
+const CROSS_ROOT_PREFIXES = [
+  "/sign-in",
+  "/sign-up",
+  "/dashboard",
+  "/onboarding",
+  "/interview",
+  "/shared",
+  "/api",
+];
+
+/**
+ * Localize an href for use in a link — the safe wrapper around localizePath for
+ * arbitrary hrefs. Leaves untouched anything that must NOT be locale-prefixed:
+ *   • external / protocol links (https:, mailto:, tel:) and bare "#anchor"s,
+ *   • cross-root app/Clerk routes (/sign-in, /dashboard, …).
+ * Everything else is an internal marketing path and gets the [lang] prefix:
+ *   localizeHref("en", "/produkt#voice") -> "/en/produkt#voice"
+ *   localizeHref("en", "/sign-in")       -> "/sign-in"   (cross-root, untouched)
+ *   localizeHref("en", "https://…")      -> "https://…"  (external, untouched)
+ */
+export function localizeHref(locale: Locale, href: string): string {
+  if (/^(?:[a-z]+:|#)/i.test(href)) return href; // https:, mailto:, tel:, #anchor
+  const isCrossRoot = CROSS_ROOT_PREFIXES.some(
+    (p) =>
+      href === p ||
+      href.startsWith(`${p}/`) ||
+      href.startsWith(`${p}?`) ||
+      href.startsWith(`${p}#`),
+  );
+  return isCrossRoot ? href : localizePath(locale, href);
+}
+
 export { isLocale, toBcp47, type Locale };

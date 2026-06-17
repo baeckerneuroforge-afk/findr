@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import { CtaLink } from "./CtaLink";
+import { MarketingLanguageSwitcher } from "./MarketingLanguageSwitcher";
 import { ICONS, ChevronDownIcon } from "./icons";
 import type { NavEntry } from "./nav-data";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
@@ -194,6 +195,9 @@ export function MobileNav({ nav }: { nav: NavEntry[] }) {
               })}
 
               <div className="mt-3 flex flex-col gap-2 border-t border-neutral-200 pt-4">
+                <div className="px-2 pb-1">
+                  <MarketingLanguageSwitcher onNavigate={closeAll} />
+                </div>
                 <Link
                   href="/sign-in"
                   onClick={closeAll}

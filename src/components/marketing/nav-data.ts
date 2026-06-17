@@ -2,6 +2,7 @@ import { MODULES } from "./PlatformModules";
 import { INDUSTRIES } from "./industry-template";
 import type { IconName } from "./icons";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
+import { localizeHref, type Locale } from "@/i18n/marketing-locale";
 
 /**
  * Canonical marketing-navigation registry — the SINGLE source that feeds the
@@ -229,3 +230,47 @@ export const SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/demo", priority: 0.5 },
   { path: "/impressum", priority: 0.3 },
 ];
+
+// ── 4) Locale-aware link mapping (DE/EN routing) ──────────────────────────────
+
+/**
+ * Return a copy of the header nav with every INTERNAL href localized to the
+ * given locale (external / cross-root hrefs pass through untouched via
+ * localizeHref). Pure data → the server header maps ONCE and hands the result
+ * to the client islands (MegaMenu / MobileNav), which stay locale-agnostic and
+ * just render whatever hrefs they receive. Labels are unchanged here — copy
+ * extraction is a later etappe.
+ */
+export function localizeNav(nav: NavEntry[], locale: Locale): NavEntry[] {
+  return nav.map((entry) => {
+    if (entry.kind === "flat") {
+      return { ...entry, href: localizeHref(locale, entry.href) };
+    }
+    return {
+      ...entry,
+      href: localizeHref(locale, entry.href),
+      groups: entry.groups.map((group) => ({
+        ...group,
+        items: group.items.map((leaf) => ({
+          ...leaf,
+          href: localizeHref(locale, leaf.href),
+        })),
+        overview: group.overview
+          ? { ...group.overview, href: localizeHref(locale, group.overview.href) }
+          : undefined,
+      })),
+    };
+  });
+}
+
+/** Footer columns with every internal link localized (the external "Demo buchen"
+ *  Cal link passes through untouched via localizeHref). */
+export function localizeFooterColumns(
+  columns: FooterColumn[],
+  locale: Locale,
+): FooterColumn[] {
+  return columns.map((col) => ({
+    ...col,
+    links: col.links.map((l) => ({ ...l, href: localizeHref(locale, l.href) })),
+  }));
+}

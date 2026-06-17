@@ -10,12 +10,15 @@ export function Wordmark({
   className = "",
   size = "md",
   tone = "ink",
+  href = "/",
 }: {
   className?: string;
   size?: "md" | "sm";
   /** "ink" = dunkle Wortmarke für helle Flächen (Header). "light" = Creme
    * für den dunklen Studio-Footer. Der Funken-Mark bleibt in beiden indigo. */
   tone?: "ink" | "light";
+  /** Home destination — locale-prefixed by the caller (/de, /en). */
+  href?: string;
 }) {
   const text = size === "sm" ? "text-lg" : "text-[22px]";
   const mark = size === "sm" ? "h-[18px] w-[18px]" : "h-[22px] w-[22px]";
@@ -23,7 +26,7 @@ export function Wordmark({
   const ringOffset = light ? "focus-visible:ring-offset-anchor" : "";
   return (
     <Link
-      href="/"
+      href={href}
       aria-label="Klymeo — Startseite"
       className={`inline-flex items-center gap-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 ${ringOffset} ${className}`}
     >

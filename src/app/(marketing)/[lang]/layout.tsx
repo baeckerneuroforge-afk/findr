@@ -174,9 +174,9 @@ export default async function MarketingLayout({
           <div className="st-grid" aria-hidden />
           <div className="st-grain" aria-hidden />
           <StudioFx />
-          <MarketingHeader />
+          <MarketingHeader lang={lang} />
           <main className="flex-1">{children}</main>
-          <MarketingFooter />
+          <MarketingFooter lang={lang} />
         </div>
       </body>
     </html>

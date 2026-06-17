@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   localeOfPath,
+  localizeHref,
   localizePath,
   MARKETING_DEFAULT_LOCALE,
   MARKETING_LOCALES,
@@ -56,5 +57,31 @@ describe("marketing-locale", () => {
   it("declares German as the default/x-default locale", () => {
     expect(MARKETING_DEFAULT_LOCALE).toBe("de");
     expect([...MARKETING_LOCALES]).toEqual(["de", "en"]);
+  });
+});
+
+describe("localizeHref", () => {
+  it("prefixes internal marketing links (incl. anchors)", () => {
+    expect(localizeHref("de", "/produkt")).toBe("/de/produkt");
+    expect(localizeHref("en", "/produkt#voice")).toBe("/en/produkt#voice");
+    expect(localizeHref("en", "/")).toBe("/en");
+    expect(localizeHref("en", "/branchen/b2c")).toBe("/en/branchen/b2c");
+  });
+
+  it("leaves external / protocol / anchor hrefs untouched", () => {
+    expect(localizeHref("en", "https://cal.com/klymeo/demo")).toBe(
+      "https://cal.com/klymeo/demo",
+    );
+    expect(localizeHref("en", "mailto:hi@klymeo.com")).toBe(
+      "mailto:hi@klymeo.com",
+    );
+    expect(localizeHref("en", "#section")).toBe("#section");
+  });
+
+  it("leaves cross-root app/Clerk routes untouched", () => {
+    expect(localizeHref("en", "/sign-in")).toBe("/sign-in");
+    expect(localizeHref("en", "/sign-up")).toBe("/sign-up");
+    expect(localizeHref("en", "/dashboard")).toBe("/dashboard");
+    expect(localizeHref("en", "/interview/abc")).toBe("/interview/abc");
   });
 });
