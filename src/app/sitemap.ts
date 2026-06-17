@@ -2,6 +2,10 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/marketing/seo";
 import { getAllInsightSlugs } from "@/lib/insights/articles";
 import { SITEMAP_ROUTES } from "@/components/marketing/nav-data";
+import {
+  localizePath,
+  MARKETING_DEFAULT_LOCALE,
+} from "@/i18n/marketing-locale";
 
 /**
  * Sitemap — the indexable marketing routes (homepage, /produkt + four modules,
@@ -15,6 +19,11 @@ import { SITEMAP_ROUTES } from "@/components/marketing/nav-data";
  * SITEMAP_ROUTES, low priority). /datenschutz + /agb are indexable but stay out
  * of the sitemap while they still hold placeholders — add them to SITEMAP_ROUTES
  * once the real legal text from André/Legal lands.
+ *
+ * DE/EN: the routes are emitted under the German /de prefix only — DE is the
+ * indexed locale today. /en is an EN=DE mirror and is noindex (layout robots),
+ * so it stays OUT of the sitemap until real English texts land; then EN URLs +
+ * per-entry hreflang alternates get added here.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
@@ -26,7 +35,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   ];
   return routes.map((r) => ({
-    url: `${SITE_URL}${r.path}`,
+    url: `${SITE_URL}${localizePath(MARKETING_DEFAULT_LOCALE, r.path)}`,
     lastModified: now,
     changeFrequency: "monthly",
     priority: r.priority,

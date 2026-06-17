@@ -11,8 +11,17 @@ import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { notFound } from "next/navigation";
 import { StudioFx } from "@/components/marketing/studio/StudioFx";
-import { ogDefaults, twitterDefaults, SITE_URL } from "@/lib/marketing/seo";
-import { isLocale, MARKETING_LOCALES } from "@/i18n/marketing-locale";
+import {
+  ogDefaultsFor,
+  twitterDefaults,
+  SITE_URL,
+} from "@/lib/marketing/seo";
+import {
+  isLocale,
+  MARKETING_DEFAULT_LOCALE,
+  MARKETING_LOCALES,
+  resolveLocale,
+} from "@/i18n/marketing-locale";
 import "../../globals.css";
 import "@/components/marketing/studio/studio.css";
 
@@ -75,24 +84,37 @@ const DEFAULT_TITLE =
  *     root layout — a root layout owns them itself (metadataBase is mandatory
  *     for relative canonical/OG urls to resolve).
  */
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: { template: "%s — Klymeo", default: DEFAULT_TITLE },
-  openGraph: ogDefaults,
-  twitter: twitterDefaults,
-  icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
-    ],
-    apple: {
-      url: "/apple-touch-icon.png",
-      sizes: "180x180",
-      type: "image/png",
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const locale = resolveLocale((await params).lang);
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: { template: "%s — Klymeo", default: DEFAULT_TITLE },
+    openGraph: ogDefaultsFor(locale),
+    twitter: twitterDefaults,
+    // EN ist heute ein deutschsprachiger Spiegel (EN=DE) — bis echte englische
+    // Texte live sind, NICHT indexieren, damit Google /en nicht als doppelten,
+    // falsch-sprachigen Inhalt wertet. /de bleibt voll indexierbar; `follow`
+    // bleibt true, damit Crawler den Links folgen. Reziprokes hreflang + die
+    // EN-Indexierung kommen, sobald die englischen Texte da sind.
+    robots: { index: locale === MARKETING_DEFAULT_LOCALE, follow: true },
+    icons: {
+      icon: [
+        { url: "/favicon.svg", type: "image/svg+xml" },
+        { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+        { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      ],
+      apple: {
+        url: "/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
     },
-  },
-};
+  };
+}
 
 export const viewport: Viewport = {
   // Browser-Chrome folgt dem System wie die Seite selbst (studio.css trägt
