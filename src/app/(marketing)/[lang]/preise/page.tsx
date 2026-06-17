@@ -24,7 +24,7 @@ import {
   CheckIcon,
 } from "@/components/marketing/icons";
 import { ogDefaults } from "@/lib/marketing/seo";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
 import type { ComponentType, SVGProps } from "react";
 
 const PATH = "/preise";
@@ -65,6 +65,29 @@ const FACTORS_DE: { Icon: IconType; title: string; body: string }[] = [
     Icon: FileCheckIcon,
     title: "Laufzeit",
     body: "Monatlich flexibel oder mit fester Laufzeit: Wie verbindlich du planen willst, ist Teil des Gesprächs und wirkt sich auf die Konditionen aus. Ohne Kleingedrucktes, ohne automatische Fallen.",
+  },
+];
+
+const FACTORS_EN: { Icon: IconType; title: string; body: string }[] = [
+  {
+    Icon: HexagonIcon,
+    title: "Access",
+    body: "One license for your team — and all four methods are there from day one. You pay a base fee for access, not per method. Seats are added as your team grows.",
+  },
+  {
+    Icon: TrendingUpIcon,
+    title: "Scope",
+    body: "How much you collect: parallel studies and reach. Within the agreed scope you run unlimited interviews — there's no per-conversation billing. Scope scales with what fits the size of your organization.",
+  },
+  {
+    Icon: NetworkIcon,
+    title: "Support",
+    body: "From a lean start to a closely guided roll-out: how much onboarding, training and ongoing support you need is part of your package — some teams launch on their own, others want us by their side.",
+  },
+  {
+    Icon: FileCheckIcon,
+    title: "Term",
+    body: "Month-to-month or a fixed term: how firmly you want to plan is part of the conversation and shapes the terms. No fine print, no automatic traps.",
   },
 ];
 
@@ -112,6 +135,39 @@ const ALWAYS_INCLUDED_DE: { Icon: IconType; label: string; sub: string }[] = [
   },
 ];
 
+const ALWAYS_INCLUDED_EN: { Icon: IconType; label: string; sub: string }[] = [
+  {
+    Icon: MapPinIcon,
+    label: "Built in Germany",
+    sub: "Team & development based in Germany.",
+  },
+  {
+    Icon: ServerIcon,
+    label: "Hosted in the EU",
+    sub: "Data center in Frankfurt am Main.",
+  },
+  {
+    Icon: ShieldCheckIcon,
+    label: "GDPR-compliant",
+    sub: "Data protection as the foundation, not an afterthought.",
+  },
+  {
+    Icon: FileCheckIcon,
+    label: "EU AI Act",
+    sub: "Aligned with the European AI framework.",
+  },
+  {
+    Icon: CpuIcon,
+    label: "AI interviews in German and English",
+    sub: "In text or spoken via Voice Agent — in your participants' natural spoken language, where English-only tools reach their limits.",
+  },
+  {
+    Icon: CheckIcon,
+    label: "Evidenced, not guessed",
+    sub: "Every statement is anchored to the exact moment in the transcript.",
+  },
+];
+
 // FAQ — nimmt die typische Custom-Pricing-Reibung vorab (Outset-Stil). Antworten
 // sind reiner Text, damit dieselbe Quelle die FAQPage-JSON-LD speist.
 const FAQ_ITEMS_DE: { q: string; a: string }[] = [
@@ -138,6 +194,33 @@ const FAQ_ITEMS_DE: { q: string; a: string }[] = [
   {
     q: "Gibt es einen Piloten oder Einstieg?",
     a: "Ein begleiteter Einstieg ist möglich. Wir definieren gemeinsam einen klaren Rahmen, in dem du Klymeo an deinen echten Gesprächen erlebst, bevor du dich festlegst. Wie dieser Einstieg konkret aussieht, besprechen wir im Demo-Call.",
+  },
+];
+
+const FAQ_ITEMS_EN: { q: string; a: string }[] = [
+  {
+    q: "Why don't you list fixed prices?",
+    a: "Because the right price depends on the access, scope and support your team actually needs — the methods are all included anyway. A one-size-fits-all tier would either over- or under-serve most teams. In the demo call we instead put together exactly what fits your situation — transparent and easy to follow.",
+  },
+  {
+    q: "Can I start with a single method?",
+    a: "Yes — and you don't have to book anything extra: all four methods are included in your license. You simply start with the one that has the biggest leverage today, and use the others once your team is ready. They all share the same AI engine — interviews you've already run keep counting throughout.",
+  },
+  {
+    q: "What does scope depend on, and how is it billed?",
+    a: "Scope depends on the study scope, the seats and the level of support. Within the agreed scope you run unlimited interviews — there's no per-conversation billing. Which sizes fit your team we define together, with no hidden line items and no fine print.",
+  },
+  {
+    q: "Do I get support with setup?",
+    a: "Yes — though setup is deliberately small: studies run via shareable links, your own participant pool or the panel integration, with no technical project required. How closely we support you during roll-out, onboarding and ongoing operation we tailor to your team.",
+  },
+  {
+    q: "Is this GDPR-compliant?",
+    a: "Klymeo is built in Germany, hosted in Frankfurt and GDPR-native, aligned with the EU AI Act. Data protection is the foundation of the platform, not an afterthought — that holds for every method and every account.",
+  },
+  {
+    q: "Is there a pilot or trial entry?",
+    a: "A guided entry is possible. Together we define a clear scope in which you experience Klymeo with your real conversations before you commit. What that entry looks like in detail we discuss in the demo call.",
   },
 ];
 
@@ -211,13 +294,73 @@ const CONTENT_DE = {
   ctaSecondary: "Plattform ansehen",
 };
 
+// ── Page copy (EN). Mirrors CONTENT_DE field-for-field. FAQ_ITEMS_EN is the one
+// English FAQ source; the FAQPage JSON-LD rebuild for /en is a later package (P4).
+const CONTENT_EN = {
+  // 1 ── Hero
+  heroEyebrow: "Pricing",
+  heroTitle:
+    "One license, all methods — the price fits your team, not a one-size-fits-all tier.",
+  heroLead:
+    "Klymeo adapts to your team and your scope — all four methods are included. We set the actual price together in the conversation, transparent and without a one-size-fits-all tier.",
+  heroCtaPrimary: "Book a demo →",
+  heroCtaSecondary: "See the platform",
+
+  // 2 ── Wie Custom-Pricing funktioniert
+  factorsEyebrow: "How our pricing works",
+  factorsTitle: "Four factors determine your price.",
+  factorsLead:
+    "All four methods are always included. What determines the price is four levers — access, scope, support and term — which we walk through together in the demo call.",
+  factors: FACTORS_EN,
+
+  // 3 ── Methoden-Block (PlatformModules)
+  modulesEyebrow: "Four methods, one engine",
+  modulesTitle: "All four methods included — you start with the one that counts today.",
+  modulesLead:
+    "Four facets of a shared AI engine, all unlocked from day one. You begin with the method that has the biggest leverage — the others stand ready as soon as your team is. Completed interviews keep counting throughout.",
+
+  // 4 ── Was immer dabei ist
+  includedEyebrow: "In every account",
+  includedTitle: "What comes with every Klymeo account.",
+  includedLead:
+    "No matter which methods you choose: these fundamentals apply to every account — the European data sovereignty that matters here, and the evidence promise that runs through every method.",
+  included: ALWAYS_INCLUDED_EN,
+  includedFootnote: (
+    <>
+      Want to see Klymeo with your own conversations first? A guided entry is
+      possible — we discuss the right scope in the demo call.
+    </>
+  ),
+
+  // 6 ── FAQ
+  faqEyebrow: "Common questions",
+  faqTitle: "Everything you want to know about pricing.",
+  faqLead:
+    "The questions that come up most often before a custom quote — answered honestly.",
+  faqItems: FAQ_ITEMS_EN as FaqItem[],
+
+  // 6 ── Abschluss-CTA (Twilight)
+  ctaEyebrow: "Get started",
+  ctaTitle: "Talk to us about your scope.",
+  ctaLead: (
+    <>
+      In a short conversation we clarify which access, which scope and which
+      support fit your team — all methods are included — and you see what Klymeo
+      delivers with your real conversations.
+    </>
+  ),
+  ctaPrimary: "Book a demo →",
+  ctaSecondary: "See the platform",
+};
+
 export default async function PreisePage({
   params,
 }: {
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
-  const c = localizedContent(lang, { de: CONTENT_DE });
+  const locale = resolveLocale(lang);
+  const c = localizedContent(lang, { de: CONTENT_DE, en: CONTENT_EN });
   return (
     <>
       <JsonLd data={FAQPAGE_JSONLD} />
@@ -280,6 +423,7 @@ export default async function PreisePage({
 
       {/* 3 ── METHODEN-BLOCK (kanonische PlatformModules, einfarbige Headline) */}
       <PlatformModules
+        locale={locale}
         eyebrow={c.modulesEyebrow}
         title={c.modulesTitle}
         lead={c.modulesLead}

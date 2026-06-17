@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
 import {
   MethodPage,
   type MethodContent,
@@ -128,6 +128,105 @@ const CONTENT: MethodContent = {
   },
 };
 
+const CONTENT_EN: MethodContent = {
+  slug: "bedarf-verhalten",
+  status: "Live",
+  eyebrow: "Method · Needs & Behavior",
+  heroTitle: <>Ask about behavior, not opinion.</>,
+  heroSubhead:
+    "What people say they do and what they actually do are rarely the same. Klymeo asks about concrete past situations and real workarounds — and keeps digging until a hypothesis becomes an evidenced need.",
+  audience:
+    "Product, innovation, and insights teams that want to separate real demand from wishful thinking.",
+  statusNote:
+    "This method runs today — you can put it to work in a Market Research study right now.",
+  pain: {
+    eyebrow: "Needs & Behavior · The blind spot",
+    title: <>“Would you use this?” — and everyone says yes.</>,
+    problem:
+      "Ask directly whether a need exists and you get politeness, hypotheses, and well-meant self-assessment. Whether someone actually has a problem shows up not in a statement of intent but in last week's behavior — and that's exactly what a survey never asks about.",
+    stakes: {
+      strong: "Whatever goes unasked, you build on a hunch.",
+      body: "Without the specific trigger, the last workaround, and the moment of friction, every roadmap is a bet. It's a gap, not a drama — it just hasn't been filled with real behavior yet.",
+    },
+    blindCard: {
+      badge: "Without follow-up · self-report only",
+      rows: [
+        {
+          label: "What the survey shows",
+          value:
+            "Agreement with an idea — captured as intent, not as behavior.",
+        },
+        {
+          label: "What the survey leaves open",
+          value:
+            "Whether the problem even comes up in daily life, how often, and what the person does about it today. That's exactly what decides whether building is worth it.",
+        },
+      ],
+    },
+  },
+  how: {
+    title: <>How Klymeo digs in.</>,
+    lead:
+      "No script that stops at the first answer. Klymeo works from the concrete case to the evidenced need — like an experienced researcher, only scalable.",
+    steps: [
+      {
+        phase: "Situation",
+        title: "Ask about the last time, not the rule",
+        body: "Instead of “Do you use this?” Klymeo asks: “Tell me about last week — how did you go about it?” Concrete episodes rather than generalized self-assessment.",
+        tag: "Live",
+      },
+      {
+        phase: "Workaround",
+        title: "Surface the makeshift fix",
+        body: "Wherever something snags, people have long since cobbled together some fix. Klymeo asks about the workaround — it reveals the unmet need more clearly than any wish list.",
+        tag: "Live",
+      },
+      {
+        phase: "Follow-up",
+        title: "Compliments don't count as signal",
+        body: "“Cool idea” is no evidence. Klymeo follows up until a concrete example is on the table — and recognizes when politeness is disguised as enthusiasm.",
+        tag: "Live",
+      },
+      {
+        phase: "Evidence",
+        title: "From the quote to the anchored need",
+        body: "Every finding stays tied to the spot in the transcript where it came up — readable, not interpreted.",
+        tag: "Live",
+      },
+    ],
+  },
+  result: {
+    eyebrow: "Needs & Behavior · What comes out",
+    title: <>Evidenced need instead of confirmed assumption.</>,
+    body: "From every interview, Klymeo distills the recurring situations, workarounds, and friction points into evidenced findings — anchored in the transcript. Across multiple interviews, which patterns truly hold is deterministically counted.",
+    payoff: {
+      strong: "A prioritization you can defend.",
+      body: "Instead of “the team believes that …” you show in how many conversations a need concretely came up — and the quote to back it.",
+    },
+    card: {
+      badge: "Example questions · Needs & Behavior",
+      rows: [
+        {
+          label: "How Klymeo asks",
+          value:
+            "“What does a typical workday look like for you?” · “Which tasks cost you the most time?”",
+        },
+        {
+          label: "What Klymeo hears out",
+          value:
+            "Recurring situations, the workaround so far, and the moment it snags — as an evidenced finding, not a scale value.",
+        },
+      ],
+    },
+  },
+  proofLead:
+    "What becomes of those conversations runs through the same synthesis as every method — Live for what's Live; Soon for what's coming.",
+  cta: {
+    title: <>Ask about behavior — and listen closely.</>,
+    lead: "Book a demo and see how Klymeo digs from the first “sounds good” to an evidenced need in an in-depth interview.",
+  },
+};
+
 export default async function BedarfVerhaltenPage({
   params,
 }: {
@@ -137,7 +236,10 @@ export default async function BedarfVerhaltenPage({
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <MethodPage content={localizedContent(lang, { de: CONTENT })} />
+      <MethodPage
+        content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
+        locale={resolveLocale(lang)}
+      />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
 import {
   IndustryPage,
   type IndustryContent,
@@ -129,6 +129,106 @@ const CONTENT: IndustryContent = {
   },
 };
 
+const CONTENT_EN: IndustryContent = {
+  slug: "industrie",
+  eyebrow: "Industry · Manufacturing",
+  heroTitle: <>Listen to your users before you retool the line.</>,
+  heroSubhead:
+    "Machines, components, services: manufacturing decisions tie up capital for years — and the knowledge of what users really need sits buried in trade-show chats and service tickets. Klymeo runs structured in-depth interviews with users, buyers, and partners in German and English, optionally voice-led with a Voice Agent — and turns them into an evidenced basis for decisions.",
+  audience:
+    "Product management, sales operations, and strategy at manufacturers — machinery, components, suppliers, industrial services.",
+  pain: {
+    eyebrow: "Manufacturing · The blind spot",
+    title: <>The spec sheet says what was required. Not what gets in the way on the job.</>,
+    problem:
+      "There's a long road between what the spec sheet says and what users actually experience at the machine: feedback comes filtered through service, anecdotally from a trade show, or not at all. Asking systematically fails on effort — plant visits and interview rounds take weeks, and the product manager doesn't have them.",
+    stakes: {
+      strong: "What stays open as long as only the service report speaks.",
+      body: "Which function gets bypassed in daily use, what really decides a repeat purchase, what customers would pay for — that stays a guess until someone asks it in a conversation. A gap, not a drama: it's just not filled yet.",
+    },
+    blindCard: {
+      badge: "Without verbatim · just ticket data",
+      rows: [
+        {
+          label: "What the report shows",
+          value: "Few complaints, steady maintenance rate — the product seems to fit.",
+        },
+        {
+          label: "What the report leaves open",
+          value:
+            "That users have long since worked around a clumsy function — and at the next investment cycle they'll trial the competitor who solved exactly that.",
+        },
+      ],
+    },
+  },
+  howLead:
+    "Four connected steps — from a defined user study to the number that backs every statement, per study, with a quote. By link to your customers and partners, with no plant visit and no weeks of lead time.",
+  solution: {
+    eyebrow: "Manufacturing · The evidenced answer",
+    title: <>From trade-show hearsay to a structured voice of the user.</>,
+    body: "Set up a separate study for each question — user satisfaction, service quality, the need for the next product generation. Invite customers, users, and partners by link; the screening gate makes sure the right role answers — operator, maintenance, or procurement. Klymeo interviews in German and English, optionally voice-led with a Voice Agent for everyone who'd rather talk than type, and distills the conversations into themes, camps, and verbatim quotes — exportable as PDF or PowerPoint for the investment committee.",
+    payoff: {
+      strong: "A number you can defend in the investment committee.",
+      body: "When someone asks “how do we know that?”, you show the number — with the user's verbatim quote right beside it. Nothing extrapolated, nothing secondhand.",
+    },
+    answerCard: {
+      badge: "Market Lens · evidenced per study",
+      rows: [
+        {
+          label: "Question",
+          value: "What decides repeat purchases among existing customers?",
+        },
+        {
+          label: "Answer",
+          value:
+            "In 4 of 6 studies, price wasn't the deciding factor — spare-parts availability and service response time were, every number backed by a quote.",
+        },
+        {
+          label: "Evidence from an interview",
+          quote: true,
+          value:
+            "“The machine is top-notch — but when the line is down and the spare part takes three weeks, the best price does nothing for me.”",
+        },
+      ],
+    },
+  },
+  proactive: {
+    eyebrow: "Manufacturing · Before the investment",
+    title: <>Validate the next product generation before it&apos;s engineered.</>,
+    body: "The same study works the other way around too: before a new product line, a digital service offering, or a spare-parts subscription gets developed, you ask the users first. Show the concept as a stimulus right inside the interview — draft data sheet, control interface, service model — and let exactly the people who'll later work with it or buy it react.",
+    payoff: {
+      strong: "An evidenced foundation before engineering and tooling start.",
+      body: "Instead of learning from complaints after the production ramp-up, you walk into the decision with a number that shows what users really need — and what they'd pay for.",
+    },
+    card: {
+      badge: "Concept Test · before engineering",
+      rows: [
+        {
+          label: "Question",
+          value: "Will the planned service subscription land with existing customers?",
+        },
+        {
+          label: "Answer",
+          value:
+            "In 3 of 5 studies, clear interest — the most common condition: response times have to be contractually guaranteed. Every number backed by a quote.",
+        },
+        {
+          label: "Evidence from an interview",
+          quote: true,
+          value:
+            "“For a guaranteed 24 hours I'll happily pay — for a better-than-nothing promise, not a cent.”",
+        },
+      ],
+    },
+  },
+  proofLead:
+    "Every capability works on real interviews with real users and buyers — structured, not anecdotal.",
+  cta: {
+    title: <>Listen to your users.</>,
+    lead: "Book a demo and see how Klymeo answers a manufacturing question across several studies — from the user's verbatim to the PowerPoint export.",
+  },
+};
+
 export default async function IndustriePage({
   params,
 }: {
@@ -138,7 +238,10 @@ export default async function IndustriePage({
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <IndustryPage content={localizedContent(lang, { de: CONTENT })} />
+      <IndustryPage
+        content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
+        locale={resolveLocale(lang)}
+      />
     </>
   );
 }

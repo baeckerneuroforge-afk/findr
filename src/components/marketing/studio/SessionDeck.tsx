@@ -152,6 +152,111 @@ const ORB_LABEL: Record<OrbState, string> = {
   done: "Abgeschlossen",
 };
 
+// ── EN-Zwillinge der Inszenierungs-Objekte ───────────────────────────────────
+// Spiegeln STIMULUS/TURNS/FINDINGS/ANALYSIS/SYNTHESIS/ORB_LABEL strukturgleich.
+// HART: TURNS_EN/FINDINGS_EN behalten gleiche Länge + gleiche finding/k-Index-
+// Zuordnung (turnIndexOfFinding/useState hängen daran). Schema-Codes,
+// f/reveal/finding/cls/k/analysisField bleiben unverändert.
+
+const STIMULUS_EN = {
+  brand: "NORDLICHT",
+  sub: "Premium Coffee",
+  tag: "Discussion material · Variant A",
+  alt: "Stylized packaging draft: dark blue, wordmark “NORDLICHT”, no price.",
+};
+
+const TURNS_EN: Turn[] = [
+  {
+    who: "Klymeo",
+    f: true,
+    text: "I'll show you a draft in a second — just tell me whatever comes to mind first.",
+    reveal: true,
+  },
+  {
+    who: "Person",
+    f: false,
+    text: "The dark blue feels really high-end, almost premium.",
+    finding: 1,
+  },
+  {
+    who: "Klymeo",
+    f: true,
+    text: "And if you spotted this on the shelf — what would you look for next?",
+  },
+  {
+    who: "Person",
+    f: false,
+    text: "Honestly? The price. I can't find it here at all.",
+    finding: 2,
+  },
+  {
+    who: "Klymeo",
+    f: true,
+    text: "Say the price was clearly printed on it — would you reach for it?",
+  },
+  {
+    who: "Person",
+    f: false,
+    text: "Probably yes. Without a price I'd more likely put it back.",
+    finding: 3,
+  },
+  { who: "Klymeo", f: true, text: "Thank you — that helps a lot." },
+];
+
+const FINDINGS_EN: Finding[] = [
+  {
+    k: 1,
+    stamp: "Brand image",
+    name: "Brand perception",
+    schema: "BRAND_PERCEPTION",
+    strength: "Strong",
+    cls: "",
+    quote: "The dark blue feels really high-end, almost premium.",
+    analysisField: 2,
+  },
+  {
+    k: 2,
+    stamp: "Price",
+    name: "Price visibility",
+    schema: "PRICE_SENSITIVITY",
+    strength: "High",
+    cls: "st-stamp--2",
+    quote: "I can't find the price here at all.",
+    analysisField: 3,
+  },
+  {
+    k: 3,
+    stamp: "Purchase intent",
+    name: "Purchase intent",
+    schema: "PURCHASE_INTENT",
+    strength: "Conditional",
+    cls: "st-stamp--3",
+    quote: "Without a price I'd more likely put it back.",
+  },
+];
+
+const ANALYSIS_EN: AnalysisField[] = [
+  { k: 1, label: "Layout & structure", value: "Centered packshot, lots of whitespace, clear central axis." },
+  { k: 2, label: "Color world", value: "Dominant dark blue, golden accent — cool, high-end." },
+  { k: 3, label: "Image elements", value: "Packaging centered, brand name at top — no price element." },
+  { k: 4, label: "Text in the image", value: "“NORDLICHT · Premium Coffee”" },
+  { k: 5, label: "Claim / message", value: "Calm, high-end — an indulgence positioning." },
+  { k: 6, label: "Notable design", value: "Very generous whitespace; price and CTA are missing." },
+];
+
+const SYNTHESIS_EN = {
+  annahme: "A premium look is enough to sell.",
+  realitaet: "The look convinces — missing price visibility is the real conversion risk.",
+};
+
+const ORB_LABEL_EN: Record<OrbState, string> = {
+  idle: "Ready",
+  listening: "Listening …",
+  speaking: "Speaking …",
+  thinking: "Thinking …",
+  done: "Complete",
+};
+
 // German copy bundle. EN noch nicht getextet → DE-Fallback (EN=DE). Die
 // Demo-Objekte (STIMULUS/TURNS/FINDINGS/ANALYSIS/SYNTHESIS/ORB_LABEL) sind
 // die übersetzbare Inszenierung; die Schema-Codes (BRAND_PERCEPTION, …) und
@@ -189,6 +294,36 @@ const CONTENT_DE = {
   verdiktBrand: "Klymeo",
 };
 
+const CONTENT_EN: typeof CONTENT_DE = {
+  stimulus: STIMULUS_EN,
+  turns: TURNS_EN,
+  findings: FINDINGS_EN,
+  analysis: ANALYSIS_EN,
+  synthesis: SYNTHESIS_EN,
+  orbLabel: ORB_LABEL_EN,
+  // Loose UI strings around the stage.
+  recLabel: "Session 001",
+  conceptTag: "Concept Test",
+  modeGroupLabel: "Interview mode",
+  modeVoice: "Voice",
+  modeText: "Text",
+  voiceInterviewLabel: "Voice interview",
+  stimDesc: "Concept draft, shown live during the interview.",
+  stimPlaceholder: "Material appears during the conversation …",
+  textInputPlaceholder: "Type your answer …",
+  playIdle: "▶  Play session",
+  playPlaying: "●  Recording …",
+  playReplay: "↺  Play again",
+  skip: "Skip ⏭",
+  findingsTag: "Findings — captured live",
+  jumpLabel: "↧ to the moment",
+  analysisName: "Stimulus analysis",
+  analysisSub: "What the AI saw in the image · 6 fields",
+  verdiktTag: "Synthesis verdict",
+  verdiktAssumption: "Assumption",
+  verdiktBrand: "Klymeo",
+};
+
 const turnIndexOfFinding = (k: number) => TURNS.findIndex((t) => t.finding === k);
 
 export function SessionDeck({
@@ -196,7 +331,7 @@ export function SessionDeck({
 }: {
   lang?: Locale;
 }) {
-  const c = localizedContent(lang, { de: CONTENT_DE });
+  const c = localizedContent(lang, { de: CONTENT_DE, en: CONTENT_EN });
   // typed[i]: -1 = Zeile noch nicht da, sonst Anzahl getippter Zeichen.
   const [typed, setTyped] = useState<number[]>(() => TURNS.map(() => -1));
   const [stamped, setStamped] = useState<boolean[]>(() => TURNS.map(() => false));

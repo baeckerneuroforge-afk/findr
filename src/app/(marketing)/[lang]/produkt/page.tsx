@@ -302,6 +302,195 @@ const CONTENT_DE: ProduktContent = {
     "Sieh in einer Demo, wie Voice-Agent, Stimulus und Synthese zusammenspielen — von der ersten Frage bis zum exportierten Deck.",
 };
 
+const CONTENT_EN: ProduktContent = {
+  // ── Poster-Kopf ──────────────────────────────────────────────────────
+  heroEyebrow: "The platform",
+  heroTitle: (
+    <>
+      <span className="st-ln">
+        <i>The whole</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          research <span className="st-serif">console.</span>
+        </i>
+      </span>
+    </>
+  ),
+  heroLead: (
+    <>
+      One engine runs the interviews, four methods aim them —
+      and the tools around them turn it into a complete
+      research workspace: <b className="font-medium text-neutral-900">Voice Agent</b>,{" "}
+      <b className="font-medium text-neutral-900">Stimulus</b>, screening
+      and quotas, synthesis with{" "}
+      <b className="font-medium text-neutral-900">PDF &amp; PowerPoint export</b>.
+    </>
+  ),
+  heroCtaPrimary: "Book a demo",
+  heroCtaSecondary: "See the tools ↓",
+
+  // ── P.01 — Voice-Agent ───────────────────────────────────────────────
+  voiceKap: "P.01 — The Voice Agent",
+  voiceTitle: (
+    <>
+      <span className="st-ln">
+        <i>Interviews you</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          can <span className="st-serif">hear.</span>
+        </i>
+      </span>
+    </>
+  ),
+  voiceLead:
+    "The Klymeo Voice Agent runs the in-depth interview out loud: it asks the questions, listens and probes deeper — participants simply speak instead of typing. That lowers the barrier, makes answers longer and more honest, and reaches audiences who have no patience for forms.",
+  voiceBullets: [
+    "Speaks and understands German and English — the same follow-up logic as the text interview",
+    "Typing stays available at any time; both land in the same transcript",
+    "Every insight stays backed by the transcript — voice changes nothing about the evidence discipline",
+  ],
+  voiceToolTag: "Voice session · example",
+  voiceToolLive: "Live",
+  voiceTapeKlymeoWho: "Klymeo",
+  voiceTapeKlymeoText: "“And when nothing comes to mind — what do you do then?”",
+  voiceTapePersonWho: "Person",
+  voiceTapePersonText: (
+    <>
+      <em className="st-quote">spoken, transcribed live —</em>{" "}
+      “Usually I just order something …”
+    </>
+  ),
+  voiceToolFoot: ["Speak, don't type", "Barge-in allowed", "One transcript"],
+
+  // ── P.02 — Stimulus ──────────────────────────────────────────────────
+  stimulusKap: "P.02 — Stimulus",
+  stimulusTitle: (
+    <>
+      <span className="st-ln">
+        <i>Show what you&apos;re</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          working <span className="st-serif">on.</span>
+        </i>
+      </span>
+    </>
+  ),
+  stimulusLead:
+    "Load a draft into the study — packshot, ad, claim, landing page — and your audience sees it right next to the conversation. Instead of talking about memories, participants react to exactly the material you want to test. That's the heart of concept and creative testing.",
+  stimulusBullets: [
+    "Upload an image or embed a link — participants see it in split view",
+    "The AI probes specifically about what's shown: first impression, comprehension, purchase impulse",
+    "Built for design, brand and marketing teams — from the scribble to the finished campaign",
+  ],
+  stimulusToolTag: "Concept test · example",
+  stimulusToolLive: "Live",
+  stimulusAssetTag: "Your draft",
+  stimulusChat: (
+    <>
+      <span className="is-f">What stands out first?</span>
+      <span>“The dark blue feels premium — but I can&apos;t find the price.”</span>
+      <span className="is-f">Where did you look for it?</span>
+    </>
+  ),
+  stimulusToolFoot: ["Image or link", "Split view in the interview", "Test several variants"],
+
+  // ── P.03 — Synthese & Export ─────────────────────────────────────────
+  syntheseKap: "P.03 — Synthesis & Export",
+  syntheseTitle: (
+    <>
+      <span className="st-ln">
+        <i>From conversation</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          to <span className="st-serif">slide.</span>
+        </i>
+      </span>
+    </>
+  ),
+  syntheseLead:
+    "Synthesis distills every interview into themes, camps and verbatim quotes — and exports the result as a PDF report or PowerPoint deck in your own branding. From verbatim to boardroom slide, without copy-paste.",
+  syntheseCards: [
+    {
+      n: "01",
+      t: "How it's built",
+      d: "Themes with weight, camps with size, each anchored in verbatim quotes — plus the verdict: assumption vs. reality. No black-box summary; every finding carries its evidence.",
+    },
+    {
+      n: "02",
+      t: "Ask your data",
+      d: "Put follow-up questions to the entire study corpus in chat and get evidenced answers. Across multiple studies Klymeo counts deterministically: “in 3 of 7 studies” — never estimated.",
+    },
+    {
+      n: "03",
+      t: "Export the result",
+      d: "One click: a PDF report for decision-makers or a PowerPoint deck for the meeting — both in your own branding. Plus shareable result links for stakeholders, including external ones.",
+    },
+  ],
+  syntheseOutputLabel: "Output:",
+  syntheseOutputs: ["PDF report", "PowerPoint deck", "Shareable link", "Your own branding"],
+
+  // ── P.04 — Qualität & Rekrutierung ───────────────────────────────────
+  qualitaetKap: "P.04 — Quality & Recruitment",
+  qualitaetTitle: (
+    <>
+      <span className="st-ln">
+        <i>The right people,</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          cleanly <span className="st-serif">recruited.</span>
+        </i>
+      </span>
+    </>
+  ),
+  qualitaetLead:
+    "A synthesis is only as good as its sample. Klymeo brings the tools that make sure the right people answer — and only them.",
+  quality: [
+    {
+      n: "Q.01",
+      t: "Screening gate",
+      d: "Qualify participants before the interview — the right audience gets in, the rest is turned away cleanly and GDPR-compliantly.",
+    },
+    {
+      n: "Q.02",
+      t: "Quotas",
+      d: "Steer the sample by attributes, instead of hoping it balances out on its own.",
+    },
+    {
+      n: "Q.03",
+      t: "Open study link",
+      d: "A link you can share anywhere — with a quota and an expiry date to guard against abuse.",
+    },
+    {
+      n: "Q.04",
+      t: "Your own participant pool",
+      d: "Build your reusable pool and invite people directly to new studies.",
+    },
+    {
+      n: "Q.05",
+      t: "Panel integration",
+      d: "Recruit external participants through the panel integration when your own circle isn't enough.",
+    },
+    {
+      n: "Q.06",
+      t: "Fraud & quality checks",
+      d: "Click-throughs and duplicate entries are detected and filtered — before they dilute your synthesis.",
+    },
+  ],
+
+  // ── P.05 — Die vier Methoden ─────────────────────────────────────────
+  modulesTitle: "Four methods. One engine.",
+
+  // ── Zahlen + CTA ─────────────────────────────────────────────────────
+  ctaTitle: <>One console. Everything in it.</>,
+  ctaLead:
+    "See in a demo how the Voice Agent, Stimulus and synthesis work together — from the first question to the exported deck.",
+};
+
 export default async function ProduktPage({
   params,
 }: {
@@ -309,7 +498,7 @@ export default async function ProduktPage({
 }) {
   const { lang } = await params;
   const locale = resolveLocale(lang);
-  const c = localizedContent(lang, { de: CONTENT_DE });
+  const c = localizedContent(lang, { de: CONTENT_DE, en: CONTENT_EN });
 
   return (
     <>
@@ -517,12 +706,13 @@ export default async function ProduktPage({
       </section>
 
       {/* ── P.05 — Die vier Methoden ─────────────────────────────────── */}
-      <PlatformModules title={c.modulesTitle} />
+      <PlatformModules title={c.modulesTitle} locale={locale} />
 
       {/* ── Zahlen + CTA ─────────────────────────────────────────────── */}
       <NumbersBand lang={locale} />
 
       <CTASection
+        lang={locale}
         title={c.ctaTitle}
         lead={c.ctaLead}
       />

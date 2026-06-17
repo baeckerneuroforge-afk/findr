@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
 import {
   IndustryPage,
   type IndustryContent,
@@ -129,6 +129,106 @@ const CONTENT: IndustryContent = {
   },
 };
 
+const CONTENT_EN: IndustryContent = {
+  slug: "mittelstand",
+  eyebrow: "Industry · Mid-Market",
+  heroTitle: <>Ask your market — without commissioning an agency.</>,
+  heroSubhead:
+    "In the mid-market, product, pricing, and brand decisions are often made from experience, because classic market research takes weeks and quickly runs into five figures. Klymeo runs the in-depth interviews itself — AI-led, in German and English, optionally audible via Voice Agent — and turns “that's what sales says” into an answer that's evidenced in the conversation, study by study.",
+  audience:
+    "Leadership, marketing, and product owners in the mid-market — from manufacturers to retailers to service providers.",
+  pain: {
+    eyebrow: "Mid-Market · The blind spot",
+    title: <>“The customer wants it this way” — says who, exactly?</>,
+    problem:
+      "What the market really thinks usually arrives filtered in the mid-market: through sales, through a few loud customers, through the last conversation at a trade show. Commissioning an agency for every question is unrealistic — so experience fills the gap. It's valuable, but it isn't evidenced, and with new audiences or new offers it doesn't hold.",
+    stakes: {
+      strong: "What stays open as long as no one asks systematically.",
+      body: "Whether the price is the problem or findability, whether the new offer is understood, where prospects drop off — that stays a guess until someone asks it in conversation. A gap, not a drama: it's just not filled yet.",
+    },
+    blindCard: {
+      badge: "Without verbatim · just hearsay",
+      rows: [
+        {
+          label: "What's on the table",
+          value: "“Sales says we're too expensive.”",
+        },
+        {
+          label: "What stays open",
+          value:
+            "Whether it really is the price — or the value proposition, comparability with the competition, or simply that the offer isn't understood.",
+        },
+      ],
+    },
+  },
+  howLead:
+    "Four connected steps — from a defined study to the number that backs every statement, per study, with a quote. No agency, no moderator, no weeks of lead time — at a fraction of the cost.",
+  solution: {
+    eyebrow: "Mid-Market · The evidenced answer",
+    title: <>From sales-floor hearsay to an evidenced voice of the market.</>,
+    body: "Set up a separate study for each question — price perception, a new offer, brand image. Invite your own customers by link or recruit exactly the audience you need through panel integration and screening. Klymeo interviews in German and English, optionally via Voice Agent, and distills everything into themes, camps, and verbatim quotes — exportable as a PDF report or a PowerPoint deck for the next leadership meeting.",
+    payoff: {
+      strong: "A number you can defend in front of leadership.",
+      body: "If someone asks “how do we know that?”, you show the number — with the verbatim quote from the relevant study beside it. Nothing extrapolated, nothing assumed.",
+    },
+    answerCard: {
+      badge: "Market Lens · evidenced per study",
+      rows: [
+        {
+          label: "Question",
+          value: "Why do prospects decide against our offer?",
+        },
+        {
+          label: "Answer",
+          value:
+            "In 3 of 5 studies the obstacle wasn't price but comparability — prospects couldn't name the difference from the cheaper competitor. Every number backed by a quote.",
+        },
+        {
+          label: "Evidence from an interview",
+          quote: true,
+          value:
+            "“More expensive would have been fine — I just never understood, right to the end, what I'd get more of for it.”",
+        },
+      ],
+    },
+  },
+  proactive: {
+    eyebrow: "Mid-Market · Before you invest",
+    title: <>Test the market before you invest.</>,
+    body: "The same study works the other way around too: don't only dig in once something's stuck — ask beforehand whether the idea holds. A new product, a new market, a rebrand — set up a concept study, show the draft as a stimulus right inside the interview, and let your audience respond before budget and capacity are committed.",
+    payoff: {
+      strong: "An evidenced basis for the go or no-go — before you invest.",
+      body: "Instead of learning from revenue after the launch, you walk into the decision with a number that shows how many the idea really convinces — and what makes the others hesitate.",
+    },
+    card: {
+      badge: "Concept Test · before the decision",
+      rows: [
+        {
+          label: "Question",
+          value: "Does the new service offer land with existing customers?",
+        },
+        {
+          label: "Answer",
+          value:
+            "In 4 of 6 concept studies, clear interest — the most frequently named hurdle: the contract commitment. Every number backed by a quote from the relevant study.",
+        },
+        {
+          label: "Evidence from an interview",
+          quote: true,
+          value:
+            "“The package sounds reasonable — but I won't sign a two-year commitment, I haven't known you long enough for that.”",
+        },
+      ],
+    },
+  },
+  proofLead:
+    "Every capability works on real interviews with real people — built so that market research works even without an insights department.",
+  cta: {
+    title: <>Listen to your market — starting this week.</>,
+    lead: "Book a demo and see how Klymeo answers a mid-market question across several studies — evidenced, exportable, no agency.",
+  },
+};
+
 export default async function MittelstandPage({
   params,
 }: {
@@ -138,7 +238,10 @@ export default async function MittelstandPage({
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <IndustryPage content={localizedContent(lang, { de: CONTENT })} />
+      <IndustryPage
+        content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
+        locale={resolveLocale(lang)}
+      />
     </>
   );
 }

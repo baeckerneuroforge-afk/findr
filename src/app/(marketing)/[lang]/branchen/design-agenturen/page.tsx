@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
 import {
   IndustryPage,
   type IndustryContent,
@@ -129,6 +129,106 @@ const CONTENT: IndustryContent = {
   },
 };
 
+const CONTENT_EN: IndustryContent = {
+  slug: "design-agenturen",
+  eyebrow: "Industry · Design & Agencies",
+  heroTitle: <>Show the draft to the audience — before the client sees it.</>,
+  heroSubhead:
+    "Key visual, claim, packaging, landing page: sooner or later the client asks how you know it works. Klymeo shows your drafts as a Stimulus right in the AI interview — real people from the target audience react, compare, and say in their own words what sticks. Feedback in days, with quotes you can put in the deck.",
+  audience:
+    "Design studios, brand and ad agencies, in-house creative — everyone who has to sell drafts, not just make them.",
+  pain: {
+    eyebrow: "Design & Agencies · The blind spot",
+    title: <>In the review, the most senior person’s taste wins. Not the market.</>,
+    problem:
+      "Creative decisions get made in reviews where no one from the target audience is in the room. The gut instinct is trained, but it isn’t evidenced — and when the client asks “does this work with our buyers too?”, it’s one opinion against another. Classic pretests are expensive, take weeks, and are simply out of the question for most budgets.",
+    stakes: {
+      strong: "What stays open as long as only internal reviews happen.",
+      body: "Whether the message lands in three seconds, whether the visual carries the brand, whether the claim is understood or just liked — that stays a matter of taste until the target audience has seen it themselves. A gap, not a drama: it’s just not filled yet.",
+    },
+    blindCard: {
+      badge: "Without a test · only taste",
+      rows: [
+        {
+          label: "What the review says",
+          value: "“Variant B feels fresher — let’s go with that one.”",
+        },
+        {
+          label: "What stays open",
+          value:
+            "Whether the target audience recognizes the message in Variant B — or just sees a pretty surface and can’t place the brand behind it.",
+        },
+      ],
+    },
+  },
+  howLead:
+    "Four connected steps — from the uploaded draft to a number that backs every statement per study with a quote. Fast enough for live projects: set up today, results this week.",
+  solution: {
+    eyebrow: "Design & Agencies · The evidenced answer",
+    title: <>From a matter of taste to evidenced creative feedback.</>,
+    body: "Load the draft into the study as a Stimulus — key visual, packaging, ad or landing page — and let real people from the target audience react to it in the AI interview: first impression, comprehension, brand fit, purchase impulse. The Creative Test asks, after three seconds of eye contact, what stuck; the Concept Test checks whether the idea can be explained in their own words. At the end: themes, sides and verbatim quotes — exported as PDF or PowerPoint in your own branding, ready for the client meeting.",
+    payoff: {
+      strong: "A deck that defends the draft — with the voice of the target audience.",
+      body: "Instead of “we like B better,” you show how many understood the message in B — with the quote next to it. Opinion becomes recommendation.",
+    },
+    answerCard: {
+      badge: "Creative Test · evidenced per study",
+      rows: [
+        {
+          label: "Question",
+          value: "Which of the two campaign routes carries the message?",
+        },
+        {
+          label: "Answer",
+          value:
+            "In 3 of 4 studies, Route A was recalled correctly after three seconds — Route B was read as “nice, but interchangeable.” Every number backed by a quote.",
+        },
+        {
+          label: "Evidence from one interview",
+          quote: true,
+          value:
+            "“With the first one I knew right away what it was about — the second could just as easily be an ad for anything else.”",
+        },
+      ],
+    },
+  },
+  proactive: {
+    eyebrow: "Design & Agencies · Before the pitch",
+    title: <>Walk into the pitch with tested routes.</>,
+    body: "The same study works before the client meeting, too: test two or three routes against each other before you present. The target audience sees every draft as a Stimulus in the interview, the Voice Agent leads the conversation audibly — and you walk into the room with a recommendation that doesn’t rest on agency gut feeling, but on conversations with exactly the people the client wants to reach.",
+    payoff: {
+      strong: "A pitch argument no competitor has.",
+      body: "“We tested both routes with your target audience — Route A was understood, Route B was not. Here are the voices.” That wins meetings.",
+    },
+    card: {
+      badge: "Stimulus test · before the meeting",
+      rows: [
+        {
+          label: "Question",
+          value: "Which claim variant sticks after three seconds?",
+        },
+        {
+          label: "Answer",
+          value:
+            "In 2 of 3 studies, the “short” claim variant was recalled close to verbatim — the long variant was reproduced in substance, but without the brand link. Every number backed by a quote.",
+        },
+        {
+          label: "Evidence from one interview",
+          quote: true,
+          value:
+            "“I can still tell you the short sentence right now — with the long one all I remember is that it was about sustainability.”",
+        },
+      ],
+    },
+  },
+  proofLead:
+    "Every capability works on real interviews with real people — built for teams who have to sell creative.",
+  cta: {
+    title: <>Test the draft before the client tests it.</>,
+    lead: "Book a demo and see how Klymeo tests two creative routes against each other — with Stimulus in the interview and quotes for the deck.",
+  },
+};
+
 export default async function DesignAgenturenPage({
   params,
 }: {
@@ -138,7 +238,10 @@ export default async function DesignAgenturenPage({
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <IndustryPage content={localizedContent(lang, { de: CONTENT })} />
+      <IndustryPage
+        content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
+        locale={resolveLocale(lang)}
+      />
     </>
   );
 }

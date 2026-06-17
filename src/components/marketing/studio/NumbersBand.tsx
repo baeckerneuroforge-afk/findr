@@ -17,13 +17,21 @@ import {
  * unter dem Fold, der kurze Reset auf 0 ist nie sichtbar).
  */
 
-// German content. EN noch nicht getextet → DE-Fallback (EN=DE); nur die
-// `label`-Strings sind übersetzbar, die Werte/Suffixe sind sprachneutral.
+// German content. Nur die `label`-Strings sind übersetzbar, die Werte/Suffixe
+// sind sprachneutral; STATS_EN spiegelt die Struktur exakt (gleiche Reihenfolge,
+// gleiche Werte/Suffixe).
 const STATS_DE: { value: number; suffix?: string; label: string }[] = [
   { value: 100, suffix: "%", label: "EU-gehostet · DSGVO-konform" },
   { value: 0, label: "US-Cloud · null Datentransfer" },
   { value: 4, label: "Methoden · alle live" },
   { value: 1, label: "Engine · alle Methoden" },
+];
+
+const STATS_EN: { value: number; suffix?: string; label: string }[] = [
+  { value: 100, suffix: "%", label: "EU-hosted · GDPR-compliant" },
+  { value: 0, label: "US cloud · zero data transfer" },
+  { value: 4, label: "Methods · all live" },
+  { value: 1, label: "Engine · all methods" },
 ];
 
 export function NumbersBand({
@@ -32,7 +40,7 @@ export function NumbersBand({
   // Optional: home + produkt pass the page locale; defaults to German.
   lang?: Locale;
 }) {
-  const stats = localizedContent(lang, { de: STATS_DE });
+  const stats = localizedContent(lang, { de: STATS_DE, en: STATS_EN });
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

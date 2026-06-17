@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
 import {
   IndustryPage,
   type IndustryContent,
@@ -129,6 +129,106 @@ const CONTENT: IndustryContent = {
   },
 };
 
+const CONTENT_EN: IndustryContent = {
+  slug: "b2b",
+  eyebrow: "Industry · B2B",
+  heroTitle: <>Listen to the whole buying center — not just the loudest voice.</>,
+  heroSubhead:
+    "In B2B, one person rarely decides: the business unit, procurement, leadership — every role has its own reasons, and few of them reach you unfiltered. Klymeo runs structured in-depth interviews with your target audiences in German and English, by link straight into your contacts, optionally voice-led with a Voice Agent — and distills the conversations into evidenced answers.",
+  audience:
+    "Marketing, product, and strategy leads at B2B companies — software, services, manufacturing, wholesale.",
+  pain: {
+    eyebrow: "B2B · The blind spot",
+    title: <>Few deals, long cycles — and every explanation is an anecdote.</>,
+    problem:
+      "B2B markets yield few data points: a handful of deals per quarter, long decision cycles, and feedback that arrives as a single opinion — from the last meeting, the loudest customer, secondhand. Traditional surveys barely reach business decision-makers, and when they do, respondents tick scales instead of explaining how their decision really came about.",
+    stakes: {
+      strong: "What stays open until someone asks in a structured way.",
+      body: "Which role in the buying center is really holding things back, how vendors get compared, what makes an offer easy to understand — that stays guesswork until someone asks it in an in-depth interview. A gap, not a drama: it's just not filled yet.",
+    },
+    blindCard: {
+      badge: "Without verbatim · just a single opinion",
+      rows: [
+        {
+          label: "What's on the table",
+          value: "“The business unit wanted us, but procurement killed it.”",
+        },
+        {
+          label: "What stays open",
+          value:
+            "Whether it really was procurement — or a competing bid, a missing reference case, or a requirement the proposal simply never answered.",
+        },
+      ],
+    },
+  },
+  howLead:
+    "Four connected steps — from a defined audience study to the number that backs every statement, per study, with a quote. By link into your own contacts, with screening for the right role in the buying center.",
+  solution: {
+    eyebrow: "B2B · The evidenced answer",
+    title: <>From anecdotal feedback to a structured voice of the market.</>,
+    body: "Set up a separate study for each question — needs analysis, positioning check, offer comprehension. Invite customers, near-misses, and target contacts by link; the screening gate makes sure the right role answers — user, business decision-maker, or procurement. Klymeo runs the in-depth interview in German and English, optionally voice-led with a Voice Agent for people who'd rather talk than type, and distills everything into themes, camps, and verbatim quotes.",
+    payoff: {
+      strong: "A number you can defend in the strategy meeting.",
+      body: "When someone asks “how do we know that?”, you show the number — with the verbatim quote from that role right beside it. Nothing extrapolated, nothing secondhand.",
+    },
+    answerCard: {
+      badge: "Market Lens · evidenced per study",
+      rows: [
+        {
+          label: "Question",
+          value: "Where does our offer fall short with business decision-makers?",
+        },
+        {
+          label: "Answer",
+          value:
+            "In 3 of 5 studies, what was missing wasn't feature scope but a reference case from their own industry — every number backed by a quote from the relevant study.",
+        },
+        {
+          label: "Evidence from an interview",
+          quote: true,
+          value:
+            "“The product won us over — but without a case from our industry, I can't get it approved internally.”",
+        },
+      ],
+    },
+  },
+  proactive: {
+    eyebrow: "B2B · Before market entry",
+    title: <>Validate your offer and positioning before sales rolls out.</>,
+    body: "The same study works the other way around too: before a new offer, a new segment, or new pricing logic hits the market, you ask the target roles first. Show the offer concept or the new value argument as a stimulus right inside the interview — business decision-makers react to exactly the material your sales team will work with later.",
+    payoff: {
+      strong: "An evidenced foundation before sales time gets committed.",
+      body: "Instead of testing the positioning in the market, you walk into the decision with a number that shows which arguments land — and which objections your sales team will hear, before they hear them.",
+    },
+    card: {
+      badge: "Concept Test · before the rollout",
+      rows: [
+        {
+          label: "Question",
+          value: "Does the audience understand the new service package?",
+        },
+        {
+          label: "Answer",
+          value:
+            "In 4 of 6 studies the added value came across — the most common follow-up question was about how the packages differ. Every number backed by a quote.",
+        },
+        {
+          label: "Evidence from an interview",
+          quote: true,
+          value:
+            "“I get the value right away — I'm just not sure why I'd take the middle package when the small one does almost the same.”",
+        },
+      ],
+    },
+  },
+  proofLead:
+    "Every capability works on real interviews with real decision-makers and users — structured, not anecdotal.",
+  cta: {
+    title: <>Listen to your buying center.</>,
+    lead: "Book a demo and see how Klymeo answers a B2B question across several studies — role by role, evidenced per study.",
+  },
+};
+
 export default async function B2bPage({
   params,
 }: {
@@ -138,7 +238,10 @@ export default async function B2bPage({
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <IndustryPage content={localizedContent(lang, { de: CONTENT })} />
+      <IndustryPage
+        content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
+        locale={resolveLocale(lang)}
+      />
     </>
   );
 }

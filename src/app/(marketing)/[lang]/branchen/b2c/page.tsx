@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
 import {
   IndustryPage,
   type IndustryContent,
@@ -129,6 +129,106 @@ const CONTENT: IndustryContent = {
   },
 };
 
+const CONTENT_EN: IndustryContent = {
+  slug: "b2c",
+  eyebrow: "Industry · B2C & Consumer Goods",
+  heroTitle: <>Ask the buyers before the shelf answers for them.</>,
+  heroSubhead:
+    "Recipe, packaging, price, brand promise — the expensive B2C decisions are made long before anything sells. Klymeo runs AI interviews with real consumers in German and English, shows your drafts as a Stimulus right inside the conversation, and turns “most people like it” into an evidenced number: anchored per study, deterministically counted, nothing extrapolated.",
+  audience:
+    "Brand, insights, and e-commerce teams in B2C — food, beverages, branded goods, retail, and consumer products.",
+  pain: {
+    eyebrow: "B2C · The blind spot",
+    title: <>Sales and click data show that something is being left on the shelf. Not why.</>,
+    problem:
+      "Panels are slow and expensive, focus groups skew toward the loudest voice in the room, and sales and shop data only report that a variant isn’t moving or that the cart was abandoned once the decision has long been made. Why — too sweet, the wrong portion size, packaging that looks cheaper than the promise, a price that just feels wrong — shows up in no dashboard.",
+    stakes: {
+      strong: "What stays open as long as only conversion is talking.",
+      body: "Whether the packaging carries the promise, whether the price lands, whether the brand still means what it’s supposed to mean — all of it stays unevidenced until you ask the buyers themselves. A gap, not a drama: it’s simply not filled yet.",
+    },
+    blindCard: {
+      badge: "Without verbatim · sales only",
+      rows: [
+        {
+          label: "What the number shows",
+          value: "New variant: repeat-purchase rate is below the familiar recipe.",
+        },
+        {
+          label: "What the number leaves open",
+          value:
+            "Why. Is it the taste, the price, the new packaging — or that loyal buyers can no longer find the familiar product on the shelf?",
+        },
+      ],
+    },
+  },
+  howLead:
+    "Four connected steps — from a defined consumer study to the number that backs every statement, per study, with a quote. Recruited by link or panel, with no moderator and no weeks of lead time.",
+  solution: {
+    eyebrow: "B2C · The evidenced answer",
+    title: <>From a gut feeling in the tasting room to an evidenced consumer voice.</>,
+    body: "Set up a separate study for every question — recipe test, packaging comparison, price perception, brand image. A screening gate and quotas make sure only buyers in your category reach the interview, not random clicks. Klymeo interviews in German and English — audibly via Voice Agent if you want — and uses the Market Lens to separate pricing signal, purchase intent, segment, and competition; across multiple studies it counts deterministically, backed by a quote per study.",
+    payoff: {
+      strong: "A number you can defend in the innovation board.",
+      body: "When someone asks “how many actually say that?”, you show the number — and the quote from the relevant study right beside it. Nothing extrapolated.",
+    },
+    answerCard: {
+      badge: "Market Lens · evidenced per study",
+      rows: [
+        {
+          label: "Question",
+          value: "What keeps loyal buyers from switching to the new recipe?",
+        },
+        {
+          label: "Answer",
+          value:
+            "In 4 of 6 consumer studies, participants named the sweeter note as the reason to switch — each backed by a quote from the relevant study.",
+        },
+        {
+          label: "Evidence from an interview",
+          quote: true,
+          value:
+            "“This used to be my after-work treat — the new version is honestly too sweet for me, now I reach for the store brand next to it.”",
+        },
+      ],
+    },
+  },
+  proactive: {
+    eyebrow: "B2C · Before launch",
+    title: <>Test the concept before the first batch runs.</>,
+    body: "The same study works the other way around too: instead of interpreting what sales report, ask up front whether the idea holds. Load a recipe concept, packaging sample, or campaign draft into the study as a Stimulus — real buyers in your category see exactly that material in the AI interview and respond to it directly, before production, listing, and media budget are committed.",
+    payoff: {
+      strong: "An evidenced basis for go or no-go — before the production run.",
+      body: "Instead of learning from sales figures after launch, you walk into the innovation board with a number showing how many would actually buy the idea — and what makes the others hesitate.",
+    },
+    card: {
+      badge: "Stimulus test · before production",
+      rows: [
+        {
+          label: "Question",
+          value: "Does the new packaging design carry the brand promise?",
+        },
+        {
+          label: "Answer",
+          value:
+            "In 3 of 4 concept studies the draft was read as more premium — two studies showed the price is missed on the front. Every number backed by a quote.",
+        },
+        {
+          label: "Evidence from an interview",
+          quote: true,
+          value:
+            "“The dark blue looks far more premium than before — but I can’t find what it costs anywhere, and that makes me wary.”",
+        },
+      ],
+    },
+  },
+  proofLead:
+    "Every capability works on real interviews with real consumers — from the voice interview to the PowerPoint export.",
+  cta: {
+    title: <>Ask the buyers before the batch runs.</>,
+    lead: "Book a demo and see how Klymeo answers a consumer question across multiple studies — deterministically counted, evidenced per study.",
+  },
+};
+
 export default async function B2cPage({
   params,
 }: {
@@ -138,7 +238,10 @@ export default async function B2cPage({
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <IndustryPage content={localizedContent(lang, { de: CONTENT })} />
+      <IndustryPage
+        content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
+        locale={resolveLocale(lang)}
+      />
     </>
   );
 }

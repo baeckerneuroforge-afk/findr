@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
 import {
   MethodPage,
   type MethodContent,
@@ -127,6 +127,104 @@ const CONTENT: MethodContent = {
   },
 };
 
+const CONTENT_EN: MethodContent = {
+  slug: "markenwahrnehmung",
+  status: "Live",
+  eyebrow: "Method · Brand Perception",
+  heroTitle: <>How your brand really sits in people&apos;s minds.</>,
+  heroSubhead:
+    "Brand perception can't be ticked off a list. Klymeo asks about associations, images, and feelings — in your audience's own words, deliberately broad, before a scale reshapes the spontaneous reaction.",
+  audience:
+    "Brand, marketing, and strategy teams who want to hear the real picture of their brand — not the one they wish for.",
+  statusNote:
+    "This method runs today — you can put it to work in a Market Research study right now.",
+  pain: {
+    eyebrow: "Brand Perception · The blind spot",
+    title: <>Brand tracking shows a number. Not the picture behind it.</>,
+    problem:
+      "Prompted questions deliver percentage points on predefined attributes — but a brand lives in the spontaneous associations, images, and feelings that no scale captures. What people connect with you unprompted says more than any agreement with “modern: yes/no”.",
+    stakes: {
+      strong: "Predefined attributes measure your hypothesis, not their perception.",
+      body: "Ask only what you already suspect and you never hear the word the audience chooses itself — and that's exactly what shapes the brand.",
+    },
+    blindCard: {
+      badge: "Without verbatim · prompted scale only",
+      rows: [
+        {
+          label: "What the tracking shows",
+          value: "Agreement scores on predefined brand attributes.",
+        },
+        {
+          label: "What the tracking leaves open",
+          value:
+            "Which image, which feeling, which spontaneous association the brand really triggers — in the audience's words, not yours.",
+        },
+      ],
+    },
+  },
+  how: {
+    title: <>How Klymeo keeps perception open.</>,
+    lead:
+      "Deliberately broad rather than deep: Klymeo asks for the first thing that comes to mind before getting specific — so spontaneous perception isn't shaped by the question.",
+    steps: [
+      {
+        phase: "Spontaneous",
+        title: "The first thing that comes to mind",
+        body: "“What's the first thing that comes to mind with [brand]?” — the unprompted association first, before any attribute steers it.",
+        tag: "Live",
+      },
+      {
+        phase: "Image & feeling",
+        title: "Associations, images, feelings",
+        body: "Klymeo asks for images and feelings rather than scale values — and stays with the person's own words.",
+        tag: "Live",
+      },
+      {
+        phase: "Keep it broad",
+        title: "Don't overshape",
+        body: "Instead of drilling down early, Klymeo keeps the question open — so perception isn't nudged in a predefined direction.",
+        tag: "Live",
+      },
+      {
+        phase: "Core",
+        title: "What the brand stands for — and what it doesn't",
+        body: "Only at the end does Klymeo distill the brand core: “What does [brand] stand for — and what doesn't it?” Backed by the quote.",
+        tag: "Live",
+      },
+    ],
+  },
+  result: {
+    eyebrow: "Brand Perception · What comes out",
+    title: <>The brand image in real words.</>,
+    body: "Klymeo distills the interviews into the recurring associations, images, and feelings — and shows which of them carry the brand and which hold it back. Deterministically counted across multiple studies, evidenced with a quote per study.",
+    payoff: {
+      strong: "A brand image you can quote.",
+      body: "Not “attribute X sits at Y percent,” but the word the audience chose itself — backed by the interview.",
+    },
+    card: {
+      badge: "Example questions · Brand Perception",
+      rows: [
+        {
+          label: "How Klymeo asks",
+          value:
+            "“What's the first thing that comes to mind with [brand]?” · “Describe [brand] in one sentence.”",
+        },
+        {
+          label: "What Klymeo hears out",
+          value:
+            "Spontaneous associations, the feeling behind them, and the brand core — in their own words, not in predefined attributes.",
+        },
+      ],
+    },
+  },
+  proofLead:
+    "What becomes of those conversations runs through the same synthesis as every method — Live for what's Live; Soon for what's coming.",
+  cta: {
+    title: <>Hear how your brand really sounds.</>,
+    lead: "Book a demo and see how Klymeo distills spontaneous associations into an evidenced brand image.",
+  },
+};
+
 export default async function MarkenwahrnehmungPage({
   params,
 }: {
@@ -136,7 +234,10 @@ export default async function MarkenwahrnehmungPage({
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <MethodPage content={localizedContent(lang, { de: CONTENT })} />
+      <MethodPage
+        content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
+        locale={resolveLocale(lang)}
+      />
     </>
   );
 }

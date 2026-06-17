@@ -1,4 +1,4 @@
-import { MODULES } from "../PlatformModules";
+import { getModules } from "../PlatformModules";
 import {
   localizedContent,
   MARKETING_DEFAULT_LOCALE,
@@ -12,18 +12,21 @@ import {
  * still (CSS). Dekorativ — alles ist darunter als echte Inhalte erreichbar.
  */
 
-// German copy. EN noch nicht getextet → DE-Fallback (EN=DE). Die Methoden-
-// Namen kommen aus der MODULES-Registry; hier stehen nur die Marquee-eigenen
-// Zusatz-Labels.
+// Die Methoden-Namen kommen aus der MODULES-Registry (lokalisiert via
+// getModules(lang)); hier stehen nur die Marquee-eigenen Zusatz-Labels.
 const EXTRA_ITEMS_DE = ["Voice-Agent", "Stimulus", "Eine Engine"];
+const EXTRA_ITEMS_EN = ["Voice Agent", "Stimulus", "One engine"];
 
 export function Marquee({
   lang = MARKETING_DEFAULT_LOCALE,
 }: {
   lang?: Locale;
 }) {
-  const extraItems = localizedContent(lang, { de: EXTRA_ITEMS_DE });
-  const items = [...MODULES.map((m) => m.name), ...extraItems];
+  const extraItems = localizedContent(lang, {
+    de: EXTRA_ITEMS_DE,
+    en: EXTRA_ITEMS_EN,
+  });
+  const items = [...getModules(lang).map((m) => m.name), ...extraItems];
   return (
     <div className="st-marquee" aria-hidden>
       <div className="st-marquee-track">

@@ -11,14 +11,16 @@ import {
   type Locale,
 } from "@/i18n/marketing-locale";
 
-// German copy. EN noch nicht getextet → DE-Fallback (EN=DE).
-const CONTENT_DE: {
+// German copy + EN mirror (same ReactNode structure, only text translated).
+type StudioHeroContent = {
   recChip: ReactNode;
   headline: ReactNode;
   lead: ReactNode;
   ctaPrimary: ReactNode;
   ctaSecondary: ReactNode;
-} = {
+};
+
+const CONTENT_DE: StudioHeroContent = {
   recChip: (
     <>
       <b aria-hidden />
@@ -59,6 +61,47 @@ const CONTENT_DE: {
   ctaSecondary: <>Session abspielen ↓</>,
 };
 
+const CONTENT_EN: StudioHeroContent = {
+  recChip: (
+    <>
+      <b aria-hidden />
+      Session live
+    </>
+  ),
+  headline: (
+    <>
+      <span className="st-ln">
+        <i>Listen to what your</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          market <span className="st-serif">really</span> says.
+        </i>
+      </span>
+    </>
+  ),
+  lead: (
+    <>
+      Klymeo runs{" "}
+      <b className="font-medium text-neutral-900">
+        hundreds of qualitative in-depth interviews
+      </b>{" "}
+      with your target audience — in German and English, GDPR-native,
+      hosted in Frankfurt. An AI that probes like a seasoned researcher,
+      and every finding{" "}
+      <b className="font-medium text-neutral-900">evidenced in the transcript</b>
+      .
+    </>
+  ),
+  ctaPrimary: (
+    <>
+      <span className="st-dot" aria-hidden />
+      Book a demo
+    </>
+  ),
+  ctaSecondary: <>Play the session ↓</>,
+};
+
 /**
  * Homepage-Hero der Studio-Bühne: „Aufnahme läuft“-Chip mit live laufendem
  * Timecode, Poster-Headline mit Zeilen-Maskenreveal, Lead + CTAs — und die
@@ -74,7 +117,7 @@ export function StudioHero({
 }: {
   lang?: Locale;
 }) {
-  const c = localizedContent(lang, { de: CONTENT_DE });
+  const c = localizedContent(lang, { de: CONTENT_DE, en: CONTENT_EN });
   const tcRef = useRef<HTMLSpanElement>(null);
   const waveRef = useRef<HTMLCanvasElement>(null);
 

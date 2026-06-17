@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
 import {
   MethodPage,
   type MethodContent,
@@ -128,6 +128,105 @@ const CONTENT: MethodContent = {
   },
 };
 
+const CONTENT_EN: MethodContent = {
+  slug: "konzept-test",
+  status: "Live",
+  eyebrow: "Method · Concept Test",
+  heroTitle: <>Does the concept hold up — and on what?</>,
+  heroSubhead:
+    "Before you build a concept, you want to know whether it's understood and whether it's relevant. Klymeo tests understanding first, then relevance — staying restrained on “would you buy this” — and shows the concept as a real asset inside the interview.",
+  audience:
+    "Product, innovation and concept teams who want to test an idea with evidence before it gets built.",
+  statusNote:
+    "This method runs today — you show your stimulus (text, image or mockup) in the interview and put it to work directly in a Market Research study.",
+  pain: {
+    eyebrow: "Concept Test · The blind spot",
+    title: <>“Would you buy this?” measures politeness, not relevance.</>,
+    problem:
+      "Asked too early, the purchase-intent question hands you a number that rarely holds — because what matters first is whether the concept was even understood correctly. If it's misunderstood, you're not testing the idea, you're testing the misunderstanding.",
+    stakes: {
+      strong: "A misunderstood concept hands you a pretty, wrong number.",
+      body: "Without checking what actually lands with the person, you can't tell whether a “no” is aimed at the idea or at the way it was explained.",
+    },
+    blindCard: {
+      badge: "Without an understanding check · purchase intent only",
+      rows: [
+        {
+          label: "What the question shows",
+          value:
+            "A purchase-intent number on a concept that was described in a single sentence.",
+        },
+        {
+          label: "What the question leaves open",
+          value:
+            "Whether the concept was understood the way it was meant — and exactly what it holds up on or fails at.",
+        },
+      ],
+    },
+  },
+  how: {
+    title: <>Understand first, then evaluate.</>,
+    lead:
+      "Klymeo shows the concept as an asset and works from understanding to relevance — deliberately restrained on purchase intent.",
+    steps: [
+      {
+        phase: "Stimulus",
+        title: "Show the concept",
+        body: "Klymeo presents the concept as a real asset in the interview — text, image or mockup — instead of merely describing it.",
+        tag: "Live",
+      },
+      {
+        phase: "Understanding",
+        title: "Have it played back in their own words",
+        body: "“Describe the concept in your own words.” Only once it's clear what lands does any evaluation make sense.",
+        tag: "Live",
+      },
+      {
+        phase: "Relevance",
+        title: "What appeals — and what doesn't",
+        body: "Klymeo asks what pulls people in and what holds them back — and stays restrained on “would you buy this”: relevance instead of forced purchase intent.",
+        tag: "Live",
+      },
+      {
+        phase: "Variant",
+        title: "Which direction holds up",
+        body: "When several variants are on the table, Klymeo asks for preference and reason — exactly what makes an idea hold up or fall short.",
+        tag: "Live",
+      },
+    ],
+  },
+  result: {
+    eyebrow: "Concept Test · What you get",
+    title: <>Evidence of whether the idea holds up — and on what.</>,
+    body: "Klymeo distills whether the concept was understood, what drives relevance and where it snags — anchored in the transcript. Counted deterministically across multiple concept studies. The same synthesis as every other method.",
+    payoff: {
+      strong: "A go/no-go grounded in understanding — not in a premature number.",
+      body: "You see not just whether the idea lands, but exactly on what — the lever for the next version.",
+    },
+    card: {
+      badge: "Example questions · Concept Test",
+      rows: [
+        {
+          label: "How Klymeo asks",
+          value:
+            "“Describe the concept in your own words.” · “What appeals to you, and what less so?”",
+        },
+        {
+          label: "What Klymeo picks up",
+          value:
+            "Whether the concept was understood, what drives relevance and which variant holds up — before anything gets built.",
+        },
+      ],
+    },
+  },
+  proofLead:
+    "What comes out of the conversations runs through the same synthesis as every method — Live for what's live; Soon for what's coming.",
+  cta: {
+    title: <>Test concepts before they get built.</>,
+    lead: "Book a demo and see how Klymeo shows a concept as an asset and works from understanding to relevance — before anything gets built.",
+  },
+};
+
 export default async function KonzeptTestPage({
   params,
 }: {
@@ -137,7 +236,10 @@ export default async function KonzeptTestPage({
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <MethodPage content={localizedContent(lang, { de: CONTENT })} />
+      <MethodPage
+        content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
+        locale={resolveLocale(lang)}
+      />
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { MODULES } from "../PlatformModules";
+import { getModules } from "../PlatformModules";
 import {
   localizedContent,
   MARKETING_DEFAULT_LOCALE,
@@ -22,14 +22,16 @@ import {
  * position:sticky, ohne Skalierung/Bewegung.
  */
 
-// German copy. EN noch nicht getextet → DE-Fallback (EN=DE).
-const CONTENT_DE: {
+// Studio-Inszenierung der vier Methoden-Karten (Chrome + Beispielfragen).
+type MethodStackContent = {
   trackLabelPre: string; // „Spur 0“ + {i+1}
   trackLabelMid: string; // „ / 0“ + {MODULES.length}
   moreLink: string;
   exampleTag: string;
   exampleQuestions: Record<string, string>;
-} = {
+};
+
+const CONTENT_DE: MethodStackContent = {
   trackLabelPre: "Spur 0",
   trackLabelMid: " / 0",
   moreLink: "Mehr zur Methode",
@@ -46,12 +48,33 @@ const CONTENT_DE: {
   },
 };
 
+// „Track 0“ keeps the leading-zero padding + slash chrome; only the prose
+// translates. exampleQuestions keep their /methoden/* path keys verbatim
+// (those address the module by route) — only the question values translate.
+const CONTENT_EN: MethodStackContent = {
+  trackLabelPre: "Track 0",
+  trackLabelMid: " / 0",
+  moreLink: "Learn about the method",
+  exampleTag: "Example question",
+  exampleQuestions: {
+    "/methoden/bedarf-verhalten":
+      "“Tell me about last week — how did you decide what to cook?”",
+    "/methoden/markenwahrnehmung":
+      "“If this brand were a person — how would you describe them?”",
+    "/methoden/konzept-test":
+      "“Explain the concept back to me in your own words — what sticks?”",
+    "/methoden/creative-test":
+      "“You saw the ad for three seconds — what stuck with you?”",
+  },
+};
+
 export function MethodStack({
   lang = MARKETING_DEFAULT_LOCALE,
 }: {
   lang?: Locale;
 }) {
-  const c = localizedContent(lang, { de: CONTENT_DE });
+  const c = localizedContent(lang, { de: CONTENT_DE, en: CONTENT_EN });
+  const modules = getModules(lang);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,15 +118,18 @@ export function MethodStack({
 
   return (
     <div ref={rootRef} className="relative">
-      {MODULES.map((m, i) => (
+      {modules.map((m, i) => (
         <article key={m.href} className="st-tapecard">
           <div className="flex items-center justify-between">
             <span className="st-tag">
-              {c.trackLabelPre}{i + 1}{c.trackLabelMid}{MODULES.length}
+              {c.trackLabelPre}{i + 1}{c.trackLabelMid}{modules.length}
             </span>
             <span className={`st-lamp ${m.status === "Bald" ? "st-lamp--soon" : ""}`}>
               <b aria-hidden />
-              {m.status}
+              {localizedContent(lang, {
+                de: m.status,
+                en: m.status === "Bald" ? "Soon" : "Live",
+              })}
             </span>
           </div>
           <h3>{m.name}</h3>

@@ -10,7 +10,7 @@ import { CTASection } from "@/components/marketing/CTASection";
 import { JsonLd } from "@/components/marketing/JsonLd";
 import { SITE_URL, ogDefaults } from "@/lib/marketing/seo";
 import { insightsByDate } from "@/lib/insights/articles";
-import { resolveLocale, toBcp47 } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale, toBcp47 } from "@/i18n/marketing-locale";
 
 const PATH = "/insights";
 const OG_TITLE = "Insights — Klymeo";
@@ -29,7 +29,8 @@ export default async function InsightsPage({
 }: {
   params: Promise<{ lang: string }>;
 }) {
-  const locale = resolveLocale((await params).lang);
+  const { lang } = await params;
+  const locale = resolveLocale(lang);
   const articles = insightsByDate(locale);
 
   // Blog JSON-LD lists THIS locale's published articles. EN has none yet → omit
@@ -61,12 +62,22 @@ export default async function InsightsPage({
               as="h1"
               align="left"
               eyebrow="Insights"
-              title={
-                <>
-                  Was wir übers Zuhören gelernt haben.
-                </>
-              }
-              lead="Ressourcen zu qualitativer Marktforschung, KI- und Voice-Interviews und DSGVO-nativer KI. Belegt, nicht geraten — und ohne Hype."
+              title={localizedContent(lang, {
+                de: (
+                  <>
+                    Was wir übers Zuhören gelernt haben.
+                  </>
+                ),
+                en: (
+                  <>
+                    What we&apos;ve learned about listening.
+                  </>
+                ),
+              })}
+              lead={localizedContent(lang, {
+                de: "Ressourcen zu qualitativer Marktforschung, KI- und Voice-Interviews und DSGVO-nativer KI. Belegt, nicht geraten — und ohne Hype.",
+                en: "Resources on qualitative market research, AI and voice interviews, and GDPR-native AI. Evidenced, not guessed — and without the hype.",
+              })}
             />
           </Reveal>
         </Container>
@@ -86,9 +97,10 @@ export default async function InsightsPage({
             // EN has no articles yet — editorial is authored, not machine-translated.
             <Reveal>
               <p className="mx-auto max-w-xl text-center text-[15px] leading-relaxed text-neutral-500">
-                {locale === "en"
-                  ? "English insights are coming soon. In the meantime, explore the platform — the German articles are available under DE."
-                  : "Bald erscheinen hier die ersten Insights."}
+                {localizedContent(lang, {
+                  de: "Bald erscheinen hier die ersten Insights.",
+                  en: "English insights are coming soon. In the meantime, explore the platform — the German articles are available under DE.",
+                })}
               </p>
             </Reveal>
           )}
@@ -96,14 +108,31 @@ export default async function InsightsPage({
       </Section>
 
       <CTASection
-        eyebrow="Bereit?"
-        title={
-          <>
-            Lieber selbst sehen als nachlesen?
-          </>
-        }
-        lead="Buch eine Demo und sieh, was Klymeo in echten Tiefeninterviews findet — über alle vier Methoden hinweg, vom Voice-Interview bis zum exportierten Deck."
-        secondary={{ label: "Plattform ansehen", href: "/produkt" }}
+        lang={locale}
+        eyebrow={localizedContent(lang, { de: "Bereit?", en: "Ready?" })}
+        title={localizedContent(lang, {
+          de: (
+            <>
+              Lieber selbst sehen als nachlesen?
+            </>
+          ),
+          en: (
+            <>
+              Rather see it than read about it?
+            </>
+          ),
+        })}
+        lead={localizedContent(lang, {
+          de: "Buch eine Demo und sieh, was Klymeo in echten Tiefeninterviews findet — über alle vier Methoden hinweg, vom Voice-Interview bis zum exportierten Deck.",
+          en: "Book a demo and see what Klymeo finds in real in-depth interviews — across all four methods, from the voice interview to the exported deck.",
+        })}
+        secondary={{
+          label: localizedContent(lang, {
+            de: "Plattform ansehen",
+            en: "See the platform",
+          }),
+          href: "/produkt",
+        }}
       />
     </>
   );

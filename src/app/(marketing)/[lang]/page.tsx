@@ -354,13 +354,255 @@ const CONTENT_DE: HomeContent = {
   ),
 };
 
+const CONTENT_EN: HomeContent = {
+  kap01: "K.01 — The problem",
+  problem1: (
+    <>
+      Surveys give you numbers. But no one tells a scale from one to ten{" "}
+      <Rv as="span" className="st-hl" threshold={0.6}>
+        why they leave
+      </Rv>
+      .
+    </>
+  ),
+  problem2: (
+    <>
+      Klymeo{" "}
+      <Rv as="span" className="st-hl st-hl--soft" threshold={0.6} d={180}>
+        digs deeper
+      </Rv>{" "}
+      — and hands you decisions that are{" "}
+      <Rv as="span" className="st-hl" threshold={0.6} d={360}>
+        backed by the conversation
+      </Rv>
+      .
+    </>
+  ),
+  // Studio rules (K.01). Non-text field `n` stays.
+  rules: [
+    {
+      n: "R.01",
+      t: "Probe, don't nod along",
+      d: "The AI follows up like an experienced researcher — past the first answer, instead of stopping at the hypothesis.",
+    },
+    {
+      n: "R.02",
+      t: "Evidence over gut feel",
+      d: "Every finding carries its verbatim quote. Fraud and quality checks filter out click-throughs.",
+    },
+    {
+      n: "R.03",
+      t: "In your participants' language",
+      d: "In-depth interviews in real German and English — the tone and context US tools simply miss.",
+    },
+    {
+      n: "R.04",
+      t: "Frankfurt, not Virginia",
+      d: "GDPR-native, hosted in the EU, aligned with the EU AI Act. No US cloud, no lock-ins.",
+    },
+  ],
+  kap02: "K.02 — The session",
+  session2Headline: (
+    <>
+      <span className="st-ln">
+        <i>This is what</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          <span className="st-serif">research</span> sounds like.
+        </i>
+      </span>
+    </>
+  ),
+  session2Lead: (
+    <>
+      A Klymeo concept test: the AI shows a draft, probes audibly and
+      evaluates live. Hit play — or switch between Voice and Text.
+      A prepared example, no login, no real participant data.
+    </>
+  ),
+  kap03: "K.03 — The repertoire",
+  repertoireHeadline: (
+    <>
+      <span className="st-ln">
+        <i>Four methods,</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          <span className="st-serif">one</span> engine.
+        </i>
+      </span>
+    </>
+  ),
+  repertoireLead: (
+    <>
+      The same depth, the same probing, the same evidence discipline —
+      whether it&apos;s needs, brand, concept or creative. Every interview
+      feeds the same brain.
+    </>
+  ),
+  kap04: "K.04 — The tools",
+  toolsHeadline: (
+    <>
+      <span className="st-ln">
+        <i>Speak. Show.</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          <span className="st-serif">Probe.</span>
+        </i>
+      </span>
+    </>
+  ),
+  toolsLead: (
+    <>
+      Interviews that feel like real conversations: the Voice Agent leads
+      them audibly, and with Stimulus you show your audience live what
+      you&apos;re working on right now.
+    </>
+  ),
+  tool01Tag: <>Tool 01 · Voice</>,
+  tool01Live: (
+    <>
+      <b aria-hidden />
+      Live
+    </>
+  ),
+  tool01Title: <>The Voice Agent leads the interview</>,
+  tool01Body: (
+    <>
+      Participants simply speak — the AI listens, probes audibly and
+      transcribes live. Typing stays available at any time, and the
+      transcript remains the single source of truth.
+    </>
+  ),
+  tool01Foot: (
+    <>
+      <span>Speak instead of type</span>
+      <span>Follow-ups in real time</span>
+      <span>Full transcript</span>
+    </>
+  ),
+  tool02Tag: <>Tool 02 · Stimulus</>,
+  tool02Live: (
+    <>
+      <b aria-hidden />
+      Live
+    </>
+  ),
+  tool02StimTag: <>Your draft</>,
+  tool02StimChatQ: <>What stands out to you first?</>,
+  tool02StimChatA: (
+    <>“The dark blue feels premium — but I can&apos;t find the price.”</>
+  ),
+  tool02Title: <>Stimulus: show drafts live</>,
+  tool02Body: (
+    <>
+      Load concepts, packshots, ads or landing pages into the study —
+      your audience sees them right in the interview and responds to
+      exactly what you want to test.
+    </>
+  ),
+  tool02Foot: (
+    <>
+      <span>Image or link</span>
+      <span>For design & marketing</span>
+      <span>Concept & Creative Test</span>
+    </>
+  ),
+  kap05: "K.05 — The analysis",
+  synthesisHeadline: (
+    <>
+      <span className="st-ln">
+        <i>Voices become</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          <span className="st-serif">proof.</span>
+        </i>
+      </span>
+    </>
+  ),
+  synthesisLead: (
+    <>
+      Klymeo distills every interview and all of them together — themes,
+      camps, verbatim quotes. No manual tagging, no weeks of analysis.
+      And in the end you export the whole thing as a PDF report or
+      PowerPoint deck.
+    </>
+  ),
+  sheetTag: <>Synthesis sheet · Example</>,
+  sheetThemes: <>3 themes</>,
+  sheetTheme1Name: <>Decision overload</>,
+  sheetTheme1N: <>most common camp</>,
+  sheetTheme2Name: <>Impulsive avoidance</>,
+  sheetTheme2N: <>recurring</>,
+  sheetTheme3Name: <>Usability hurdles</>,
+  sheetTheme3N: <>isolated</>,
+  sheetQuote: <>“Every evening I stood in front of the fridge with no plan.”</>,
+  sheetQuoteFooter: <>Verbatim · Session 001 · 02:14</>,
+  sealVerified: <>Evidenced on</>,
+  sealTranscript: <>Transcript</>,
+  // Synthesis capabilities — the six real capabilities. Export now honestly
+  // names both formats (PDF report AND PowerPoint deck); highlight reels
+  // still honestly carries "Soon" (non-text field `soon`).
+  caps: [
+    { n: "S.01", t: "Automatic distillation", d: "Themes, camps and quotes across all interviews" },
+    { n: "S.02", t: "Chat with your data", d: "Ask follow-ups of the entire study corpus" },
+    { n: "S.03", t: "Highlight reels", d: "The strongest moments as a cut", soon: true },
+    { n: "S.04", t: "Shareable result links", d: "Synthesis by link, externally too, in your own branding" },
+    { n: "S.05", t: "Export as PDF & PowerPoint", d: "Report and slide deck, ready for the next meeting" },
+    { n: "S.06", t: "Cross-study patterns", d: "What repeats across studies" },
+  ],
+  capsSoon: (
+    <>
+      <b aria-hidden />
+      Soon
+    </>
+  ),
+  kap06: "K.06 — The origin",
+  originHeadline: <>Sovereign, from Europe.</>,
+  originLead: (
+    <>
+      Built in Germany, hosted in Frankfurt am Main, aligned with the EU
+      AI Act. Your research data never leaves the EU — and belongs to
+      you.
+    </>
+  ),
+  // Origin badges. Non-text fields `r`/`rec` stay.
+  stamps: [
+    { top: "Data protection", em: "GDPR-native", r: "-5deg", rec: true },
+    { top: "Data center", em: "Frankfurt a.M.", r: "3deg" },
+    { top: "Aligned with", em: "EU AI Act", r: "-2deg" },
+    { top: "Developed in", em: "Germany", r: "4deg" },
+  ],
+  finaleHeadline: (
+    <>
+      <span className="st-ln">
+        <i>Listen to your</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          audience <span className="st-serif">closely.</span>
+        </i>
+      </span>
+    </>
+  ),
+  finaleCta: (
+    <>
+      <span className="st-dot" aria-hidden />
+      Book a demo
+    </>
+  ),
+};
+
 export default async function HomePage({
   params,
 }: {
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
-  const c = localizedContent(lang, { de: CONTENT_DE });
+  const c = localizedContent(lang, { de: CONTENT_DE, en: CONTENT_EN });
 
   return (
     <>

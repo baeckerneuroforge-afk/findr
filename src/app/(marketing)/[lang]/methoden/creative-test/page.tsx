@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/marketing/JsonLd";
-import { localizedContent } from "@/i18n/marketing-locale";
+import { localizedContent, resolveLocale } from "@/i18n/marketing-locale";
 import {
   MethodPage,
   type MethodContent,
@@ -128,6 +128,105 @@ const CONTENT: MethodContent = {
   },
 };
 
+const CONTENT_EN: MethodContent = {
+  slug: "creative-test",
+  status: "Live",
+  eyebrow: "Method · Creative Test",
+  heroTitle: <>Does the creative land — before the budget flows?</>,
+  heroSubhead:
+    "Advertising works in the first few seconds or not at all. Klymeo captures the first impression and the emotional impact of a creative — what stands out and sticks first, before you put media budget behind it.",
+  audience:
+    "Marketing, brand and creative teams who want to test a creative before it goes live.",
+  statusNote:
+    "This method runs today — you show your creative (an ad, mockup or clip) in the interview and put it straight to work in a Market Research study.",
+  pain: {
+    eyebrow: "Creative Test · The blind spot",
+    title: <>Performance numbers arrive once the budget is already running.</>,
+    problem:
+      "Click-through rates and conversions tell you a creative isn't landing — only after you've paid for it. What stands out in the first impression, which message gets through and what sticks emotionally shows up in no performance dashboard.",
+    stakes: {
+      strong: "Otherwise you learn a weak creative from the media invoice.",
+      body: "Without knowing the first impression up front, every spend is a test with real money instead of with real people.",
+    },
+    blindCard: {
+      badge: "Without an up-front reaction · performance only",
+      rows: [
+        {
+          label: "What the campaign shows",
+          value:
+            "Click and conversion numbers — after the budget has been spent.",
+        },
+        {
+          label: "What the campaign leaves open",
+          value:
+            "What stands out in the first impression, which message gets through and what sticks emotionally — before you pay.",
+        },
+      ],
+    },
+  },
+  how: {
+    title: <>First impression first.</>,
+    lead:
+      "Klymeo shows the creative as an asset and captures the spontaneous reaction — what stands out and sticks first, without over-analyzing.",
+    steps: [
+      {
+        phase: "Stimulus",
+        title: "Show the creative",
+        body: "Klymeo plays the creative as a real asset in the interview — an ad, mockup or clip — instead of describing it.",
+        tag: "Live",
+      },
+      {
+        phase: "First impression",
+        title: "Capture the spontaneous reaction",
+        body: "“What's your first spontaneous impression?” The first second counts — Klymeo asks before reflection smooths it over.",
+        tag: "Live",
+      },
+      {
+        phase: "Message",
+        title: "What gets through",
+        body: "“What message do you take away?” Klymeo checks whether the intended message is also the perceived one.",
+        tag: "Live",
+      },
+      {
+        phase: "Recall",
+        title: "What sticks",
+        body: "Klymeo asks what stays in memory most strongly — the emotional impact that later carries the recall.",
+        tag: "Live",
+      },
+    ],
+  },
+  result: {
+    eyebrow: "Creative Test · What comes out",
+    title: <>The impact, before the budget flows.</>,
+    body: "Klymeo distills first impression, perceived message and emotional recall into evidenced findings — anchored in the transcript. Deterministically counted across multiple creatives. The same synthesis as in every other method.",
+    payoff: {
+      strong: "An up-front decision with real reactions instead of media money.",
+      body: "You see which creative lands and on what — before the first euro of spend flows.",
+    },
+    card: {
+      badge: "Example questions · Creative Test",
+      rows: [
+        {
+          label: "How Klymeo asks",
+          value:
+            "“What's your first spontaneous impression?” · “What message do you take away?”",
+        },
+        {
+          label: "What Klymeo hears out",
+          value:
+            "First impression, perceived message and what sticks emotionally — before it goes live.",
+        },
+      ],
+    },
+  },
+  proofLead:
+    "What comes out of the conversations runs through the same synthesis as in every method — Live where it's Live; Soon where it's coming.",
+  cta: {
+    title: <>Test creatives before the budget flows.</>,
+    lead: "Book a demo and see how Klymeo shows a creative as an asset and captures first impression, message and emotional impact — before the budget flows.",
+  },
+};
+
 export default async function CreativeTestPage({
   params,
 }: {
@@ -137,7 +236,10 @@ export default async function CreativeTestPage({
   return (
     <>
       <JsonLd data={SOFTWARE_JSONLD} />
-      <MethodPage content={localizedContent(lang, { de: CONTENT })} />
+      <MethodPage
+        content={localizedContent(lang, { de: CONTENT, en: CONTENT_EN })}
+        locale={resolveLocale(lang)}
+      />
     </>
   );
 }
