@@ -28,6 +28,15 @@ export function StudioHero() {
     let waveVisible = true;
     let io: IntersectionObserver | null = null;
 
+    // Waveform-Füllfarbe aus dem Token --st-wave (im Dark-Mode heller). Einmal
+    // lesen + bei Theme-Wechsel neu — kein getComputedStyle pro Frame.
+    let waveColor = "rgba(74,81,168,.34)";
+    const readWaveColor = () => {
+      if (!wave) return;
+      const v = getComputedStyle(wave).getPropertyValue("--st-wave").trim();
+      if (v) waveColor = v;
+    };
+
     // ── Timecode (mm:ss:ff, ~24fps-Frames) ───────────────────────────
     const t0 = performance.now();
     const pad = (n: number) => (n < 10 ? "0" : "") + n;
@@ -51,7 +60,7 @@ export function StudioHero() {
       const h = wave.offsetHeight;
       const mid = h / 2;
       wctx.clearRect(0, 0, w, h);
-      wctx.fillStyle = "rgba(74,81,168,.34)";
+      wctx.fillStyle = waveColor;
       const bw = 3;
       const gap = 6;
       const n = Math.ceil(w / (bw + gap));
@@ -64,7 +73,15 @@ export function StudioHero() {
     };
 
     sizeWave();
+    readWaveColor();
     window.addEventListener("resize", sizeWave);
+
+    const schemeMq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onScheme = () => {
+      readWaveColor();
+      if (reduce) drawWave(4200); // statisches Standbild neu einfärben
+    };
+    schemeMq.addEventListener("change", onScheme);
 
     if (reduce) {
       drawWave(4200); // statisches Standbild
@@ -86,6 +103,7 @@ export function StudioHero() {
 
     return () => {
       window.removeEventListener("resize", sizeWave);
+      schemeMq.removeEventListener("change", onScheme);
       cancelAnimationFrame(raf);
       io?.disconnect();
     };
@@ -96,7 +114,7 @@ export function StudioHero() {
       <HeroConstellation className="pointer-events-none absolute right-[-70px] top-[24px] z-0 w-[clamp(240px,30vw,500px)] opacity-[0.55]" />
       <canvas
         ref={waveRef}
-        className="pointer-events-none absolute inset-x-0 bottom-16 h-[110px] w-full opacity-55"
+        className="pointer-events-none absolute inset-x-0 bottom-3 h-[110px] w-full opacity-55"
         aria-hidden
       />
       <div className="relative mx-auto w-full max-w-[1280px] px-[clamp(20px,4vw,56px)]">

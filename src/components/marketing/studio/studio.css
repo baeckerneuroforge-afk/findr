@@ -52,6 +52,7 @@
   --st-rec: #4a51a8;
   --st-rec-deep: #353c8a;
   --st-rec-bright: #6f74ba;
+  --st-wave: rgba(74, 81, 168, 0.34); /* Hero-Waveform-Füllung (Canvas) */
   --st-dark: #141734;
   --st-dark-lift: #1f2350;
   --st-cream: #eeeff8;
@@ -2056,6 +2057,7 @@
     --st-rec: #6f74ba;
     --st-rec-deep: #9398cc;
     --st-rec-bright: #9398cc;
+    --st-wave: rgba(124, 131, 206, 0.52); /* heller auf Nacht-Canvas — bessere Sichtbarkeit */
     --st-ink: #eeeff8;
     --st-ink-60: rgba(238, 239, 248, 0.62);
     --st-ink-35: rgba(238, 239, 248, 0.38);
