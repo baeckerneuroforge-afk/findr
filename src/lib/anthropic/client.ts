@@ -5,12 +5,12 @@ import Anthropic from "@anthropic-ai/sdk";
 /**
  * Default Claude models. Override per-call via the `model` arg.
  *
- * - Opus 4.7 (1M context): deepest reasoning, slowest, most expensive.
+ * - Opus 4.8 (1M context): deepest reasoning, slowest, most expensive.
  * - Sonnet 4.6: balanced default for most product features.
  * - Haiku 4.5: cheapest and fastest for high-volume / latency-sensitive paths.
  */
 export const CLAUDE_MODELS = {
-  opus: "claude-opus-4-7",
+  opus: "claude-opus-4-8",
   sonnet: "claude-sonnet-4-6",
   haiku: "claude-haiku-4-5-20251001",
 } as const;
