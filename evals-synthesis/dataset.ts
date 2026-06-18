@@ -57,11 +57,24 @@
  *   synth_10 — BRAND leakage guard. Pure, consensual BRAND_PERCEPTION input
  *              with no price or pain signal. Expect ZERO tensions.
  *
- * Each insight cites quotes that exist verbatim inside its own evidence
- * arrays — so the engine's anchored-filter has a haystack to validate
- * against. The fake IDs (insight_01_a … insight_04_d) are arbitrary
- * strings; the runner builds the anchor set from them, exactly as the
- * engine would from real source_call_ids.
+ * Each insight cites quotes that exist verbatim inside ITS OWN evidence
+ * arrays — i.e. every quote is correctly attributed to the insight that
+ * carries it. This satisfies the engine's PER-INSIGHT quote anchoring (a
+ * quote must be verbatim in at least one of the sourceInsightIds the theme /
+ * side actually cites), so these happy-path cases stay green under both the
+ * old global-haystack check and the new per-insight check.
+ *
+ * CONSEQUENCE: because no case here carries a CROSS-attributed quote (a quote
+ * that exists only in some OTHER respondent's material), the difference
+ * between the two checks is invisible in this LLM dataset — and the live LLM
+ * cannot be forced to emit a misattribution on demand. The deterministic
+ * "old-passes / new-fails" negative case therefore lives as a unit test in
+ * src/lib/synthesis/engine.test.ts, which feeds applyAnchoredFilter a quote
+ * from respondent B on a theme that only cites A and asserts it is dropped.
+ *
+ * The fake IDs (insight_01_a … insight_04_d) are arbitrary strings; the runner
+ * builds the anchor set from them, exactly as the engine would from real
+ * source_call_ids.
  */
 
 import type {
