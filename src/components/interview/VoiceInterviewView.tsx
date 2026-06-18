@@ -998,7 +998,12 @@ export function VoiceInterviewView({
         return;
       }
       sawDoneSignalRef.current = true;
-      if (phaseRef.current === "live") setPhase("closing");
+      // Auch in "connecting" annehmen: schließt der Agent extrem schnell ab und
+      // das Signal trifft ein, bevor wir live sind, würde sonst der folgende
+      // Agent-Disconnect als fail("agent")-Fehler statt als Abschluss enden.
+      if (phaseRef.current === "connecting" || phaseRef.current === "live") {
+        setPhase("closing");
+      }
     });
 
     room.on(lk.RoomEvent.ParticipantDisconnected, () => {

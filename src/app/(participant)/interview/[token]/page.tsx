@@ -235,35 +235,39 @@ export default async function InterviewPage({
       maxDurationSeconds: session.maxDurationSeconds,
     });
     const voiceInitialStatus = reaped ? "completed" : session.status;
+    const voiceView = (
+      <VoiceInterviewView
+        token={token}
+        initialConversation={session.conversation}
+        initialStatus={voiceInitialStatus}
+        headingOverride={session.planTitle}
+        brandName={branding?.brandName ?? null}
+        accentColor={branding?.accentColor ?? null}
+        logoUrl={branding?.logoUrl ?? null}
+        panelCompleteRedirect={session.panelCompleteRedirect}
+        stimulusUrl={stimulusUrl}
+        stimulusType={stimulusType}
+        // E6 Multi-Stimulus — Set-Panel mit Agent-Reveal per DataPacket;
+        // leer → exakt der bisherige Single-/No-Stimulus-Pfad.
+        stimuli={stimulusSet}
+        // Fortschrittsbalken — System-Decke als Fallback-Nenner, bis der
+        // Voice-Agent live progress-DataPackets sendet.
+        progressTotal={session.progressTotal}
+        // Zeitlimit-Countdown — der Voice-Agent erzwingt das Limit hart, die
+        // UI spiegelt nur die verbleibende Zeit.
+        maxDurationSeconds={session.maxDurationSeconds}
+        startedAt={session.startedAt}
+      />
+    );
     return (
       <NextIntlClientProvider
         locale={locale}
         messages={{ interview: MESSAGES[locale].interview }}
       >
-        {withConsentGate(
-        <VoiceInterviewView
-          token={token}
-          initialConversation={session.conversation}
-          initialStatus={voiceInitialStatus}
-          headingOverride={session.planTitle}
-          brandName={branding?.brandName ?? null}
-          accentColor={branding?.accentColor ?? null}
-          logoUrl={branding?.logoUrl ?? null}
-          panelCompleteRedirect={session.panelCompleteRedirect}
-          stimulusUrl={stimulusUrl}
-          stimulusType={stimulusType}
-          // E6 Multi-Stimulus — Set-Panel mit Agent-Reveal per DataPacket;
-          // leer → exakt der bisherige Single-/No-Stimulus-Pfad.
-          stimuli={stimulusSet}
-          // Fortschrittsbalken — System-Decke als Fallback-Nenner, bis der
-          // Voice-Agent live progress-DataPackets sendet.
-          progressTotal={session.progressTotal}
-          // Zeitlimit-Countdown — der Voice-Agent erzwingt das Limit hart, die
-          // UI spiegelt nur die verbleibende Zeit.
-          maxDurationSeconds={session.maxDurationSeconds}
-          startedAt={session.startedAt}
-        />,
-        )}
+        {/* reaped → das Interview ist bereits abgeschlossen (überfällig): KEIN
+            Consent-Gate vor dem Dankesscreen — eine Einwilligung in ein bereits
+            beendetes Interview wäre sinnlos und verwirrend. */}
+        {reaped ? voiceView : withConsentGate(voiceView)}
       </NextIntlClientProvider>
     );
   }
