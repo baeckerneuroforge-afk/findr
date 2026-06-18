@@ -318,9 +318,11 @@ export type SitemapRoute = { path: string; priority: number };
  * Every indexable marketing route + its priority, derived from the same leaves.
  * Article slugs are appended in sitemap.ts (they come from the insights source).
  *
- * Legal pages: /impressum carries the binding text and is listed (low priority).
- * /datenschutz + /agb stay OUT while they hold placeholders — add them here once
- * the real legal text lands so the sitemap doesn't advertise placeholder pages.
+ * Legal pages: /impressum (binding) plus /datenschutz + /agb are all listed
+ * (low priority). The latter two are detailed DRAFTS (ENTWURF banner + {{ }}
+ * markers until the final lawyer-reviewed text lands) but are advertised on
+ * André's decision so the legal pages are findable; revisit priority once the
+ * binding text is in.
  */
 // SITEMAP paths are locale-INVARIANT bare paths — sitemap.ts applies the /de
 // prefix itself (localizePath). Derive the method/industry routes from the bare
@@ -342,4 +344,6 @@ export const SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/insights", priority: 0.6 },
   { path: "/demo", priority: 0.5 },
   { path: "/impressum", priority: 0.3 },
+  { path: "/datenschutz", priority: 0.3 },
+  { path: "/agb", priority: 0.3 },
 ];

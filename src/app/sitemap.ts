@@ -23,9 +23,10 @@ import {
  * locales that actually have an article for it (today DE + EN share all three;
  * written generically so an asymmetric set never advertises a 404).
  *
- * Legal pages: /impressum carries the binding text and IS listed (low priority).
- * /datenschutz + /agb stay OUT of SITEMAP_ROUTES while they hold placeholders —
- * add them once the real legal text from André/Legal lands (D8).
+ * Legal pages: /impressum (binding) plus /datenschutz + /agb are all listed in
+ * SITEMAP_ROUTES (low priority). The latter two are still detailed drafts
+ * (ENTWURF) but are advertised on André's decision so the legal pages are
+ * findable; revisit once the final text lands.
  */
 
 /** Absolute reciprocal-hreflang map for a canonical (locale-less) path, listing
