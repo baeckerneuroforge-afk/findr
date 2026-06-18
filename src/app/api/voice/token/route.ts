@@ -14,6 +14,7 @@ import {
   getLiveKitVoiceEnv,
   mintParticipantVoiceToken,
 } from "@/lib/voice-interview/livekit";
+import { reapStaleVoiceSessionIfOverdue } from "@/lib/voice-interview/bridge-service";
 
 /**
  * POST /api/voice/token — Voice-Interview Phase 1 (TEILNEHMER-seitig).
@@ -85,6 +86,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     // ── Gating-Spiegel von /api/interview/[token]/voice ──────────────────────
+    // Plan-Zeitlimit für das Lazy-Completion-Netz (Q3) — in beiden Gating-
+    // Zweigen gesetzt, gegen started_at gerechnet (reapStaleVoiceSessionIfOverdue).
+    let planMaxDurationSeconds: number | null = null;
     const existing = await loadByToken(accessToken);
     const locale = existing?.language ?? DEFAULT_LOCALE;
     let t = await getTranslations({ locale, namespace: "errors" });
@@ -110,6 +114,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           { status: 403 },
         );
       }
+      planMaxDurationSeconds = plan.maxDurationSeconds;
     } else {
       const invite = await findInviteByAccessToken(accessToken);
       const inviteLocale = invite?.language ?? DEFAULT_LOCALE;
@@ -144,6 +149,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           { status: 404 },
         );
       }
+      planMaxDurationSeconds = plan.maxDurationSeconds;
     }
 
     // ── Session sicherstellen (lazy-create identisch zum Text-Einstieg) ──────
@@ -167,12 +173,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    if (session.status !== "open") {
+    // Crash-Netz (Q3 — Lazy-Completion beim Zugriff): Ist die Session offen,
+    // aber überfällig (Agent gestorben, bevor er /api/voice/complete rief),
+    // jetzt abschließen. reaped → wie „nicht mehr offen" behandeln; der Browser
+    // (VoiceInterviewView) zeigt bei 409 direkt den Dankesscreen.
+    const reaped = await reapStaleVoiceSessionIfOverdue({
+      sessionId: session.id,
+      status: session.status,
+      kind: session.kind,
+      startedAt: session.startedAt,
+      maxDurationSeconds: planMaxDurationSeconds,
+    });
+    if (reaped || session.status !== "open") {
       return NextResponse.json(
         {
           error: "Interview session is no longer open.",
           code: "not_open",
-          status: session.status,
+          status: reaped ? "completed" : session.status,
         },
         { status: 409 },
       );

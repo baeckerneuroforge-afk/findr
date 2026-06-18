@@ -9,6 +9,7 @@ import { ScreeningGate } from "@/components/interview/ScreeningGate";
 import { VoiceInterviewView } from "@/components/interview/VoiceInterviewView";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { resolvePublicEntry } from "@/lib/voice-agent/session-service";
+import { reapStaleVoiceSessionIfOverdue } from "@/lib/voice-interview/bridge-service";
 import { getOrgBranding } from "@/lib/settings/org-settings";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locale";
 import { MESSAGES, translate } from "@/i18n/messages";
@@ -220,6 +221,20 @@ export default async function InterviewPage({
     );
 
   if (useVoiceView) {
+    // Crash-Netz (Q3 — Lazy-Completion beim Zugriff): Ist die Voice-Session
+    // offen, aber überfällig (der Agent starb, bevor er /api/voice/complete
+    // rief), schließen wir sie HIER ab — eine zurückkehrende Person sieht dann
+    // sofort den Dankesscreen statt eines toten Live-Views. Der Status-Flip
+    // läuft synchron (eine UPDATE); die Extraktion ist via after() ausgelagert,
+    // blockiert das Rendern also nicht. Nicht überfällig → kein DB-Zugriff.
+    const reaped = await reapStaleVoiceSessionIfOverdue({
+      sessionId: session.id,
+      status: session.status,
+      kind: session.kind,
+      startedAt: session.startedAt,
+      maxDurationSeconds: session.maxDurationSeconds,
+    });
+    const voiceInitialStatus = reaped ? "completed" : session.status;
     return (
       <NextIntlClientProvider
         locale={locale}
@@ -229,7 +244,7 @@ export default async function InterviewPage({
         <VoiceInterviewView
           token={token}
           initialConversation={session.conversation}
-          initialStatus={session.status}
+          initialStatus={voiceInitialStatus}
           headingOverride={session.planTitle}
           brandName={branding?.brandName ?? null}
           accentColor={branding?.accentColor ?? null}

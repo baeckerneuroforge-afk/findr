@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createResearchSupabase } from "@/lib/research/db";
 import {
   appendVoiceTurns,
+  isVoiceSessionOverdue,
   stimulusSetSizeFromContext,
 } from "./bridge-service";
 
@@ -189,5 +190,39 @@ describe("appendVoiceTurns — SHOW marker clamp (E6)", () => {
 
     expect(result).toMatchObject({ ok: false, reason: "not_open" });
     expect(updates).toHaveLength(1); // attempted, but the CAS dropped it
+  });
+});
+
+describe("isVoiceSessionOverdue (Q3 — Lazy-Completion-Netz)", () => {
+  const START = "2026-06-18T10:00:00.000Z";
+  const startMs = Date.parse(START);
+
+  it("ist NIE überfällig ohne started_at (Session nie begonnen)", () => {
+    // Auch lange „nach" einem fiktiven Start: ohne Zeitstempel kein Bezug.
+    expect(isVoiceSessionOverdue(null, 600, startMs + 999_999_000)).toBe(false);
+    expect(isVoiceSessionOverdue(null, null, startMs + 999_999_000)).toBe(false);
+  });
+
+  it("ist NIE überfällig bei kaputtem Zeitstempel (fail-safe)", () => {
+    expect(isVoiceSessionOverdue("not-a-date", 600, startMs)).toBe(false);
+  });
+
+  it("nutzt das Plan-Zeitlimit + Puffer als Schwelle", () => {
+    // Limit 600s (10 min) + 300s Puffer = 900s. Bei 899s noch offen, ab 900s zu.
+    expect(isVoiceSessionOverdue(START, 600, startMs + 899_000)).toBe(false);
+    expect(isVoiceSessionOverdue(START, 600, startMs + 900_000)).toBe(true);
+  });
+
+  it("nutzt die Default-Obergrenze (60 min) + Puffer ohne Zeitlimit", () => {
+    // Kein Limit → 3600s + 300s = 3900s. Eine normale ~20-min-Session (1200s)
+    // ist klar NICHT überfällig; erst jenseits 65 min greift das Netz.
+    expect(isVoiceSessionOverdue(START, null, startMs + 1_200_000)).toBe(false);
+    expect(isVoiceSessionOverdue(START, null, startMs + 3_899_000)).toBe(false);
+    expect(isVoiceSessionOverdue(START, null, startMs + 3_900_000)).toBe(true);
+  });
+
+  it("behandelt maxDuration<=0 wie kein Limit (Default-Obergrenze)", () => {
+    expect(isVoiceSessionOverdue(START, 0, startMs + 1_200_000)).toBe(false);
+    expect(isVoiceSessionOverdue(START, 0, startMs + 3_900_000)).toBe(true);
   });
 });

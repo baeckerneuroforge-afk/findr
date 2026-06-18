@@ -154,6 +154,10 @@ export interface PublicStimulusItem {
 }
 
 export interface PublicInterviewView {
+  /** Session-UUID. Server-side ONLY (page server component) — z. B. fürs
+   *  Lazy-Completion-Netz überfälliger Voice-Sessions (reapStaleVoiceSession-
+   *  IfOverdue). Wie orgId/planId: NIE gerendert, NIE an den Client gereicht. */
+  id: string;
   status: "open" | "completed" | "abandoned";
   conversation: InterviewTurn[];
   /** Internal org UUID that owns this session. Used server-side ONLY (in the
@@ -343,6 +347,7 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
       : null;
 
   return {
+    id: session.id,
     status: session.status,
     // E3 — Teilnehmer-Payloads tragen NIE interne Turn-Felder (why): wer
     // liest, warum gefragt wird, antwortet verzerrt (Demand-Effekte, O1).

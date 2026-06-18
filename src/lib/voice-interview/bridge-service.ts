@@ -276,6 +276,7 @@ export type CompleteVoiceSessionResult =
  */
 export async function completeVoiceResearchSession(
   sessionId: string,
+  opts: { deferExtraction?: boolean } = {},
 ): Promise<CompleteVoiceSessionResult> {
   const session = await loadVoiceBridgeSession(sessionId);
   if (!session) return { ok: false, reason: "not_found" };
@@ -313,23 +314,44 @@ export async function completeVoiceResearchSession(
     return { ok: true, alreadyCompleted: false, discoveryRan: false };
   }
 
-  let discoveryRan = false;
-  try {
-    await persistResearchTranscriptAndDiscovery({
-      orgId: session.orgId,
-      sessionId: session.id,
-      planId: session.planId,
-      inviteId: session.inviteId,
-      transcript: conversationToTranscript(session.conversation),
-      visualCapture: session.visualCapture,
+  // Extraktion (use_case-bewusst) — best-effort, geloggt, nie geworfen
+  // (identisch zum try/catch im research-Branch von advanceInterview).
+  const runDiscoveryExtraction = async (): Promise<boolean> => {
+    try {
+      await persistResearchTranscriptAndDiscovery({
+        orgId: session.orgId,
+        sessionId: session.id,
+        planId: session.planId,
+        inviteId: session.inviteId,
+        transcript: conversationToTranscript(session.conversation),
+        visualCapture: session.visualCapture,
+      });
+      return true;
+    } catch (err) {
+      console.error(
+        "[voice complete] discovery analysis failed (session already completed):",
+        err instanceof Error ? err.message : err,
+      );
+      return false;
+    }
+  };
+
+  // Lazy-Completion-Netz (Q3): wird diese Funktion aus einem Lese-Request
+  // (Teilnehmer-Page / Token-Mint) für eine ÜBERFÄLLIGE Session gerufen, darf
+  // der Status-Flip (oben, atomar) nicht auf der LLM-Extraktion warten —
+  // Extraktion + Signal-Sidecar laufen dann via after() NACH der Response.
+  // EIN after() umschließt beide → KEIN verschachteltes after() (der Sidecar
+  // unten nutzt sonst sein eigenes), damit der Aufruf aus jedem Request-Kontext
+  // sicher ist.
+  if (opts.deferExtraction) {
+    after(async () => {
+      await runDiscoveryExtraction();
+      await runTurnSignalsSidecar(session.id);
     });
-    discoveryRan = true;
-  } catch (err) {
-    console.error(
-      "[voice complete] discovery analysis failed (session already completed):",
-      err instanceof Error ? err.message : err,
-    );
+    return { ok: true, alreadyCompleted: false, discoveryRan: false };
   }
+
+  const discoveryRan = await runDiscoveryExtraction();
 
   // E1 Turn-Signale — derselbe Signal-Sidecar wie im Text-Finish
   // (advanceInterview, session-service.ts): NACH der Agent-Response via
@@ -342,4 +364,58 @@ export async function completeVoiceResearchSession(
   after(() => runTurnSignalsSidecar(session.id));
 
   return { ok: true, alreadyCompleted: false, discoveryRan };
+}
+
+/** Lazy-Completion-Netz: Schwellen für „überfällige" offene Voice-Sessions. */
+const STALE_VOICE_DEFAULT_CAP_S = 60 * 60; // 60 min Absolut-Obergrenze ohne Zeitlimit
+const STALE_VOICE_BUFFER_S = 5 * 60; // Puffer für Abschluss-Choreografie + Drift/Netz
+
+/**
+ * Reine Predicate: ist eine offene Voice-Session „überfällig"? Seit dem
+ * Betreten des Raums (started_at) ist mehr als das konfigurierte Zeitlimit —
+ * bzw. eine großzügige Default-Obergrenze, falls kein Limit gesetzt ist — plus
+ * Puffer vergangen. Ohne started_at (Session nie begonnen) NIE überfällig: es
+ * gibt nichts zu bereinigen, und ein verwaister Raum entsteht erst beim
+ * Betreten. Modul-Funktion = ohne DB testbar.
+ */
+export function isVoiceSessionOverdue(
+  startedAt: string | null,
+  maxDurationSeconds: number | null,
+  now: number = Date.now(),
+): boolean {
+  if (!startedAt) return false;
+  const startedMs = Date.parse(startedAt);
+  if (Number.isNaN(startedMs)) return false;
+  const limitSeconds =
+    (maxDurationSeconds && maxDurationSeconds > 0
+      ? maxDurationSeconds
+      : STALE_VOICE_DEFAULT_CAP_S) + STALE_VOICE_BUFFER_S;
+  return now >= startedMs + limitSeconds * 1000;
+}
+
+/**
+ * Crash-Netz (Q3 — Lazy-Completion beim Zugriff): Stirbt der Voice-Agent, bevor
+ * er /api/voice/complete ruft, bliebe die Session ewig `open` (+ der Raum bis
+ * zum Token-TTL joinbar). Lese-Pfade (Teilnehmer-Page, Token-Mint) rufen diese
+ * Funktion: ist die Session offen, research UND überfällig, wird sie über
+ * DENSELBEN idempotenten Abschluss geschlossen wie der Agent — mit
+ * deferExtraction, damit der Status-Flip den Leser nicht auf der LLM-Extraktion
+ * blockiert. true = die Session war überfällig (Abschluss angestoßen); der
+ * Aufrufer behandelt sie dann als beendet (409 bzw. Dankesscreen).
+ */
+export async function reapStaleVoiceSessionIfOverdue(params: {
+  sessionId: string;
+  status: Status;
+  kind: Kind;
+  startedAt: string | null;
+  maxDurationSeconds: number | null;
+}): Promise<boolean> {
+  if (params.status !== "open" || params.kind !== "research") return false;
+  if (!isVoiceSessionOverdue(params.startedAt, params.maxDurationSeconds)) {
+    return false;
+  }
+  await completeVoiceResearchSession(params.sessionId, {
+    deferExtraction: true,
+  });
+  return true;
 }

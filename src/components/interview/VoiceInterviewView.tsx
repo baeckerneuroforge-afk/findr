@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { InterviewProgress } from "./InterviewProgress";
 import { InterviewTimer } from "./InterviewTimer";
+import { InterviewCompletedScreen } from "./InterviewCompletedScreen";
 import { WithdrawDataLink } from "./WithdrawDataLink";
 import type { Room } from "livekit-client";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
@@ -87,7 +88,14 @@ interface VoiceInterviewViewProps {
   startedAt?: string | null;
 }
 
-type Phase = "intro" | "connecting" | "live" | "ended" | "done" | "error";
+type Phase =
+  | "intro"
+  | "connecting"
+  | "live"
+  | "closing"
+  | "ended"
+  | "done"
+  | "error";
 
 type ErrorKind =
   | "micDenied"
@@ -598,6 +606,10 @@ export function VoiceInterviewView({
   const phaseRef = useRef<Phase>(phase);
   const historyRef = useRef<InterviewTurn[]>(initialConversation);
   const intentionalCloseRef = useRef(false);
+  /** Der Agent hat das Gesprächsende signalisiert (interview_done_signal). Ab
+   *  da ist der Abschluss erwartet: das Status-Polling darf NICHT mehr in den
+   *  harten „Verbindung verloren"-Fehler laufen, sondern fällt zum Dankesscreen. */
+  const sawDoneSignalRef = useRef(false);
   const agentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioHostRef = useRef<HTMLDivElement | null>(null);
   const stimulusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -663,16 +675,22 @@ export function VoiceInterviewView({
 
   // Ended → bounded status re-checks. router.refresh() re-renders the server
   // component; client state survives, only the props update. The status-flip
-  // adjustment below resolves to "done"; running out of attempts is an honest
-  // "connection lost" (agent died mid-interview without completing). All
-  // setState lives in the timer callback (external-system event), never in
-  // the effect body — repo lint forbids set-state-in-effect.
+  // adjustment below resolves to "done". Running out of attempts is an honest
+  // "connection lost" ONLY if the agent never signalled the end — if it did
+  // (interview_done_signal), the close is in flight server-side and we resolve
+  // to the thank-you screen instead of a scary error. All setState lives in the
+  // timer callback (external-system event), never in the effect body — repo
+  // lint forbids set-state-in-effect.
   useEffect(() => {
     if (phase !== "ended") return;
     const id = setTimeout(() => {
       if (endedTick >= ENDED_CHECK_ATTEMPTS) {
-        setErrorKind("lost");
-        setPhase("error");
+        if (sawDoneSignalRef.current) {
+          setPhase("done");
+        } else {
+          setErrorKind("lost");
+          setPhase("error");
+        }
       } else {
         router.refresh();
         setEndedTick(endedTick + 1);
@@ -686,17 +704,17 @@ export function VoiceInterviewView({
   const [seenStatus, setSeenStatus] = useState(initialStatus);
   if (seenStatus !== initialStatus) {
     setSeenStatus(initialStatus);
-    if (initialStatus !== "open" && (phase === "ended" || phase === "intro")) {
+    if (
+      initialStatus !== "open" &&
+      (phase === "ended" || phase === "closing" || phase === "intro")
+    ) {
       setPhase("done");
     }
   }
 
-  // Completed screen: same panel-provider redirect semantics as CompletedPanel.
-  useEffect(() => {
-    if (phase === "done" && panelCompleteRedirect) {
-      window.location.href = panelCompleteRedirect;
-    }
-  }, [phase, panelCompleteRedirect]);
+  // Der Dankesscreen (InterviewCompletedScreen) übernimmt den Panel-Anbieter-
+  // Redirect beim Mount selbst — gleiche Semantik wie im Text-Chat, keine
+  // eigene Redirect-Logik hier mehr.
 
   function fail(kind: ErrorKind) {
     if (agentTimerRef.current) {
@@ -760,6 +778,7 @@ export function VoiceInterviewView({
     setAudioBlocked(false);
     setReconnecting(false);
     intentionalCloseRef.current = false;
+    sawDoneSignalRef.current = false;
 
     // 1 — microphone permission first, as its own distinct error surface.
     // The start click is also the user gesture that unlocks audio playback.
@@ -957,9 +976,39 @@ export function VoiceInterviewView({
       setVoiceProgress({ asked, total });
     });
 
+    // Abschluss-Signal des Agenten — IMMER registriert. Der Agent sendet
+    // {type:"interview_done_signal"}, sobald das Gespräch zu Ende ist (er
+    // spricht dann noch seine Verabschiedung, finalisiert und verlässt den
+    // Raum). Dieses Packet ist die SOFORTIGE Rückmeldung an den Teilnehmer:
+    // wir schalten auf den ruhigen „wird beendet"-Zustand und merken uns das
+    // Signal, damit das Status-Polling danach zum Dankesscreen statt zu einem
+    // Fehler auflöst. Den tatsächlichen Abschluss (Status-Flip + Raumabbau)
+    // treibt weiter der Agent — der Disconnect-Handler schaltet dann auf
+    // "ended" (Status-Polling) weiter. Defensiv: alles, was nicht die erwartete
+    // Form trägt, wird still ignoriert (geteiltes Topic).
+    room.on(lk.RoomEvent.DataReceived, (payload) => {
+      let message: unknown;
+      try {
+        message = JSON.parse(new TextDecoder().decode(payload));
+      } catch {
+        return;
+      }
+      if (typeof message !== "object" || message === null) return;
+      if ((message as { type?: unknown }).type !== "interview_done_signal") {
+        return;
+      }
+      sawDoneSignalRef.current = true;
+      if (phaseRef.current === "live") setPhase("closing");
+    });
+
     room.on(lk.RoomEvent.ParticipantDisconnected, () => {
       // Agent left. Normal end of the interview → verify the status flip.
-      if (phaseRef.current === "live" && room.remoteParticipants.size === 0) {
+      // "closing" zählt wie "live": der Agent verabschiedet sich gerade und
+      // geht dann raus — derselbe Übergang ins Status-Polling.
+      if (
+        (phaseRef.current === "live" || phaseRef.current === "closing") &&
+        room.remoteParticipants.size === 0
+      ) {
         intentionalCloseRef.current = true;
         roomRef.current = null;
         void room.disconnect();
@@ -969,7 +1018,7 @@ export function VoiceInterviewView({
     room.on(lk.RoomEvent.Disconnected, () => {
       if (intentionalCloseRef.current) return;
       roomRef.current = null;
-      if (phaseRef.current === "live") {
+      if (phaseRef.current === "live" || phaseRef.current === "closing") {
         setPhase("ended");
       } else if (phaseRef.current === "connecting") {
         fail("agent");
@@ -1095,19 +1144,7 @@ export function VoiceInterviewView({
   let content: React.ReactNode;
 
   if (phase === "done") {
-    content = (
-      <div className="mb-10 mt-8 rounded-2xl border border-[#E8E4F2] bg-[#FAFAFE] px-6 py-8 text-center">
-        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#2E9E6B] text-[18px] text-white">
-          ✓
-        </div>
-        <h2 className="text-[18px] font-semibold text-[#0E0A1F]">
-          {t("completed.title")}
-        </h2>
-        <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-[#6B6680]">
-          {t("completed.body")}
-        </p>
-      </div>
-    );
+    content = <InterviewCompletedScreen redirectUrl={panelCompleteRedirect} />;
   } else if (phase === "error") {
     content = (
       <div className="mt-6 rounded-xl border border-[#FFD7D0] bg-[#FFF3F1] px-5 py-5">
@@ -1166,7 +1203,15 @@ export function VoiceInterviewView({
         </div>
       </div>
     );
-  } else if (phase === "connecting" || phase === "ended") {
+  } else if (
+    phase === "connecting" ||
+    phase === "ended" ||
+    phase === "closing"
+  ) {
+    // "closing" = der Agent hat das Ende signalisiert und spricht gerade seine
+    // Verabschiedung zu Ende; "ended" = der Agent hat den Raum verlassen, wir
+    // bestätigen den Abschluss serverseitig. Beide zeigen dieselbe ruhige
+    // „wird abgeschlossen"-Zeile (nahtloser Übergang bis zum Dankesscreen).
     content = (
       <div className="mt-6 flex items-center gap-3 rounded-xl border border-[#E8E4F2] bg-[#FAFAFE] px-5 py-5 text-[14px] text-[#0E0A1F]">
         <RingSpinner className="text-[var(--brand-accent)]" />
