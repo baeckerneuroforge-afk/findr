@@ -7,15 +7,16 @@ import { MARKETING_DEFAULT_LOCALE, type Locale } from "@/i18n/marketing-locale";
  * prose surface on the light marketing canvas: Fraunces headings (font-marketing),
  * Hanken body (inherited from the (marketing) layout), a narrow measure.
  *
- * Pages that still carry placeholder content (Datenschutz / AGB until the
- * binding text from André/Legal lands, decision D8) lead with
- * <LegalPlaceholderNotice/> (the default `notice`) and put a bracketed
- * <Placeholder/> token in every section instead of invented legal prose. The
+ * Pages that are still a DRAFT (Datenschutz / AGB until the binding text from
+ * André/Legal lands) lead with <LegalPlaceholderNotice/> (the default `notice`).
+ * Such pages may carry vorausgefüllten Standardtext for the uncritical clauses,
+ * but every firmenspezifische / rechtssensible Stelle is marked with an
+ * unmissable <LegalTodo>{{ … }}</LegalTodo> token instead of invented prose. The
  * section headings are factual structure (the clauses a German Impressum/
  * Datenschutzerklärung/AGB must contain) — a checklist, not a fabricated text.
  *
  * Pages whose text is real and binding (e.g. the Impressum) pass
- * `notice={false}` to drop the placeholder banner and render the actual copy.
+ * `notice={false}` to drop the draft banner and render the actual copy.
  */
 
 /**
@@ -34,6 +35,7 @@ export function LegalProse({
   stand,
   notice = true,
   lang = MARKETING_DEFAULT_LOCALE,
+  closing,
   children,
 }: {
   title: ReactNode;
@@ -43,6 +45,9 @@ export function LegalProse({
   /** Render locale. On "en" an English courtesy banner is shown above the
    *  (German, legally-binding) body — the German wording stays authoritative. */
   lang?: Locale;
+  /** Optional closing band rendered below the body (e.g. a "Stand"-line at the
+   *  foot of the page). Separated by a hairline. */
+  closing?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -71,6 +76,11 @@ export function LegalProse({
           >
             {children}
           </div>
+          {closing ? (
+            <div className="mt-12 border-t border-neutral-200 pt-6">
+              {closing}
+            </div>
+          ) : null}
         </article>
       </Container>
     </Section>
@@ -78,7 +88,7 @@ export function LegalProse({
 }
 
 /**
- * Prominent, unmistakable "this is not real legal text yet" banner. Amber/
+ * Prominent, unmistakable "this is a draft, not legal advice yet" banner. Amber/
  * warning-tinted so it reads as caution, never as brand or as body copy.
  */
 export function LegalPlaceholderNotice() {
@@ -88,13 +98,17 @@ export function LegalPlaceholderNotice() {
       className="mt-10 mb-12 flex flex-col gap-2 rounded border border-warning-500/40 bg-warning-50 px-5 py-4"
     >
       <span className="inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-warning-700">
-        <span aria-hidden>⚠</span> Platzhalter — noch kein rechtsgültiger Text
+        <span aria-hidden>⚠</span> Entwurf — keine Rechtsberatung
       </span>
       <p className="text-[15px] leading-relaxed text-neutral-700">
-        Diese Seite ist ein <strong className="font-semibold">Gerüst</strong>.
-        Der verbindliche Text wird vor dem Live-Gang von André bzw. der
-        Rechtsberatung eingesetzt. Bis dahin stehen unten ausschließlich
-        Platzhalter — bitte nicht als Rechtsauskunft lesen.
+        Diese Seite ist ein <strong className="font-semibold">Entwurf</strong>.
+        Unkritische Abschnitte sind als Standardtext vorausgefüllt; alle mit{" "}
+        <code className="rounded bg-warning-100 px-1 font-mono text-[13px] text-warning-700">
+          {"{{ … }}"}
+        </code>{" "}
+        markierten Stellen sind Platzhalter, die vor dem Live-Gang über den
+        eRecht24-Datenschutz-Generator bzw. einen Anwalt ersetzt und juristisch
+        geprüft werden müssen. Bitte bis dahin nicht als Rechtsauskunft lesen.
       </p>
     </div>
   );
@@ -153,5 +167,36 @@ export function Placeholder({ children }: { children: ReactNode }) {
     <span className="inline rounded border border-dashed border-neutral-300 bg-neutral-50 px-1.5 py-0.5 font-mono text-[13px] text-neutral-400">
       [Platzhalter: {children}]
     </span>
+  );
+}
+
+/**
+ * A {{ … }} TODO marker for draft legal pages. Renders the literal
+ * `{{ PLATZHALTER: … }}` braces in an amber, dashed, mono pill so every spot a
+ * lawyer still has to fill or verify is greppable (`{{`) AND visually
+ * unmistakable — it can never be mistaken for binding prose. The child carries
+ * the specific instruction plus its review note ("… — juristisch prüfen" /
+ * "… vom Anwalt prüfen lassen").
+ */
+export function LegalTodo({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline rounded border border-dashed border-warning-500/50 bg-warning-50 px-1.5 py-0.5 align-baseline font-mono text-[13px] font-medium text-warning-700">
+      {"{{ PLATZHALTER: "}
+      {children}
+      {" }}"}
+    </span>
+  );
+}
+
+/**
+ * The muted "Stand"-line. Used both as the shell's top marker and as a page's
+ * closing date band (passed via LegalProse's `closing` slot) — one source for
+ * the styling so the two never drift.
+ */
+export function LegalStand({ children }: { children: ReactNode }) {
+  return (
+    <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-400">
+      Stand: {children}
+    </p>
   );
 }
