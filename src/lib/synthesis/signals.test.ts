@@ -170,6 +170,9 @@ describe("filterStimulusSections — Mindest-N + Anker-Härtung (E7)", () => {
     ids: new Set<string>(),
     foldedHaystack:
       "das blau wirkt sehr frisch. wirkt altmodischer auf mich.",
+    // byId ist für Stimulus-Sektionen irrelevant (sie ankern an
+    // foldedHaystack, nicht an Insight-IDs); leere Map erfüllt den AnchorSet-Typ.
+    byId: new Map<string, string>(),
   };
 
   it("keeps only eligible positions, dedupes, and drops unanchored quotes", () => {

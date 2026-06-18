@@ -275,21 +275,35 @@ function fold(s: string): string {
 interface AnchorSet {
   /** ids the LLM is allowed to cite (from the input insights). */
   ids: Set<string>;
-  /** Folded haystack of all per-item evidence + summary text. quotes are
-   *  checked as substrings against this. */
+  /** Folded haystack of ALL per-item evidence + summary text (across every
+   *  insight) PLUS the E7 stimulus excerpts. Used ONLY for stimulus-section
+   *  quotes, which carry no sourceInsightIds and are anchored against the
+   *  set's first-reaction excerpts, not against an individual insight. */
   foldedHaystack: string;
+  /** Per-insight folded haystack, keyed by insight id. A theme/tension-side
+   *  quote must appear in the union of the haystacks of the insight ids that
+   *  the theme/side actually CITES — not merely somewhere in the combined
+   *  material. This blocks cross-respondent quote attribution (a quote from
+   *  respondent B can no longer be hung on a theme that only cites A). Built
+   *  ONLY from insight strings; stimulus excerpts belong to no insight and
+   *  stay out of this map. */
+  byId: Map<string, string>;
 }
 
-function buildAnchorSet(
+export function buildAnchorSet(
   insights: SynthesisInsightInput[],
   // E7 — zusätzliche wörtlich zitierbare Texte (Erstreaktions-Ausschnitte
-  // des Stimulus-Blocks): Sektion-Quotes müssen GENAU dort belegt sein.
+  // des Stimulus-Blocks): Sektion-Quotes müssen GENAU dort belegt sein. Sie
+  // gehören zu keinem Insight und wandern deshalb NUR in den globalen
+  // foldedHaystack, nicht in die per-Insight-Map.
   extraTexts: string[] = [],
 ): AnchorSet {
   const ids = new Set<string>();
-  const parts: string[] = [...extraTexts];
+  const byId = new Map<string, string>();
+  const globalParts: string[] = [...extraTexts];
   for (const ins of insights) {
     ids.add(ins.id);
+    const parts: string[] = [];
     if (ins.summary) parts.push(ins.summary);
     // Pull every nested "evidence" / "quotes" / "summary" string out of the
     // jsonb-ish payloads — robust to the exact Stage-1 shape, just collects
@@ -297,8 +311,16 @@ function buildAnchorSet(
     collectStrings(ins.featureRequests, parts);
     collectStrings(ins.painPoints, parts);
     collectStrings(ins.themes, parts);
+    const folded = fold(parts.join(" \n "));
+    // Defensive: if the same id appears twice (shouldn't — one call = one
+    // respondent), concatenate rather than overwrite.
+    byId.set(
+      ins.id,
+      byId.has(ins.id) ? `${byId.get(ins.id)} ${folded}` : folded,
+    );
+    globalParts.push(...parts);
   }
-  return { ids, foldedHaystack: fold(parts.join(" \n ")) };
+  return { ids, foldedHaystack: fold(globalParts.join(" \n ")), byId };
 }
 
 function collectStrings(value: unknown, sink: string[]): void {
@@ -318,38 +340,66 @@ function collectStrings(value: unknown, sink: string[]): void {
   }
 }
 
-/** Drop ids that aren't in the anchor set; drop quotes that don't appear
- *  in the folded haystack. Returns a filtered side; caller decides whether
- *  the side has enough left to survive. */
+/** A theme/tension-side quote is anchored ONLY if it appears verbatim (after
+ *  the same typography fold used everywhere) in AT LEAST ONE of the insight
+ *  ids it actually cites. The global haystack is deliberately NOT consulted
+ *  here: a quote that exists in some OTHER respondent's material must not be
+ *  attributable to a theme/side that does not cite that respondent
+ *  (cross-respondent attribution guard). An empty/whitespace-only quote folds
+ *  to "" and is dropped (a "" substring would otherwise match everything). */
+function quoteAnchoredInCitedIds(
+  quote: string,
+  citedIds: string[],
+  anchors: AnchorSet,
+): boolean {
+  const folded = fold(quote);
+  if (folded === "") return false;
+  for (const id of citedIds) {
+    const hay = anchors.byId.get(id);
+    if (hay && hay.includes(folded)) return true;
+  }
+  return false;
+}
+
+/** Drop ids that aren't in the anchor set; drop quotes that aren't verbatim
+ *  in one of THIS side's cited ids. Returns a filtered side; caller decides
+ *  whether the side has enough left to survive. */
 function filterTensionSide(
   side: TensionSide,
   anchors: AnchorSet,
 ): TensionSide {
+  const validIds = side.sourceInsightIds.filter((id) => anchors.ids.has(id));
   return {
     label: side.label,
-    sourceInsightIds: side.sourceInsightIds.filter((id) => anchors.ids.has(id)),
+    sourceInsightIds: validIds,
+    // Per-Insight statt global: das Zitat muss in MINDESTENS EINER der
+    // tatsächlich zitierten (und existierenden) IDs dieser Seite belegt sein.
     quotes: side.quotes.filter((q) =>
-      anchors.foldedHaystack.includes(fold(q)),
+      quoteAnchoredInCitedIds(q, validIds, anchors),
     ),
   };
 }
 
 /** Engine-side cleanup: drop hallucinated content, override frequency. */
-function applyAnchoredFilter(
+export function applyAnchoredFilter(
   raw: StudySynthesisResult,
   anchors: AnchorSet,
 ): StudySynthesisResult {
   const themes: EmergentTheme[] = [];
   for (const t of raw.emergent_themes) {
     const validIds = t.sourceInsightIds.filter((id) => anchors.ids.has(id));
-    const validQuotes = t.quotes.filter((q) =>
-      anchors.foldedHaystack.includes(fold(q)),
-    );
     // Distinct count is the authoritative frequency — the LLM's number is
     // advisory. If the LLM said 5 but only 3 unique IDs survive, frequency
     // becomes 3.
     const uniqueIds = Array.from(new Set(validIds));
     if (uniqueIds.length === 0) continue; // wholly unanchored — drop
+    // Per-Insight statt global: das Zitat muss in MINDESTENS EINER der
+    // tatsächlich zitierten IDs dieses Themes vorkommen. Ein fehl-attribuiertes
+    // Zitat fällt; das Theme überlebt weiter über seine gültigen IDs (die
+    // Drop-Regel ist unverändert: nur uniqueIds.length === 0 verwirft es).
+    const validQuotes = t.quotes.filter((q) =>
+      quoteAnchoredInCitedIds(q, uniqueIds, anchors),
+    );
     themes.push({
       title: t.title,
       summary: t.summary,
@@ -477,7 +527,13 @@ export async function synthesizeFromInputs(
       ),
       messages: [{ role: "user", content: userPrompt }],
       model,
-      maxTokens: 4096,
+      // Ceiling, not a cost floor (abgerechnet werden nur erzeugte Tokens).
+      // Realistische Synthesen liegen bei ~3-5k Output-Tokens; eine reiche
+      // Marktstudie (bis 12 Themen + 6 Tensions + E4-Methodik + E7-Stimulus-
+      // Sektionen) kann ~6-9k erreichen. 10000 gibt klare Marge vor einem
+      // Truncation → Zod-Fail → fail-closed, ohne im Normalfall je gegriffen
+      // zu werden (vormals 4096, zu knapp für die großen Fälle).
+      maxTokens: 10_000,
       timeoutMs: 180_000,
       toolName: "emit_study_synthesis",
       toolDescription:
