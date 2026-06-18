@@ -27,17 +27,20 @@
  *                          [expected.minThemes, expected.maxThemes].
  *                          Bounds are advisory; a fail prints WARN.
  *
- * Always calls the LLM. Default model is Sonnet (cheap, for repeated
- * iteration); production approval should re-run with SYNTHESIS_MODEL=
- * claude-opus-4-7. Run it yourself, foreground:
+ * Always calls the LLM. Default model is the PRODUCTION synthesis model
+ * (DEFAULT_SYNTHESIS_MODEL = Opus) so the standard run validates real prod
+ * behaviour. For cheap repeated iteration, override with
+ * SYNTHESIS_MODEL=claude-sonnet-4-6. Run it yourself, foreground:
  *
  *   env -u ANTHROPIC_API_KEY \
  *     pnpm exec tsx --conditions=react-server evals-synthesis/run.ts
  */
 
 import { config } from "dotenv";
-import { CLAUDE_MODELS } from "@/lib/anthropic/client";
-import { synthesizeFromInputs } from "@/lib/synthesis/engine";
+import {
+  DEFAULT_SYNTHESIS_MODEL,
+  synthesizeFromInputs,
+} from "@/lib/synthesis/engine";
 import type {
   EmergentTheme,
   StudySynthesisResult,
@@ -51,9 +54,10 @@ import {
 config({ path: ".env.local" });
 config({ path: ".env" });
 
-// Default to Sonnet for cheap repeated iteration; flip to Opus for the
-// approval run via SYNTHESIS_MODEL=claude-opus-4-7.
-const MODEL = process.env.SYNTHESIS_MODEL ?? CLAUDE_MODELS.sonnet;
+// Default to the PRODUCTION synthesis model (Opus via DEFAULT_SYNTHESIS_MODEL)
+// so the standard eval run validates prod behaviour, not a cheaper proxy.
+// For cheap iteration, override: SYNTHESIS_MODEL=claude-sonnet-4-6.
+const MODEL = process.env.SYNTHESIS_MODEL ?? DEFAULT_SYNTHESIS_MODEL;
 
 // ── pretty-print helpers ────────────────────────────────────────────────────
 
