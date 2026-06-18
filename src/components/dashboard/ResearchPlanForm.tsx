@@ -19,6 +19,11 @@ import {
   extractVideoFrames,
   VideoDecodeError,
 } from "@/lib/research/extract-video-frames";
+import {
+  effectiveQuestionCeiling,
+  estimateInterviewMinutes,
+  isDurationFromTimeCap,
+} from "@/lib/research/interview-duration";
 
 /** Client mirror of the server's stimulus-route limits (bucket
  *  research-stimuli). Kept in sync with
@@ -1213,6 +1218,19 @@ export function ResearchPlanForm({
     </Field>
   );
 
+  // EINE Wahrheit für die angezeigte Interviewdauer (Längen-Readout, Vorschau-
+  // Quality-Bar, Vorschau-Titel). Zeitlimit gewinnt; sonst aus der Fragen-
+  // Obergrenze (estimateInterviewMinutes). Reaktiv auf BEIDE Felder
+  // (maxRounds + maxDurationMinutes). Reiner Read, kein State-Write.
+  const durationCfg = {
+    maxRounds: form.maxRounds,
+    maxDurationSeconds:
+      form.maxDurationMinutes != null ? form.maxDurationMinutes * 60 : null,
+  };
+  const estimatedMinutes = estimateInterviewMinutes(durationCfg);
+  const questionCeiling = effectiveQuestionCeiling(form.maxRounds);
+  const durationCapped = isDurationFromTimeCap(durationCfg);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Intent-first + Studientyp — NUR auf dem Market-Research-Pfad. Discovery
@@ -1962,6 +1980,20 @@ export function ResearchPlanForm({
               </p>
             </div>
           </details>
+          {/* Live-Readout: macht die Wahl der Fragenzahl „nicht mehr blind" —
+              zeigt die abgeleitete Dauer aus derselben zentralen Funktion wie
+              Vorschau + E-Mail. Ist ein Zeitlimit gesetzt, gewinnt das Cap. */}
+          <p className="mt-3 text-caption text-neutral-600">
+            {durationCapped
+              ? t("lengthLiveEstimateCapped", {
+                  questions: questionCeiling,
+                  minutes: estimatedMinutes,
+                })
+              : t("lengthLiveEstimate", {
+                  questions: questionCeiling,
+                  minutes: estimatedMinutes,
+                })}
+          </p>
         </div>
 
         {/* Zeitlimit — optionales Cap pro Studie (`maxDurationSeconds`,
@@ -2171,9 +2203,10 @@ export function ResearchPlanForm({
             {/* Quality-Bar — ruhiges Trust-Element ÜBER der Leitfaden-Anzeige.
                 Statische Aussage über die Interview-Disziplin der Engine (gilt
                 für ALLE Studientypen), KEIN Live-Validator des konkreten
-                Leitfadens. Die Zeitangabe ist ein reiner Read der Fragenanzahl
-                (lastGuide.topics.length = Haupt-/Themenfragen, je 1 pro Topic):
-                lo = round(n·1.3), hi = round(n·1.8). Kein State-Write. */}
+                Leitfadens. Die Größenangabe stammt jetzt aus derselben zentralen
+                Funktion wie Längen-Readout + Vorschau-Titel + E-Mail
+                (estimateInterviewMinutes): effektive Fragen-Obergrenze +
+                geschätzte/gecappte Minuten. Reiner Read, kein State-Write. */}
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 rounded-md border border-success-500/30 bg-success-50 px-3 py-2">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-success-700">
                 {["qualNoLeading", "qualOneQuestion", "qualProbesVague"].map(
@@ -2197,9 +2230,7 @@ export function ResearchPlanForm({
                 )}
               </div>
               <span className="text-caption font-medium text-success-700">
-                {lastGuide.topics.length} {t("qualMetaQuestions")} · ~
-                {Math.round(lastGuide.topics.length * 1.3)}–
-                {Math.round(lastGuide.topics.length * 1.8)}{" "}
+                {questionCeiling} {t("qualMetaQuestions")} · ~{estimatedMinutes}{" "}
                 {t("qualMetaMinutes")}
               </span>
             </div>
@@ -2215,7 +2246,7 @@ export function ResearchPlanForm({
                 <p className="text-caption font-medium uppercase tracking-wider text-neutral-500">
                   {t("genPreviewTitle", {
                     count: lastGuide.topics.length,
-                    minutes: lastGuide.estimatedMinutes,
+                    minutes: estimatedMinutes,
                   })}
                 </p>
                 <ul className="space-y-2">
@@ -2233,6 +2264,12 @@ export function ResearchPlanForm({
                     </li>
                   ))}
                 </ul>
+                {/* Erwartungs-Setzung: der Agent formuliert die Fragen live
+                    natürlich aus (mainQuestion wird NICHT wörtlich gestellt) —
+                    in der UI klarstellen, statt eine Treue vorzutäuschen. */}
+                <p className="text-caption italic text-neutral-500">
+                  {t("previewWordingVaries")}
+                </p>
                 {lastGuide.screeningQuestions &&
                   lastGuide.screeningQuestions.length > 0 && (
                     <div>

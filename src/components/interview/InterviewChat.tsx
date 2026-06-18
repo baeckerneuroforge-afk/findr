@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { InterviewProgress } from "./InterviewProgress";
 import { InterviewTimer } from "./InterviewTimer";
@@ -918,6 +924,11 @@ export function InterviewChat({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Client-Härtung des Text-Zeitlimits: feuert der Timer onExpire, wird der
+  // Composer gesperrt (kein Weitertippen über die Deadline hinaus). Der
+  // serverseitige Abschluss bleibt unverändert (nächstes Senden / Retention).
+  const [timeExpired, setTimeExpired] = useState(false);
+  const handleTimeExpired = useCallback(() => setTimeExpired(true), []);
   // Streaming turn (Perf-Etappe B1): the agent's partial message while SSE
   // deltas arrive, rendered as its own bubble. Kept OUT of `messages` on
   // purpose — every consumer of the finished transcript (TTS autoplay,
@@ -2022,6 +2033,7 @@ export function InterviewChat({
         startedAt={startedAt}
         maxDurationSeconds={maxDurationSeconds}
         active={isOpen}
+        onExpire={handleTimeExpired}
       />
 
       <div className="flex-1 space-y-4">
@@ -2108,7 +2120,7 @@ export function InterviewChat({
               state={voiceState}
               level={voiceLevel}
               seconds={voiceSeconds}
-              disabled={loading || visualConsentPending}
+              disabled={loading || visualConsentPending || timeExpired}
               onStart={() => void startRecording()}
               onStop={stopRecording}
             />
@@ -2118,7 +2130,7 @@ export function InterviewChat({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
-              disabled={loading || visualConsentPending}
+              disabled={loading || visualConsentPending || timeExpired}
               rows={1}
               placeholder={t("input.placeholder")}
               className="max-h-40 min-h-[46px] flex-1 resize-none rounded-xl border border-[#E8E4F2] px-4 py-3 text-[15px] outline-none transition-colors focus:border-[var(--brand-accent)] disabled:opacity-60"
@@ -2131,6 +2143,7 @@ export function InterviewChat({
                 visualConsentPending ||
                 voiceState === "recording" ||
                 voiceState === "sending" ||
+                timeExpired ||
                 !input.trim()
               }
               className={`h-[46px] shrink-0 rounded-xl bg-[var(--brand-accent)] px-5 text-[14px] font-medium text-white disabled:opacity-50 ${
@@ -2142,6 +2155,11 @@ export function InterviewChat({
               {loading ? "…" : t("input.send")}
             </button>
           </div>
+          {timeExpired && (
+            <p className="mt-3 rounded-lg border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-2 text-center text-[12px] text-[#6B6680]">
+              {t("input.timeUpNotice")}
+            </p>
+          )}
           <p className="mt-3 text-center text-[11px] text-[#9B9BA3]">
             {brandless ? t("footer.brandless") : t("footer.default")}
           </p>

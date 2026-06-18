@@ -17,6 +17,8 @@ import {
   scheduleInvite,
   type ResearchInviteRecord,
 } from "@/lib/research/scheduling";
+import { getResearchPlan } from "@/lib/research/plans-service";
+import { estimateInterviewMinutes } from "@/lib/research/interview-duration";
 
 /**
  * Research-interview send flows. Pattern-matches src/lib/voice-agent/
@@ -33,13 +35,33 @@ import {
  * The mode flows through to /interview/[token] which decides how to render
  * the session; nothing about the invite mail changes with mode.
  *
- * Defaults intentionally NOT overridden here:
- *  - duration: 30 minutes (DEFAULT_DURATION_MINUTES in research-invite.ts).
- *    If a per-plan duration is later added to research_plans, plumb it
- *    through SendParams; the builder + ICS already accept the value.
+ * Dauer (E-Mail + ICS): wird jetzt PRO STUDIE aus der echten Konfiguration
+ * abgeleitet — resolveInviteDurationMinutes liest den Plan (Zeitlimit gewinnt,
+ * sonst Fragen-Obergrenze, zentral in interview-duration.ts). Die feste
+ * 30-Minuten-Konstante ist nur noch der Fallback, wenn der Plan nicht ladbar
+ * ist.
  */
 
 const DEFAULT_DURATION_MINUTES = 30;
+
+/**
+ * Geschätzte Interviewdauer (ganze Minuten) für E-Mail-Text + ICS-DTEND,
+ * abgeleitet aus dem zugehörigen Research-Plan. Dieselbe zentrale Funktion wie
+ * Erstellungs-Vorschau + Längen-Readout — damit Teilnehmer nie eine andere
+ * Dauer angekündigt bekommen, als die Studie tatsächlich vorsieht. Fällt auf
+ * DEFAULT_DURATION_MINUTES zurück, falls der Plan (nicht mehr) sichtbar ist.
+ */
+async function resolveInviteDurationMinutes(
+  orgId: string,
+  planId: string,
+): Promise<number> {
+  const plan = await getResearchPlan(orgId, planId);
+  if (!plan) return DEFAULT_DURATION_MINUTES;
+  return estimateInterviewMinutes({
+    maxRounds: plan.maxRounds,
+    maxDurationSeconds: plan.maxDurationSeconds,
+  });
+}
 
 // ── sendResearchInvite ──────────────────────────────────────────────────────
 
@@ -142,12 +164,16 @@ export async function sendResearchInvite(
     const branding = await getOrgBranding(orgId);
     const url = researchInterviewUrl(accessToken);
     const locale = invite.language;
+    const durationMinutes = await resolveInviteDurationMinutes(
+      orgId,
+      invite.plan_id,
+    );
 
     const { subject, html, text } = buildResearchInvite({
       contactName: invite.contact_label,
       orgName,
       scheduledAt,
-      durationMinutes: DEFAULT_DURATION_MINUTES,
+      durationMinutes,
       url,
       locale,
       branding,
@@ -160,11 +186,11 @@ export async function sendResearchInvite(
         org: orgName,
       }),
       description: translate(locale, "email.research.ics.description", {
-        minutes: DEFAULT_DURATION_MINUTES,
+        minutes: durationMinutes,
         url,
       }),
       scheduledAt,
-      durationMinutes: DEFAULT_DURATION_MINUTES,
+      durationMinutes,
       url,
     });
 
@@ -337,13 +363,17 @@ export async function sendResearchReminder(
     const scheduledAt = new Date(invite.scheduled_at);
     const url = researchInterviewUrl(invite.access_token);
     const email = invite.contact_email.trim();
+    const durationMinutes = await resolveInviteDurationMinutes(
+      orgId,
+      invite.plan_id,
+    );
 
     const { subject, html, text } = buildResearchReminder({
       kind,
       contactName: invite.contact_label,
       orgName,
       scheduledAt,
-      durationMinutes: DEFAULT_DURATION_MINUTES,
+      durationMinutes,
       url,
       locale: invite.language,
       branding,

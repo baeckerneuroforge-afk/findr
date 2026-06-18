@@ -28,7 +28,8 @@
     },
     "input": {
       "placeholder": "Antwort eingeben …",
-      "send": "Senden"
+      "send": "Senden",
+      "timeUpNotice": "Die Zeit für dieses Interview ist abgelaufen — vielen Dank für deine Antworten."
     },
     "footer": {
       "brandless": "Vertrauliches Research-Interview · geführt von einem KI-Interviewer.",
@@ -1167,6 +1168,8 @@
       "lengthAdvancedSummary": "Erweitert: genaue Fragenzahl festlegen",
       "lengthCustomLabel": "Max. Fragen (2–15)",
       "lengthCustomHint": "Leer lassen für Standard. Obergrenze — das Interview kann früher enden, wenn alle Themen abgedeckt sind.",
+      "lengthLiveEstimate": "Aktuell: ≈ {questions} Fragen · ~{minutes} Min",
+      "lengthLiveEstimateCapped": "Aktuell: ≈ {questions} Fragen · ~{minutes} Min — durch Zeitlimit begrenzt",
       "errMaxRounds": "Max. Fragen muss eine ganze Zahl zwischen 2 und 15 sein.",
       "fldTimeLimit": "Zeitlimit",
       "timeLimitHint": "Optionales Zeitlimit. Voice-Interviews werden nach Ablauf automatisch beendet; bei Text-Interviews läuft ein sichtbarer Countdown und das Gespräch schließt bei der nächsten Antwort nach Ablauf. Leer = kein Limit.",
@@ -1303,6 +1306,7 @@
       "genBtnGenerating": "KI generiert…",
       "genPreviewTitle": "Generierte Hauptfragen ({count} Topics · {minutes} Min)",
       "genScreeningTitle": "Screening-Fragen (rein informativ)",
+      "previewWordingVaries": "Der KI-Interviewer formuliert diese Fragen im Gespräch natürlich aus — die exakte Wortwahl kann im Live-Interview variieren.",
       "qualNoLeading": "Keine Suggestivfragen",
       "qualOneQuestion": "Eine Frage pro Turn",
       "qualProbesVague": "Bohrt nach, wo es vage wird",

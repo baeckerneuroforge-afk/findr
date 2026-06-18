@@ -9,6 +9,7 @@ import {
   StructuredOutputError,
 } from "@/lib/anthropic/structured";
 import type { ResearchPlanUseCase } from "@/lib/research/db";
+import { DEFAULT_RESEARCH_QUESTION_CEILING } from "@/lib/research/interview-duration";
 import type { LossReasonType } from "@/lib/loss/extractor";
 import type { RiskAnalysisResult } from "@/lib/schemas/risk";
 
@@ -1167,10 +1168,12 @@ export function stimulusSetCeiling(count: number): number {
 
 /** Die Basis-Stop-Decke (Agent-Fragen) für Research ohne Stimulus-Set —
  *  exakt die Zahl, die als "5/6"-Regel im RESEARCH_INTERVIEWER_CORE-Prompt
- *  steht, und der Default von MAX_AGENT_TURNS in session-service.ts. Hier
- *  gespiegelt, damit formatRoundCeiling einen unveränderten Default als No-Op
- *  erkennen kann (Prompt byte-identisch). */
-export const DEFAULT_RESEARCH_AGENT_CEILING = 6;
+ *  steht, und der Default von MAX_AGENT_TURNS in session-service.ts. EINZIGE
+ *  Quelle: DEFAULT_RESEARCH_QUESTION_CEILING in interview-duration.ts — damit
+ *  die Dauer-Schätzung (Form/E-Mail) und diese Engine-Decke nie auseinander-
+ *  laufen. formatRoundCeiling erkennt einen unveränderten Default als No-Op
+ *  (Prompt byte-identisch). */
+export const DEFAULT_RESEARCH_AGENT_CEILING = DEFAULT_RESEARCH_QUESTION_CEILING;
 
 /** Konfigurierbare Runden-Obergrenze für Research OHNE Stimulus-Set. Spiegelt
  *  exakt den Set-Override (formatStimulusSet): ERSETZT die Basis-Zahlen 5/6 der

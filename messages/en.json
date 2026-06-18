@@ -28,7 +28,8 @@
     },
     "input": {
       "placeholder": "Type your reply…",
-      "send": "Send"
+      "send": "Send",
+      "timeUpNotice": "Time for this interview is up — thank you for your answers."
     },
     "footer": {
       "brandless": "Confidential research interview · conducted by an AI interviewer.",
@@ -1167,6 +1168,8 @@
       "lengthAdvancedSummary": "Advanced: set an exact question count",
       "lengthCustomLabel": "Max. questions (2–15)",
       "lengthCustomHint": "Leave empty for Standard. Upper bound — the interview can end earlier once every topic is covered.",
+      "lengthLiveEstimate": "Now: ≈ {questions} questions · ~{minutes} min",
+      "lengthLiveEstimateCapped": "Now: ≈ {questions} questions · ~{minutes} min — capped by the time limit",
       "errMaxRounds": "Max. questions must be a whole number between 2 and 15.",
       "fldTimeLimit": "Time limit",
       "timeLimitHint": "Optional time limit. Voice interviews end automatically once it elapses; text interviews show a visible countdown and close on the next answer after it passes. Empty = no limit.",
@@ -1303,6 +1306,7 @@
       "genBtnGenerating": "AI generating…",
       "genPreviewTitle": "Generated main questions ({count} topics · {minutes} min)",
       "genScreeningTitle": "Screening questions (informational only)",
+      "previewWordingVaries": "The AI interviewer phrases these questions naturally during the conversation — the exact wording can vary in the live interview.",
       "qualNoLeading": "No leading questions",
       "qualOneQuestion": "One question at a time",
       "qualProbesVague": "Probes when answers are vague",

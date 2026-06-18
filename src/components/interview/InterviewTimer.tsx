@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 /**
@@ -13,22 +13,27 @@ import { useTranslations } from "next-intl";
  * wenn kein Limit gesetzt ist (maxDurationSeconds/startedAt null) oder die
  * Session nicht mehr aktiv ist (`active=false`).
  *
- * Es ist NUR ein Hinweis: bei TEXT-Interviews schließt der Server beim nächsten
- * Senden nach Ablauf (kein Auto-Submit hier — ein untätig offenes Interview
- * bleibt offen); bei VOICE beendet der Agent das Gespräch hart per Timer. Bei
- * ≤0 zeigt die Anzeige „Zeit abgelaufen".
+ * Bei VOICE beendet der Agent das Gespräch hart per Timer. Bei TEXT war es
+ * früher rein darstellend; jetzt feuert der Timer bei Ablauf EINMAL `onExpire`,
+ * womit der Chat den Composer sperrt (Client-Härtung). Der serverseitige
+ * Abschluss passiert weiterhin beim nächsten Senden bzw. via Retention-Sweep.
+ * Bei ≤0 zeigt die Anzeige „Zeit abgelaufen".
  */
 export function InterviewTimer({
   startedAt,
   maxDurationSeconds,
   active,
+  onExpire,
 }: {
   startedAt: string | null;
   maxDurationSeconds: number | null;
   active: boolean;
+  /** Feuert genau EINMAL, wenn die Deadline überschritten wird. */
+  onExpire?: () => void;
 }) {
   const t = useTranslations("interview");
   const [now, setNow] = useState<number | null>(null);
+  const firedRef = useRef(false);
 
   const startedMs = startedAt ? new Date(startedAt).getTime() : NaN;
   const deadlineMs =
@@ -49,6 +54,17 @@ export function InterviewTimer({
       clearInterval(id);
     };
   }, [active, deadlineMs]);
+
+  // Einmaliger onExpire-Trigger beim Überschreiten der Deadline. firedRef
+  // garantiert genau einen Aufruf, auch wenn der Tick mehrfach hinter der
+  // Deadline liegt oder die Elternkomponente neu rendert.
+  useEffect(() => {
+    if (!active || deadlineMs === null || now === null) return;
+    if (now >= deadlineMs && !firedRef.current) {
+      firedRef.current = true;
+      onExpire?.();
+    }
+  }, [active, deadlineMs, now, onExpire]);
 
   if (deadlineMs === null || !active || now === null) return null;
 
