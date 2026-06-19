@@ -108,6 +108,14 @@ export interface SynthesisEvalCase {
      *  erwartet 1–3 signal_observations (0 = WARN). Ohne Block prüft der
      *  Runner IMMER hart auf leeres Array. */
     expectSignalObservations?: boolean;
+    /** Tier-2a A1 (Methoden-Kongruenz): true markiert einen Negativ-Provokat-
+     *  Fall — der Input legt eine für die Methode VERBOTENE Kategorie nahe
+     *  (z.B. Preis unter brand_research), und die kongruente Synthese darf sie
+     *  NICHT als Theme/Tension bilden. Der LLM-Judge (live) klassifiziert die
+     *  Kategorien; der Runner meldet eine Verletzung als WARN. Rein
+     *  dokumentarisch/lautstärkend — die Regel selbst ist deterministisch in
+     *  src/lib/synthesis/eval-checks.test.ts bewiesen, nicht durch die Fixture. */
+    expectCongruent?: boolean;
   };
 }
 
@@ -1144,6 +1152,300 @@ const synth11: SynthesisEvalCase = {
   },
 };
 
+// ── Tier-2a A1 — Methoden-Kongruenz: Negativ-Provokat-Fälle ────────────────
+//
+// Je Methoden-Regel mit Deny-List GENAU EIN Negativfall (Spec A1, Pflicht): der
+// Input streut eine für die Methode VERBOTENE Kategorie ein, ohne dass eine
+// kongruente Synthese sie als Theme/Tension bilden dürfte. Diese Fixtures
+// PROVOZIEREN nur — sie BEWEISEN den Check nicht (ein braves Modell lässt den
+// WARN nie feuern). Den Beweis, dass die Kongruenz-Regel feuert, trägt der
+// deterministische Unit-Test src/lib/synthesis/eval-checks.test.ts. Keine
+// Fixture ist so gebaut, dass sie die Lücke verdeckt.
+//
+// general_survey hat KEINE Deny-List (Spec A1): jede Methoden-Kategorie ist dort
+// zulässig. Deshalb gibt es bewusst KEINEN general_survey-Negativfall — die
+// Leere der Regel ist im Unit-Test ('general_survey has NO deny-list') belegt,
+// nicht stillschweigend übersprungen.
+
+// synth_12 — brand_research: warm/kalt-Markenbild + EINGESTREUTE Preisspaltung.
+const synth12: SynthesisEvalCase = {
+  id: "synth_12",
+  description:
+    "Brand negative: Markenbild-Split mit eingestreuter Preisspaltung (muss kongruent bleiben)",
+  rationale:
+    "A1-Negativfall für brand_research. Warm-vs-kalt-Markenbild PLUS zwei opponierende Preisaussagen, die eine Preis-Tension nahelegen. Kongruent ist: Marken-/Wettbewerbswahrnehmung als Theme/Tension, KEINE Preis-/Kaufabsichts-/Pain-Tension. Eine Drift fängt der Judge (Kategorie price/purchase_intent/pain unter brand_research → WARN).",
+  input: {
+    plan: {
+      title: "Markenbild Nordlicht Energie",
+      objective: "Spontane Markenassoziationen und Differenzierung verstehen.",
+      persona: "Private Stromkundinnen und Stromkunden",
+      studyType: "market_research",
+      useCase: "brand_research",
+    },
+    insights: [
+      insight("call_12_a", "Bestandskundin", "Warm und nahbar.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Nahbare Marke",
+            description: "Die Marke wirkt persönlich und regional.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: ["Nordlicht wirkt auf mich nahbar und norddeutsch."],
+          },
+        ],
+      }),
+      insight("call_12_b", "Nichtkunde", "Kühl, austauschbar.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Kühle, austauschbare Marke",
+            description: "Name und Auftritt lösen Distanz aus.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: ["Für mich klingt das kühl und völlig austauschbar."],
+          },
+        ],
+      }),
+      // PLANTED: opposing price views — tempt a price tension (forbidden here).
+      insight("call_12_c", "Preissensible", "Zu teuer.", {
+        feature: [
+          {
+            category: "PRICE_SENSITIVITY",
+            title: "Tarif zu teuer",
+            description: "Der Preis ist die Haupthürde.",
+            intensity: "high",
+            confidence: 0.85,
+            evidence: ["Ehrlich gesagt ist mir der Tarif schlicht zu teuer."],
+          },
+        ],
+      }),
+      insight("call_12_d", "Premium-Typ", "Zahlt gern mehr.", {
+        feature: [
+          {
+            category: "PRICE_SENSITIVITY",
+            title: "Premium akzeptiert",
+            description: "Guter Ökostrom darf mehr kosten.",
+            intensity: "medium",
+            confidence: 0.8,
+            evidence: ["Für echten Ökostrom zahle ich gern ein paar Euro mehr."],
+          },
+        ],
+      }),
+    ],
+  },
+  expected: { minThemes: 1, maxThemes: 4, tensions: 1, expectCongruent: true },
+};
+
+// synth_13 — creative_test: Botschaftsklarheit-Split + EINGESTREUTE Produkt-Pains.
+const synth13: SynthesisEvalCase = {
+  id: "synth_13",
+  description:
+    "Creative negative: Botschaftsklarheit-Split mit eingestreuten Produkt-Pains (muss kongruent bleiben)",
+  rationale:
+    "A1-Negativfall für creative_test. Klar-vs-unklar-Botschaft PLUS zwei Produkt-Pains (Checkout, Support), die eine Pain-Tension nahelegen. Kongruent ist: Botschaftswirkung/Markenfit, KEINE Pain-Tension. Eine Pain-Kategorie unter creative_test → Judge-WARN.",
+  input: {
+    plan: {
+      title: "Creative-Test Kampagne Sicher investieren",
+      objective: "Erste Wirkung, Botschaftsklarheit und Markenfit prüfen.",
+      persona: "Private Anlegerinnen und Anleger",
+      studyType: "market_research",
+      useCase: "creative_test",
+    },
+    insights: [
+      insight("call_13_a", "ETF-Anlegerin", "Botschaft klar.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Klare Botschaft",
+            description: "Die Aussage kommt sofort an.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: ["Die Botschaft Sicher investieren kommt sofort an."],
+          },
+        ],
+      }),
+      insight("call_13_b", "Trader", "Botschaft unklar.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Unklare Aussage",
+            description: "Das Versprechen wird nicht verstanden.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: ["Ich weiß nach dem ersten Blick nicht, was gemeint ist."],
+          },
+        ],
+      }),
+      // PLANTED: product pains — tempt a pain tension/theme (forbidden here).
+      insight("call_13_c", "Bestandskunde", "Checkout nervt.", {
+        pain: [
+          {
+            category: "UX_FRICTION",
+            title: "Checkout langsam",
+            description: "Der Bezahlvorgang ist quälend langsam.",
+            severity: "high",
+            confidence: 0.85,
+            evidence: ["Der Checkout auf der Website ist quälend langsam."],
+          },
+        ],
+      }),
+      insight("call_13_d", "Neukundin", "Support meldet sich nicht.", {
+        pain: [
+          {
+            category: "SUPPORT",
+            title: "Support reagiert nicht",
+            description: "Auf Anfragen kam nie eine Antwort.",
+            severity: "high",
+            confidence: 0.85,
+            evidence: ["Auf meine Support-Anfrage hat nie jemand geantwortet."],
+          },
+        ],
+      }),
+    ],
+  },
+  expected: { minThemes: 1, maxThemes: 4, tensions: 1, expectCongruent: true },
+};
+
+// synth_14 — concept_test: Verständnis-Split + EINGESTREUTE Produkt-Pains.
+const synth14: SynthesisEvalCase = {
+  id: "synth_14",
+  description:
+    "Concept negative: Verständnis-Split mit eingestreuten Produkt-Pains (muss kongruent bleiben)",
+  rationale:
+    "A1-Negativfall für concept_test. Verstanden-vs-missverstanden PLUS zwei Produkt-Pains (Absturz, Ladezeit), die eine reine Pain-Tension nahelegen. Kongruent ist: Konzeptverständnis/Relevanz/Adoption, KEINE Pain-Tension. Pain unter concept_test → Judge-WARN.",
+  input: {
+    plan: {
+      title: "Konzepttest Ausgaben-Autopilot",
+      objective: "Verständnis, Relevanz und Adoptionsbereitschaft prüfen.",
+      persona: "Digital-affine Bankkundinnen und Bankkunden",
+      studyType: "market_research",
+      useCase: "concept_test",
+    },
+    insights: [
+      insight("call_14_a", "Power-User", "Konzept verstanden, relevant.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Automatik verstanden",
+            description: "Das Konzept der laufenden Optimierung kommt an.",
+            intensity: "high",
+            confidence: 0.95,
+            evidence: ["Ich verstehe es als laufende Optimierung meiner Ausgaben."],
+          },
+        ],
+      }),
+      insight("call_14_b", "Gelegenheitsnutzerin", "Nur als Dashboard verstanden.", {
+        feature: [
+          {
+            category: "BRAND_PERCEPTION",
+            title: "Auf Anzeige reduziert",
+            description: "Die Optimierung kommt im Verständnis nicht an.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: ["Für mich ist das nur noch ein Dashboard meiner Ausgaben."],
+          },
+        ],
+      }),
+      // PLANTED: product pains — tempt a pure pain tension (forbidden here).
+      insight("call_14_c", "Bestandskunde", "App stürzt ab.", {
+        pain: [
+          {
+            category: "RELIABILITY",
+            title: "Häufige Abstürze",
+            description: "Die bestehende App ist instabil.",
+            severity: "high",
+            confidence: 0.85,
+            evidence: ["Die App stürzt bei mir ständig ab."],
+          },
+        ],
+      }),
+      insight("call_14_d", "Vielnutzerin", "Ladezeiten zu lang.", {
+        pain: [
+          {
+            category: "PERFORMANCE",
+            title: "Lange Ladezeiten",
+            description: "Alles lädt zu langsam.",
+            severity: "medium",
+            confidence: 0.8,
+            evidence: ["Die Ladezeiten sind eine echte Zumutung."],
+          },
+        ],
+      }),
+    ],
+  },
+  expected: { minThemes: 1, maxThemes: 4, tensions: 1, expectCongruent: true },
+};
+
+// synth_15 — product_discovery: Feature-Split + EINGESTREUTES Markt-Preis-Lager.
+const synth15: SynthesisEvalCase = {
+  id: "synth_15",
+  description:
+    "Discovery negative: Feature-Split mit eingestreutem Markt-Preis-Lager (muss kongruent bleiben)",
+  rationale:
+    "A1-Negativfall für product_discovery. Mobile-vs-Browser-Feature-Split PLUS zwei opponierende Preis-Toleranzen, die eine Markt-Preis-Lager-Tension nahelegen. Kongruent ist: Feature/Pain, KEINE Markt-Preis-Lager-Tension. price unter product_discovery → Judge-WARN.",
+  input: {
+    plan: {
+      title: "Discovery PM-Tool",
+      objective: "Feature-Bedarf und Reibungspunkte verstehen.",
+      persona: "Admin-User bei SMB SaaS",
+      studyType: "product_discovery",
+    },
+    insights: [
+      insight("call_15_a", "Außendienst-Admin", "Will Mobile App.", {
+        feature: [
+          {
+            category: "MOBILE",
+            title: "Mobile App",
+            description: "Im Außendienst nötig.",
+            intensity: "high",
+            confidence: 0.9,
+            evidence: ["Wir bräuchten eine richtige App für den Außendienst."],
+          },
+        ],
+      }),
+      insight("call_15_b", "Innendienst-Admin", "Browser reicht.", {
+        pain: [
+          {
+            category: "UX_FRICTION",
+            title: "Browser reicht aus",
+            description: "Eine App ist nicht nötig.",
+            severity: "low",
+            confidence: 0.8,
+            evidence: ["Eine App brauchen wir nicht, der Browser reicht uns vollkommen."],
+          },
+        ],
+      }),
+      // PLANTED: opposing price tolerances — tempt a market price lager (forbidden here).
+      insight("call_15_c", "Sparsamer Lead", "Max 10 Euro.", {
+        feature: [
+          {
+            category: "PRICING",
+            title: "Harte Preisgrenze 10 Euro",
+            description: "Mehr wird nicht genehmigt.",
+            intensity: "high",
+            confidence: 0.85,
+            evidence: ["Mehr als 10 Euro pro Seat zahle ich dafür nicht."],
+          },
+        ],
+      }),
+      insight("call_15_d", "Qualitäts-Lead", "Zahlt gern 50 Euro.", {
+        feature: [
+          {
+            category: "PRICING",
+            title: "Premium akzeptiert",
+            description: "Qualität rechtfertigt den Preis.",
+            intensity: "medium",
+            confidence: 0.8,
+            evidence: ["Für ein verlässliches Tool zahle ich gern 50 Euro pro Seat."],
+          },
+        ],
+      }),
+    ],
+  },
+  expected: { minThemes: 1, maxThemes: 4, tensions: 1, expectCongruent: true },
+};
+
 export const SYNTHESIS_EVAL_CASES: SynthesisEvalCase[] = [
   synth01,
   synth02,
@@ -1156,4 +1458,8 @@ export const SYNTHESIS_EVAL_CASES: SynthesisEvalCase[] = [
   synth09,
   synth10,
   synth11,
+  synth12,
+  synth13,
+  synth14,
+  synth15,
 ];

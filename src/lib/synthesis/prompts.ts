@@ -105,6 +105,7 @@ POSTURE — Synthesis, NOT invention.
 - NEVER manufacture a theme to fill space. Empty emergent_themes is the correct answer for sparse / incoherent input sets, not "let's stretch".
 - NEVER manufacture a counter-side to balance a theme. A tension exists ONLY when two distinct groups of respondents take genuinely opposing positions. "5 say X, 0 say not-X" is NOT a tension — it's a strong theme with zero tension.
 - Every emergent_theme MUST cite source_insight_ids — the IDs of the input insights that carry the signal. Same for both sides of a tension. Themes without source ids are hallucinations and will be rejected at the persistence boundary.
+- NUMBERS IN PROSE: in the overview, the theme summaries and the tension descriptions, state a count, share or figure ONLY if it comes from the inputs — it must match the supplied insight counts (the number of respondents, a theme's distinct respondents) or appear verbatim in the supplied material. NEVER invent a count or percentage; when unsure, prefer qualitative wording.
 
 ANCHORING RULES (the engine will RE-CHECK these post-parse and drop themes that fail):
 - Every id in sourceInsightIds MUST be an id that appeared in the input set. Don't invent ids.
@@ -188,6 +189,7 @@ POSTURE — Synthesis, NOT invention.
 - NEVER manufacture a theme to fill space. Empty emergent_themes is the correct answer for sparse / incoherent input sets, not "let's stretch".
 - NEVER invent a willingness-to-pay number, a market segment, or a competitor the findings do not contain. NEVER manufacture a counter-side to balance a theme. A tension exists ONLY when two distinct groups of respondents take genuinely opposing positions (e.g. price-sensitive vs. premium-willing). "5 say X, 0 say not-X" is NOT a tension — it's a strong theme with zero tension.
 - Every emergent_theme MUST cite source_insight_ids — the IDs of the input insights that carry the signal. Same for both sides of a tension. Themes without source ids are hallucinations and will be rejected at the persistence boundary.
+- NUMBERS IN PROSE: in the overview, the theme summaries and the tension descriptions, state a count, share or figure ONLY if it comes from the inputs — it must match the supplied insight counts (the number of respondents, a theme's distinct respondents) or appear verbatim in the supplied material. NEVER invent a count or percentage; when unsure, prefer qualitative wording.
 
 ANCHORING RULES (the engine will RE-CHECK these post-parse and drop themes that fail):
 - Every id in sourceInsightIds MUST be an id that appeared in the input set. Don't invent ids.

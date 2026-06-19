@@ -50,7 +50,11 @@ const EmergentThemeSchema = z.object({
   /** Verbatim customer quotes pulled from the underlying Stage-1
    *  evidence arrays. Empty array is allowed at schema level so a
    *  theme that's grounded in summaries (not quotes) can still pass;
-   *  the eval flags quote-less themes for human review. */
+   *  the synthesis eval's quote-coverage check (Tier-2a A4,
+   *  src/lib/synthesis/eval-checks.ts → quoteCoverageScan) flags quote-less
+   *  themes (and tension sides) as a WARN for human review — a measurement
+   *  only, the prod anchored-filter still lets a quote-less theme survive on
+   *  its valid ids. */
   quotes: z.array(z.string()).max(8).default([]),
 });
 export type EmergentTheme = z.infer<typeof EmergentThemeSchema>;

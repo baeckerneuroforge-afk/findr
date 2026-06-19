@@ -58,6 +58,26 @@ import { loadSynthesisStimulusInputs } from "./stimuli";
  * both sides). frequency is always overridden post-filter with
  * unique(sourceInsightIds).length — the model's number is advisory,
  * the engine's number is authoritative.
+ *
+ * GROUNDING — was maschinell verankert ist und was NICHT (ehrlich, nicht
+ * überverkaufend). Die Synthese trennt zwei Arten von Output:
+ *  - MASCHINELL VERANKERT: `sourceInsightIds` (müssen im Input-Set existieren)
+ *    und `quotes` (müssen nach Typografie-Fold wörtlich in mindestens einer der
+ *    ZITIERTEN Insight-IDs vorkommen — Per-Insight-Anker). Was diese Prüfung
+ *    nicht besteht, wird verworfen.
+ *  - INTERPRETIERENDE PROSA, NICHT maschinell verankert: `overview`,
+ *    `emergent_themes[].summary` und `tensions[].description` sind die
+ *    FORMULIERUNG des Modells. Sie sind im Prompt an die zitierten Insights
+ *    gebunden (das Modell zitiert IDs), aber es gibt KEINE programmatische
+ *    Wort-für-Wort-Prüfung ihres Inhalts. Eine Mengen- oder Wertaussage in
+ *    dieser Prosa ist nur so verlässlich wie das Modell — sie ist KEINE vom
+ *    Server bestätigte Kennzahl. Verlässliche Kennzahlen kommen ausschließlich
+ *    aus den Server-Feldern (`based_on_count`, `frequency`, `signals_summary`,
+ *    `stimulus_summary`).
+ * Die Synthese-Eval MISST die Treue dieser Prosa zusätzlich (deterministischer
+ * Zahlen-Scan + LLM-Grounding-Judge, siehe src/lib/synthesis/eval-checks.ts und
+ * evals-synthesis/), aber das ist eine QUALITÄTSMESSUNG, kein Persistenz-Gate:
+ * der Prod-Pfad schreibt die Prosa unverändert.
  */
 
 export const DEFAULT_SYNTHESIS_MODEL = CLAUDE_MODELS.opus;

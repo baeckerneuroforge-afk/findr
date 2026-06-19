@@ -27,6 +27,21 @@
  *                          [expected.minThemes, expected.maxThemes].
  *                          Bounds are advisory; a fail prints WARN.
  *
+ * Tier-2a Grounding-Messung (Spec docs/specs/synthese-tier2a-spec.md):
+ *   (h) number-fidelity  — A2, DETERMINISTISCH: erfundene Ganzzahlen in der
+ *                          Freitext-Prosa. Nach Live-Kalibrierung ÜBERALL WARN
+ *                          (vormals FAIL in overview/tension.description) — gatet
+ *                          aktuell nicht. Allowlist deckt zusätzlich Plan-Titel/
+ *                          Objective-Zahlen (z.B. „Q3").
+ *   (i) quote-coverage   — A4, DETERMINISTISCH, WARN: Themen/Tension-Seiten
+ *                          ohne wörtliches Zitat.
+ *   JUDGE (A1+A3)        — ein LIVE Sonnet-Judge je Fall (claude-sonnet-4-6,
+ *                          Override SYNTHESIS_JUDGE_MODEL) prüft Prosa-Grounding
+ *                          und vergibt Methoden-Kategorien. Beide Befundarten
+ *                          sind IMMER WARN — der Judge gatet nirgends (Spec §3:
+ *                          deterministisch gatet, Judge berät). Reine Logik in
+ *                          src/lib/synthesis/eval-checks.ts (dort unit-getestet).
+ *
  * Always calls the LLM. Default model is the PRODUCTION synthesis model
  * (DEFAULT_SYNTHESIS_MODEL = Opus) so the standard run validates real prod
  * behaviour. For cheap repeated iteration, override with
@@ -38,6 +53,7 @@
 
 import { config } from "dotenv";
 import {
+  buildAnchorSet,
   DEFAULT_SYNTHESIS_MODEL,
   synthesizeFromInputs,
 } from "@/lib/synthesis/engine";
@@ -47,9 +63,15 @@ import type {
   Tension,
 } from "@/lib/schemas/synthesis";
 import {
+  judgeResultToFindings,
+  numberFidelityScan,
+  quoteCoverageScan,
+} from "@/lib/synthesis/eval-checks";
+import {
   SYNTHESIS_EVAL_CASES,
   type SynthesisEvalCase,
 } from "./dataset";
+import { DEFAULT_JUDGE_MODEL, judgeSynthesis } from "./judge";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -58,6 +80,11 @@ config({ path: ".env" });
 // so the standard eval run validates prod behaviour, not a cheaper proxy.
 // For cheap iteration, override: SYNTHESIS_MODEL=claude-sonnet-4-6.
 const MODEL = process.env.SYNTHESIS_MODEL ?? DEFAULT_SYNTHESIS_MODEL;
+
+// Tier-2a A3 — günstiger Grounding-Judge (Sonnet 4.6 Default; Override via
+// SYNTHESIS_JUDGE_MODEL). NUR im echten Eval-Lauf live; seine Befunde sind
+// immer WARN.
+const JUDGE_MODEL = process.env.SYNTHESIS_JUDGE_MODEL ?? DEFAULT_JUDGE_MODEL;
 
 // ── pretty-print helpers ────────────────────────────────────────────────────
 
@@ -295,6 +322,49 @@ function runChecks(
     }
   }
 
+  // (h) A2 — Prosa-Zahlentreue (DETERMINISTISCH, aktuell WARN — nach Live-
+  // Kalibrierung herabgestuft, s. eval-checks.ts). Allowlist = Server-Zahlen ∪
+  // Haystack-Zahlen ∪ Plan-Titel/Objective-Zahlen. Der Haystack ist exakt der,
+  // gegen den die Engine Zitate ankert (buildAnchorSet inkl. Stimulus-Ausschnitten).
+  const stimulusExcerpts =
+    testCase.input.stimuli?.excerpts.flatMap((e) => e.excerpts) ?? [];
+  const inputHaystack = buildAnchorSet(
+    testCase.input.insights,
+    stimulusExcerpts,
+  ).foldedHaystack;
+  const numberFindings = numberFidelityScan(result, {
+    inputHaystack,
+    basedOnCount: testCase.input.insights.length,
+    planContext: `${testCase.input.plan.title} ${testCase.input.plan.objective}`,
+  });
+  if (numberFindings.length === 0) {
+    ok("number-fidelity — keine ungedeckten Zahlen in der Freitext-Prosa");
+    passed++;
+  } else {
+    for (const f of numberFindings) {
+      if (f.severity === "fail") {
+        bad(`number-fidelity [${f.field}] — ${f.message}`);
+        failed++;
+      } else {
+        warn(`number-fidelity [${f.field}] — ${f.message}`);
+        warned++;
+      }
+    }
+  }
+
+  // (i) A4 — Belegpflicht (DETERMINISTISCH, WARN): Themen/Tension-Seiten ohne
+  // wörtliches Zitat. Reine Messung — der Prod-Pfad bleibt unverändert (2b).
+  const quoteFindings = quoteCoverageScan(result);
+  if (quoteFindings.length === 0) {
+    ok("quote-coverage — jedes Theme/jede Tension-Seite trägt ≥1 Zitat");
+    passed++;
+  } else {
+    for (const f of quoteFindings) {
+      warn(`quote-coverage [${f.field}] — ${f.message}`);
+      warned++;
+    }
+  }
+
   return { passed, warned, failed };
 }
 
@@ -316,6 +386,10 @@ async function main(): Promise<void> {
       `expected: themes ∈ [${c.expected.minThemes}, ${c.expected.maxThemes}], tensions = ${c.expected.tensions}${
         c.expected.maxThemeFrequency !== undefined
           ? `, maxThemeFrequency ≤ ${c.expected.maxThemeFrequency}`
+          : ""
+      }${
+        c.expected.expectCongruent
+          ? " · A1-Negativprovokation: Synthese muss methodenkongruent bleiben"
           : ""
       }`,
     );
@@ -351,6 +425,32 @@ async function main(): Promise<void> {
     totalPassed += checks.passed;
     totalWarned += checks.warned;
     totalFailed += checks.failed;
+
+    // A1 + A3 — LLM-Judge (LIVE; nur hier, nie in vitest run src). Befunde sind
+    // IMMER WARN (Spec §3: der nicht-deterministische Judge gatet nirgends).
+    console.log(
+      `\n  ${C.bold}JUDGE${C.reset} ${C.dim}(A1 Kongruenz + A3 Grounding · ${JUDGE_MODEL})${C.reset}`,
+    );
+    try {
+      const judged = await judgeSynthesis(c.input, result, JUDGE_MODEL);
+      const judgeFindings = judgeResultToFindings(judged, {
+        studyType: c.input.plan.studyType,
+        useCase: c.input.plan.useCase,
+      });
+      if (judgeFindings.length === 0) {
+        ok("judge — alle Freitext-Felder grounded & methodenkonform");
+        totalPassed++;
+      } else {
+        for (const f of judgeFindings) {
+          warn(`${f.check} [${f.field}] — ${f.message}`);
+          totalWarned++;
+        }
+      }
+    } catch (err) {
+      warn(
+        `judge unavailable (continuing): ${err instanceof Error ? err.message : "unknown"}`,
+      );
+    }
   }
 
   console.log(
