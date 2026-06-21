@@ -98,6 +98,9 @@ const UpdatePlanBodySchema = z
     maxRounds: z.number().int().min(2).max(15).nullable().optional(),
     // Per-study time limit in seconds (3..60 min). `null` clears it (no limit).
     maxDurationSeconds: z.number().int().min(180).max(3600).nullable().optional(),
+    // Per-study interview DEPTH. `null` clears it (legacy default); a member
+    // sets it. Mirrors the migration CHECK enum.
+    interviewDepth: z.enum(["flach", "mittel", "tief"]).nullable().optional(),
   })
   .refine(
     (data) =>
@@ -118,7 +121,8 @@ const UpdatePlanBodySchema = z
       data.stimulusDescription !== undefined ||
       data.language !== undefined ||
       data.maxRounds !== undefined ||
-      data.maxDurationSeconds !== undefined,
+      data.maxDurationSeconds !== undefined ||
+      data.interviewDepth !== undefined,
     { message: "At least one field must be present in the update body." },
   );
 
@@ -193,6 +197,7 @@ export async function PATCH(
       stimulusDescription: parsed.data.stimulusDescription,
       maxRounds: parsed.data.maxRounds,
       maxDurationSeconds: parsed.data.maxDurationSeconds,
+      interviewDepth: parsed.data.interviewDepth,
     });
     if (!plan) {
       // Defensive: the existence check above passed, so this only fires on

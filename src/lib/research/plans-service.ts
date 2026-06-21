@@ -16,6 +16,10 @@ import {
   type ResearchPlanUseCase,
 } from "./db";
 import {
+  resolveEffectiveMaxRounds,
+  type InterviewDepth,
+} from "./interview-duration";
+import {
   ScreeningQuestionSchema,
   type ScreeningQuestion,
 } from "@/lib/schemas/screening";
@@ -102,6 +106,13 @@ export interface ResearchPlanRecord {
    *  (visible countdown, close on next answer once elapsed). Applies to ALL
    *  studies, including stimulus-set ones. */
   maxDurationSeconds: number | null;
+  /** Per-study interview DEPTH — laddering layers per topic (the real depth
+   *  lever; see interview-duration.ts DEPTH_LAYERS). Null = legacy study
+   *  (pre-feature) → the engine uses the flat default ceiling, byte-identical.
+   *  New studies carry 'mittel' by default. The effective agent-question ceiling
+   *  is derived per study from depth × topics at the snapshot boundary
+   *  (resolveEffectiveMaxRounds); an explicit maxRounds still wins. */
+  interviewDepth: InterviewDepth | null;
   createdAt: string;
 }
 
@@ -228,6 +239,14 @@ function coerceNullableInt(raw: unknown): number | null {
     : null;
 }
 
+// Per-study interview DEPTH. Pre-migration / legacy fail-safe: undefined
+// (select("*") omits the column) / null / any non-member → null → legacy
+// default-length behavior, byte-identical. The route's Zod enforces the enum on
+// write, so a read just needs to be defensive.
+function coerceDepth(raw: unknown): InterviewDepth | null {
+  return raw === "flach" || raw === "mittel" || raw === "tief" ? raw : null;
+}
+
 function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
   return {
     id: row.id,
@@ -276,6 +295,9 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     maxDurationSeconds: coerceNullableInt(
       (row as { max_duration_seconds?: unknown }).max_duration_seconds,
     ),
+    interviewDepth: coerceDepth(
+      (row as { interview_depth?: unknown }).interview_depth,
+    ),
     createdAt: row.created_at,
   };
 }
@@ -314,6 +336,25 @@ export function planToAgentContext(
   // der Aufrufer (Session-Create, Voice-Kontext) kommt in E4/E6.
   stimuli?: ResearchPlanStimulusRecord[],
 ): ResearchPlanContext {
+  const isStimulusSet =
+    plan.studyType === "market_research" && !!stimuli && stimuli.length > 0;
+  // Tiefe + effektive Runden-Obergrenze — NUR für Studien OHNE Stimulus-Set
+  // (Sets behalten ihre inhaltsgetriebene stimulusSetCeiling). Die effektive
+  // maxRounds wird themenbewusst aus Tiefe×Themen abgeleitet (oder ein
+  // expliziter Experten-maxRounds gewinnt) und speist UNVERÄNDERT die gesamte
+  // bestehende Zahlen-Pipeline (formatRoundCeiling, researchTotalCap, Fortschritt,
+  // Dauer). `depth` wandert separat mit, damit der Prompt die Laddering-Schichten-
+  // Direktive emittieren kann. Legacy (beide null) → beide Keys weggelassen →
+  // Snapshot + Prompt byte-identisch zu heute.
+  const lengthKeys: { maxRounds?: number; depth?: InterviewDepth } = {};
+  if (!isStimulusSet && (plan.maxRounds != null || plan.interviewDepth != null)) {
+    lengthKeys.maxRounds = resolveEffectiveMaxRounds({
+      maxRounds: plan.maxRounds,
+      depth: plan.interviewDepth,
+      topicCount: plan.topics.length,
+    });
+    if (plan.interviewDepth != null) lengthKeys.depth = plan.interviewDepth;
+  }
   return {
     title: plan.title,
     objective: plan.objective,
@@ -346,16 +387,10 @@ export function planToAgentContext(
     ...(plan.studyType === "market_research" && stimuli && stimuli.length > 0
       ? { stimuli: sortStimuli(stimuli).map(stimulusToContext) }
       : {}),
-    // Konfigurierte Runden-Obergrenze — wandert NUR bei Studien OHNE Stimulus-
-    // Set in den Snapshot. Set-Studien behalten die inhaltsgetriebene
-    // stimulusSetCeiling (Entscheidung: Stimulus-Studien behalten Auto-Größe):
-    // die Engine liest dort maxRounds=undefined → Default-Cap, ihre Taktung +
-    // das 16-Turn-Sicherheitsnetz bleiben byte-identisch. Default-Wert (6) wird
-    // im Prompt zudem von formatRoundCeiling als No-Op behandelt.
-    ...(plan.maxRounds != null &&
-    !(plan.studyType === "market_research" && stimuli && stimuli.length > 0)
-      ? { maxRounds: plan.maxRounds }
-      : {}),
+    // Tiefe + effektive Runden-Obergrenze (oben berechnet) — beide nur ohne
+    // Stimulus-Set; Set-Studien behalten ihre inhaltsgetriebene
+    // stimulusSetCeiling. Legacy (depth+maxRounds null) → leer → byte-identisch.
+    ...lengthKeys,
     // Zeitlimit — wandert IMMER in den Snapshot, wenn gesetzt (anders als
     // maxRounds): das Zeit-Cap gilt für ALLE Studien, auch Stimulus-Set. Fehlt
     // der Schlüssel → kein Limit (byte-identisch). Die Engine (Text-weich) und
@@ -754,6 +789,9 @@ export interface CreateResearchPlanInput {
   maxRounds?: number | null;
   /** Per-study time limit in seconds. Omitted/null → DB stays NULL → no limit. */
   maxDurationSeconds?: number | null;
+  /** Per-study interview depth. Omitted/null → DB stays NULL → legacy default
+   *  length (byte-identical create). New studies stamp 'mittel'. */
+  interviewDepth?: InterviewDepth | null;
 }
 
 /**
@@ -808,6 +846,11 @@ export async function createResearchPlan(
       ...(input.maxDurationSeconds != null
         ? { max_duration_seconds: input.maxDurationSeconds }
         : {}),
+      // Tiefe — nur stempeln, wenn gesetzt; sonst weggelassen → Spalte bleibt
+      // NULL → Legacy-Default (pre-migration-sicher via Spread).
+      ...(input.interviewDepth != null
+        ? { interview_depth: input.interviewDepth }
+        : {}),
     })
     .select("*")
     .single();
@@ -848,6 +891,9 @@ export interface UpdateResearchPlanInput {
   /** Per-study time limit in seconds. `null` clears it (no limit); a number
    *  sets it. `undefined` leaves it untouched. */
   maxDurationSeconds?: number | null;
+  /** Per-study interview depth. `null` clears it (legacy default); a member sets
+   *  it. `undefined` leaves it untouched. */
+  interviewDepth?: InterviewDepth | null;
 }
 
 /**
@@ -890,6 +936,7 @@ export async function updateResearchPlan(
     language?: "de" | "en";
     max_rounds?: number | null;
     max_duration_seconds?: number | null;
+    interview_depth?: InterviewDepth | null;
   } = {};
   if (input.title !== undefined) update.title = input.title;
   if (input.objective !== undefined) update.objective = input.objective;
@@ -922,6 +969,8 @@ export async function updateResearchPlan(
   if (input.maxRounds !== undefined) update.max_rounds = input.maxRounds;
   if (input.maxDurationSeconds !== undefined)
     update.max_duration_seconds = input.maxDurationSeconds;
+  if (input.interviewDepth !== undefined)
+    update.interview_depth = input.interviewDepth;
 
   if (Object.keys(update).length === 0) {
     return getResearchPlan(orgId, planId);

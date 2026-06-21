@@ -3,6 +3,7 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database, Json } from "@/types/database";
+import type { InterviewDepth } from "./interview-duration";
 
 /**
  * Local DB-type augmentation for the research layer. Same pattern as
@@ -256,6 +257,13 @@ export type ResearchPlanRow = {
   // send). Pre-migration select("*") omits it; read mapper (coerceNullableInt)
   // defaults undefined→null → no time limit, byte-identical.
   max_duration_seconds: number | null;
+  // Per-study interview DEPTH — laddering layers per topic (the real depth
+  // lever; see interview-duration.ts). text CHECK in ('flach','mittel','tief'),
+  // nullable, no backfill. NULL = legacy studies (pre-feature): the engine then
+  // falls back to the flat default ceiling, byte-identical. New studies created
+  // via the form carry 'mittel' by default. Before the migration lands
+  // select("*") omits it; the read mapper (coerceDepth) defaults undefined→null.
+  interview_depth: InterviewDepth | null;
   created_at: string;
 };
 
@@ -290,6 +298,9 @@ type ResearchPlanInsert = {
   // sonst weggelassen → NULL → System-Default (byte-identisch).
   max_rounds?: number | null;
   max_duration_seconds?: number | null;
+  // Optional beim Insert — neue Studien stempeln 'mittel'; weggelassen → NULL
+  // (Legacy-Default-Verhalten, byte-identisch).
+  interview_depth?: InterviewDepth | null;
   created_at?: string;
 };
 
@@ -318,6 +329,7 @@ type ResearchPlanUpdate = {
   language?: Language;
   max_rounds?: number | null;
   max_duration_seconds?: number | null;
+  interview_depth?: InterviewDepth | null;
   created_at?: string;
 };
 

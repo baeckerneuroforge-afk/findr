@@ -20,9 +20,10 @@ import {
   VideoDecodeError,
 } from "@/lib/research/extract-video-frames";
 import {
-  effectiveQuestionCeiling,
   estimateInterviewMinutes,
   isDurationFromTimeCap,
+  resolveExpectedQuestions,
+  type InterviewDepth,
 } from "@/lib/research/interview-duration";
 
 /** Client mirror of the server's stimulus-route limits (bucket
@@ -183,7 +184,15 @@ interface FormState {
   // → keine Verhaltensänderung. Reine Obergrenze: die Sättigung darf früher
   // schließen. Gilt für BEIDE Studientypen; Stimulus-Set-Studien ignorieren den
   // Wert serverseitig (planToAgentContext lässt ihn aus dem Snapshot weg).
+  // Hinweis: maxRounds ist jetzt der EXPERTEN-Override ("Erweitert"); der
+  // primäre Tiefe-Regler ist interviewDepth.
   maxRounds: number | null;
+  // Interview-TIEFE — primärer Regler (Flach/Mittel/Tief = 1/2/4 Laddering-
+  // Schichten pro Thema). Gesendet als `interviewDepth` in jeden create/update-
+  // Body. Der Server leitet die effektive Fragen-Obergrenze themenbewusst daraus
+  // ab; ein gesetzter maxRounds-Override gewinnt. Stimulus-Set-Studien
+  // ignorieren beides serverseitig.
+  interviewDepth: InterviewDepth | null;
   // Zeitlimit in MINUTEN (UI-Einheit). null = kein Limit. Wird als
   // `maxDurationSeconds` (×60) in jeden create/update-Body gesendet. Voice
   // erzwingt es hart, Text weich (Countdown). Gilt für ALLE Studientypen.
@@ -361,6 +370,9 @@ const INITIAL_FORM: FormState = {
   // Default null = Standard-Länge (System-Default ≈6) → byte-identischer
   // Create, solange der Forscher die Länge nicht ändert.
   maxRounds: null,
+  // Default-Tiefe = Mittel (2 Schichten/Thema ≈ bisheriges Pro-Thema-Verhalten);
+  // der primäre Regler. maxRounds bleibt null = kein Experten-Override.
+  interviewDepth: "mittel",
   // Default null = kein Zeitlimit → byte-identisch.
   maxDurationMinutes: null,
   // Start with one empty topic so the editor isn't blank — encourages the
@@ -548,9 +560,9 @@ export function ResearchPlanForm({
    * the stimulus upload. Both call this — the FIRST one to run creates the draft
    * (status 'draft' by DB default) and stores its id; later calls reuse it. Once
    * a draft exists, handleSubmit PATCHes it instead of creating a second plan,
-   * so there are no orphaned uploads. The create body is byte-identical to the
-   * generator's previous inline draft-create (topics:[], sampleTarget:null);
-   * needs title + objective ≥ 3 chars (callers validate that first).
+   * so there are no orphaned uploads. The draft create body carries the current
+   * length config too (interviewDepth default 'mittel', + any maxRounds/time
+   * limit); needs title + objective ≥ 3 chars (callers validate that first).
    */
   async function ensureDraftPlanId(): Promise<string> {
     if (planId) return planId;
@@ -579,6 +591,7 @@ export function ResearchPlanForm({
             form.maxDurationMinutes != null
               ? form.maxDurationMinutes * 60
               : null,
+          interviewDepth: form.interviewDepth,
           ...useCasePayload,
           ...audienceTypePayload,
           ...studyTypePayload,
@@ -1144,6 +1157,7 @@ export function ResearchPlanForm({
                 form.maxDurationMinutes != null
                   ? form.maxDurationMinutes * 60
                   : null,
+              interviewDepth: form.interviewDepth,
               ...useCasePayload,
               ...audienceTypePayload,
               ...stimulusDescriptionPayload,
@@ -1179,6 +1193,7 @@ export function ResearchPlanForm({
             form.maxDurationMinutes != null
               ? form.maxDurationMinutes * 60
               : null,
+          interviewDepth: form.interviewDepth,
           ...useCasePayload,
           ...audienceTypePayload,
           ...studyTypePayload,
@@ -1222,13 +1237,21 @@ export function ResearchPlanForm({
   // Quality-Bar, Vorschau-Titel). Zeitlimit gewinnt; sonst aus der Fragen-
   // Obergrenze (estimateInterviewMinutes). Reaktiv auf BEIDE Felder
   // (maxRounds + maxDurationMinutes). Reiner Read, kein State-Write.
+  const topicCount = topicDraftsToResearchTopics(form.topics).length;
   const durationCfg = {
     maxRounds: form.maxRounds,
+    depth: form.interviewDepth,
+    topicCount,
     maxDurationSeconds:
       form.maxDurationMinutes != null ? form.maxDurationMinutes * 60 : null,
   };
   const estimatedMinutes = estimateInterviewMinutes(durationCfg);
-  const questionCeiling = effectiveQuestionCeiling(form.maxRounds);
+  // Erwartete (typische) Fragenzahl — Tiefe×Themen bzw. Experten-Override.
+  const questionCeiling = resolveExpectedQuestions({
+    maxRounds: form.maxRounds,
+    depth: form.interviewDepth,
+    topicCount,
+  });
   const durationCapped = isDurationFromTimeCap(durationCfg);
 
   return (
@@ -1871,14 +1894,16 @@ export function ResearchPlanForm({
           </div>
         </div>
 
-        {/* Interviewlänge — Agent-Fragen-OBERGRENZE pro Studie. Drei Presets
-            (Kurz/Standard/Tief) setzen `maxRounds`; "Erweitert" erlaubt einen
-            exakten Wert (2–15). Standard = null = System-Default (≈6 Fragen) →
-            byte-identischer Create, solange unberührt. REINE Obergrenze: die
+        {/* Interview-TIEFE pro Studie — primärer Regler. Drei Karten (Flach/
+            Mittel/Tief) setzen `interviewDepth` = 1/2/4 Laddering-Schichten pro
+            Thema; die effektive Fragen-Obergrenze leitet der Server themenbewusst
+            daraus ab (resolveEffectiveMaxRounds). "Erweitert" erlaubt einen
+            exakten Experten-Override (`maxRounds`, 2–15), der gewinnt. Default =
+            Mittel ≈ bisheriges Pro-Thema-Verhalten. Reine Obergrenze: die
             Sättigung darf das Interview jederzeit FRÜHER schließen — kein
-            erzwungenes Soll (das Produktherz bleibt adaptiv). Sichtbar für
-            BEIDE Studientypen; Stimulus-Set-Studien ignorieren den Wert
-            serverseitig (die inhaltsgetriebene stimulusSetCeiling gewinnt). */}
+            erzwungenes Soll (das Produktherz bleibt adaptiv). Sichtbar für BEIDE
+            Studientypen; Stimulus-Set-Studien ignorieren beides serverseitig
+            (die inhaltsgetriebene stimulusSetCeiling gewinnt). */}
         <div className="rounded-lg border border-neutral-200 bg-card p-4">
           <span className="block text-body-strong text-neutral-900">
             {t("fldInterviewLength")}
@@ -1894,33 +1919,38 @@ export function ResearchPlanForm({
             {(
               [
                 {
-                  key: "short",
-                  value: 4 as number | null,
+                  key: "flach",
+                  depth: "flach" as InterviewDepth,
                   labelKey: "lengthShortLabel",
                   descKey: "lengthShortDesc",
                 },
                 {
-                  key: "standard",
-                  value: null as number | null,
+                  key: "mittel",
+                  depth: "mittel" as InterviewDepth,
                   labelKey: "lengthStandardLabel",
                   descKey: "lengthStandardDesc",
                 },
                 {
-                  key: "deep",
-                  value: 10 as number | null,
+                  key: "tief",
+                  depth: "tief" as InterviewDepth,
                   labelKey: "lengthDeepLabel",
                   descKey: "lengthDeepDesc",
                 },
               ] as const
             ).map((preset) => {
-              const selected = form.maxRounds === preset.value;
+              const selected = form.interviewDepth === preset.depth;
               return (
                 <button
                   key={preset.key}
                   type="button"
                   role="radio"
                   aria-checked={selected}
-                  onClick={() => update("maxRounds", preset.value)}
+                  onClick={() => {
+                    update("interviewDepth", preset.depth);
+                    // Tiefe-Karte gewinnt: einen evtl. gesetzten Experten-
+                    // Override ("Erweitert") zurücksetzen, damit die Karte greift.
+                    update("maxRounds", null);
+                  }}
                   disabled={submitting}
                   className={`rounded-lg border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
                     selected

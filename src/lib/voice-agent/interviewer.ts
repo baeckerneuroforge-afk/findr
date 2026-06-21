@@ -9,7 +9,11 @@ import {
   StructuredOutputError,
 } from "@/lib/anthropic/structured";
 import type { ResearchPlanUseCase } from "@/lib/research/db";
-import { DEFAULT_RESEARCH_QUESTION_CEILING } from "@/lib/research/interview-duration";
+import {
+  DEFAULT_RESEARCH_QUESTION_CEILING,
+  DEPTH_LAYERS,
+  type InterviewDepth,
+} from "@/lib/research/interview-duration";
 import type { LossReasonType } from "@/lib/loss/extractor";
 import type { RiskAnalysisResult } from "@/lib/schemas/risk";
 
@@ -1027,6 +1031,13 @@ export interface ResearchPlanContext {
    *  Stimulus-Set-Override). Reine Obergrenze — die Sättigung darf früher
    *  schließen. */
   maxRounds?: number | null;
+  /** Interview-TIEFE (Laddering-Schichten pro Thema) für diese Studie. Nur ohne
+   *  Stimulus-Set gesetzt (planToAgentContext lässt sie bei Sets weg). Fehlend/
+   *  null ODER == Default('mittel') → Prompt byte-identisch (CORE-Saturation =
+   *  2 Schichten); 'flach'/'tief' injizieren über formatDepthDirective einen
+   *  Override der Saturation-Basisregel (gleiches No-Op-bei-Default-Muster wie
+   *  formatRoundCeiling). */
+  depth?: InterviewDepth | null;
   /** Konfiguriertes Zeitlimit (Sekunden) für diese Studie. Wird im Prompt NICHT
    *  verwendet — nur im Snapshot mitgeführt, damit advanceInterview (Text-weich)
    *  und der Voice-Agent (hart) es aus dem deal_context lesen können. Fehlend/
@@ -1185,6 +1196,23 @@ export const DEFAULT_RESEARCH_AGENT_CEILING = DEFAULT_RESEARCH_QUESTION_CEILING;
 export function formatRoundCeiling(maxRounds: number): string | null {
   if (maxRounds === DEFAULT_RESEARCH_AGENT_CEILING) return null;
   return `ABWEICHENDES STOP-CEILING für diese Studie (ERSETZT die Basis-Zahlen 5/6 der Stop-Regeln): ab ${maxRounds - 1} Agent-Fragen aktiv abwickeln, ab ${maxRounds} "done": true setzen. Die COUNTERS in deiner User-Message liefern die verbindlichen Zählwerte.`;
+}
+
+/** Per-Thema-TIEFE-Override (Laddering-Schichten). Spiegelt das No-Op-bei-
+ *  Default-Muster von formatRoundCeiling: bei 'mittel' (= 2 Schichten = die
+ *  CORE-Saturationsregel „max. 1 Nachfrage / nie eine dritte") gibt es null
+ *  zurück, der Prompt bleibt byte-identisch. 'flach' und 'tief' injizieren einen
+ *  Override, der die CORE-Basisregel durch die Schichtenzahl der Tiefe ERSETZT.
+ *  Bleibt adaptiv: ein Absenz-Signal schließt das Thema sofort, egal wie viele
+ *  Schichten noch offen wären. Exported for unit tests. */
+export function formatDepthDirective(depth: InterviewDepth): string | null {
+  if (depth === "mittel") return null;
+  if (depth === "flach") {
+    return `INTERVIEW-TIEFE „flach" (ERSETZT die Saturation-Basisregel „max. 1 Nachfrage / nie eine dritte"): Bleib pro Thema bei NUR der Einstiegsfrage — eine konkrete Antwort genügt, dann WEITER zum nächsten Thema. Stelle KEINE vertiefende Nachfrage, es sei denn die erste Antwort ist völlig unkonkret und eine einzige Klärung holt ein konkretes Beispiel. Halte das Interview bewusst knapp.`;
+  }
+  // 'tief'
+  const layers = DEPTH_LAYERS.tief;
+  return `INTERVIEW-TIEFE „tief" (ERSETZT die Saturation-Basisregel „max. 1 Nachfrage / nie eine dritte"): Geh pro Thema bis zu ${layers} Laddering-Schichten tief — die Einstiegsfrage plus bis zu ${layers - 1} vertiefende, aufeinander aufbauende Nachfragen, die Schicht für Schicht von der Oberfläche zur konkreten Situation und deren Bedeutung führen. NUR solange echte neue Substanz kommt: Wiederholt sich die Person bloß (verbose ≠ informativ) oder signalisiert sie Absenz („alles gut", „nichts Konkretes"), gilt das Thema SOFORT als erschöpft — dann weiter, egal wie viele Schichten noch offen wären. Erfinde nie eine Vertiefung, für die es keinen Anknüpfungspunkt in der letzten Antwort gibt; eine Frage pro Turn bleibt Pflicht.`;
 }
 
 /** D5 — Analyse-Block pro Set-Element kürzen, sobald das Set groß wird
@@ -1408,6 +1436,15 @@ export function buildResearchContext(
       ? formatRoundCeiling(input.plan.maxRounds)
       : null;
 
+  // Per-Thema-Tiefe (Laddering-Schichten): wie roundCeiling nur ohne Stimulus-
+  // Set; bei 'mittel'/fehlend ein No-Op (CORE-Default = 2 Schichten) → Prompt
+  // byte-identisch. 'flach'/'tief' injizieren einen Override der Saturation-
+  // Basisregel. Stabil pro Session (Snapshot) → cache-sicher.
+  const depthDirective =
+    !hasStimulusSet(input.plan) && input.plan.depth != null
+      ? formatDepthDirective(input.plan.depth)
+      : null;
+
   return `REQUIRED LANGUAGE: ${LANGUAGE_LABELS[language]} — write your message in this language, including the opening message.${anrede}
 
 ${formatBrand(input.brand)}
@@ -1418,7 +1455,7 @@ Objective: ${input.plan.objective}${persona ? `\nPersona:   ${persona}` : ""}
 ${stimulus ? `\n\n${stimulus}` : ""}
 
 TOPICS (cover naturally, 2–4 turns each, start with the lightest):
-${formatTopics(input.plan.topics)}${roundCeiling ? `\n\n${roundCeiling}` : ""}`;
+${formatTopics(input.plan.topics)}${depthDirective ? `\n\n${depthDirective}` : ""}${roundCeiling ? `\n\n${roundCeiling}` : ""}`;
 }
 
 /**

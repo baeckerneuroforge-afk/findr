@@ -35,6 +35,7 @@ import {
   type TurnDelta,
   stripTurnInternals,
 } from "./interviewer";
+import { expectedQuestionCount } from "@/lib/research/interview-duration";
 
 /**
  * Persistence + orchestration for async post-loss interviews.
@@ -323,18 +324,33 @@ function toPublicView(session: InterviewSession): PublicInterviewView {
           .sort((a, b) => a.position - b.position)
       : [];
 
-  // Fortschritts-Decke (Agent-Fragen): genau die Zahl, gegen die der Prompt
-  // intern abwickelt — bei Multi-Stimulus die mit der Set-Größe skalierende
-  // Obergrenze; sonst die konfigurierte Runden-Obergrenze der Studie
-  // (maxRounds, nur ohne Set im Snapshot) bzw. MAX_AGENT_TURNS als Default
-  // (Research-ohne-Set/-ohne-Konfiguration, post_loss, checkin). Rein
-  // abgeleitet — der Fortschrittsbalken spiegelt die eingestellte Länge mit.
+  // Fortschritts-NENNER (erwartete Agent-Fragen): die typische Länge, gegen die
+  // der Balken füllt — NICHT die harte Sicherheitsnetz-Decke. Bei Multi-Stimulus
+  // die mit der Set-Größe skalierende Decke; bei Tiefe-Studien die ERWARTETE Zahl
+  // (Schichten × Themen, expectedQuestionCount), damit der Balken am natürlichen
+  // (Sättigungs-)Ende ankommt statt am Cap zu springen; sonst (Experten-maxRounds
+  // ohne Tiefe / Legacy / post_loss / checkin) der maxRounds-Wert bzw.
+  // MAX_AGENT_TURNS. Rein abgeleitet — spiegelt die eingestellte Tiefe.
+  const researchPlan =
+    session.kind === "research"
+      ? ((session.dealContext as unknown as ResearchInput | null)?.plan ?? null)
+      : null;
   const progressTotal =
     session.kind === "research" && stimuli.length > 0
       ? stimulusSetCeiling(stimuli.length)
-      : session.kind === "research"
-        ? ((session.dealContext as unknown as ResearchInput | null)?.plan
-            ?.maxRounds ?? MAX_AGENT_TURNS)
+      : researchPlan
+        ? researchPlan.depth != null
+          ? // Erwartete Länge (Tiefe×Themen), aber nie ÜBER die effektive Decke
+            // (Experten-maxRounds-Override bzw. der 15er-Hardcap bei tief+vielen
+            // Themen) — sonst bliebe der Balken bei einem niedrigeren Cap kurz.
+            Math.min(
+              expectedQuestionCount(
+                researchPlan.depth,
+                researchPlan.topics.length,
+              ),
+              researchPlan.maxRounds ?? Number.POSITIVE_INFINITY,
+            )
+          : (researchPlan.maxRounds ?? MAX_AGENT_TURNS)
         : MAX_AGENT_TURNS;
 
   // Zeitlimit der Session aus dem Plan-Snapshot (nur research; null sonst).

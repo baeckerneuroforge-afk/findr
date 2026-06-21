@@ -17,8 +17,9 @@ import {
   scheduleInvite,
   type ResearchInviteRecord,
 } from "@/lib/research/scheduling";
-import { getResearchPlan } from "@/lib/research/plans-service";
+import { getResearchPlan, listPlanStimuli } from "@/lib/research/plans-service";
 import { estimateInterviewMinutes } from "@/lib/research/interview-duration";
+import { stimulusSetCeiling } from "@/lib/voice-agent/interviewer";
 
 /**
  * Research-interview send flows. Pattern-matches src/lib/voice-agent/
@@ -57,9 +58,29 @@ async function resolveInviteDurationMinutes(
 ): Promise<number> {
   const plan = await getResearchPlan(orgId, planId);
   if (!plan) return DEFAULT_DURATION_MINUTES;
+  // Zeitlimit gewinnt — dann sind weder Tiefe noch Stimulus-Set relevant.
+  if (plan.maxDurationSeconds != null) {
+    return estimateInterviewMinutes({
+      maxDurationSeconds: plan.maxDurationSeconds,
+    });
+  }
+  // Spiegelt die Engine-Ableitung (planToAgentContext / progressTotal): eine
+  // Stimulus-SET-Studie bemisst ihre Länge an der Set-Größe (stimulusSetCeiling)
+  // und ignoriert die Tiefe; sonst gilt Tiefe × Themen (bzw. Experten-maxRounds).
+  // Stimuli nur auf dem Market-Research-Pfad laden (Discovery hat nie ein Set).
+  const stimuli =
+    plan.studyType === "market_research"
+      ? await listPlanStimuli(orgId, planId)
+      : [];
+  if (stimuli.length > 0) {
+    return estimateInterviewMinutes({
+      maxRounds: stimulusSetCeiling(stimuli.length),
+    });
+  }
   return estimateInterviewMinutes({
     maxRounds: plan.maxRounds,
-    maxDurationSeconds: plan.maxDurationSeconds,
+    depth: plan.interviewDepth,
+    topicCount: plan.topics.length,
   });
 }
 

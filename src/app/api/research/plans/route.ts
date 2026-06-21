@@ -92,6 +92,10 @@ const CreatePlanBodySchema = z.object({
   // Per-study time limit in seconds (3..60 min). Optional; omitted → NULL → no
   // limit. Bound mirrors the migration CHECK.
   maxDurationSeconds: z.number().int().min(180).max(3600).nullable().optional(),
+  // Per-study interview DEPTH (laddering layers per topic). Optional; omitted →
+  // DB stays NULL → legacy default. New studies send 'mittel'. Mirrors the
+  // migration CHECK enum.
+  interviewDepth: z.enum(["flach", "mittel", "tief"]).nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -129,6 +133,7 @@ export async function POST(req: NextRequest) {
       language: parsed.data.language,
       maxRounds: parsed.data.maxRounds ?? null,
       maxDurationSeconds: parsed.data.maxDurationSeconds ?? null,
+      interviewDepth: parsed.data.interviewDepth ?? null,
     });
     return NextResponse.json({ success: true, planId: plan.id, plan });
   } catch (err) {

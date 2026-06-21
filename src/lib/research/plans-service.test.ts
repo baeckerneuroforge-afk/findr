@@ -55,6 +55,7 @@ function plan(overrides: Partial<ResearchPlanRecord>): ResearchPlanRecord {
     language: "de",
     maxRounds: null,
     maxDurationSeconds: null,
+    interviewDepth: null,
     createdAt: "2026-06-01T00:00:00.000Z",
     ...overrides,
   };
@@ -121,6 +122,47 @@ describe("planToAgentContext — maxRounds snapshot gating (Paket 1)", () => {
 
   it("omits maxRounds when unset (system-default length)", () => {
     const ctx = planToAgentContext(plan({ maxRounds: null }));
+    expect("maxRounds" in ctx).toBe(false);
+  });
+});
+
+describe("planToAgentContext — interview depth snapshot (Tiefe)", () => {
+  const TWO_TOPICS = [
+    { topic: "A", intent: "ia" },
+    { topic: "B", intent: "ib" },
+  ];
+
+  it("carries depth + a topic-aware effective ceiling for a non-set study", () => {
+    const ctx = planToAgentContext(
+      plan({ interviewDepth: "tief", topics: TWO_TOPICS }),
+    );
+    expect(ctx.depth).toBe("tief");
+    // tief = 4 layers × 2 topics = 8 expected, + 2 buffer = 10 ceiling.
+    expect(ctx.maxRounds).toBe(10);
+  });
+
+  it("lets an explicit expert maxRounds win over the depth-derived ceiling", () => {
+    const ctx = planToAgentContext(
+      plan({ interviewDepth: "tief", maxRounds: 5, topics: TWO_TOPICS }),
+    );
+    expect(ctx.depth).toBe("tief");
+    expect(ctx.maxRounds).toBe(5);
+  });
+
+  it("omits BOTH depth and maxRounds for a legacy study (null/null → byte-identical)", () => {
+    const ctx = planToAgentContext(
+      plan({ interviewDepth: null, maxRounds: null, topics: TWO_TOPICS }),
+    );
+    expect("depth" in ctx).toBe(false);
+    expect("maxRounds" in ctx).toBe(false);
+  });
+
+  it("OMITS depth (and maxRounds) when a stimulus set is present", () => {
+    const ctx = planToAgentContext(
+      plan({ interviewDepth: "tief", topics: TWO_TOPICS }),
+      [stimulus({}), stimulus({ id: "s2", position: 2, label: "B" })],
+    );
+    expect("depth" in ctx).toBe(false);
     expect("maxRounds" in ctx).toBe(false);
   });
 });

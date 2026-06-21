@@ -7,6 +7,7 @@ import {
   buildTurnMessages,
   createDoneHeaderParser,
   DEFAULT_RESEARCH_AGENT_CEILING,
+  formatDepthDirective,
   formatRoundCeiling,
   formatStimulusSet,
   stimulusSetCeiling,
@@ -679,6 +680,59 @@ describe("formatRoundCeiling — configurable round ceiling (Paket 1)", () => {
     // must NOT, because buildResearchContext gates it on !hasStimulusSet.
     expect(withSetAndRounds).toContain("ab 8 Agent-Fragen aktiv abwickeln, ab 9");
     expect(withSetAndRounds).not.toContain("ab 10");
+  });
+});
+
+describe("formatDepthDirective — per-topic laddering depth (Interviewtiefe)", () => {
+  it("returns null at the default depth (mittel → byte-identical)", () => {
+    expect(formatDepthDirective("mittel")).toBeNull();
+  });
+
+  it("emits a saturation-rule override for flach (1 layer)", () => {
+    const flach = formatDepthDirective("flach");
+    expect(flach).toContain("ERSETZT die Saturation-Basisregel");
+    expect(flach).toContain("flach");
+    expect(flach).toContain("KEINE vertiefende Nachfrage");
+  });
+
+  it("emits a 4-layer override for tief", () => {
+    const tief = formatDepthDirective("tief");
+    expect(tief).toContain("ERSETZT die Saturation-Basisregel");
+    expect(tief).toContain("bis zu 4 Laddering-Schichten");
+  });
+
+  it("injects the directive into the context for non-stimulus studies", () => {
+    const withDepth = buildResearchContext(
+      { ...BASE_INPUT, plan: { ...BASE_INPUT.plan, depth: "tief" } },
+      "de",
+    );
+    expect(withDepth).toContain("bis zu 4 Laddering-Schichten");
+  });
+
+  it("stays byte-identical at mittel and when unset", () => {
+    const base = buildResearchContext(BASE_INPUT, "de");
+    const atMittel = buildResearchContext(
+      { ...BASE_INPUT, plan: { ...BASE_INPUT.plan, depth: "mittel" } },
+      "de",
+    );
+    const unset = buildResearchContext(
+      { ...BASE_INPUT, plan: { ...BASE_INPUT.plan, depth: null } },
+      "de",
+    );
+    expect(atMittel).toBe(base);
+    expect(unset).toBe(base);
+    expect(base).not.toContain("INTERVIEW-TIEFE");
+  });
+
+  it("does NOT inject the depth directive when a stimulus set is present", () => {
+    const withSetAndDepth = buildResearchContext(
+      {
+        ...setInput(TWO_SET),
+        plan: { ...setInput(TWO_SET).plan, depth: "tief" },
+      },
+      "de",
+    );
+    expect(withSetAndDepth).not.toContain("INTERVIEW-TIEFE");
   });
 });
 
