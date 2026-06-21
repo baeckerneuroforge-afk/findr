@@ -1463,3 +1463,121 @@ export const SYNTHESIS_EVAL_CASES: SynthesisEvalCase[] = [
   synth14,
   synth15,
 ];
+
+// ── Personas (Audience Segments) — Eval-Fälle ────────────────────────────────
+//
+// Persona-Stufe (Spec docs/klymeo-personas-feature-spec-2026-06-21.md §8). Wie
+// die Synthese-Fälle hand-gebaut, aber für clusterPersonasFromInputs (eigener
+// Runner-Abschnitt). Negativfälle decken die Vertrauens-Layer-Garantien ab:
+// keine Persona aus n=1, keine erfundenen Segmente bei homogenen Daten. Die
+// share-honest-/Partition-/Belegpflicht-Gates sind deterministisch unit-getestet
+// (eval-checks.test.ts); hier prüft der Lauf das LLM+Engine-Zusammenspiel.
+
+export interface PersonaEvalCase {
+  id: string;
+  description: string;
+  rationale: string;
+  input: SynthesisInput;
+  expected: { minPersonas: number; maxPersonas: number };
+}
+
+/** Kompakter Markt-Insight mit EINEM kodierten Befund (verbatim Evidence). */
+function marketInsight(
+  id: string,
+  role: string,
+  summary: string,
+  category: string,
+  title: string,
+  evidence: string[],
+): SynthesisInsightInput {
+  return insight(id, role, summary, {
+    feature: [
+      {
+        category,
+        title,
+        description: title,
+        intensity: "high",
+        confidence: 0.85,
+        evidence,
+      },
+    ],
+  });
+}
+
+const personaThreeSegments: PersonaEvalCase = {
+  id: "persona_01",
+  description:
+    "Drei klar getrennte Markt-Segmente (preisbewusst / qualitätsorientiert / bequemlich)",
+  rationale:
+    "Positivfall: 9 Befragte in 3 sauber trennbaren Lagern. Erwartung: 3 Personas, jede mit ≥2 Mitgliedern, jedem befüllten Feld eine verankerte Evidence, ehrliche share% (Σ ≈ 100%).",
+  input: {
+    plan: {
+      title: "Markt-Studie Projekt-Tool",
+      objective: "Zahlungsbereitschaft und Treiber im SMB-Markt verstehen.",
+      persona: "SMB-Entscheider:innen DACH",
+      studyType: "market_research",
+    },
+    insights: [
+      marketInsight("p1_a", "Gründer", "Achtet streng aufs Budget.", "PRICE_SENSITIVITY", "Hartes Preislimit", ["Über 20 Euro im Monat zahle ich nicht."]),
+      marketInsight("p1_b", "Gründerin", "Kleines Budget.", "PRICE_SENSITIVITY", "Günstig muss es sein", ["Es muss billig bleiben, sonst nehme ich es nicht."]),
+      marketInsight("p1_c", "Solo-Selbstständig", "Preis entscheidet.", "PRICE_SENSITIVITY", "Preis zuerst", ["Ich vergleiche zuerst den Preis, alles andere danach."]),
+      marketInsight("p1_d", "Team-Lead", "Zahlt für Qualität.", "PRICE_SENSITIVITY", "Premium für Support", ["Für guten Support zahle ich gern mehr."]),
+      marketInsight("p1_e", "Managerin", "Qualität vor Preis.", "BRAND_PERCEPTION", "Verlässlichkeit zählt", ["Hauptsache es ist verlässlich, der Preis ist zweitrangig."]),
+      marketInsight("p1_f", "Bereichsleiter", "Investiert in Qualität.", "PRICE_SENSITIVITY", "Qualität kostet", ["Gute Tools dürfen etwas kosten."]),
+      marketInsight("p1_g", "Berater", "Will es einfach.", "SEGMENT_NEED", "Ohne Aufwand", ["Hauptsache es läuft ohne Aufwand."]),
+      marketInsight("p1_h", "Beraterin", "Mag keine Einarbeitung.", "SEGMENT_NEED", "Sofort nutzbar", ["Ich will nicht erst stundenlang etwas einrichten."]),
+      marketInsight("p1_i", "Freelancer", "Bequemlichkeit zählt.", "SEGMENT_NEED", "Einfach loslegen", ["Es soll einfach sofort funktionieren."]),
+    ],
+  },
+  expected: { minPersonas: 2, maxPersonas: 4 },
+};
+
+const personaN1: PersonaEvalCase = {
+  id: "persona_02",
+  description: "Negativ: n=1 — keine Persona aus einer einzigen Stimme",
+  rationale:
+    "Eine einzige Befragte. Erwartung: 0 Personas (Engine verwirft < 2 Mitglieder). Belegt 'keine Persona aus n=1'.",
+  input: {
+    plan: {
+      title: "Markt-Studie Mini",
+      objective: "Erste Stimme zum Markt.",
+      persona: null,
+      studyType: "market_research",
+    },
+    insights: [
+      marketInsight("p2_a", "Gründer", "Einzelmeinung.", "PRICE_SENSITIVITY", "Zu teuer", ["Mir ist das zu teuer."]),
+    ],
+  },
+  expected: { minPersonas: 0, maxPersonas: 0 },
+};
+
+const personaHomogeneous: PersonaEvalCase = {
+  id: "persona_03",
+  description:
+    "Negativ: homogene Stichprobe — keine erfundenen 3-5 Segmente erzwingen",
+  rationale:
+    "6 Befragte mit praktisch identischer Disposition. Erwartung: höchstens 1 Persona — das Modell darf NICHT 3-5 Segmente erfinden, um den Bereich zu füllen.",
+  input: {
+    plan: {
+      title: "Markt-Studie Homogen",
+      objective: "Preisbild eines engen Segments.",
+      persona: "Preisbewusste Einsteiger",
+      studyType: "market_research",
+    },
+    insights: [
+      marketInsight("p3_a", "Einsteiger", "Preis wichtig.", "PRICE_SENSITIVITY", "Billig", ["Es muss günstig sein."]),
+      marketInsight("p3_b", "Einsteiger", "Preis wichtig.", "PRICE_SENSITIVITY", "Billig", ["Vor allem günstig."]),
+      marketInsight("p3_c", "Einsteiger", "Preis wichtig.", "PRICE_SENSITIVITY", "Billig", ["Günstig ist mir am wichtigsten."]),
+      marketInsight("p3_d", "Einsteiger", "Preis wichtig.", "PRICE_SENSITIVITY", "Billig", ["Hauptsache billig."]),
+      marketInsight("p3_e", "Einsteiger", "Preis wichtig.", "PRICE_SENSITIVITY", "Billig", ["Der Preis muss niedrig sein."]),
+      marketInsight("p3_f", "Einsteiger", "Preis wichtig.", "PRICE_SENSITIVITY", "Billig", ["Teuer kommt nicht in Frage."]),
+    ],
+  },
+  expected: { minPersonas: 0, maxPersonas: 1 },
+};
+
+export const PERSONA_EVAL_CASES: PersonaEvalCase[] = [
+  personaThreeSegments,
+  personaN1,
+  personaHomogeneous,
+];

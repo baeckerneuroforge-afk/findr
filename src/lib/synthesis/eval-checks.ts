@@ -2,7 +2,10 @@ import type {
   ResearchPlanStudyType,
   ResearchPlanUseCase,
 } from "@/lib/research/db";
-import type { StudySynthesisResult } from "@/lib/schemas/synthesis";
+import type {
+  EnrichedAudiencePersona,
+  StudySynthesisResult,
+} from "@/lib/schemas/synthesis";
 
 /**
  * Synthese Tier-2a — PURE Eval-Check-Helfer (deterministisch, kein LLM, kein
@@ -70,7 +73,17 @@ export type SynthesisCheck =
   | "number-fidelity"
   | "quote-coverage"
   | "method-congruence"
-  | "grounding";
+  | "grounding"
+  // Personas (Spec docs/klymeo-personas-feature-spec-2026-06-21.md, §8):
+  // deterministische Vertrauens-Layer-Gates. Severity "fail" — die Engine
+  // erzwingt sie bereits (audience-personas.ts), ein Verstoß in der Ausgabe ist
+  // also eine Engine-Regression, kein Modell-Qualitätsproblem. (Grounding der
+  // Trait-PROSA bleibt Judge-WARN, s. judgePersonas.)
+  | "persona-share-honest"
+  | "persona-min-cluster"
+  | "persona-disjoint"
+  | "persona-field-evidence"
+  | "persona-quote-coverage";
 
 export interface Finding {
   check: SynthesisCheck;
@@ -352,4 +365,153 @@ export function judgeResultToFindings(
   }
 
   return findings;
+}
+
+// ── Personas — deterministische Vertrauens-Gates (Spec §8) ───────────────────
+//
+// Diese Checks MESSEN die geharte Persona-Ausgabe (EnrichedAudiencePersona[]
+// nach Anker-Filter + Partition + Anreicherung). Die Engine erzwingt diese
+// Invarianten bereits — die Checks sind das Regressions-Netz (wie die
+// anchored/frequency-Gates des Synthese-Runners). Alle "fail". Pure, ohne
+// AnchorSet/server-only (Verankerung selbst prüft die Engine + ihre Unit-Tests).
+
+const PERSONA_MIN_MEMBERS = 2;
+const PERSONA_MIN_QUOTES = 2;
+
+/** shareCount MUSS = unique(sourceInsightIds) sein und sharePercent =
+ *  round(shareCount/total*100) — keine geschönte Größe (Spec §5.3). */
+export function personaShareHonestScan(
+  personas: EnrichedAudiencePersona[],
+  totalInsights: number,
+): Finding[] {
+  const findings: Finding[] = [];
+  personas.forEach((p, i) => {
+    const unique = new Set(p.sourceInsightIds).size;
+    if (p.shareCount !== unique) {
+      findings.push({
+        check: "persona-share-honest",
+        severity: "fail",
+        field: `persona[${i}].shareCount`,
+        message: `shareCount ${p.shareCount} ≠ unique(sourceInsightIds) ${unique}`,
+      });
+    }
+    const expectedPct =
+      totalInsights > 0 ? Math.round((unique / totalInsights) * 100) : 0;
+    if (p.sharePercent !== expectedPct) {
+      findings.push({
+        check: "persona-share-honest",
+        severity: "fail",
+        field: `persona[${i}].sharePercent`,
+        message: `sharePercent ${p.sharePercent} ≠ erwartet ${expectedPct} (=${unique}/${totalInsights})`,
+      });
+    }
+  });
+  return findings;
+}
+
+/** Keine Persona aus weniger als 2 Befragten (Spec §5.2 „keine Stimme allein"). */
+export function personaMinClusterScan(
+  personas: EnrichedAudiencePersona[],
+): Finding[] {
+  const findings: Finding[] = [];
+  personas.forEach((p, i) => {
+    const members = new Set(p.sourceInsightIds).size;
+    if (members < PERSONA_MIN_MEMBERS) {
+      findings.push({
+        check: "persona-min-cluster",
+        severity: "fail",
+        field: `persona[${i}]`,
+        message: `Persona "${p.name}" mit nur ${members} Mitglied(ern) (< ${PERSONA_MIN_MEMBERS})`,
+      });
+    }
+  });
+  return findings;
+}
+
+/** Strikte Partition: keine Befragte:r in zwei Personas (Spec §2/§5.2). */
+export function personaDisjointScan(
+  personas: EnrichedAudiencePersona[],
+): Finding[] {
+  const findings: Finding[] = [];
+  const owner = new Map<string, number>();
+  personas.forEach((p, i) => {
+    for (const id of new Set(p.sourceInsightIds)) {
+      const prev = owner.get(id);
+      if (prev !== undefined) {
+        findings.push({
+          check: "persona-disjoint",
+          severity: "fail",
+          field: `persona[${i}]`,
+          message: `Befragte:r ${id} auch in persona[${prev}] — Partition verletzt`,
+        });
+      } else {
+        owner.set(id, i);
+      }
+    }
+  });
+  return findings;
+}
+
+/** Jedes befüllte Trait-Feld MUSS belegende Evidence DIESES Feldes tragen
+ *  (Spec §6 „pro Feld hart belegt" — kein erfundener Trait). */
+export function personaFieldEvidenceScan(
+  personas: EnrichedAudiencePersona[],
+): Finding[] {
+  const findings: Finding[] = [];
+  personas.forEach((p, i) => {
+    const backed = (field: string): boolean =>
+      p.evidence.some((e) => e.field === field);
+    const checks: Array<[boolean, string, string]> = [
+      [p.goals.length > 0, "goal", "goals"],
+      [p.pains.length > 0, "pain", "pains"],
+      [p.behavior.length > 0, "behavior", "behavior"],
+      [p.motivation.trim() !== "", "motivation", "motivation"],
+    ];
+    for (const [filled, evField, label] of checks) {
+      if (filled && !backed(evField)) {
+        findings.push({
+          check: "persona-field-evidence",
+          severity: "fail",
+          field: `persona[${i}].${label}`,
+          message: `Feld "${label}" befüllt, aber ohne belegende Evidence (erfundener Trait?)`,
+        });
+      }
+    }
+  });
+  return findings;
+}
+
+/** Mindest-Zitatdichte: ≥ 2 distinkte Zitate je Persona (Evidence + leadQuote;
+ *  Spec §7 „< 2 Zitaten unterdrücken"). */
+export function personaQuoteCoverageScan(
+  personas: EnrichedAudiencePersona[],
+): Finding[] {
+  const findings: Finding[] = [];
+  personas.forEach((p, i) => {
+    const quotes = new Set(p.evidence.map((e) => e.text));
+    if (p.leadQuote.trim() !== "") quotes.add(p.leadQuote);
+    if (quotes.size < PERSONA_MIN_QUOTES) {
+      findings.push({
+        check: "persona-quote-coverage",
+        severity: "fail",
+        field: `persona[${i}]`,
+        message: `Persona "${p.name}" mit nur ${quotes.size} Zitat(en) (< ${PERSONA_MIN_QUOTES})`,
+      });
+    }
+  });
+  return findings;
+}
+
+/** Bündelt alle deterministischen Persona-Gates (Runner-Komfort). */
+export function personaDeterministicChecks(
+  personas: EnrichedAudiencePersona[],
+  totalInsights: number,
+): Finding[] {
+  return [
+    ...personaShareHonestScan(personas, totalInsights),
+    ...personaMinClusterScan(personas),
+    ...personaDisjointScan(personas),
+    ...personaFieldEvidenceScan(personas),
+    ...personaQuoteCoverageScan(personas),
+  ];
 }

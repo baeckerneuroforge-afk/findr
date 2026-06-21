@@ -4,10 +4,19 @@ import {
   judgeResultToFindings,
   methodCongruenceRule,
   numberFidelityScan,
+  personaDeterministicChecks,
+  personaDisjointScan,
+  personaFieldEvidenceScan,
+  personaMinClusterScan,
+  personaQuoteCoverageScan,
+  personaShareHonestScan,
   quoteCoverageScan,
   type SynthesisJudgeResult,
 } from "@/lib/synthesis/eval-checks";
-import type { StudySynthesisResult } from "@/lib/schemas/synthesis";
+import type {
+  EnrichedAudiencePersona,
+  StudySynthesisResult,
+} from "@/lib/schemas/synthesis";
 
 /**
  * Tier-2a deterministische Eval-Checks. Für JEDEN Check wird BEIDES bewiesen:
@@ -290,5 +299,140 @@ describe("judgeResultToFindings (A1+A3) — Mapping eines gestubbten Judge-Outpu
     const findings = judgeResultToFindings(jr, brandCtx);
     expect(findings.length).toBeGreaterThan(0);
     expect(findings.every((f) => f.severity === "warn")).toBe(true);
+  });
+});
+
+// ── Personas — deterministische Gates ────────────────────────────────────────
+
+function persona(
+  over: Partial<EnrichedAudiencePersona> = {},
+): EnrichedAudiencePersona {
+  return {
+    name: "Segment",
+    shareCount: 2,
+    sharePercent: 20,
+    goals: ["Ziel"],
+    pains: ["Schmerz"],
+    behavior: [],
+    motivation: "",
+    leadQuote: "zitat eins",
+    sourceInsightIds: ["a", "b"],
+    evidence: [
+      { field: "goal", text: "zitat eins", sourceInsightIds: ["a"] },
+      { field: "pain", text: "zitat zwei", sourceInsightIds: ["b"] },
+    ],
+    roleLabel: "PM",
+    segmentLabel: "Enterprise",
+    sentimentDistribution: {
+      positive: 1,
+      neutral: 1,
+      negative: 0,
+      mixed: 0,
+      unknown: 0,
+    },
+    ...over,
+  };
+}
+
+describe("personaShareHonestScan", () => {
+  it("ist still bei ehrlicher Größe", () => {
+    expect(personaShareHonestScan([persona()], 10)).toEqual([]);
+  });
+  it("fängt geschönten shareCount (≠ unique members)", () => {
+    const f = personaShareHonestScan([persona({ shareCount: 5 })], 10);
+    expect(f).toHaveLength(1);
+    expect(f[0]).toMatchObject({ check: "persona-share-honest", severity: "fail" });
+  });
+  it("fängt falsch gerechneten sharePercent", () => {
+    const f = personaShareHonestScan([persona({ sharePercent: 99 })], 10);
+    expect(f.some((x) => x.field.endsWith("sharePercent"))).toBe(true);
+  });
+});
+
+describe("personaMinClusterScan", () => {
+  it("ist still bei ≥ 2 Mitgliedern", () => {
+    expect(personaMinClusterScan([persona()])).toEqual([]);
+  });
+  it("fängt eine Persona aus n=1", () => {
+    const f = personaMinClusterScan([
+      persona({ sourceInsightIds: ["a"], shareCount: 1 }),
+    ]);
+    expect(f).toHaveLength(1);
+    expect(f[0]).toMatchObject({ check: "persona-min-cluster", severity: "fail" });
+  });
+});
+
+describe("personaDisjointScan", () => {
+  it("ist still bei disjunkten Personas", () => {
+    const f = personaDisjointScan([
+      persona({ sourceInsightIds: ["a", "b"] }),
+      persona({ sourceInsightIds: ["c", "d"] }),
+    ]);
+    expect(f).toEqual([]);
+  });
+  it("fängt eine:n Befragte:n in zwei Personas", () => {
+    const f = personaDisjointScan([
+      persona({ sourceInsightIds: ["a", "b"] }),
+      persona({ sourceInsightIds: ["b", "c"] }),
+    ]);
+    expect(f).toHaveLength(1);
+    expect(f[0]).toMatchObject({ check: "persona-disjoint", severity: "fail" });
+  });
+});
+
+describe("personaFieldEvidenceScan", () => {
+  it("ist still, wenn jedes befüllte Feld belegt ist", () => {
+    expect(personaFieldEvidenceScan([persona()])).toEqual([]);
+  });
+  it("fängt ein befülltes Feld ohne Evidence dieses Feldes (erfundener Trait)", () => {
+    // behavior befüllt, aber keine behavior-Evidence
+    const f = personaFieldEvidenceScan([persona({ behavior: ["Verhalten"] })]);
+    expect(f).toHaveLength(1);
+    expect(f[0]).toMatchObject({
+      check: "persona-field-evidence",
+      severity: "fail",
+      field: "persona[0].behavior",
+    });
+  });
+  it("fängt eine befüllte motivation ohne motivation-Evidence", () => {
+    const f = personaFieldEvidenceScan([persona({ motivation: "Antrieb" })]);
+    expect(f.some((x) => x.field === "persona[0].motivation")).toBe(true);
+  });
+});
+
+describe("personaQuoteCoverageScan", () => {
+  it("ist still bei ≥ 2 distinkten Zitaten", () => {
+    expect(personaQuoteCoverageScan([persona()])).toEqual([]);
+  });
+  it("fängt < 2 distinkte Zitate", () => {
+    const f = personaQuoteCoverageScan([
+      persona({
+        leadQuote: "nur eins",
+        evidence: [{ field: "goal", text: "nur eins", sourceInsightIds: ["a"] }],
+      }),
+    ]);
+    expect(f).toHaveLength(1);
+    expect(f[0]).toMatchObject({
+      check: "persona-quote-coverage",
+      severity: "fail",
+    });
+  });
+});
+
+describe("personaDeterministicChecks", () => {
+  it("ist auf einer sauberen Persona komplett still", () => {
+    expect(personaDeterministicChecks([persona()], 10)).toEqual([]);
+  });
+  it("emittiert ausschließlich 'fail' (harte Gates)", () => {
+    const broken = persona({
+      shareCount: 9,
+      sourceInsightIds: ["a"],
+      behavior: ["x"],
+      leadQuote: "nur eins",
+      evidence: [{ field: "goal", text: "nur eins", sourceInsightIds: ["a"] }],
+    });
+    const f = personaDeterministicChecks([broken], 10);
+    expect(f.length).toBeGreaterThan(0);
+    expect(f.every((x) => x.severity === "fail")).toBe(true);
   });
 });

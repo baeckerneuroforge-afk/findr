@@ -22,12 +22,16 @@ import { z } from "zod";
 
 import { CLAUDE_MODELS } from "@/lib/anthropic/client";
 import { callClaudeStructured } from "@/lib/anthropic/structured";
-import type { StudySynthesisResult } from "@/lib/schemas/synthesis";
+import type {
+  EnrichedAudiencePersona,
+  StudySynthesisResult,
+} from "@/lib/schemas/synthesis";
 import {
   SYNTHESIS_CATEGORIES,
   type SynthesisJudgeResult,
 } from "@/lib/synthesis/eval-checks";
 import {
+  buildAudiencePersonasUserPrompt,
   buildSynthesisUserPrompt,
   type SynthesisInput,
 } from "@/lib/synthesis/prompts";
@@ -147,5 +151,90 @@ export async function judgeSynthesis(
     toolName: "emit_grounding_judgment",
     toolDescription:
       "Return the grounding verdict per free-text field and the method category per theme/tension, in their separate fields.",
+  });
+}
+
+// ── Persona-Grounding-Judge (Spec §8) ────────────────────────────────────────
+//
+// Ergänzt die DETERMINISTISCHEN Persona-Gates (eval-checks.ts) um eine
+// Prosa-Prüfung: die Gates erzwingen, dass JEDES befüllte Trait-Feld ein
+// verankertes Zitat trägt — der Judge prüft zusätzlich, ob die FORMULIERUNG der
+// Ziele/Pains/Verhalten/Motivation dem Material der Mitglieder treu bleibt
+// (keine erfundene Deutung trotz vorhandenem Zitat). Reine MESSUNG, nur im
+// manuellen Lauf; das Ergebnis ist im Runner IMMER WARN (der Judge gatet nie).
+
+export interface PersonaJudgeResult {
+  personas: Array<{
+    index: number;
+    verdict: "grounded" | "unsupported_claim";
+  }>;
+}
+
+const PersonaJudgeSchema = z.object({
+  personas: z
+    .array(
+      z.object({
+        index: z
+          .number()
+          .int()
+          .describe("0-based index of the persona, exactly as labelled."),
+        verdict: VerdictEnum.describe(
+          "grounded = the persona's goals/pains/behavior/motivation are all traceable to its member respondents' coded findings; unsupported_claim = it asserts a goal/pain/behavior/motivation/segment trait the inputs do not support.",
+        ),
+      }),
+    )
+    .default([]),
+});
+
+const PERSONA_JUDGE_SYSTEM_PROMPT = `You are a strict GROUNDING AUDITOR for an audience-persona system. You receive (1) the INPUT MATERIAL fed to the clustering model (per-interview coded MARKET findings) and (2) the PERSONAS the model produced. Each persona names a segment and lists goals, pains, behavior, a motivation and the member respondent ids it rests on.
+
+For EACH persona decide whether its prose asserts ONLY traits its MEMBER respondents' findings support:
+- "grounded": every goal / pain / behavior / motivation is traceable to the coded findings of the persona's own member ids.
+- "unsupported_claim": the persona asserts a goal/pain/behavior/motivation/segment trait that its members' inputs do not show — an invented disposition, a borrowed trait from a different segment, or a fabricated number/share.
+Be CONSERVATIVE: flag only a clear, checkable trait the member inputs do not support. Do NOT flag legitimate paraphrase or composite framing. Use the exact 0-based indices shown.
+
+Return your judgment via the tool, one verdict per persona.`;
+
+function renderPersonasForJudge(personas: EnrichedAudiencePersona[]): string {
+  const lines: string[] = [`PERSONAS TO AUDIT (${personas.length}):`];
+  personas.forEach((p, i) => {
+    lines.push(
+      "",
+      `[persona index ${i}] ${p.name}  members=[${p.sourceInsightIds.join(", ")}]`,
+      `  goals: ${p.goals.join(" | ") || "(none)"}`,
+      `  pains: ${p.pains.join(" | ") || "(none)"}`,
+      `  behavior: ${p.behavior.join(" | ") || "(none)"}`,
+      `  motivation: ${p.motivation || "(none)"}`,
+    );
+  });
+  if (personas.length === 0) lines.push("  (none)");
+  return lines.join("\n");
+}
+
+/**
+ * Live Persona-Judge-Aufruf (nur manueller Lauf). Wirft bei Modellfehler — der
+ * Runner fängt das und meldet „judge unavailable". Verdikt-Mapping (→ WARN)
+ * macht der Runner; der Judge gatet nicht.
+ */
+export async function judgePersonas(
+  input: SynthesisInput,
+  personas: EnrichedAudiencePersona[],
+  model: string = process.env.SYNTHESIS_JUDGE_MODEL ?? DEFAULT_JUDGE_MODEL,
+): Promise<PersonaJudgeResult> {
+  const inputBlock = buildAudiencePersonasUserPrompt(input);
+  const userPrompt = `${inputBlock}\n\n────────────────────\n\n${renderPersonasForJudge(
+    personas,
+  )}`;
+
+  return callClaudeStructured({
+    schema: PersonaJudgeSchema,
+    system: PERSONA_JUDGE_SYSTEM_PROMPT,
+    messages: [{ role: "user", content: userPrompt }],
+    model,
+    maxTokens: 2_000,
+    timeoutMs: 120_000,
+    toolName: "emit_persona_grounding",
+    toolDescription:
+      "Return one grounding verdict per persona (by 0-based index).",
   });
 }

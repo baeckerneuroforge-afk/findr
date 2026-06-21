@@ -57,21 +57,29 @@ import {
   DEFAULT_SYNTHESIS_MODEL,
   synthesizeFromInputs,
 } from "@/lib/synthesis/engine";
+import { clusterPersonasFromInputs } from "@/lib/synthesis/audience-personas";
 import type {
   EmergentTheme,
+  EnrichedAudiencePersona,
   StudySynthesisResult,
   Tension,
 } from "@/lib/schemas/synthesis";
 import {
   judgeResultToFindings,
   numberFidelityScan,
+  personaDeterministicChecks,
   quoteCoverageScan,
 } from "@/lib/synthesis/eval-checks";
 import {
+  PERSONA_EVAL_CASES,
   SYNTHESIS_EVAL_CASES,
   type SynthesisEvalCase,
 } from "./dataset";
-import { DEFAULT_JUDGE_MODEL, judgeSynthesis } from "./judge";
+import {
+  DEFAULT_JUDGE_MODEL,
+  judgePersonas,
+  judgeSynthesis,
+} from "./judge";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -137,6 +145,17 @@ function printTension(t: Tension, idx: number): void {
   for (const q of t.side_b.quotes) dim(`    • ${q}`);
 }
 
+function printPersona(p: EnrichedAudiencePersona, idx: number): void {
+  console.log(
+    `  ${C.bold}Persona ${idx + 1}:${C.reset} ${p.name}  ${C.dim}share=${p.sharePercent}% (${p.shareCount}) · role=${p.roleLabel ?? "—"} · ids=[${p.sourceInsightIds.join(", ")}]${C.reset}`,
+  );
+  if (p.goals.length > 0) dim(`  goals: ${p.goals.join(" | ")}`);
+  if (p.pains.length > 0) dim(`  pains: ${p.pains.join(" | ")}`);
+  if (p.behavior.length > 0) dim(`  behavior: ${p.behavior.join(" | ")}`);
+  if (p.motivation) dim(`  motivation: ${p.motivation}`);
+  if (p.leadQuote) dim(`  • „${p.leadQuote}“`);
+}
+
 // ── checks ──────────────────────────────────────────────────────────────────
 
 interface CheckResult {
@@ -155,7 +174,7 @@ function runChecks(
   let failed = 0;
 
   // (a) anchored
-  let unknownIds: string[] = [];
+  const unknownIds: string[] = [];
   for (const theme of result.emergent_themes) {
     for (const id of theme.sourceInsightIds) {
       if (!inputIds.has(id)) unknownIds.push(`theme:${id}`);
@@ -450,6 +469,105 @@ async function main(): Promise<void> {
       warn(
         `judge unavailable (continuing): ${err instanceof Error ? err.message : "unknown"}`,
       );
+    }
+  }
+
+  // ── Personas (Spec §8): eigener Abschnitt. clusterPersonasFromInputs →
+  // deterministische Gates (HART, eval-checks.ts) + Persona-Grounding-Judge
+  // (immer WARN). Reiner LLM-Lauf wie der Synthese-Teil.
+  if (PERSONA_EVAL_CASES.length > 0) {
+    console.log(
+      `\n${C.bold}${C.cyan}════════ PERSONAS (${PERSONA_EVAL_CASES.length} cases) ════════${C.reset}`,
+    );
+  }
+  for (const c of PERSONA_EVAL_CASES) {
+    header(`${c.id} — ${c.description}`);
+    dim(`rationale: ${c.rationale}`);
+    dim(
+      `expected: personas ∈ [${c.expected.minPersonas}, ${c.expected.maxPersonas}]`,
+    );
+
+    let personas: EnrichedAudiencePersona[];
+    let totalInsights: number;
+    try {
+      const out = await clusterPersonasFromInputs(c.input, MODEL);
+      personas = out.personas;
+      totalInsights = out.summary.totalInsights;
+    } catch (err) {
+      bad(
+        `persona clustering failed: ${err instanceof Error ? err.message : "unknown"}`,
+      );
+      totalFailed++;
+      continue;
+    }
+
+    if (personas.length > 0) {
+      console.log(`\n  ${C.bold}PERSONAS (${personas.length})${C.reset}`);
+      personas.forEach(printPersona);
+    } else {
+      dim(`\n  (no personas)`);
+    }
+
+    console.log(`\n  ${C.bold}CHECKS${C.reset}`);
+
+    // persona-count (advisory bounds)
+    if (
+      personas.length >= c.expected.minPersonas &&
+      personas.length <= c.expected.maxPersonas
+    ) {
+      ok(
+        `persona-count — ${personas.length} (within [${c.expected.minPersonas}, ${c.expected.maxPersonas}])`,
+      );
+      totalPassed++;
+    } else {
+      warn(
+        `persona-count — ${personas.length} outside [${c.expected.minPersonas}, ${c.expected.maxPersonas}]`,
+      );
+      totalWarned++;
+    }
+
+    // deterministische Vertrauens-Gates (HART)
+    const personaFindings = personaDeterministicChecks(personas, totalInsights);
+    if (personaFindings.length === 0) {
+      ok(
+        "persona-gates — share-honest / min-cluster / disjoint / field-evidence / quote-coverage clean",
+      );
+      totalPassed++;
+    } else {
+      for (const f of personaFindings) {
+        bad(`${f.check} [${f.field}] — ${f.message}`);
+        totalFailed++;
+      }
+    }
+
+    // Persona-Grounding-Judge (LIVE; immer WARN — der Judge gatet nicht).
+    console.log(
+      `\n  ${C.bold}JUDGE${C.reset} ${C.dim}(Persona-Grounding · ${JUDGE_MODEL})${C.reset}`,
+    );
+    if (personas.length === 0) {
+      dim("  (no personas to judge)");
+    } else {
+      try {
+        const judged = await judgePersonas(c.input, personas, JUDGE_MODEL);
+        const unsupported = judged.personas.filter(
+          (p) => p.verdict === "unsupported_claim",
+        );
+        if (unsupported.length === 0) {
+          ok("persona-judge — alle Personas grounded");
+          totalPassed++;
+        } else {
+          for (const u of unsupported) {
+            warn(
+              `persona-grounding [persona[${u.index}]] — Traits nicht durch die Mitglieder gedeckt`,
+            );
+            totalWarned++;
+          }
+        }
+      } catch (err) {
+        warn(
+          `persona judge unavailable (continuing): ${err instanceof Error ? err.message : "unknown"}`,
+        );
+      }
     }
   }
 
