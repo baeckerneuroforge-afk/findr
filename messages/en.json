@@ -1998,6 +1998,7 @@
       "guideFailed": "Guide generation failed",
       "highlightFailed": "Highlight reel failed",
       "synthesisFailed": "Synthesis failed",
+      "personasFailed": "Could not generate personas",
       "invalidBulkBody": "Invalid bulk body",
       "couldNotCreateShare": "Failed to create share link",
       "synthesisPdfFailed": "Failed to generate synthesis PDF",

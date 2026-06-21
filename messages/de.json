@@ -1998,6 +1998,7 @@
       "guideFailed": "Guide-Generierung fehlgeschlagen",
       "highlightFailed": "Highlight-Reel fehlgeschlagen",
       "synthesisFailed": "Synthese fehlgeschlagen",
+      "personasFailed": "Personas konnten nicht erzeugt werden",
       "invalidBulkBody": "Ungültiger Bulk-Body",
       "couldNotCreateShare": "Share-Link konnte nicht erstellt werden",
       "synthesisPdfFailed": "Synthese-PDF konnte nicht erstellt werden",

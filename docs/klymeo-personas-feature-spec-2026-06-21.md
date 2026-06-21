@@ -11,7 +11,7 @@ Personas verdichten die bestehende Studien-Synthese zu 3–5 belegten Zielgruppe
 - [x] **M1 — Schema** (`synthesis.ts`: AudiencePersona/Evidence/Result-Schemas, EnrichedAudiencePersona + PersonasSummary, `normalizePersonas`/`normalizePersonasSummary`) + Unit-Tests (`synthesis.test.ts`, 12 Tests).
 - [x] **M2 — Engine** (`audience-personas.ts`: 2. LLM-Call, 3-Schicht-Anker-Filter, Partition, share-override, Anreicherung, Min-Gate, `generatePersonas`) + Engine-Tests (8). Persona-Prompt in `prompts.ts`; geteilter Service-Client + Anker-Helfer aus `engine.ts` exportiert (DRY). Persona-Spalten-TYPEN in der geteilten Engine-Augmentation vorgezogen (Migration bleibt M3).
 - [x] **M3 — Persistenz** (Migration `20260722000000_study_synthesis_personas.sql` + kanonische `db.ts`-Typen + `getStudyPersonas`/`StudyPersonasRecord` in `service.ts`). ⚠️ Migration NOCH NICHT auf Prod-DB angewandt (Deploy-Schritt, gemeinsam prüfen).
-- [ ] **M4 — API** (`POST /personas`).
+- [x] **M4 — API** (`POST /personas/route.ts`, modelliert auf der Synthese-Route: Auth + Ownership-Gate, Domain-Envelope, 404/500; Error-Key `errors.research.personasFailed` in de+en).
 - [ ] **M5 — UI** (Sub-Route, Galerie, Detail, Belegketten, Min-Gate-Zustand, Button, i18n de+en).
 - [ ] **M6 — Eval** (deterministische Gates + Judge-Erweiterung + Negativfälle).
 
