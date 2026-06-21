@@ -12,7 +12,7 @@ Personas verdichten die bestehende Studien-Synthese zu 3–5 belegten Zielgruppe
 - [x] **M2 — Engine** (`audience-personas.ts`: 2. LLM-Call, 3-Schicht-Anker-Filter, Partition, share-override, Anreicherung, Min-Gate, `generatePersonas`) + Engine-Tests (8). Persona-Prompt in `prompts.ts`; geteilter Service-Client + Anker-Helfer aus `engine.ts` exportiert (DRY). Persona-Spalten-TYPEN in der geteilten Engine-Augmentation vorgezogen (Migration bleibt M3).
 - [x] **M3 — Persistenz** (Migration `20260722000000_study_synthesis_personas.sql` + kanonische `db.ts`-Typen + `getStudyPersonas`/`StudyPersonasRecord` in `service.ts`). ⚠️ Migration NOCH NICHT auf Prod-DB angewandt (Deploy-Schritt, gemeinsam prüfen).
 - [x] **M4 — API** (`POST /personas/route.ts`, modelliert auf der Synthese-Route: Auth + Ownership-Gate, Domain-Envelope, 404/500; Error-Key `errors.research.personasFailed` in de+en).
-- [ ] **M5 — UI** (Sub-Route, Galerie, Detail, Belegketten, Min-Gate-Zustand, Button, i18n de+en).
+- [x] **M5 — UI** (Sub-Route `/personas` page+loading, `PersonaCard` Galerie/Detail+Belegketten+Sentiment, `GeneratePersonasButton`, Min-Gate-Zustand, `research.personas`-i18n de+en (43 Keys, Parität), Link-Karte+TOC auf der Markt-Detailseite). ⚠️ Browser-Hands-on noch offen (braucht Login + market_research-Studie ≥10 Insights + angewandte Migration).
 - [ ] **M6 — Eval** (deterministische Gates + Judge-Erweiterung + Negativfälle).
 
 > Verify-Baseline (vor M1): tsc sauber · vitest 778 grün · eslint 34 **vorbestehende** Fremdfehler (unrelated, NICHT Teil dieses Features). Maßstab: geänderte Dateien fügen 0 neue Lint-Fehler hinzu.

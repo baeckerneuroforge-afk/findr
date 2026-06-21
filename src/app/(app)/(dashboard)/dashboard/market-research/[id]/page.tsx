@@ -269,6 +269,7 @@ export default async function MarketCampaignDetailPage({
       label: tm("railAnalysis"),
       items: [
         { id: "s-auswertung", label: t("synthesisLinkTitle") },
+        { id: "s-personas", label: t("personasLinkTitle") },
         { id: "s-lifecycle", label: t("lifecycleTitle") },
       ],
     },
@@ -1101,6 +1102,33 @@ export default async function MarketCampaignDetailPage({
                 className="shrink-0 text-body-strong text-primary-700 hover:underline"
               >
                 {t("viewSynthesis")}
+              </Link>
+            </div>
+          </CardBody>
+        </Card>
+      </section>
+
+      {/* Personas — additive zweite Auswertungs-Stufe (eigene Sub-Route). */}
+      <section id="s-personas" className="scroll-mt-28 space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">
+            {t("personasLinkTitle")}
+          </h2>
+          <p className="text-small text-neutral-500">
+            {t("personasLinkDesc")}
+          </p>
+        </div>
+        <Card>
+          <CardBody>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-body text-neutral-700">
+                {t("personasLinkBody")}
+              </p>
+              <Link
+                href={`/dashboard/research-plans/${plan.id}/personas`}
+                className="shrink-0 text-body-strong text-primary-700 hover:underline"
+              >
+                {t("viewPersonas")}
               </Link>
             </div>
           </CardBody>
