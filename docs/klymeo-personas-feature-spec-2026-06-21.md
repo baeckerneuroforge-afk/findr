@@ -9,7 +9,7 @@ Personas verdichten die bestehende Studien-Synthese zu 3–5 belegten Zielgruppe
 ## Fortschritt (Umsetzung)
 
 - [x] **M1 — Schema** (`synthesis.ts`: AudiencePersona/Evidence/Result-Schemas, EnrichedAudiencePersona + PersonasSummary, `normalizePersonas`/`normalizePersonasSummary`) + Unit-Tests (`synthesis.test.ts`, 12 Tests).
-- [ ] **M2 — Engine** (`audience-personas.ts`: 2. LLM-Call, Anker-Filter, share-override, Anreicherung, Min-Gate) + Engine-Tests.
+- [x] **M2 — Engine** (`audience-personas.ts`: 2. LLM-Call, 3-Schicht-Anker-Filter, Partition, share-override, Anreicherung, Min-Gate, `generatePersonas`) + Engine-Tests (8). Persona-Prompt in `prompts.ts`; geteilter Service-Client + Anker-Helfer aus `engine.ts` exportiert (DRY). Persona-Spalten-TYPEN in der geteilten Engine-Augmentation vorgezogen (Migration bleibt M3).
 - [ ] **M3 — Persistenz** (Migration `personas`/`personas_summary`/`personas_generated_at` + `db.ts`-Typen + Service-Read).
 - [ ] **M4 — API** (`POST /personas`).
 - [ ] **M5 — UI** (Sub-Route, Galerie, Detail, Belegketten, Min-Gate-Zustand, Button, i18n de+en).

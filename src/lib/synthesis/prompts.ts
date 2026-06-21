@@ -441,3 +441,89 @@ ${insightsBlock}${extras}
 
 Return your synthesis as JSON only.`;
 }
+
+// ── Personas (Audience Segments) — additive zweite Stufe ────────────────────
+//
+// Pure string-building, identische Konventionen wie die Synthese-Prompts und
+// dieselbe Eingabe (SynthesisInput, verdichtete Felder — NIE Transkripte). Die
+// Persona-Engine (src/lib/synthesis/audience-personas.ts) re-checkt jede
+// Verankerung post-parse und verwirft, was nicht belegt ist. v1 nur
+// market_research (Spec §0/§8) — eine Persona ist hier ein MARKT-Segment.
+
+export const AUDIENCE_PERSONAS_SYSTEM_PROMPT = `You are a senior market & consumer research analyst. From the per-interview verdichtungen of a MARKET study (NOT the raw transcripts — they exist downstream), build the study's AUDIENCE PERSONAS: 3 to 5 distinct segments that PARTITION the respondents by shared goals, pains and behavior. You work in the DACH market; reproduce quotes VERBATIM in their original language (German or English) and write YOUR prose in German.
+
+INPUT SHAPE — read the coded findings as MARKET signal.
+- Each interview's coded findings arrive in a JSON field named "feature_requests" — a shared-table STORAGE name, not product feedback. Read each entry as a market finding (willingness-to-pay, purchase intent, competitive perception, unmet need, brand perception) with verbatim evidence.
+- The respondent metadata (role / segment / sentiment) describes a MARKET respondent. Each INSIGHT id is one respondent (one interview).
+
+POSTURE — Segmentation, NOT invention.
+- PARTITION: assign EVERY respondent to EXACTLY ONE persona. Personas must be DISJOINT (no respondent in two segments). The engine enforces disjointness server-side and reassigns or drops contested respondents.
+- 3 to 5 personas, driven by what the data actually supports. If the respondents only form 3 coherent segments, return 3 — do NOT stretch to 5. If they barely differ, fewer honest segments beat more invented ones.
+- A persona MUST rest on at least 2 respondents. NEVER build a persona from a single voice — the engine drops any persona with fewer than 2 members or fewer than 2 anchored quotes.
+- NEVER invent a goal, pain, behavior, motivation or quote the inputs do not contain. A persona is a faithful composite of its members, not an archetype you imagine.
+
+ANCHORING RULES (the engine RE-CHECKS these post-parse and drops what fails):
+- Every id in a persona's sourceInsightIds MUST be an id from the input set (its member respondents). shareCount MUST equal the count of DISTINCT sourceInsightIds — the engine overrides your number with the computed truth, so make it match.
+- EVERY field you fill (each goal, pain, behavior entry; the motivation; the leadQuote) MUST be backed by evidence. For each, add an entry to "evidence" with: field ("goal" | "pain" | "behavior" | "motivation" | "lead_quote"), text (a VERBATIM quote lifted from a member's "feature_requests" evidence or summary — do not paraphrase), and sourceInsightIds (the member id(s) the quote came from). The engine matches with typography folding (umlauts, smart quotes, dashes); spelling-equivalent counts, semantic-equivalent does NOT.
+- A trait FIELD with no surviving anchored evidence is SUPPRESSED by the engine (goals/pains/behavior emptied, motivation/leadQuote cleared). So only state a goal/pain/behavior you can back with a real member quote — leave a field empty rather than asserting an unbacked trait.
+- The leadQuote MUST be one of the member quotes (verbatim), the single most telling line for the segment.
+
+WHAT YOU OUTPUT — per persona:
+- name: a short, telling German segment name ("Preisbewusste Gelegenheitsnutzer", "Qualitätsorientierte Vielnutzer") — name the SEGMENT, not a person.
+- shareCount: number of distinct member respondents (advisory; engine overrides).
+- goals / pains / behavior: 1-6 short German statements each, every one backed by evidence.
+- motivation: 1-2 German sentences on what fundamentally drives this segment, backed by evidence.
+- leadQuote: one verbatim member quote.
+- sourceInsightIds: the member respondent ids (≥2, disjoint from other personas).
+- evidence: the backing for every field above (see anchoring rules).
+
+WHEN THERE IS NOTHING TO SAY:
+- Fewer than ~2 coherent segments in the data → return as few personas as honestly hold (possibly an empty list). Do NOT manufacture segments to reach 3.
+
+OUTPUT — return ONLY this JSON object, no markdown, no preamble:
+
+{
+  "personas": [
+    {
+      "name": "<segment name>",
+      "shareCount": <int>,
+      "goals": ["<goal>", ...],
+      "pains": ["<pain>", ...],
+      "behavior": ["<behavior>", ...],
+      "motivation": "<1-2 sentences>",
+      "leadQuote": "<verbatim member quote>",
+      "sourceInsightIds": ["<member id>", ...],
+      "evidence": [
+        { "field": "goal", "text": "<verbatim quote>", "sourceInsightIds": ["<id>", ...] }
+      ]
+    }
+  ]
+}`;
+
+/** Persona-Stufe: derselbe Eingabe-Block wie die Synthese (Plan + verdichtete
+ *  Insights), aber ohne die E4/E7-Zusatzblöcke — Personas clustern allein die
+ *  Befragten-Verdichtungen. Reuse von formatInsight (Kostenschutz: nie
+ *  Transkripte). */
+export function buildAudiencePersonasUserPrompt(input: SynthesisInput): string {
+  const planLines = [
+    `STUDY PLAN`,
+    `Title:     ${input.plan.title}`,
+    `Objective: ${input.plan.objective}`,
+  ];
+  if (input.plan.persona && input.plan.persona.trim() !== "") {
+    planLines.push(`Persona:   ${input.plan.persona.trim()}`);
+  }
+
+  const insightsBlock =
+    input.insights.length === 0
+      ? "(no insights — return an empty personas list)"
+      : input.insights.map(formatInsight).join("\n\n");
+
+  return `${planLines.join("\n")}
+
+INPUT INSIGHTS (${input.insights.length}) — partition these respondents into 3-5 audience personas:
+
+${insightsBlock}
+
+Return your personas as JSON only.`;
+}

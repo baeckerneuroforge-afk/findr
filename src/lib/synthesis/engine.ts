@@ -144,6 +144,13 @@ type StudySynthesisRow = {
   stimulus_summary: Json | null;
   stimulus_sections: Json | null;
   stimulus_comparison: string | null;
+  // Personas (M3-Migration) — additive, nullable; geschrieben NUR von der
+  // Persona-Stufe (src/lib/synthesis/audience-personas.ts), nie von
+  // synthesizeStudy. Der geteilte Service-Client trägt die Spalten, damit die
+  // Persona-Engine denselben getypten Client nutzen kann (DRY).
+  personas: Json | null;
+  personas_summary: Json | null;
+  personas_generated_at: string | null;
 };
 
 type StudySynthesisInsert = {
@@ -163,6 +170,9 @@ type StudySynthesisInsert = {
   stimulus_summary?: Json | null;
   stimulus_sections?: Json | null;
   stimulus_comparison?: string | null;
+  personas?: Json | null;
+  personas_summary?: Json | null;
+  personas_generated_at?: string | null;
 };
 
 type StudySynthesisUpdate = Partial<StudySynthesisInsert>;
@@ -251,7 +261,9 @@ type DatabaseWithSynth = {
   };
 };
 
-function createSynthSupabase(): SupabaseClient<DatabaseWithSynth> {
+export type SynthSupabaseClient = SupabaseClient<DatabaseWithSynth>;
+
+export function createSynthSupabase(): SupabaseClient<DatabaseWithSynth> {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceRoleKey) {
     throw new Error(
@@ -292,7 +304,7 @@ function fold(s: string): string {
     .toLowerCase();
 }
 
-interface AnchorSet {
+export interface AnchorSet {
   /** ids the LLM is allowed to cite (from the input insights). */
   ids: Set<string>;
   /** Folded haystack of ALL per-item evidence + summary text (across every
@@ -367,7 +379,7 @@ function collectStrings(value: unknown, sink: string[]): void {
  *  attributable to a theme/side that does not cite that respondent
  *  (cross-respondent attribution guard). An empty/whitespace-only quote folds
  *  to "" and is dropped (a "" substring would otherwise match everything). */
-function quoteAnchoredInCitedIds(
+export function quoteAnchoredInCitedIds(
   quote: string,
   citedIds: string[],
   anchors: AnchorSet,
