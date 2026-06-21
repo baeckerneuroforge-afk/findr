@@ -426,6 +426,13 @@ type StudySynthesisRow = {
   synthesized_at: string | null;
   model: string | null;
   created_at: string;
+  // Personas (20260722000000) — additive, nullable; geschrieben nur von der
+  // Persona-Stufe (src/lib/synthesis/audience-personas.ts), nie von
+  // synthesizeStudy. (Die E4/E7-Spalten bleiben bewusst untypisiert — die
+  // Lese-Pfade in synthesis/service.ts casten sie defensiv.)
+  personas: Json | null;
+  personas_summary: Json | null;
+  personas_generated_at: string | null;
 };
 
 type StudySynthesisInsert = {
@@ -439,6 +446,9 @@ type StudySynthesisInsert = {
   synthesized_at?: string | null;
   model?: string | null;
   created_at?: string;
+  personas?: Json | null;
+  personas_summary?: Json | null;
+  personas_generated_at?: string | null;
 };
 
 type StudySynthesisUpdate = {
@@ -452,6 +462,9 @@ type StudySynthesisUpdate = {
   synthesized_at?: string | null;
   model?: string | null;
   created_at?: string;
+  personas?: Json | null;
+  personas_summary?: Json | null;
+  personas_generated_at?: string | null;
 };
 
 // ── product_discovery_insights — narrow read-only view ───────────────────

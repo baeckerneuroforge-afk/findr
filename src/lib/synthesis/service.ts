@@ -4,12 +4,16 @@ import { createResearchSupabase } from "@/lib/research/db";
 import {
   normalizeEmergentThemes,
   normalizeMethodology,
+  normalizePersonas,
+  normalizePersonasSummary,
   normalizeStimulusSections,
   normalizeTensions,
 } from "@/lib/schemas/synthesis";
 import type {
   EmergentTheme,
+  EnrichedAudiencePersona,
   Methodology,
+  PersonasSummary,
   StimulusSection,
   Tension,
   TensionSide,
@@ -123,6 +127,50 @@ export async function getStudySynthesis(
       row.stimulus_comparison.trim() !== ""
         ? row.stimulus_comparison
         : null,
+  };
+}
+
+/** Persistierte Persona-Stufe (Spec docs/klymeo-personas-feature-spec-2026-06-21.md).
+ *  Liegt in denselben study_synthesis-Spalten (additiv, eigener Schreibpfad in
+ *  audience-personas.ts), wird aber getrennt von der Synthese gelesen — der
+ *  Personas-Reiter braucht nur diese Felder, und PDF/PPTX/Share tragen in v1
+ *  keine Personas. */
+export interface StudyPersonasRecord {
+  personas: EnrichedAudiencePersona[];
+  summary: PersonasSummary | null;
+  generatedAt: string | null;
+}
+
+/**
+ * Lädt die persistierten Personas einer Studie. Gibt null zurück, wenn noch
+ * KEIN Persona-Lauf stattfand (keine Personas UND kein Zeitstempel) — die UI
+ * zeigt dann den „erzeugen"-Leerzustand. Lief ein Lauf, fand aber keine
+ * tragfähigen Segmente, kommt ein Record mit leerer Liste + Zeitstempel zurück
+ * (ehrliche „keine Segmente"-Anzeige). Normalizer werfen nie (Muster
+ * getStudySynthesis); pre-migration ergibt der Lesefehler null.
+ */
+export async function getStudyPersonas(
+  orgId: string,
+  planId: string,
+): Promise<StudyPersonasRecord | null> {
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("study_synthesis")
+    .select("personas, personas_summary, personas_generated_at")
+    .eq("org_id", orgId)
+    .eq("plan_id", planId)
+    .maybeSingle();
+  if (error || !data) return null;
+  const personas = normalizePersonas(data.personas);
+  const generatedAt =
+    typeof data.personas_generated_at === "string"
+      ? data.personas_generated_at
+      : null;
+  if (personas.length === 0 && generatedAt === null) return null;
+  return {
+    personas,
+    summary: normalizePersonasSummary(data.personas_summary),
+    generatedAt,
   };
 }
 
