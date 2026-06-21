@@ -360,3 +360,210 @@ export const StudySynthesisResultSchema = z.object({
 });
 
 export type StudySynthesisResult = z.infer<typeof StudySynthesisResultSchema>;
+
+// ── Personas (Audience Segments) ───────────────────────────────────────────
+//
+// Persona-Feature (Spec docs/klymeo-personas-feature-spec-2026-06-21.md):
+// eine ADDITIVE, zweite LLM-Stufe ÜBER derselben Stage-2-Eingabe. Sie clustert
+// die Befragten in 3-5 Segmente. Genau wie bei der Synthese gilt: das Schema
+// validiert nur die FORM; den INHALT (ID-Mitgliedschaft, Zitat-Verankerung pro
+// Insight, ehrliche Größe = unique(sourceInsightIds).length) erzwingt die Engine
+// (src/lib/synthesis/audience-personas.ts) in einem zweiten Anker-Filter — das
+// frequency-Override-Muster der EmergentTheme, hier auf shareCount übertragen.
+//
+// NAMING: bewusst `AudiencePersona*`, NICHT `Persona`, um die Doppelbelegung mit
+// research_plans.persona (Freitext-Zielgruppe) und src/lib/synthetic/personas.ts
+// (synthetische TEST-Charakterbögen) zu vermeiden.
+
+/** Belegbare Trait-Felder einer Persona. Jede `PersonaEvidence` hängt an genau
+ *  einem davon — der Anker-Filter unterdrückt ein Trait-Feld, das keine
+ *  verankerte Evidence trägt (Spec §5.2: „pro Feld hart belegt"). */
+export const PERSONA_EVIDENCE_FIELDS = [
+  "goal",
+  "pain",
+  "behavior",
+  "motivation",
+  "lead_quote",
+] as const;
+export type PersonaEvidenceField = (typeof PERSONA_EVIDENCE_FIELDS)[number];
+
+/** Ein verbatim Beleg für ein Trait-Feld: das Zitat MUSS (nach Typo-Fold) in
+ *  mindestens einem der zitierten Insights wörtlich vorkommen — die Engine
+ *  prüft das PER INSIGHT (nicht global), genau wie bei den Theme-Zitaten, und
+ *  blockt so Cross-Respondent-Attribution. */
+const PersonaEvidenceSchema = z.object({
+  field: z.enum(PERSONA_EVIDENCE_FIELDS),
+  /** Verbatim aus den Stage-1-Evidenzen (feature_request.evidence /
+   *  pain_point.evidence / theme.summary / summary). Nicht paraphrasieren. */
+  text: z.string().min(1).max(400),
+  sourceInsightIds: z.array(z.string()).min(1).max(50),
+});
+export type PersonaEvidence = z.infer<typeof PersonaEvidenceSchema>;
+
+/** EIN Persona-Segment, wie es das LLM emittiert. `shareCount` ist NUR ein
+ *  Modell-Hinweis — die Engine überschreibt ihn hart mit
+ *  unique(sourceInsightIds).length (kein Schönen möglich), exakt wie
+ *  EmergentTheme.frequency. `sourceInsightIds` ist die Cluster-Mitgliedschaft
+ *  (.min(2): keine Persona aus einer einzigen Stimme — Spec §5.2/§5.5; die
+ *  Engine verwirft zusätzlich Personas mit < 2 verankerten Zitaten). */
+const AudiencePersonaSchema = z.object({
+  /** Sprechender Segmentname auf Deutsch („Effizienz-getriebene Power-User"). */
+  name: z.string().min(2).max(80),
+  /** Modell-Hinweis auf die Größe; wird server-seitig überschrieben. */
+  shareCount: z.number().int().min(1),
+  goals: z.array(z.string().min(1).max(300)).min(1).max(6),
+  pains: z.array(z.string().min(1).max(300)).min(1).max(6),
+  behavior: z.array(z.string().min(1).max(300)).min(1).max(6),
+  motivation: z.string().min(1).max(600),
+  /** Ein prägnantes verbatim Zitat als Aushängeschild; wird wie alle Zitate
+   *  verankert (sonst von der Engine geleert). */
+  leadQuote: z.string().min(1).max(400),
+  sourceInsightIds: z.array(z.string()).min(2).max(200),
+  evidence: z.array(PersonaEvidenceSchema).min(1).max(40),
+});
+export type AudiencePersona = z.infer<typeof AudiencePersonaSchema>;
+
+/** Top-level LLM-Ausgabe der Persona-Stufe. Leeres `personas`-Array ist eine
+ *  GÜLTIGE Antwort, wenn die Daten keine tragfähigen Segmente hergeben — das
+ *  LLM darf KEINE Personas erfinden, um den Bereich 3-5 zu füllen. Max. 5
+ *  (Spec: dynamisch 3-5). */
+export const AudiencePersonasResultSchema = z.object({
+  personas: z.array(AudiencePersonaSchema).max(5).default([]),
+});
+export type AudiencePersonasResult = z.infer<typeof AudiencePersonasResultSchema>;
+
+// ── Angereicherte (persistierte) Persona-Form ──────────────────────────────
+//
+// Was in study_synthesis.personas LANDET, ist die vom LLM gelieferte Persona
+// PLUS server-berechnete, NICHT vom Modell formulierte Felder (Spec §5.3/§5.4):
+//   • shareCount  — hart überschrieben = unique(sourceInsightIds).length
+//   • sharePercent — round(shareCount / totalInsights * 100)
+//   • roleLabel / segmentLabel — Modus von respondent_role / _segment im Cluster
+//   • sentimentDistribution — Zählung der echten Insight-Sentiments im Cluster
+// Diese Felder kommen NIE aus dem LLM → kein Halluzinations-Fenster.
+
+export interface PersonaSentimentDistribution {
+  positive: number;
+  neutral: number;
+  negative: number;
+  mixed: number;
+  /** Befragte ohne klassifiziertes Sentiment (respondent.sentiment === null). */
+  unknown: number;
+}
+
+export interface EnrichedAudiencePersona extends AudiencePersona {
+  /** Server-erzwungen = unique(sourceInsightIds).length. */
+  shareCount: number;
+  /** Server-berechnet gegen den Live-Insight-Count zum Erzeugungszeitpunkt. */
+  sharePercent: number;
+  roleLabel: string | null;
+  segmentLabel: string | null;
+  sentimentDistribution: PersonaSentimentDistribution;
+}
+
+/** Server-Kennzahlen der Persona-Stufe (Muster SignalsSummary): ehrliche
+ *  Coverage statt geschönter 100 %-Optik. `qualityHint` = true zwischen
+ *  Mindest-Gate und Empfehlungsschwelle (Spec §5.6). */
+export interface PersonasSummary {
+  version: 1;
+  /** Insight-Count zum Erzeugungszeitpunkt (Live, NICHT based_on_count). */
+  totalInsights: number;
+  /** Σ shareCount über alle ausgegebenen Personas. */
+  assigned: number;
+  /** totalInsights − assigned (ehrlich ausgewiesen, keine Rest-Karte). */
+  unassigned: number;
+  qualityHint: boolean;
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === "string")
+    : [];
+}
+
+function normalizeSentimentDistribution(
+  value: unknown,
+): PersonaSentimentDistribution {
+  const d =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  const n = (x: unknown): number => (typeof x === "number" ? x : 0);
+  return {
+    positive: n(d.positive),
+    neutral: n(d.neutral),
+    negative: n(d.negative),
+    mixed: n(d.mixed),
+    unknown: n(d.unknown),
+  };
+}
+
+function normalizePersonaEvidence(value: unknown): PersonaEvidence[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const e = entry as Record<string, unknown>;
+    const field = PERSONA_EVIDENCE_FIELDS.includes(
+      e.field as PersonaEvidenceField,
+    )
+      ? (e.field as PersonaEvidenceField)
+      : null;
+    if (field === null || typeof e.text !== "string" || e.text === "") return [];
+    return [
+      {
+        field,
+        text: e.text,
+        sourceInsightIds: asStringArray(e.sourceInsightIds),
+      },
+    ];
+  });
+}
+
+/**
+ * Lenienter Read-Mapper (Stil normalizeEmergentThemes): persistierte
+ * `personas`-JSONB → EnrichedAudiencePersona[], niemals werfen. Legacy-Zeilen
+ * ohne die Spalte erreichen Leser als `undefined` → []; Teil-Objekte werden
+ * defensiv mit leeren Innenfeldern aufgefüllt, damit UI/PDF nie an einem
+ * fehlenden `goals`/`evidence` crashen. KEIN `.parse` — das würde an
+ * Längen-/min-Constraints werfen und einen Render-Glitch zum Totalausfall machen.
+ */
+export function normalizePersonas(value: unknown): EnrichedAudiencePersona[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    const p =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? (entry as Record<string, unknown>)
+        : {};
+    return {
+      name: typeof p.name === "string" ? p.name : "",
+      shareCount: typeof p.shareCount === "number" ? p.shareCount : 0,
+      sharePercent: typeof p.sharePercent === "number" ? p.sharePercent : 0,
+      goals: asStringArray(p.goals),
+      pains: asStringArray(p.pains),
+      behavior: asStringArray(p.behavior),
+      motivation: typeof p.motivation === "string" ? p.motivation : "",
+      leadQuote: typeof p.leadQuote === "string" ? p.leadQuote : "",
+      sourceInsightIds: asStringArray(p.sourceInsightIds),
+      evidence: normalizePersonaEvidence(p.evidence),
+      roleLabel: typeof p.roleLabel === "string" ? p.roleLabel : null,
+      segmentLabel: typeof p.segmentLabel === "string" ? p.segmentLabel : null,
+      sentimentDistribution: normalizeSentimentDistribution(
+        p.sentimentDistribution,
+      ),
+    };
+  });
+}
+
+/** Lenienter Read-Mapper für `personas_summary`-JSONB → PersonasSummary | null. */
+export function normalizePersonasSummary(value: unknown): PersonasSummary | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const s = value as Record<string, unknown>;
+  const n = (x: unknown): number => (typeof x === "number" ? x : 0);
+  return {
+    version: 1,
+    totalInsights: n(s.totalInsights),
+    assigned: n(s.assigned),
+    unassigned: n(s.unassigned),
+    qualityHint: s.qualityHint === true,
+  };
+}
