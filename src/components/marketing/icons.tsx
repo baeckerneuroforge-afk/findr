@@ -225,6 +225,30 @@ export function PenIcon(props: IconProps) {
   );
 }
 
+// User Research — zwei Personen
+export function UsersIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3 19a6 6 0 0 1 12 0" />
+      <path d="M16 5.1a3.2 3.2 0 0 1 0 5.8" />
+      <path d="M17 13.2a6 6 0 0 1 4 5.8" />
+    </svg>
+  );
+}
+
+// Personas — Profil-/Steckbrief-Karte
+export function IdCardIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="8.5" cy="11" r="2" />
+      <path d="M5.5 16.2a3 3 0 0 1 6 0" />
+      <path d="M14.5 10h3.5M14.5 13.2h3.5" />
+    </svg>
+  );
+}
+
 /**
  * Name → component map. The mega-menu / mobile accordion live in "use client"
  * islands and receive the nav registry as serializable props — a React
@@ -255,6 +279,8 @@ export const ICONS = {
   DownloadIcon,
   FactoryIcon,
   PenIcon,
+  UsersIcon,
+  IdCardIcon,
 } as const;
 
 export type IconName = keyof typeof ICONS;

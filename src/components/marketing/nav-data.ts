@@ -1,5 +1,6 @@
 import { getModules } from "./PlatformModules";
 import { getIndustries } from "./industry-template";
+import { getLiveUseCases, getUseCaseHref } from "./use-cases-data";
 import type { IconName } from "./icons";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
 import {
@@ -84,6 +85,18 @@ const getIndustryLeaves = (locale: Locale): NavLeaf[] =>
     icon: i.icon,
   }));
 
+// Die ANWENDUNGSFÄLLE (Use Cases) — nur die LIVE Fälle (Marktforschung, User
+// Research) bekommen Nav-/Footer-/Sitemap-Einträge; "prepared" (Personas)
+// erscheint ausschließlich als deaktiviertes Element im Homepage-Grid. Kein
+// `status` → keine Live/Bald-Pille im Menü.
+const getUseCaseLeaves = (locale: Locale): NavLeaf[] =>
+  getLiveUseCases(locale).map((u) => ({
+    label: u.name,
+    href: localizeHref(locale, getUseCaseHref(u.slug)),
+    desc: u.tagline,
+    icon: u.icon,
+  }));
+
 /**
  * Die Werkzeuge der Plattform — Anker auf /produkt (dort lebt je Werkzeug eine
  * eigene Tiefen-Sektion). Alle vier sind reale, gebaute Fähigkeiten:
@@ -161,6 +174,29 @@ export const getFeatureLeaves = (locale: Locale): NavLeaf[] =>
 export function getPrimaryNav(locale: Locale): NavEntry[] {
   return [
     {
+      // Die „Dafür nutzt du Klymeo"-Ebene (Outset-Modell), Spitze der Nav.
+      kind: "panel",
+      label: localizedContent(locale, { de: "Lösungen", en: "Solutions" }),
+      href: localizeHref(locale, "/loesungen"),
+      id: "loesungen",
+      groups: [
+        {
+          heading: localizedContent(locale, {
+            de: "Dafür nutzt du Klymeo",
+            en: "What you use Klymeo for",
+          }),
+          items: getUseCaseLeaves(locale),
+          overview: {
+            label: localizedContent(locale, {
+              de: "Alle Anwendungsfälle",
+              en: "All use cases",
+            }),
+            href: localizeHref(locale, "/loesungen"),
+          },
+        },
+      ],
+    },
+    {
       kind: "panel",
       label: localizedContent(locale, { de: "Produkt", en: "Product" }),
       href: localizeHref(locale, "/produkt"),
@@ -237,6 +273,19 @@ const toLinks = (leaves: NavLeaf[]): FooterLink[] =>
  */
 export function getFooterColumns(locale: Locale): FooterColumn[] {
   return [
+    {
+      title: localizedContent(locale, { de: "Lösungen", en: "Solutions" }),
+      links: [
+        {
+          label: localizedContent(locale, {
+            de: "Anwendungsfälle",
+            en: "Use cases",
+          }),
+          href: localizeHref(locale, "/loesungen"),
+        },
+        ...toLinks(getUseCaseLeaves(locale)),
+      ],
+    },
     {
       title: localizedContent(locale, { de: "Produkt", en: "Product" }),
       links: [
@@ -334,9 +383,19 @@ export type SitemapRoute = { path: string; priority: number };
 // get*Leaves factories (those localize hrefs to /de/…).
 const SITEMAP_MODULES = getModules(MARKETING_DEFAULT_LOCALE);
 const SITEMAP_INDUSTRIES = getIndustries(MARKETING_DEFAULT_LOCALE);
+// Nur die LIVE Anwendungsfälle sind indexierbar — "prepared" (Personas) hat
+// keine Seite und gehört nicht in die Sitemap.
+const SITEMAP_USE_CASES = getLiveUseCases(MARKETING_DEFAULT_LOCALE);
 
 export const SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/", priority: 1.0 },
+  // Die „Dafür nutzt du Klymeo"-Ebene: Hub + die zwei Live-Use-Cases. Top of
+  // funnel → höhere Priorität als die Engine-/Methoden-/Branchen-Seiten.
+  { path: "/loesungen", priority: 0.9 },
+  ...SITEMAP_USE_CASES.map((u) => ({
+    path: getUseCaseHref(u.slug),
+    priority: 0.85,
+  })),
   { path: "/produkt", priority: 0.8 },
   // The four method pages (/methoden/<slug>), derived from the same MODULES
   // the mega-menu + footer use — so each route is declared exactly once.

@@ -14,6 +14,7 @@ import { StudioHero } from "@/components/marketing/studio/StudioHero";
 import { Marquee } from "@/components/marketing/studio/Marquee";
 import { SessionDeck } from "@/components/marketing/studio/SessionDeck";
 import { MethodStack } from "@/components/marketing/studio/MethodStack";
+import { UseCaseDeck } from "@/components/marketing/studio/UseCaseDeck";
 import { NumbersBand } from "@/components/marketing/studio/NumbersBand";
 import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
 import { DEMO_BOOKING_URL } from "@/lib/marketing/constants";
@@ -95,6 +96,9 @@ type HomeContent = {
   kap02: string;
   session2Headline: ReactNode;
   session2Lead: ReactNode;
+  useCasesKap: string;
+  useCasesHeadline: ReactNode;
+  useCasesLead: ReactNode;
   kap03: string;
   repertoireHeadline: ReactNode;
   repertoireLead: ReactNode;
@@ -206,6 +210,26 @@ const CONTENT_DE: HomeContent = {
       nach und wertet live aus. Drück Play — oder wechsle zwischen Voice
       und Text. Vorgefertigtes Beispiel, kein Login, keine echten
       Teilnehmerdaten.
+    </>
+  ),
+  useCasesKap: "Dafür nutzt du Klymeo",
+  useCasesHeadline: (
+    <>
+      <span className="st-ln">
+        <i>Eine Engine.</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          Viele <span className="st-serif">Anwendungsfälle.</span>
+        </i>
+      </span>
+    </>
+  ),
+  useCasesLead: (
+    <>
+      Ob Markt oder Mensch — dahinter steckt dasselbe: echte
+      Tiefeninterviews, dieselbe nachbohrende KI, jede Erkenntnis am
+      Transkript belegt. Wähl deinen Anwendungsfall.
     </>
   ),
   kap03: "K.03 — Das Repertoire",
@@ -450,6 +474,26 @@ const CONTENT_EN: HomeContent = {
       A prepared example, no login, no real participant data.
     </>
   ),
+  useCasesKap: "What you use Klymeo for",
+  useCasesHeadline: (
+    <>
+      <span className="st-ln">
+        <i>One engine.</i>
+      </span>
+      <span className="st-ln">
+        <i>
+          Many <span className="st-serif">use cases.</span>
+        </i>
+      </span>
+    </>
+  ),
+  useCasesLead: (
+    <>
+      Whether you research your market or your users — the same thing sits
+      underneath: real in-depth interviews, the same probing AI, every
+      finding evidenced in the transcript. Pick your use case.
+    </>
+  ),
   kap03: "K.03 — The repertoire",
   repertoireHeadline: (
     <>
@@ -684,7 +728,24 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* ── K.03 — Das Repertoire (Sticky-Tonband-Stapel) ────────────── */}
+      {/* ── Anwendungsfälle — „Dafür nutzt du Klymeo" (Outset-Modell: eine
+          Engine oben, flaches Use-Case-Grid darunter) ─────────────────── */}
+      <section id="anwendungsfaelle" className="pt-[clamp(40px,8vh,100px)]">
+        <div className={WRAP}>
+          <Kap label={c.useCasesKap} />
+          <div className="mb-[clamp(40px,7vh,80px)] flex flex-wrap items-end justify-between gap-6">
+            <Rv as="h2" className="st-rv st-display text-[clamp(34px,6vw,84px)]">
+              {c.useCasesHeadline}
+            </Rv>
+            <Rv as="p" className="st-fade max-w-[42ch] text-neutral-500">
+              {c.useCasesLead}
+            </Rv>
+          </div>
+          <UseCaseDeck lang={lang as Locale} />
+        </div>
+      </section>
+
+      {/* ── K.03 — Das Repertoire (die vier Methoden in der Marktforschung) ─ */}
       <section id="methoden" className="pt-[clamp(40px,8vh,100px)]">
         <div className={WRAP}>
           <Kap label={c.kap03} />
