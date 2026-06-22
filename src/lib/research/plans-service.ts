@@ -1009,17 +1009,36 @@ export async function setResearchPlanStatus(
  * shares, panel + synthetic-test data. Personas live in a JSONB column on the
  * plan row itself, so they go with it.
  *
- * NOT cascaded BY DESIGN: interview_sessions (and product_discovery_insights)
- * carry `plan_id … ON DELETE SET NULL` so past transcripts survive a plan
- * removal (see 20260612000000). The caller MUST therefore gate deletion on
- * "no interview sessions yet" (countSessionsForPlan === 0) — otherwise this
- * strands orphaned sessions that still hold participant PII. This function does
- * not re-check that gate; the DELETE route is the policy enforcer.
+ * interview_sessions carry `plan_id … ON DELETE SET NULL` by design — a plan
+ * delete alone would NOT remove them, leaving orphaned rows that still hold
+ * the conversation transcript + visual_capture (participant PII). A FULL study
+ * delete must take its interviews with it, so we explicitly wipe
+ * interview_sessions for the plan FIRST. Nothing references interview_sessions
+ * (verified: no inbound FKs), so this is a clean leaf delete. If it fails we
+ * abort BEFORE touching the plan row — never produce an orphan.
+ *
+ * The two deletes are not wrapped in a single transaction (PostgREST), so one
+ * partial state is reachable: session wipe succeeds, then the plan delete
+ * fails (transport/transient). That is the SAFE direction — the interviews the
+ * user asked to delete are gone, no PII is stranded, and a retry deletes the
+ * now-session-less plan cleanly (the route re-reads the count as 0). The unsafe
+ * direction (plan gone, sessions stranded) cannot occur because of the order.
+ *
+ * The two OTHER SET-NULL referrers keep their designed behavior on purpose:
+ * bridge_suggestions.approved_plan_id (a suggestion pointer) and
+ * product_discovery_insights.plan_id (CRM-call-derived insights tied to a
+ * `call`, not to this study's interviews) are NOT this study's data — their
+ * pointer is nulled, the rows survive.
+ *
+ * The WHEN of deletion is the route's job (DELETE policy gate: no sessions, or
+ * the study has been archived/closed first). This function is the mechanism and
+ * always performs the complete removal.
  *
  * Returns the stimulus storage paths attached to the (now deleted) plan so the
  * caller can best-effort purge the bucket objects — the DB cascade removes the
  * rows, never the uploaded files. `deleted` is false when no row matched the
- * org-scoped predicate (not found / other org → maps to 404 at the route).
+ * org-scoped predicate (not found / other org → maps to 404 at the route), or
+ * when the interview-session wipe failed (→ 500 at the route).
  */
 export async function deleteResearchPlan(
   orgId: string,
@@ -1034,6 +1053,22 @@ export async function deleteResearchPlan(
   const storagePaths = stimuli
     .map((s) => s.storagePath)
     .filter((p): p is string => typeof p === "string" && p.length > 0);
+
+  // Take the interviews with the study. ON DELETE SET NULL would otherwise
+  // strand these rows (transcript + visual_capture = PII). Abort on error so
+  // a failed wipe never leaves the plan deleted with orphaned sessions.
+  const { error: sessionsError } = await supabase
+    .from("interview_sessions")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("plan_id", planId);
+  if (sessionsError) {
+    console.error(
+      "[deleteResearchPlan] interview_sessions wipe failed:",
+      sessionsError.message,
+    );
+    return { deleted: false, storagePaths: [] };
+  }
 
   const { data, error } = await supabase
     .from("research_plans")

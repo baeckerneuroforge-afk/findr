@@ -17,12 +17,18 @@ import { Button } from "@/components/ui/Button";
  * inline error below the button (no silent failure on a destructive action).
  * On success the detail page is gone, so we navigate to the area's list instead
  * of router.refresh().
+ *
+ * `hasInterviews` switches the confirm to the stronger variant that spells out
+ * that interviews + transcripts will ALSO be permanently deleted — this branch
+ * is only reachable for an archived (closed) study, the deliberate second step.
  */
 interface DeleteStudyButtonProps {
   planId: string;
   studyType: "market_research" | "product_discovery";
   /** Shown in the confirm dialog so the user sees what they're deleting. */
   title: string;
+  /** True when the study already has interview sessions → stronger warning. */
+  hasInterviews?: boolean;
   disabled?: boolean;
 }
 
@@ -30,6 +36,7 @@ export function DeleteStudyButton({
   planId,
   studyType,
   title,
+  hasInterviews = false,
   disabled = false,
 }: DeleteStudyButtonProps) {
   const router = useRouter();
@@ -44,7 +51,10 @@ export function DeleteStudyButton({
       : "/dashboard/research-plans";
 
   async function runDelete() {
-    const ok = window.confirm(t("deleteStudyConfirm", { title }));
+    const message = hasInterviews
+      ? t("deleteStudyConfirmWithData", { title })
+      : t("deleteStudyConfirm", { title });
+    const ok = window.confirm(message);
     if (!ok) return;
 
     setError(null);

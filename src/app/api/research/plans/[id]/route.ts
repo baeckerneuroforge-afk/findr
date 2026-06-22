@@ -231,14 +231,18 @@ export async function PATCH(
  * DELETE /api/research/plans/[id] — permanently remove a study and everything
  * the DB cascades (invites, pool-invites, quotas, screening, open links,
  * stimulus rows, synthesis + shares, panel + synthetic-test data; personas live
- * on the row). Stimulus bucket objects are purged best-effort afterwards.
+ * on the row), plus its interview sessions (wiped in deleteResearchPlan).
+ * Stimulus bucket objects are purged best-effort afterwards.
  *
- * Policy gate: only studies WITHOUT interview sessions can be deleted. Past
- * interviews carry `plan_id … ON DELETE SET NULL` by design (transcripts must
- * survive), so deleting a study that has any sessions would strand orphaned
- * rows holding participant data. Studies with interviews are archived
- * (deactivated) instead — see PlanStatusControl. The session count is read
- * fail-CLOSED: an unknown count blocks the irreversible delete.
+ * Policy gate (two-step, by André's design — a study is deletable at any time,
+ * but never by accident):
+ *   • no interview sessions yet → delete immediately (clean, no PII to lose);
+ *   • already has sessions → only after the study is CLOSED first, i.e.
+ *     archived (deactivated via PlanStatusControl). Deleting it then also wipes
+ *     all interviews + transcripts. A study with sessions that is NOT archived
+ *     is blocked (409) with "close it first".
+ * The session count is read fail-CLOSED: an unknown count blocks the
+ * irreversible delete (retryable 500) rather than guessing.
  */
 export async function DELETE(
   _req: NextRequest,
@@ -259,7 +263,7 @@ export async function DELETE(
     );
   }
 
-  // Gate: no interview sessions → clean cascade, no orphaned transcripts.
+  // Gate: no sessions → delete now; has sessions → only once archived (closed).
   const sessionCount = await countSessionsForPlan(orgId, planId);
   if (sessionCount === null) {
     // fail-closed: never run an irreversible delete with an unknown session
@@ -269,7 +273,9 @@ export async function DELETE(
       { status: 500 },
     );
   }
-  if (sessionCount > 0) {
+  if (sessionCount > 0 && existing.status !== "archived") {
+    // Has interviews but not closed yet — require the deliberate "close it
+    // first" step (archive/deactivate) before the irreversible delete.
     return NextResponse.json(
       { error: t("research.planHasInterviews") },
       { status: 409 },

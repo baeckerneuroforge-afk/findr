@@ -681,10 +681,12 @@ export default async function ResearchPlanDetailPage({
         </div>
         <PlanStatusControl planId={plan.id} status={plan.status} />
 
-        {/* Studie löschen — endgültiges Entfernen von der Plattform. Nur ohne
-            Interview-Daten (sauberer Cascade, keine verwaisten Transkripte);
-            sonst über „Archivieren" deaktivieren. totalSessions===null
-            (Lesefehler) wird wie >0 behandelt → kein Lösch-Button. */}
+        {/* Studie löschen — endgültiges Entfernen von der Plattform. Jederzeit
+            möglich, aber nie aus Versehen: OHNE Interviews sofort; MIT
+            Interviews erst nachdem die Studie geschlossen (archiviert) wurde —
+            dann wird inkl. aller Interviews/Transkripte gelöscht.
+            totalSessions===null (Lesefehler) wird wie >0 behandelt → für nicht-
+            archivierte Studien kein Lösch-Button. */}
         <div className="border-t border-neutral-200 pt-4">
           <h3 className="text-body-strong text-neutral-900">
             {t("deleteStudyTitle")}
@@ -692,11 +694,12 @@ export default async function ResearchPlanDetailPage({
           <p className="mb-3 mt-0.5 max-w-prose text-small text-neutral-500">
             {t("deleteStudyDesc")}
           </p>
-          {totalSessions === 0 ? (
+          {totalSessions === 0 || plan.status === "archived" ? (
             <DeleteStudyButton
               planId={plan.id}
               studyType="product_discovery"
               title={plan.title}
+              hasInterviews={totalSessions !== 0}
             />
           ) : (
             <p className="text-small text-neutral-500">

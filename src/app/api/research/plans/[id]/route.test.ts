@@ -70,8 +70,8 @@ function patchRequest(body: unknown) {
   }) as never;
 }
 
-function plan(voiceEnabled: boolean) {
-  return { id: PLAN_ID, voiceEnabled } as never;
+function plan(voiceEnabled: boolean, status = "draft") {
+  return { id: PLAN_ID, voiceEnabled, status } as never;
 }
 
 beforeEach(() => {
@@ -304,10 +304,11 @@ describe("PATCH /api/research/plans/[id] — edit + reactivation", () => {
 });
 
 /**
- * DELETE-Fluss (DeleteStudyButton) — eine Studie OHNE Interview-Daten lässt
- * sich endgültig löschen (sauberer Cascade). Studien MIT Interviews werden
- * geblockt (409 → archivieren); eine unbekannte Session-Zahl blockt
- * fail-closed (kein irreversibles Löschen ins Blaue).
+ * DELETE-Fluss (DeleteStudyButton) — zweistufiges Gate:
+ *   • OHNE Interviews → sofort löschbar (sauberer Cascade);
+ *   • MIT Interviews → erst nach dem Schließen (status=archived), dann wird
+ *     inkl. Interviews gelöscht; nicht-archiviert mit Sessions → 409;
+ *   • unbekannte Session-Zahl → fail-closed 500 (kein Löschen ins Blaue).
  */
 describe("DELETE /api/research/plans/[id] — study deletion", () => {
   function deleteRequest() {
@@ -348,13 +349,26 @@ describe("DELETE /api/research/plans/[id] — study deletion", () => {
     expect(admin.remove).toHaveBeenCalledWith([`${ORG_ID}/${PLAN_ID}/a.png`]);
   });
 
-  it("blocks deletion (409) when the study already has sessions", async () => {
+  it("blocks deletion (409) when a non-archived study already has sessions", async () => {
+    mockGetResearchPlan.mockResolvedValue(plan(false, "active"));
     mockCountSessionsForPlan.mockResolvedValue(2);
 
     const res = await DELETE(deleteRequest(), context());
 
     expect(res.status).toBe(409);
     expect(mockDeleteResearchPlan).not.toHaveBeenCalled();
+  });
+
+  it("deletes an ARCHIVED study even with sessions (interviews wiped too)", async () => {
+    mockGetResearchPlan.mockResolvedValue(plan(false, "archived"));
+    mockCountSessionsForPlan.mockResolvedValue(5);
+
+    const res = await DELETE(deleteRequest(), context());
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(mockDeleteResearchPlan).toHaveBeenCalledWith(ORG_ID, PLAN_ID);
   });
 
   it("fails closed (500) when the session count is unknown", async () => {

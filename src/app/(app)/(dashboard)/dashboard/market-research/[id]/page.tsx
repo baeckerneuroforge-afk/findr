@@ -13,6 +13,7 @@ import {
 } from "@/lib/panel/service";
 import {
   countCompletedSessionsForPlan,
+  countSessionsForPlan,
   getResearchPlan,
   listPlanStimuli,
   listSessionsForPlan,
@@ -190,6 +191,7 @@ export default async function MarketCampaignDetailPage({
     prolificCredential,
     prolificStudy,
     sessions,
+    totalSessions,
   ] = await Promise.all([
     listPoolMembers(orgId),
     listInvitedPoolMemberIds(orgId, planId),
@@ -199,6 +201,10 @@ export default async function MarketCampaignDetailPage({
     getProlificCredentialSummary(orgId),
     getProlificStudyForPlan(orgId, planId),
     listSessionsForPlan(orgId, planId),
+    // ALL-Status-Count (open/completed/abandoned) für das Lösch-Gate — exakt
+    // der Zähler, den auch die DELETE-Route prüft (nicht die 50-gedeckelte,
+    // fail-open Sessions-Liste). null (Lesefehler) → Gate behandelt wie >0.
+    countSessionsForPlan(orgId, planId),
   ]);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
@@ -1156,11 +1162,13 @@ export default async function MarketCampaignDetailPage({
         </div>
         <PlanStatusControl planId={plan.id} status={plan.status} />
 
-        {/* Studie löschen — endgültiges Entfernen von der Plattform. Nur ohne
-            Interview-Daten möglich (sauberer Cascade, keine verwaisten
-            Transkripte); sonst über „Archivieren" deaktivieren. `sessions` ist
-            die ALLE-Status-Liste (open/completed/abandoned) → length 0 ⇔ keine
-            Interviews. */}
+        {/* Studie löschen — endgültiges Entfernen von der Plattform. Jederzeit
+            möglich, aber nie aus Versehen: OHNE Interviews sofort; MIT
+            Interviews erst nachdem die Studie geschlossen (archiviert) wurde —
+            dann wird inkl. aller Interviews/Transkripte gelöscht. Gating über
+            totalSessions (exakter ALL-Status-Count = Server-Gate), nicht über
+            die 50-gedeckelte Liste; null (Lesefehler) wird wie >0 behandelt →
+            für nicht-archivierte Studien kein Lösch-Button. */}
         <div className="border-t border-neutral-200 pt-4">
           <h3 className="text-body-strong text-neutral-900">
             {t("deleteStudyTitle")}
@@ -1168,11 +1176,12 @@ export default async function MarketCampaignDetailPage({
           <p className="mb-3 mt-0.5 max-w-prose text-small text-neutral-500">
             {t("deleteStudyDesc")}
           </p>
-          {sessions.length === 0 ? (
+          {totalSessions === 0 || plan.status === "archived" ? (
             <DeleteStudyButton
               planId={plan.id}
               studyType="market_research"
               title={plan.title}
+              hasInterviews={totalSessions !== 0}
             />
           ) : (
             <p className="text-small text-neutral-500">
