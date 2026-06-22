@@ -2,6 +2,7 @@
 // Datenschutz-Generator bzw. einen Anwalt finalisieren. Alle mit {{ }}
 // markierten Platzhalter müssen ersetzt und juristisch geprüft werden.
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   LegalProse,
   LegalSection,
@@ -140,11 +141,12 @@ export default async function DatenschutzPage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const locale = resolveLocale(lang);
   return (
     <LegalProse
       title="Datenschutzerklärung"
       intro="Informationen zur Verarbeitung personenbezogener Daten gemäß Datenschutz-Grundverordnung (DSGVO) und Bundesdatenschutzgesetz (BDSG)."
-      lang={resolveLocale(lang)}
+      lang={locale}
       closing={<LegalStand>{STAND}</LegalStand>}
     >
       <LegalSection heading="1. Verantwortlicher">
@@ -238,15 +240,25 @@ export default async function DatenschutzPage({
       <LegalSection heading="5. Cookies und Consent">
         <div className="flex flex-col gap-3">
           <p>
-            Wir setzen ausschließlich technisch notwendige Cookies und
-            vergleichbare Speichertechnologien ein, die für den Betrieb der Seite
-            und für die Anmeldung erforderlich sind (insbesondere Session-Cookies
-            der Authentifizierung). Rechtsgrundlage ist § 25 Abs. 2 TDDDG in
-            Verbindung mit unserem berechtigten Interesse an einem
-            funktionsfähigen Angebot (Art. 6 Abs. 1 lit. f DSGVO); für technisch
-            notwendige Cookies ist keine Einwilligung erforderlich. Einen
-            Einsatz von Analyse- oder Marketing-Cookies bzw. Tracking-Diensten
-            nehmen wir derzeit nicht vor.
+            Wir setzen ausschließlich technisch notwendige sowie funktionale,
+            von Ihnen aktiv gewählte Cookies und vergleichbare
+            Speichertechnologien ein, die für den Betrieb der Seite, für die
+            Anmeldung und für gewählte Einstellungen (z. B. Sprache und
+            Darstellung) erforderlich sind (insbesondere Session-Cookies der
+            Authentifizierung). Rechtsgrundlage für die technisch notwendigen
+            Cookies ist § 25 Abs. 2 TDDDG in Verbindung mit unserem berechtigten
+            Interesse an einem funktionsfähigen Angebot (Art. 6 Abs. 1 lit. f
+            DSGVO); insoweit ist keine Einwilligung erforderlich. Die funktionalen
+            Einstellungs-Cookies (z. B. Sprache und Darstellung) sind
+            First-Party-Einträge und dienen nicht Werbe- oder Analysezwecken.
+            Einen Einsatz von Analyse- oder Marketing-Cookies bzw.
+            Tracking-Diensten nehmen wir derzeit nicht vor. Eine detaillierte
+            Übersicht der
+            eingesetzten Cookies finden Sie in unserer{" "}
+            <Link href={localizePath(locale, "/cookies")} className={CONTACT_LINK}>
+              Cookie-Richtlinie
+            </Link>
+            .
           </p>
           <p>
             <LegalTodo>

@@ -286,6 +286,10 @@ export function getFooterColumns(locale: Locale): FooterColumn[] {
           href: localizeHref(locale, "/datenschutz"),
         },
         {
+          label: localizedContent(locale, { de: "Cookies", en: "Cookies" }),
+          href: localizeHref(locale, "/cookies"),
+        },
+        {
           label: localizedContent(locale, { de: "AGB", en: "Terms" }),
           href: localizeHref(locale, "/agb"),
         },
@@ -345,5 +349,6 @@ export const SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/demo", priority: 0.5 },
   { path: "/impressum", priority: 0.3 },
   { path: "/datenschutz", priority: 0.3 },
+  { path: "/cookies", priority: 0.3 },
   { path: "/agb", priority: 0.3 },
 ];
