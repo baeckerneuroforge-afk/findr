@@ -42,6 +42,9 @@ export type UseCaseContent = {
   heroTitle: ReactNode;
   heroSubhead: ReactNode;
   audience?: string;
+  /** Optionaler Produkt-Showcase direkt unter dem Hero (z. B. PersonaDeck).
+   *  Use-Case-Seiten ohne Visual lassen das Feld leer → unverändert. */
+  visual?: ReactNode;
   how: {
     eyebrow?: ReactNode;
     title: ReactNode;
@@ -169,6 +172,8 @@ export function UseCasePage({
         primary={{ label: demoLabel, href: DEMO_BOOKING_URL }}
         secondary={{ label: platformLabel, href: platformHref }}
       />
+
+      {content.visual ?? null}
 
       <HowItWorks
         locale={locale}

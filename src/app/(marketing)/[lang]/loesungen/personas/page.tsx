@@ -20,6 +20,7 @@ import {
   ShieldCheckIcon,
 } from "@/components/marketing/icons";
 import { SITE_URL, ogDefaultsFor, buildAlternates } from "@/lib/marketing/seo";
+import { PersonaDeck } from "@/components/marketing/studio/PersonaDeck";
 
 const PATH = "/loesungen/personas";
 const META = {
@@ -79,6 +80,7 @@ const CONTENT: UseCaseContent = {
     "Personas entstehen bei Klymeo nicht am Reißbrett: Wir verdichten die belegte Synthese deiner Interviews zu drei bis fünf Zielgruppen-Segmenten — jedes Feld am Originalzitat verankert, jede Größe server-berechnet aus den tatsächlich zugeordneten Gesprächen.",
   audience:
     "Produkt-, Marketing- und Insights-Teams, die mit Zielgruppen-Segmenten arbeiten wollen, die am O-Ton belegt sind statt geraten.",
+  visual: <PersonaDeck locale="de" />,
   how: {
     eyebrow: "So entstehen Personas",
     title: <>Vom ausgewerteten Interview zur belegten Persona.</>,
@@ -167,6 +169,7 @@ const CONTENT_EN: UseCaseContent = {
     "At Klymeo personas aren't drawn up at a desk: we distill the evidenced synthesis of your interviews into three to five audience segments — every field anchored to a verbatim quote, every size server-computed from the conversations actually assigned to it.",
   audience:
     "Product, marketing and insights teams who want audience segments backed by people's own words rather than guessed.",
+  visual: <PersonaDeck locale="en" />,
   how: {
     eyebrow: "How personas are built",
     title: <>From analyzed interview to evidenced persona.</>,
