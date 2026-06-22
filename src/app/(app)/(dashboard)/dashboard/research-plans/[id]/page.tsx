@@ -11,7 +11,10 @@ import {
   getProlificCredentialSummary,
   getProlificStudyForPlan,
 } from "@/lib/panel/service";
-import { getResearchPlan } from "@/lib/research/plans-service";
+import {
+  countCompletedSessionsForPlan,
+  getResearchPlan,
+} from "@/lib/research/plans-service";
 import { getOpenLinkForPlan } from "@/lib/research/open-links";
 import { listInvitesForPlan } from "@/lib/research/scheduling";
 import {
@@ -148,6 +151,7 @@ export default async function ResearchPlanDetailPage({
     openLink,
     prolificCredential,
     prolificStudy,
+    completed,
   ] = await Promise.all([
     listPoolMembers(orgId),
     listInvitedPoolMemberIds(orgId, planId),
@@ -155,6 +159,7 @@ export default async function ResearchPlanDetailPage({
     getOpenLinkForPlan(orgId, planId),
     getProlificCredentialSummary(orgId),
     getProlificStudyForPlan(orgId, planId),
+    countCompletedSessionsForPlan(orgId, planId),
   ]);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
@@ -208,6 +213,17 @@ export default async function ResearchPlanDetailPage({
               {t("createdAt", { date: formatDate(plan.createdAt, locale) })}
             </p>
           </div>
+          {/* Bearbeiten — nur solange noch nicht durchgeführt (keine
+              abgeschlossenen Interviews) und nicht archiviert. Archivierte Pläne
+              erst über den Lifecycle reaktivieren. */}
+          {completed === 0 && plan.status !== "archived" && (
+            <Link
+              href={`/dashboard/research-plans/${plan.id}/edit`}
+              className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-card px-3 text-body-strong font-medium text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+            >
+              {t("editCta")}
+            </Link>
+          )}
         </div>
       </div>
 

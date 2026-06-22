@@ -13,10 +13,14 @@ import { Button } from "@/components/ui/Button";
  *   draft     -> active     [Activate]
  *   active    -> completed  [Mark complete]
  *   any       -> archived   [Archive]  (except 'archived' itself)
+ *   archived  -> draft      [Reactivate]
  *
- * Reverse transitions (e.g. archived -> active) are intentionally NOT
- * offered in v1 — half a versehensschutz layer; you can flip them via the
- * PATCH API directly if needed.
+ * Reactivation deliberately lands back on 'draft' (the editable, pre-launch
+ * state) rather than 'active' — an archived study returns to the same place a
+ * fresh study starts, so the researcher can edit it and start it again
+ * intentionally. The other reverse transitions (e.g. completed -> active) stay
+ * out of the UI as a light versehensschutz; flip them via the PATCH API if
+ * truly needed.
  */
 
 type Status = "draft" | "active" | "completed" | "archived";
@@ -81,6 +85,16 @@ export function PlanStatusControl({ planId, status }: PlanStatusControlProps) {
       next: "archived",
       label: t("actArchive"),
       variant: status === "draft" ? "ghost" : "secondary",
+    });
+  }
+  // Reverse path out of the dead end: an archived study can be reactivated back
+  // to 'draft' so it becomes editable + startable again. Lands on draft (not
+  // active) so re-launch is a deliberate second step.
+  if (status === "archived") {
+    transitions.push({
+      next: "draft",
+      label: t("actReactivate"),
+      variant: "primary",
     });
   }
 

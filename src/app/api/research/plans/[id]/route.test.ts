@@ -191,3 +191,93 @@ describe("PATCH /api/research/plans/[id] — stimulus schema hardening", () => {
     );
   });
 });
+
+/**
+ * Edit-Fluss (EditStudyForm) — der „Studie bearbeiten"-Pfad PATCHt die
+ * Kern-Konfiguration einer noch nicht durchgeführten Studie. Hier sichern wir
+ * den Vertrag ab, auf den das Formular setzt: ein voller Edit-Body geht
+ * unverändert an updateResearchPlan, und die Reaktivierung einer archivierten
+ * Studie (status='draft' aus dem PlanStatusControl) wird akzeptiert.
+ */
+describe("PATCH /api/research/plans/[id] — edit + reactivation", () => {
+  beforeEach(() => {
+    mockGetResearchPlan.mockResolvedValue(plan(false));
+  });
+
+  it("forwards a full edit payload to updateResearchPlan", async () => {
+    const body = {
+      title: "Überarbeitete Studie",
+      objective: "Wir wollen die Zahlungsbereitschaft erneut prüfen.",
+      topics: [
+        { topic: "Preis", intent: "Wie reagieren Nutzer auf den neuen Preis?" },
+      ],
+      persona: "Power-User im DACH-Raum",
+      sampleTarget: 42,
+      interviewDepth: "tief",
+      maxRounds: 9,
+      maxDurationSeconds: 1800,
+      language: "en",
+      voiceEnabled: false,
+      ttsEnabled: true,
+      visualCaptureEnabled: true,
+      signalsEnabled: true,
+      useCase: "brand_research",
+      audienceType: "b2c",
+    };
+
+    const res = await PATCH(patchRequest(body), context());
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(mockUpdateResearchPlan).toHaveBeenCalledWith(
+      ORG_ID,
+      PLAN_ID,
+      expect.objectContaining({
+        title: "Überarbeitete Studie",
+        objective: "Wir wollen die Zahlungsbereitschaft erneut prüfen.",
+        persona: "Power-User im DACH-Raum",
+        sampleTarget: 42,
+        interviewDepth: "tief",
+        maxRounds: 9,
+        maxDurationSeconds: 1800,
+        language: "en",
+        ttsEnabled: true,
+        visualCaptureEnabled: true,
+        signalsEnabled: true,
+        useCase: "brand_research",
+        audienceType: "b2c",
+      }),
+    );
+    expect(mockUpdateResearchPlan.mock.calls[0]?.[2].topics).toEqual([
+      { topic: "Preis", intent: "Wie reagieren Nutzer auf den neuen Preis?" },
+    ]);
+  });
+
+  it("accepts reactivation (archived → draft)", async () => {
+    const res = await PATCH(patchRequest({ status: "draft" }), context());
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(mockUpdateResearchPlan).toHaveBeenCalledWith(
+      ORG_ID,
+      PLAN_ID,
+      expect.objectContaining({ status: "draft" }),
+    );
+  });
+
+  it("clears the interview length back to system defaults with nulls", async () => {
+    const res = await PATCH(
+      patchRequest({ maxRounds: null, maxDurationSeconds: null }),
+      context(),
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateResearchPlan).toHaveBeenCalledWith(
+      ORG_ID,
+      PLAN_ID,
+      expect.objectContaining({ maxRounds: null, maxDurationSeconds: null }),
+    );
+  });
+});
