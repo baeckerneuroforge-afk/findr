@@ -15,29 +15,11 @@ import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
 import { isAuthorizedCron } from "@/lib/auth/cron";
 import { cronIsTotalFailure } from "@/lib/cron/status";
+import { getCronAnalysisMode, isRealActiveDeal } from "./helpers";
 
 interface OrgDeals {
   org: { id: string; name: string | null };
   activeDeals: Deal[];
-}
-
-export function isRealActiveDeal(
-  deal: Pick<Deal, "stage" | "dataSource">,
-): boolean {
-  return (
-    !["closed_won", "closed_lost"].includes(deal.stage) &&
-    deal.dataSource !== "mock"
-  );
-}
-
-export function getCronAnalysisMode(
-  env: { ANTHROPIC_API_KEY?: string } = {
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-  },
-): "heuristic_only" | "heuristic_with_ai_available" {
-  return env.ANTHROPIC_API_KEY
-    ? "heuristic_with_ai_available"
-    : "heuristic_only";
 }
 
 export async function GET(request: Request) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getCronAnalysisMode, isRealActiveDeal } from "./route";
+import { getCronAnalysisMode, isRealActiveDeal } from "./helpers";
 
 describe("cron reanalyze guards", () => {
   it("allows real active hubspot deals", () => {
