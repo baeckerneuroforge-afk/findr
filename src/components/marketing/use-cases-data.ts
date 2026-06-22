@@ -78,9 +78,12 @@ const USE_CASE_DATA: UseCaseData[] = [
     status: "live",
   },
   {
-    // VORGESEHEN, heute NICHT live (Feature ungemergt/nicht deployt) → wird nur
-    // als deaktiviertes Grid-Element gezeigt, ohne eigene Seite, ohne Nav/
-    // Footer/Sitemap. Flip auf "live" + Seite aktiviert es später.
+    // LIVE: die Persona-Stufe ist gebaut und deployt (Engine
+    // audience-personas.ts, POST /personas, Dashboard-Sub-Route) → bekommt eine
+    // eigene /loesungen/personas-Seite und steht in Nav/Footer/Sitemap. Wie die
+    // anderen Live-Fälle rein über `status` verdrahtet — getLiveUseCases filtert,
+    // also ziehen Mega-Menü, Footer, Sitemap und Cross-Verweis-Grid automatisch
+    // nach; das Homepage-Grid rendert die Karte dadurch klickbar.
     slug: "personas",
     name: { de: "Personas", en: "Personas" },
     tagline: {
@@ -88,7 +91,7 @@ const USE_CASE_DATA: UseCaseData[] = [
       en: "Evidenced personas, distilled from real interviews rather than invented.",
     },
     icon: "IdCardIcon",
-    status: "prepared",
+    status: "live",
   },
 ];
 
