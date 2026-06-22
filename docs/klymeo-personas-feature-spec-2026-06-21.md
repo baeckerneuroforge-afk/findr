@@ -35,7 +35,7 @@ Personas verdichten die bestehende Studien-Synthese zu 3–5 belegten Zielgruppe
 | 10 | **Oberfläche** | **Eigene Sub-Route** `/research-plans/[id]/personas` (Muster der Synthese-Seite); Karten-Galerie + Detail. |
 | 11 | **v1-Umfang** | **Strikt Kern + Vertrauens-Layer.** Vergleich/Chat/Export/predefined bewusst später. |
 | 12 | **Felder** | 6 Pflichtfelder **+ Leitzitat + Rolle/Segment-Label + Sentiment-Verteilung** (letzte beide server-berechnet). |
-| 13 | **Avatare** | Monogramm statt Foto (aus Aufmachung). |
+| 13 | **Avatare** | v1: Monogramm statt Foto. **v1.1 (21.06.):** illustrierter, prozedural aus dem Persona-Namen erzeugter Avatar (DiceBear-Stil „notionists", `personaAvatarUrl`), Monogramm bleibt harter Fallback. Keine KI-Gesichtsbilder, keine Fotos, keine echten Personen — DSGVO-sauber. |
 | 14 | **Sprache** | DE-Ausgabe (Chrome übersetzt DE/EN, Persona-Prosa verbatim wie Synthese). |
 
 **Offen / Implementierungs-Default (überschreibbar):** internes Naming, um die Kollision mit `src/lib/synthetic/personas.ts` (Test-Charakterbögen) und `research_plans.persona` (Freitext) zu vermeiden → Modul `audience-personas.ts`, Typen `AudiencePersona*`, DB-Spalte `personas`, UI-Label „Personas".

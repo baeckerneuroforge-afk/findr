@@ -8,6 +8,7 @@ import type {
   EnrichedAudiencePersona,
   PersonaEvidenceField,
 } from "@/lib/schemas/synthesis";
+import { personaAvatarUrl } from "@/lib/synthesis/persona-avatar";
 
 /**
  * Expandable card for ONE audience persona (Spec
@@ -53,6 +54,41 @@ function monogram(name: string): string {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
+const AVATAR_CLASS = "h-11 w-11 shrink-0 rounded-full bg-primary-100";
+
+/**
+ * Illustrierter, prozedural aus dem Namen erzeugter Persona-Avatar
+ * (src/lib/synthesis/persona-avatar.ts) mit hartem Monogramm-Fallback: lädt das
+ * Bild nicht (Netz/CSP/Dienst), rendert das Monogramm — die UI bleibt immer
+ * intakt. Decorative (aria-hidden) — der Persona-Name daneben ist das Label.
+ */
+function PersonaAvatar({ name }: { name: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div
+        aria-hidden="true"
+        className={`${AVATAR_CLASS} flex items-center justify-center text-body-strong font-semibold text-primary-700`}
+      >
+        {monogram(name)}
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- externer illustrierter SVG-Avatar (DiceBear); next/image bräuchte dangerouslyAllowSVG + remotePatterns. Monogramm-Fallback via onError.
+    <img
+      src={personaAvatarUrl(name)}
+      alt=""
+      aria-hidden="true"
+      width={44}
+      height={44}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className={AVATAR_CLASS}
+    />
+  );
+}
+
 export function PersonaCard({ persona, total, sessionHrefById }: PersonaCardProps) {
   const [expanded, setExpanded] = useState(false);
   const t = useTranslations("research.personas");
@@ -87,12 +123,7 @@ export function PersonaCard({ persona, total, sessionHrefById }: PersonaCardProp
         className="flex w-full items-start gap-4 px-5 py-4 text-left"
         aria-expanded={expanded}
       >
-        <div
-          aria-hidden="true"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-100 text-body-strong font-semibold text-primary-700"
-        >
-          {monogram(persona.name)}
-        </div>
+        <PersonaAvatar name={persona.name} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3">
             <span className="text-h3 text-neutral-900">{persona.name}</span>
