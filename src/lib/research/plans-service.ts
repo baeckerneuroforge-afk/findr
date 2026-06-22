@@ -1003,6 +1003,50 @@ export async function setResearchPlanStatus(
   return updateResearchPlan(orgId, planId, { status });
 }
 
+/**
+ * Hard-delete a research plan and every child row the DB cascades: invites,
+ * pool-invites, quotas, screening, open links, stimulus rows, synthesis +
+ * shares, panel + synthetic-test data. Personas live in a JSONB column on the
+ * plan row itself, so they go with it.
+ *
+ * NOT cascaded BY DESIGN: interview_sessions (and product_discovery_insights)
+ * carry `plan_id … ON DELETE SET NULL` so past transcripts survive a plan
+ * removal (see 20260612000000). The caller MUST therefore gate deletion on
+ * "no interview sessions yet" (countSessionsForPlan === 0) — otherwise this
+ * strands orphaned sessions that still hold participant PII. This function does
+ * not re-check that gate; the DELETE route is the policy enforcer.
+ *
+ * Returns the stimulus storage paths attached to the (now deleted) plan so the
+ * caller can best-effort purge the bucket objects — the DB cascade removes the
+ * rows, never the uploaded files. `deleted` is false when no row matched the
+ * org-scoped predicate (not found / other org → maps to 404 at the route).
+ */
+export async function deleteResearchPlan(
+  orgId: string,
+  planId: string,
+): Promise<{ deleted: boolean; storagePaths: string[] }> {
+  const supabase = createResearchSupabase();
+
+  // Collect stimulus storage paths BEFORE the delete — afterwards the rows are
+  // gone via ON DELETE CASCADE. The bucket cleanup itself runs in the route
+  // (it owns the storage client + BUCKET name), mirroring removePlanStimulus.
+  const stimuli = await listPlanStimuli(orgId, planId);
+  const storagePaths = stimuli
+    .map((s) => s.storagePath)
+    .filter((p): p is string => typeof p === "string" && p.length > 0);
+
+  const { data, error } = await supabase
+    .from("research_plans")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("id", planId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { deleted: false, storagePaths: [] };
+  return { deleted: true, storagePaths };
+}
+
 // ── Multi-Stimulus-Set (E1, docs/findr-multi-stimulus-plan.md) ───────────────
 //
 // Bis zu MAX_PLAN_STIMULI Assets pro Studie in fester Forscher-Reihenfolge

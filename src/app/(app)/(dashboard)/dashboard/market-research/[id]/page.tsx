@@ -33,6 +33,7 @@ import { AutoRefresh } from "@/components/dashboard/AutoRefresh";
 import { BulkInviteForm } from "@/components/dashboard/BulkInviteForm";
 import { CopyInterviewLinkButton } from "@/components/dashboard/CopyInterviewLinkButton";
 import { DeleteParticipantButton } from "@/components/dashboard/DeleteParticipantButton";
+import { DeleteStudyButton } from "@/components/dashboard/DeleteStudyButton";
 import { EditParticipantButton } from "@/components/dashboard/EditParticipantButton";
 import { InviteForm } from "@/components/dashboard/InviteForm";
 import { InviteFromPoolForm } from "@/components/dashboard/InviteFromPoolForm";
@@ -1154,6 +1155,31 @@ export default async function MarketCampaignDetailPage({
           <p className="text-small text-neutral-500">{t("lifecycleDesc")}</p>
         </div>
         <PlanStatusControl planId={plan.id} status={plan.status} />
+
+        {/* Studie löschen — endgültiges Entfernen von der Plattform. Nur ohne
+            Interview-Daten möglich (sauberer Cascade, keine verwaisten
+            Transkripte); sonst über „Archivieren" deaktivieren. `sessions` ist
+            die ALLE-Status-Liste (open/completed/abandoned) → length 0 ⇔ keine
+            Interviews. */}
+        <div className="border-t border-neutral-200 pt-4">
+          <h3 className="text-body-strong text-neutral-900">
+            {t("deleteStudyTitle")}
+          </h3>
+          <p className="mb-3 mt-0.5 max-w-prose text-small text-neutral-500">
+            {t("deleteStudyDesc")}
+          </p>
+          {sessions.length === 0 ? (
+            <DeleteStudyButton
+              planId={plan.id}
+              studyType="market_research"
+              title={plan.title}
+            />
+          ) : (
+            <p className="text-small text-neutral-500">
+              {t("deleteStudyBlockedNote", { archiveLabel: t("actArchive") })}
+            </p>
+          )}
+        </div>
       </section>
         </div>
       </div>

@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import {
   countSessionsForPlan,
+  deleteResearchPlan,
   getResearchPlan,
   updateResearchPlan,
 } from "@/lib/research/plans-service";
-import { PATCH } from "./route";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { DELETE, PATCH } from "./route";
 
 /**
  * Mid-Study-Flip-Warnung (voiceEnabled): Der Modus-Wechsel ist nie ein
@@ -25,14 +27,33 @@ vi.mock("@/lib/auth/org", () => ({
 
 vi.mock("@/lib/research/plans-service", () => ({
   countSessionsForPlan: vi.fn(),
+  deleteResearchPlan: vi.fn(),
   getResearchPlan: vi.fn(),
   updateResearchPlan: vi.fn(),
 }));
 
+vi.mock("@/lib/supabase/server", () => ({
+  createAdminSupabaseClient: vi.fn(),
+}));
+
 const mockRequireOrgIdOrError = vi.mocked(requireOrgIdOrError);
 const mockCountSessionsForPlan = vi.mocked(countSessionsForPlan);
+const mockDeleteResearchPlan = vi.mocked(deleteResearchPlan);
 const mockGetResearchPlan = vi.mocked(getResearchPlan);
 const mockUpdateResearchPlan = vi.mocked(updateResearchPlan);
+const mockCreateAdminSupabaseClient = vi.mocked(createAdminSupabaseClient);
+
+/** Minimal admin-client stub exposing only the storage.remove path the DELETE
+ *  handler touches for best-effort stimulus cleanup. */
+function adminClientStub() {
+  const remove = vi.fn().mockResolvedValue({ data: [], error: null });
+  const from = vi.fn(() => ({ remove }));
+  return {
+    client: { storage: { from } } as never,
+    remove,
+    from,
+  };
+}
 
 const ORG_ID = "00000000-0000-4000-8000-000000000001";
 const PLAN_ID = "00000000-0000-4000-8000-000000000002";
@@ -279,5 +300,79 @@ describe("PATCH /api/research/plans/[id] — edit + reactivation", () => {
       PLAN_ID,
       expect.objectContaining({ maxRounds: null, maxDurationSeconds: null }),
     );
+  });
+});
+
+/**
+ * DELETE-Fluss (DeleteStudyButton) — eine Studie OHNE Interview-Daten lässt
+ * sich endgültig löschen (sauberer Cascade). Studien MIT Interviews werden
+ * geblockt (409 → archivieren); eine unbekannte Session-Zahl blockt
+ * fail-closed (kein irreversibles Löschen ins Blaue).
+ */
+describe("DELETE /api/research/plans/[id] — study deletion", () => {
+  function deleteRequest() {
+    return new Request(`http://localhost/api/research/plans/${PLAN_ID}`, {
+      method: "DELETE",
+    }) as never;
+  }
+
+  beforeEach(() => {
+    mockGetResearchPlan.mockResolvedValue(plan(false));
+    mockDeleteResearchPlan.mockResolvedValue({ deleted: true, storagePaths: [] });
+  });
+
+  it("deletes a study that has no interview sessions", async () => {
+    mockCountSessionsForPlan.mockResolvedValue(0);
+
+    const res = await DELETE(deleteRequest(), context());
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(mockDeleteResearchPlan).toHaveBeenCalledWith(ORG_ID, PLAN_ID);
+  });
+
+  it("purges stimulus bucket objects best-effort after the delete", async () => {
+    mockCountSessionsForPlan.mockResolvedValue(0);
+    mockDeleteResearchPlan.mockResolvedValue({
+      deleted: true,
+      storagePaths: [`${ORG_ID}/${PLAN_ID}/a.png`],
+    });
+    const admin = adminClientStub();
+    mockCreateAdminSupabaseClient.mockReturnValue(admin.client);
+
+    const res = await DELETE(deleteRequest(), context());
+
+    expect(res.status).toBe(200);
+    expect(admin.from).toHaveBeenCalledWith("research-stimuli");
+    expect(admin.remove).toHaveBeenCalledWith([`${ORG_ID}/${PLAN_ID}/a.png`]);
+  });
+
+  it("blocks deletion (409) when the study already has sessions", async () => {
+    mockCountSessionsForPlan.mockResolvedValue(2);
+
+    const res = await DELETE(deleteRequest(), context());
+
+    expect(res.status).toBe(409);
+    expect(mockDeleteResearchPlan).not.toHaveBeenCalled();
+  });
+
+  it("fails closed (500) when the session count is unknown", async () => {
+    mockCountSessionsForPlan.mockResolvedValue(null);
+
+    const res = await DELETE(deleteRequest(), context());
+
+    expect(res.status).toBe(500);
+    expect(mockDeleteResearchPlan).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 for an unknown plan without counting or deleting", async () => {
+    mockGetResearchPlan.mockResolvedValue(null);
+
+    const res = await DELETE(deleteRequest(), context());
+
+    expect(res.status).toBe(404);
+    expect(mockCountSessionsForPlan).not.toHaveBeenCalled();
+    expect(mockDeleteResearchPlan).not.toHaveBeenCalled();
   });
 });

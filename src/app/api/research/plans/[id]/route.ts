@@ -3,12 +3,17 @@ import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
-import { parseHttpUrl } from "@/lib/research/stimulus-input";
+import {
+  parseHttpUrl,
+  RESEARCH_STIMULI_BUCKET,
+} from "@/lib/research/stimulus-input";
 import {
   countSessionsForPlan,
+  deleteResearchPlan,
   getResearchPlan,
   updateResearchPlan,
 } from "@/lib/research/plans-service";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 /**
  * PATCH /api/research/plans/[id] — partial update on a plan.
@@ -217,6 +222,92 @@ export async function PATCH(
     );
     return NextResponse.json(
       { error: t("research.couldNotUpdatePlan") },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * DELETE /api/research/plans/[id] — permanently remove a study and everything
+ * the DB cascades (invites, pool-invites, quotas, screening, open links,
+ * stimulus rows, synthesis + shares, panel + synthetic-test data; personas live
+ * on the row). Stimulus bucket objects are purged best-effort afterwards.
+ *
+ * Policy gate: only studies WITHOUT interview sessions can be deleted. Past
+ * interviews carry `plan_id … ON DELETE SET NULL` by design (transcripts must
+ * survive), so deleting a study that has any sessions would strand orphaned
+ * rows holding participant data. Studies with interviews are archived
+ * (deactivated) instead — see PlanStatusControl. The session count is read
+ * fail-CLOSED: an unknown count blocks the irreversible delete.
+ */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const t = await getTranslations("errors");
+  const orgOrError = await requireOrgIdOrError();
+  if ("error" in orgOrError) return orgOrError.error;
+  const { orgId } = orgOrError;
+
+  const { id: planId } = await params;
+
+  const existing = await getResearchPlan(orgId, planId);
+  if (!existing) {
+    return NextResponse.json(
+      { error: t("notFound.researchPlan") },
+      { status: 404 },
+    );
+  }
+
+  // Gate: no interview sessions → clean cascade, no orphaned transcripts.
+  const sessionCount = await countSessionsForPlan(orgId, planId);
+  if (sessionCount === null) {
+    // fail-closed: never run an irreversible delete with an unknown session
+    // state — better a retryable 500 than a stranded transcript.
+    return NextResponse.json(
+      { error: t("research.couldNotDeletePlan") },
+      { status: 500 },
+    );
+  }
+  if (sessionCount > 0) {
+    return NextResponse.json(
+      { error: t("research.planHasInterviews") },
+      { status: 409 },
+    );
+  }
+
+  try {
+    const { deleted, storagePaths } = await deleteResearchPlan(orgId, planId);
+    if (!deleted) {
+      // Existence check passed above, so this is a true delete failure.
+      return NextResponse.json(
+        { error: t("research.couldNotDeletePlan") },
+        { status: 500 },
+      );
+    }
+
+    // Best-effort bucket cleanup AFTER the DB delete: an orphaned bucket object
+    // is harmless (public, unlinked), but a live row pointing at a removed file
+    // would not be — order mirrors the per-stimulus DELETE route.
+    if (storagePaths.length > 0) {
+      try {
+        const supabase = createAdminSupabaseClient();
+        await supabase.storage
+          .from(RESEARCH_STIMULI_BUCKET)
+          .remove(storagePaths);
+      } catch {
+        // Storage hiccup / missing bucket — the study data is already gone.
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error(
+      `[DELETE /api/research/plans/${planId}] delete failed:`,
+      err instanceof Error ? err.message : err,
+    );
+    return NextResponse.json(
+      { error: t("research.couldNotDeletePlan") },
       { status: 500 },
     );
   }

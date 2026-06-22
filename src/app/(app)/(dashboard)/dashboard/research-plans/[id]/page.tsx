@@ -13,6 +13,7 @@ import {
 } from "@/lib/panel/service";
 import {
   countCompletedSessionsForPlan,
+  countSessionsForPlan,
   getResearchPlan,
 } from "@/lib/research/plans-service";
 import { getOpenLinkForPlan } from "@/lib/research/open-links";
@@ -28,6 +29,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 import { BulkInviteForm } from "@/components/dashboard/BulkInviteForm";
 import { CopyInterviewLinkButton } from "@/components/dashboard/CopyInterviewLinkButton";
 import { DeleteParticipantButton } from "@/components/dashboard/DeleteParticipantButton";
+import { DeleteStudyButton } from "@/components/dashboard/DeleteStudyButton";
 import { EditParticipantButton } from "@/components/dashboard/EditParticipantButton";
 import { InviteForm } from "@/components/dashboard/InviteForm";
 import { InviteFromPoolForm } from "@/components/dashboard/InviteFromPoolForm";
@@ -152,6 +154,7 @@ export default async function ResearchPlanDetailPage({
     prolificCredential,
     prolificStudy,
     completed,
+    totalSessions,
   ] = await Promise.all([
     listPoolMembers(orgId),
     listInvitedPoolMemberIds(orgId, planId),
@@ -160,6 +163,7 @@ export default async function ResearchPlanDetailPage({
     getProlificCredentialSummary(orgId),
     getProlificStudyForPlan(orgId, planId),
     countCompletedSessionsForPlan(orgId, planId),
+    countSessionsForPlan(orgId, planId),
   ]);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
@@ -676,6 +680,30 @@ export default async function ResearchPlanDetailPage({
           <p className="text-small text-neutral-500">{t("lifecycleDesc")}</p>
         </div>
         <PlanStatusControl planId={plan.id} status={plan.status} />
+
+        {/* Studie löschen — endgültiges Entfernen von der Plattform. Nur ohne
+            Interview-Daten (sauberer Cascade, keine verwaisten Transkripte);
+            sonst über „Archivieren" deaktivieren. totalSessions===null
+            (Lesefehler) wird wie >0 behandelt → kein Lösch-Button. */}
+        <div className="border-t border-neutral-200 pt-4">
+          <h3 className="text-body-strong text-neutral-900">
+            {t("deleteStudyTitle")}
+          </h3>
+          <p className="mb-3 mt-0.5 max-w-prose text-small text-neutral-500">
+            {t("deleteStudyDesc")}
+          </p>
+          {totalSessions === 0 ? (
+            <DeleteStudyButton
+              planId={plan.id}
+              studyType="product_discovery"
+              title={plan.title}
+            />
+          ) : (
+            <p className="text-small text-neutral-500">
+              {t("deleteStudyBlockedNote", { archiveLabel: t("actArchive") })}
+            </p>
+          )}
+        </div>
       </section>
     </div>
   );
