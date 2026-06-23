@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { createResearchSupabase } from "@/lib/research/db";
 import { getResearchPlan } from "@/lib/research/plans-service";
+import { invalidateInteractionSummary } from "@/lib/synthesis/interaction";
 
 /**
  * DELETE /api/research/plans/[id]/participants/[participantId]
@@ -83,6 +84,12 @@ export async function DELETE(
       );
     }
     sessionsDeleted = erasedSessions?.length ?? 0;
+    // Art. 17 — also invalidate the study's stored usability aggregate so it
+    // cannot retain the erased participant's contribution; the next synthesis
+    // recomputes it min-N-gated from the remaining sessions. Best-effort.
+    if (sessionsDeleted > 0) {
+      await invalidateInteractionSummary(orgId, planId);
+    }
   }
 
   // Step 3: scoped DELETE of the invite. The triple filter (id + plan_id +

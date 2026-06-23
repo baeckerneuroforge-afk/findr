@@ -192,7 +192,7 @@
       "title": "Before you begin",
       "intro": "This conversation is conducted by an AI interviewer — you're talking to an artificial intelligence, not a human. Your participation is voluntary.",
       "privacyTitle": "Privacy",
-      "privacyBody": "The conversation is handled confidentially and analyzed based on its content. This can include an automated assessment of sentiment and of how questions were answered — based solely on the text of your answers, never on your voice. Please share only what you're comfortable disclosing, and don't enter sensitive personal data. Your answers are never used for advertising.",
+      "privacyBody": "The conversation is handled confidentially and analyzed based on its content. This can include an automated assessment of sentiment and of how questions were answered — based solely on the text of your answers, never on your voice. For task-based studies, this also includes an automated assessment of whether you completed the task. Please share only what you're comfortable disclosing, and don't enter sensitive personal data. Your answers are never used for advertising.",
       "agree": "I've read this notice and am taking part voluntarily.",
       "continue": "Continue"
     },
@@ -201,7 +201,7 @@
         "title": "Before you begin",
         "intro": "You're taking part anonymously in a short study. The interview is conducted by an AI interviewer — you're talking to an artificial intelligence, not a human. No sign-in is required, and we don't ask for any personal details up front.",
         "privacyTitle": "Privacy",
-        "privacyBody": "This conversation is handled confidentially and used only for research. Responses are analyzed automatically based on their content; this can include an assessment of sentiment and of how questions were answered — based solely on the text of your answers, never on your voice. Please share only what you're comfortable disclosing — don't enter sensitive personal data. Your answers are never used for advertising.",
+        "privacyBody": "This conversation is handled confidentially and used only for research. Responses are analyzed automatically based on their content; this can include an assessment of sentiment and of how questions were answered — based solely on the text of your answers, never on your voice. For task-based studies, this also includes an automated assessment of whether you completed the task. Please share only what you're comfortable disclosing — don't enter sensitive personal data. Your answers are never used for advertising.",
         "agree": "I've read the privacy notice and am taking part voluntarily.",
         "continue": "Continue"
       },

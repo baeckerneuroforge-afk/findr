@@ -136,3 +136,40 @@ export async function loadSynthesisInteractionSummary(
     return null;
   }
 }
+
+/**
+ * DSGVO Art. 17 / 5 — invalidate (null) a study's stored usability aggregate.
+ * Called when a research session is deleted/withdrawn so the persisted
+ * interaction_summary can never reflect — or, at small N, help re-identify — an
+ * erased participant. The next synthesis run recomputes a fresh, min-N-gated
+ * aggregate from the REMAINING sessions. Best-effort + fail-soft: never throws
+ * into the deletion path; a no-op if no synthesis row exists yet.
+ *
+ * NOTE: interaction_summary is typed in the synthesis engine's DatabaseWithSynth
+ * overlay, not in db.ts's StudySynthesisUpdate (the synthesis extras columns
+ * stay untyped there) — hence the localized cast on this additive null write.
+ * supabase-js sends the runtime value verbatim, so the column is set to null.
+ */
+export async function invalidateInteractionSummary(
+  orgId: string,
+  planId: string,
+): Promise<void> {
+  try {
+    const supabase = createResearchSupabase();
+    const { error } = await supabase
+      .from("study_synthesis")
+      .update({ interaction_summary: null } as unknown as never)
+      .eq("org_id", orgId)
+      .eq("plan_id", planId);
+    if (error) {
+      console.warn(
+        `[synthesis-interaction] aggregate invalidation failed for plan ${planId} (deletion unaffected): ${error.message}`,
+      );
+    }
+  } catch (err) {
+    console.warn(
+      "[synthesis-interaction] aggregate invalidation threw (deletion unaffected):",
+      err instanceof Error ? err.message : err,
+    );
+  }
+}

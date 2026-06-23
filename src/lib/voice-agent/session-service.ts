@@ -19,6 +19,7 @@ import { findInviteByAccessToken } from "@/lib/research/scheduling";
 import { persistResearchTranscriptAndDiscovery } from "@/lib/research/transcript-service";
 import { runTurnSignalsSidecar } from "@/lib/research/turn-signals";
 import { runTaskSuccessJudgeSidecar } from "@/lib/research/task-success-judge";
+import { invalidateInteractionSummary } from "@/lib/synthesis/interaction";
 import {
   DEFAULT_INTERVIEW_LANGUAGE,
   DEFAULT_VOICE_MODEL,
@@ -871,7 +872,7 @@ export async function markInterviewInvited(
  * zugestimmt wurde. Bei jeder inhaltlichen Änderung der Consent-Texte
  * MITZIEHEN (neues Datum).
  */
-export const CONSENT_TEXT_VERSION = "2026-06-11";
+export const CONSENT_TEXT_VERSION = "2026-06-23";
 
 /**
  * E0 — stamp the participant's consent on a session (DSGVO Art. 7(1)
@@ -1000,9 +1001,16 @@ export async function withdrawSessionByToken(
     .from("interview_sessions")
     .delete()
     .eq("access_token", accessToken)
-    .select("id")
+    .select("id, org_id, plan_id, kind")
     .maybeSingle();
   if (error) throw error;
+  // Art. 17 — the row delete takes task_result + task_success_judgment with it
+  // (research_session_events cascade). Additionally invalidate the study's stored
+  // usability aggregate so it can't retain the withdrawn participant's share; the
+  // next synthesis recomputes it min-N-gated from the remaining sessions.
+  if (data && data.kind === "research" && data.plan_id) {
+    await invalidateInteractionSummary(data.org_id, data.plan_id);
+  }
   return { deleted: Boolean(data) };
 }
 

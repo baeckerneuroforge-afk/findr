@@ -192,7 +192,7 @@
       "title": "Bevor es losgeht",
       "intro": "Dieses Gespräch führt ein KI-Interviewer — Sie sprechen mit einer künstlichen Intelligenz, nicht mit einem Menschen. Ihre Teilnahme ist freiwillig.",
       "privacyTitle": "Datenschutz",
-      "privacyBody": "Das Gespräch wird vertraulich verarbeitet und inhaltlich ausgewertet. Dazu kann eine automatische Einordnung von Stimmung und Antwortverhalten gehören — ausschließlich auf Grundlage des Texts Ihrer Antworten, nicht Ihrer Stimme. Bitte teilen Sie nur, was Sie freiwillig preisgeben möchten, und geben Sie keine sensiblen personenbezogenen Daten ein. Ihre Antworten werden nicht für Werbung verwendet.",
+      "privacyBody": "Das Gespräch wird vertraulich verarbeitet und inhaltlich ausgewertet. Dazu kann eine automatische Einordnung von Stimmung und Antwortverhalten gehören — ausschließlich auf Grundlage des Texts Ihrer Antworten, nicht Ihrer Stimme. Bei aufgabenbasierten Studien gehört dazu auch eine automatische Einschätzung, ob Sie die Aufgabe erfolgreich abgeschlossen haben. Bitte teilen Sie nur, was Sie freiwillig preisgeben möchten, und geben Sie keine sensiblen personenbezogenen Daten ein. Ihre Antworten werden nicht für Werbung verwendet.",
       "agree": "Ich habe den Hinweis gelesen und nehme freiwillig teil.",
       "continue": "Weiter"
     },
@@ -201,7 +201,7 @@
         "title": "Bevor es losgeht",
         "intro": "Sie nehmen anonym an einer kurzen Studie teil. Das Interview führt ein KI-Interviewer — Sie sprechen also mit einer künstlichen Intelligenz, nicht mit einem Menschen. Es ist keine Anmeldung nötig, und wir fragen vorab keine persönlichen Daten ab.",
         "privacyTitle": "Datenschutz",
-        "privacyBody": "Das Gespräch wird vertraulich verarbeitet und ausschließlich für Forschungszwecke ausgewertet. Die Auswertung erfolgt automatisiert und inhaltlich; dazu kann eine Einordnung von Stimmung und Antwortverhalten gehören — ausschließlich auf Grundlage des Texts Ihrer Antworten, nicht Ihrer Stimme. Bitte teilen Sie nur, was Sie freiwillig preisgeben möchten — geben Sie keine sensiblen personenbezogenen Daten ein. Ihre Antworten werden nicht für Werbung verwendet.",
+        "privacyBody": "Das Gespräch wird vertraulich verarbeitet und ausschließlich für Forschungszwecke ausgewertet. Die Auswertung erfolgt automatisiert und inhaltlich; dazu kann eine Einordnung von Stimmung und Antwortverhalten gehören — ausschließlich auf Grundlage des Texts Ihrer Antworten, nicht Ihrer Stimme. Bei aufgabenbasierten Studien gehört dazu auch eine automatische Einschätzung, ob Sie die Aufgabe erfolgreich abgeschlossen haben. Bitte teilen Sie nur, was Sie freiwillig preisgeben möchten — geben Sie keine sensiblen personenbezogenen Daten ein. Ihre Antworten werden nicht für Werbung verwendet.",
         "agree": "Ich habe den Datenschutzhinweis gelesen und nehme freiwillig teil.",
         "continue": "Weiter"
       },
