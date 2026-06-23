@@ -53,6 +53,11 @@ const nextConfig: NextConfig = {
       },
       { source: "/agb", destination: "/de/agb", permanent: true },
       {
+        source: "/mensch-und-ki",
+        destination: "/de/mensch-und-ki",
+        permanent: true,
+      },
+      {
         source: "/insights/:path*",
         destination: "/de/insights/:path*",
         permanent: true,

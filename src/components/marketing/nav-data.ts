@@ -308,6 +308,10 @@ export function getFooterColumns(locale: Locale): FooterColumn[] {
       title: localizedContent(locale, { de: "Unternehmen", en: "Company" }),
       links: [
         {
+          label: localizedContent(locale, { de: "Mensch & KI", en: "Humans & AI" }),
+          href: localizeHref(locale, "/mensch-und-ki"),
+        },
+        {
           label: localizedContent(locale, { de: "Preise", en: "Pricing" }),
           href: localizeHref(locale, "/preise"),
         },
@@ -405,6 +409,8 @@ export const SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/preise", priority: 0.8 },
   ...SITEMAP_INDUSTRIES.map((i) => ({ path: `/branchen/${i.slug}`, priority: 0.7 })),
   { path: "/insights", priority: 0.6 },
+  // Haltungs-/Positionierungsseite „Mensch & KI" (Augmentation statt Ersatz).
+  { path: "/mensch-und-ki", priority: 0.5 },
   { path: "/demo", priority: 0.5 },
   { path: "/impressum", priority: 0.3 },
   { path: "/datenschutz", priority: 0.3 },
