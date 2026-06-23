@@ -87,6 +87,7 @@ export interface EditStudyInitial {
   voiceEnabled: boolean;
   ttsEnabled: boolean;
   visualCaptureEnabled: boolean;
+  eventTrackingEnabled: boolean;
   signalsEnabled: boolean;
   useCase: UseCase | null;
   audienceType: "b2b" | "b2c";
@@ -104,6 +105,7 @@ interface FormState {
   voiceEnabled: boolean;
   ttsEnabled: boolean;
   visualCaptureEnabled: boolean;
+  eventTrackingEnabled: boolean;
   signalsEnabled: boolean;
   useCase: UseCase;
   audienceType: "b2b" | "b2c";
@@ -131,6 +133,7 @@ function initialFormState(plan: EditStudyInitial): FormState {
     voiceEnabled: plan.voiceEnabled,
     ttsEnabled: plan.ttsEnabled,
     visualCaptureEnabled: plan.visualCaptureEnabled,
+    eventTrackingEnabled: plan.eventTrackingEnabled,
     signalsEnabled: plan.signalsEnabled,
     // Fallback general_survey: legacy/Discovery-Pläne tragen useCase=null; der
     // Wert wird auf dem Discovery-Pfad ohnehin nie gesendet.
@@ -268,6 +271,7 @@ export function EditStudyForm({
             persona: form.persona.trim() === "" ? null : form.persona.trim(),
             sampleTarget,
             visualCaptureEnabled: form.visualCaptureEnabled,
+            eventTrackingEnabled: form.eventTrackingEnabled,
             voiceEnabled: form.voiceEnabled,
             ttsEnabled: form.ttsEnabled,
             signalsEnabled: form.signalsEnabled,
@@ -714,6 +718,28 @@ export function EditStudyForm({
             </span>
             <span className="mt-0.5 block text-caption text-neutral-500">
               {t("visualCaptureHint")}
+            </span>
+          </span>
+        </label>
+
+        {/* Event-Tracking */}
+        <label className="flex items-start gap-3 rounded-lg border border-neutral-200 bg-card p-4">
+          <input
+            type="checkbox"
+            checked={form.eventTrackingEnabled}
+            onChange={(e) => update("eventTrackingEnabled", e.target.checked)}
+            disabled={submitting}
+            className="mt-0.5 h-4 w-4 shrink-0"
+          />
+          <span>
+            <span className="block text-body-strong text-neutral-900">
+              {t("fldEventTracking")} —{" "}
+              {form.eventTrackingEnabled
+                ? t("eventTrackingOn")
+                : t("eventTrackingOff")}
+            </span>
+            <span className="mt-0.5 block text-caption text-neutral-500">
+              {t("eventTrackingHint")}
             </span>
           </span>
         </label>

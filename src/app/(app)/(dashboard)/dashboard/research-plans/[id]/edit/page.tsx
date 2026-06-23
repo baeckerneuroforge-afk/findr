@@ -80,6 +80,7 @@ export default async function EditResearchPlanPage({
             voiceEnabled: plan.voiceEnabled,
             ttsEnabled: plan.ttsEnabled,
             visualCaptureEnabled: plan.visualCaptureEnabled,
+            eventTrackingEnabled: plan.eventTrackingEnabled,
             signalsEnabled: plan.signalsEnabled,
             useCase: plan.useCase,
             audienceType: plan.audienceType,

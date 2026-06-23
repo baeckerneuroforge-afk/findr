@@ -87,6 +87,7 @@ export default async function EditMarketStudyPage({
             voiceEnabled: plan.voiceEnabled,
             ttsEnabled: plan.ttsEnabled,
             visualCaptureEnabled: plan.visualCaptureEnabled,
+            eventTrackingEnabled: plan.eventTrackingEnabled,
             signalsEnabled: plan.signalsEnabled,
             useCase: plan.useCase,
             audienceType: plan.audienceType,

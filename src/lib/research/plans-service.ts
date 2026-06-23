@@ -33,6 +33,10 @@ import {
   coerceTurnSignalsRecord,
   type TurnSignalsRecord,
 } from "@/lib/schemas/turn-signals";
+import {
+  coerceTaskResult,
+  type TaskResult,
+} from "@/lib/schemas/task-result";
 
 /**
  * Read + write helpers for the research layer. Mirrors the pattern of
@@ -632,6 +636,11 @@ export interface PlanSessionTranscript {
    *  Bestand, fremde Version) → Chips/Signal-Block rendern nicht, die
    *  Ansicht bleibt byte-identisch. NIE in Teilnehmer-Views durchreichen. */
   turnSignals: TurnSignalsRecord | null;
+  /** Phase 2c — serverberechnetes Usability-Ergebnis (Behavioural Event-Store).
+   *  Null = nie berechnet (kein Event-Tracking, kein Consent, Bestand, fremde
+   *  Version) → die Ergebnis-Karte rendert nicht, die Ansicht bleibt
+   *  byte-identisch. Rein behavioral, kein Affekt (L8). */
+  taskResult: TaskResult | null;
 }
 
 /** Server-seitiges Cap der Interviews-Liste (keine Pagination, E2-Scope).
@@ -742,7 +751,7 @@ export async function getSessionWithTranscript(
   const { data, error } = await supabase
     .from("interview_sessions")
     .select(
-      "id, status, mode, conversation, created_at, completed_at, turn_signals",
+      "id, status, mode, conversation, created_at, completed_at, turn_signals, task_result",
     )
     .eq("org_id", orgId)
     .eq("plan_id", planId)
@@ -761,6 +770,12 @@ export async function getSessionWithTranscript(
     // in Prod angewandt+verifiziert, daher darf sie im Narrow-Select stehen.
     turnSignals: coerceTurnSignalsRecord(
       (data as { turn_signals?: unknown }).turn_signals,
+    ),
+    // Phase 2c: lenient like turnSignals. task_result existiert seit Migration
+    // 20260723000004 (in Prod angewandt+verifiziert) → darf im Narrow-Select
+    // stehen; coerceTaskResult glättet Bestand/Null/Müll zu null.
+    taskResult: coerceTaskResult(
+      (data as { task_result?: unknown }).task_result,
     ),
   };
 }

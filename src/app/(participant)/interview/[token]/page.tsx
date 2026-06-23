@@ -157,6 +157,10 @@ export default async function InterviewPage({
   ]);
   const visualCaptureEnabled =
     isResearch && plan?.visualCaptureEnabled === true;
+  // Phase 2c: research-only behavioural event tracking, gated on the plan flag.
+  // Mirrors visualCaptureEnabled; non-research → plan null → false → byte-identical.
+  const eventTrackingEnabled =
+    isResearch && plan?.eventTrackingEnabled === true;
   // Voice Stage 1: research-only, gated on the plan's voice_enabled flag (the
   // backend already loaded it). Mirrors visualCaptureEnabled exactly; for
   // post_loss / checkin (non-research) plan is null → false → byte-identical.
@@ -296,6 +300,7 @@ export default async function InterviewPage({
         // Panel-Sessions gesetzt (sonst null → kein Redirect, byte-identisch).
         panelCompleteRedirect={session.panelCompleteRedirect}
         visualCaptureEnabled={visualCaptureEnabled}
+        eventTrackingEnabled={eventTrackingEnabled}
         // O1: this branch renders either a non-voice study (voiceEnabled is
         // already false → value-identical) or the explicit ?mode=text fallback
         // of a voice study, where the push-to-talk provisional must stay off.

@@ -12,6 +12,8 @@ import { InterviewProgress } from "./InterviewProgress";
 import { InterviewTimer } from "./InterviewTimer";
 import { InterviewCompletedScreen } from "./InterviewCompletedScreen";
 import { WithdrawDataLink } from "./WithdrawDataLink";
+import { EventTrackingConsent } from "./EventTrackingConsent";
+import { useEventCollector } from "./useEventCollector";
 import { KlymeoMark } from "@/components/shared/KlymeoMark";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 
@@ -60,6 +62,11 @@ interface InterviewChatProps {
    *  interviews. Defaults false so post_loss/checkin and unsupported browsers
    *  render the existing chat path unchanged. */
   visualCaptureEnabled?: boolean;
+  /** Phase 2c: when true, the behavioural event collector is available. It runs
+   *  only after the participant grants the events tier in the consent banner,
+   *  and the /events route also fail-closes server-side. Defaults false →
+   *  byte-identical text-only chat with no collector and no banner. */
+  eventTrackingEnabled?: boolean;
   /** Voice Stage 1: when true, an additive push-to-talk mic surface is shown
    *  alongside the textarea. The recorded audio goes to /api/interview/[token]/
    *  voice, which transcribes it and returns the same { session } shape as the
@@ -855,6 +862,7 @@ export function InterviewChat({
   logoUrl = null,
   panelCompleteRedirect = null,
   visualCaptureEnabled = false,
+  eventTrackingEnabled = false,
   voiceEnabled = false,
   stimulusUrl = null,
   stimulusType = null,
@@ -1020,6 +1028,19 @@ export function InterviewChat({
   const messagesRef = useRef(messages);
 
   const isOpen = status === "open";
+  // Phase 2c — events-tier consent decision for the behavioural collector.
+  // 'pending' until the participant accepts/declines the consent banner;
+  // default 'pending' is inert (the collector stays off until 'granted').
+  const [eventsConsent, setEventsConsent] = useState<
+    "pending" | "granted" | "declined"
+  >("pending");
+  // Phase 2c — the behavioural event collector. Inert unless the events tier is
+  // granted; the /events route additionally fail-closes server-side.
+  useEventCollector({
+    token,
+    active: eventTrackingEnabled && eventsConsent === "granted",
+    completed: status === "completed",
+  });
   const visualConsentPending =
     isOpen &&
     visualCaptureEnabled &&
@@ -2028,6 +2049,11 @@ export function InterviewChat({
           truncated={visualTruncated}
           onAccept={() => void startVisualCapture()}
           onDecline={declineVisualCapture}
+        />
+        <EventTrackingConsent
+          token={token}
+          show={eventTrackingEnabled && eventsConsent === "pending" && isOpen}
+          onDecision={setEventsConsent}
         />
         {messages.map((m, i) => (
           <Bubble

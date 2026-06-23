@@ -1,8 +1,16 @@
 import "server-only";
 
 import type { Json } from "@/types/database";
+import type {
+  TaskResult,
+  TaskResultFrictionEvent,
+} from "@/lib/schemas/task-result";
 
 import { createResearchSupabase, type ResearchSessionEventType } from "./db";
+
+// Re-exported so existing importers of these types keep working; the canonical
+// definition + Zod schema + read-mapper live in @/lib/schemas/task-result.
+export type { TaskResult, TaskResultFrictionEvent };
 
 /**
  * Phase 2b — behavioural usability EVENT STORE (integration plan §5, L5/L6/L8).
@@ -74,19 +82,6 @@ export async function resolveResearchEventSession(
 }
 
 // ── Task-result computation (pure, server-authoritative) ─────────────────────
-
-export interface TaskResultFrictionEvent {
-  type: "rage_click";
-  ts_ms: number;
-}
-
-export interface TaskResult {
-  version: 1;
-  success: boolean | null;
-  time_on_task_seconds: number | null;
-  click_count: number;
-  friction_events: TaskResultFrictionEvent[];
-}
 
 export interface ComputeEventInput {
   event_type: ResearchSessionEventType | string;

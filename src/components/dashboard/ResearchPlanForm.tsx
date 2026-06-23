@@ -141,6 +141,10 @@ interface FormState {
   // (exact key) in the create/update body — the backend flag + interview-gate
   // already exist; this form only fills the value.
   visualCaptureEnabled: boolean;
+  // Event-Tracking opt-in. Default OFF. Sent as `eventTrackingEnabled` (exact
+  // key) in the create/update body — the backend flag, the /events route and
+  // the consent gate already exist; this form only fills the value.
+  eventTrackingEnabled: boolean;
   // Interaction mode. Default Text (false). Sent as `voiceEnabled` (exact key)
   // in the create/update body — the backend flag + voice route already exist;
   // this form only fills the value. Text fallback always stays available.
@@ -345,6 +349,8 @@ const INITIAL_FORM: FormState = {
   sampleTarget: "",
   // Default OFF — VI is opt-in per study; an untouched form sends false.
   visualCaptureEnabled: false,
+  // Default OFF — event tracking is opt-in per study; untouched form sends false.
+  eventTrackingEnabled: false,
   // Default Text — voice is opt-in per study; an untouched form sends false.
   voiceEnabled: false,
   // Default general_survey. On the market-research path the matching preset is
@@ -582,6 +588,7 @@ export function ResearchPlanForm({
           persona: form.persona.trim() === "" ? null : form.persona.trim(),
           sampleTarget: null,
           visualCaptureEnabled: form.visualCaptureEnabled,
+          eventTrackingEnabled: form.eventTrackingEnabled,
           voiceEnabled: form.voiceEnabled,
           ttsEnabled: form.ttsEnabled,
           signalsEnabled: form.signalsEnabled,
@@ -1149,6 +1156,7 @@ export function ResearchPlanForm({
               persona: form.persona.trim() === "" ? null : form.persona.trim(),
               sampleTarget,
               visualCaptureEnabled: form.visualCaptureEnabled,
+              eventTrackingEnabled: form.eventTrackingEnabled,
               voiceEnabled: form.voiceEnabled,
               ttsEnabled: form.ttsEnabled,
               signalsEnabled: form.signalsEnabled,
@@ -1184,6 +1192,7 @@ export function ResearchPlanForm({
           persona: form.persona.trim() === "" ? null : form.persona.trim(),
           sampleTarget,
           visualCaptureEnabled: form.visualCaptureEnabled,
+          eventTrackingEnabled: form.eventTrackingEnabled,
           voiceEnabled: form.voiceEnabled,
           ttsEnabled: form.ttsEnabled,
           signalsEnabled: form.signalsEnabled,
@@ -1460,6 +1469,54 @@ export function ResearchPlanForm({
               </p>
             </div>
           )}
+        </div>
+
+        {/* Event-Tracking opt-in (default OFF) — exakt das Visual-Capture-
+            Toggle-Muster (ohne Empfehlungs-Hinweis). Erfasst NICHT-biometrisches
+            Interaktionsverhalten (Klicks, Scrollen, Verweildauer) während des
+            Interviews. Schreibt `eventTrackingEnabled` (exakter Key) im Submit-
+            Body; Backend-Flag, /events-Route und Consent-Gate existieren. */}
+        <div className="rounded-lg border border-neutral-200 bg-card p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <span className="block text-body-strong text-neutral-900">
+                {t("fldEventTracking")}
+              </span>
+              <span className="mt-1 block text-caption text-neutral-500">
+                {t("eventTrackingHint")}
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-caption text-neutral-500">
+                {form.eventTrackingEnabled
+                  ? t("eventTrackingOn")
+                  : t("eventTrackingOff")}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.eventTrackingEnabled}
+                aria-label={t("fldEventTracking")}
+                onClick={() =>
+                  update("eventTrackingEnabled", !form.eventTrackingEnabled)
+                }
+                disabled={submitting}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-60 ${
+                  form.eventTrackingEnabled
+                    ? "bg-primary-600"
+                    : "bg-neutral-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-card shadow-sm transition-transform ${
+                    form.eventTrackingEnabled
+                      ? "translate-x-5"
+                      : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* E2 Turn-Signale opt-in (default OFF) — exakt das Visual-Capture-

@@ -228,6 +228,73 @@ export async function SessionSignalsCard({
   );
 }
 
+/** Phase 2c — Usability-Ergebnis überm Transkript: serverberechnete
+ *  Verhaltensmetriken (Ausgang, Zeit pro Aufgabe, Klicks, Reibungspunkte aus
+ *  Rage-Click-Läufen). Rendert NUR, wenn die Session ein berechnetes Ergebnis
+ *  trägt — kein Event-Tracking / kein Consent / Bestand → null → Seite
+ *  byte-identisch. Rein behavioral, KEIN Affekt (L8). */
+export async function TaskResultCard({
+  session,
+}: {
+  session: PlanSessionTranscript;
+}) {
+  const result = session.taskResult;
+  if (!result) return null;
+  const tm = await getTranslations("research.market");
+
+  const outcome =
+    result.success === true
+      ? tm("taskResultOutcomeSuccess")
+      : result.success === false
+        ? tm("taskResultOutcomeAbandon")
+        : tm("taskResultOutcomeOpen");
+  const time =
+    result.time_on_task_seconds === null
+      ? "—"
+      : tm("taskResultSeconds", { n: result.time_on_task_seconds });
+
+  return (
+    <Card>
+      <CardBody>
+        <h2 className="text-body-strong text-neutral-900">
+          {tm("taskResultTitle")}
+        </h2>
+        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+          <div>
+            <dt className="text-caption text-neutral-500">
+              {tm("taskResultOutcome")}
+            </dt>
+            <dd className="text-body text-neutral-900">{outcome}</dd>
+          </div>
+          <div>
+            <dt className="text-caption text-neutral-500">
+              {tm("taskResultTime")}
+            </dt>
+            <dd className="text-body text-neutral-900">{time}</dd>
+          </div>
+          <div>
+            <dt className="text-caption text-neutral-500">
+              {tm("taskResultClicks")}
+            </dt>
+            <dd className="text-body text-neutral-900">{result.click_count}</dd>
+          </div>
+          <div>
+            <dt className="text-caption text-neutral-500">
+              {tm("taskResultFriction")}
+            </dt>
+            <dd className="text-body text-neutral-900">
+              {result.friction_events.length}
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-2 text-caption text-neutral-400">
+          {tm("taskResultDisclaimer")}
+        </p>
+      </CardBody>
+    </Card>
+  );
+}
+
 /** Der Gesprächsverlauf — Interviewer links (neutral), Teilnehmer rechts
  *  (primary-Fläche), gespiegelte Chat-Leserichtung der Teilnehmer-Ansicht.
  *  E2: trägt die Session Turn-Signale, bekommen Teilnehmer-Antworten ihre

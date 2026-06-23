@@ -12,6 +12,7 @@ import {
   SessionConversationCard,
   SessionMetaBadges,
   SessionSignalsCard,
+  TaskResultCard,
 } from "@/components/dashboard/SessionTranscriptView";
 import { TranscriptDrawer } from "@/components/dashboard/TranscriptDrawer";
 import { ENABLED_MODULES } from "@/config/modules";
@@ -71,6 +72,8 @@ export default async function InterceptedSessionDrawerPage({
       <SessionMetaBadges session={session} />
       {/* E2 — Signal-Block; identische Reihenfolge wie die Voll-Seite. */}
       <SessionSignalsCard session={session} />
+      {/* Phase 2c — Usability-Ergebnis; rendert nur mit berechnetem task_result. */}
+      <TaskResultCard session={session} />
       <SessionConversationCard session={session} stimuli={stimuli} />
     </TranscriptDrawer>
   );
