@@ -25,6 +25,7 @@ import {
   resolveExpectedQuestions,
   type InterviewDepth,
 } from "@/lib/research/interview-duration";
+import { PROTOTYPE_HOSTING, type PrototypeHosting } from "@/lib/research/task";
 
 /** Client mirror of the server's stimulus-route limits (bucket
  *  research-stimuli). Kept in sync with
@@ -197,6 +198,13 @@ interface FormState {
   // `maxDurationSeconds` (×60) in jeden create/update-Body gesendet. Voice
   // erzwingt es hart, Text weich (Countdown). Gilt für ALLE Studientypen.
   maxDurationMinutes: number | null;
+  // Usability task (Phase 1) — only sent when useCase === 'usability_test'
+  // (needsTask), bundled into a `taskDefinition` object in the create/update
+  // body. Never sent for other use-cases → byte-identical. No capture in P1.
+  taskInstruction: string;
+  taskSuccessCriterion: string;
+  taskTargetUrl: string;
+  taskPrototypeHosting: PrototypeHosting;
   topics: TopicDraft[];
 }
 
@@ -210,13 +218,15 @@ type UseCase =
   | "general_survey"
   | "brand_research"
   | "creative_test"
-  | "concept_test";
+  | "concept_test"
+  | "usability_test";
 
 const USE_CASES: readonly UseCase[] = [
   "general_survey",
   "brand_research",
   "creative_test",
   "concept_test",
+  "usability_test",
 ];
 
 /**
@@ -233,6 +243,7 @@ const METHOD_NOTE_KEY: Record<UseCase, string> = {
   brand_research: "methodNoteBrand",
   creative_test: "methodNoteCreative",
   concept_test: "methodNoteConcept",
+  usability_test: "methodNoteUsability",
 };
 
 /** Static, non-localized facet of each use-case preset. The three opening
@@ -281,6 +292,16 @@ const USE_CASE_META: Record<UseCase, UseCaseMeta> = {
     needsStimulus: true,
     titleKey: "ucConceptTestTitle",
     topicPrefix: "ucCo",
+  },
+  // Usability test (Phase 1). needsStimulus:false — the prototype/task lives in
+  // the separate Task block (needsTask), not the stimulus block. voiceEnabled:
+  // false — usability is text-only in v1 (instrumentation is visual). Small N.
+  usability_test: {
+    voiceEnabled: false,
+    sampleTarget: "8",
+    needsStimulus: false,
+    titleKey: "ucUsabilityTestTitle",
+    topicPrefix: "ucUt",
   },
 };
 
@@ -375,6 +396,12 @@ const INITIAL_FORM: FormState = {
   interviewDepth: "mittel",
   // Default null = kein Zeitlimit → byte-identisch.
   maxDurationMinutes: null,
+  // Usability task defaults (Phase 1) — empty / first-party; only ever sent on
+  // the usability_test path (needsTask). Untouched → never sent (byte-identical).
+  taskInstruction: "",
+  taskSuccessCriterion: "",
+  taskTargetUrl: "",
+  taskPrototypeHosting: "first_party_iframe",
   // Start with one empty topic so the editor isn't blank — encourages the
   // user to fill at least one in. Empty topics are dropped at submit time.
   topics: [emptyTopicDraft()],
@@ -459,6 +486,32 @@ export function ResearchPlanForm({
   // form.useCase fix general_survey (needsStimulus false) → immer false → der
   // VI-Block bleibt dort byte-identisch.
   const recommendVisualCapture = needsStimulus;
+  // Usability-Studientyp — true NUR für usability_test. Steuert (wie
+  // needsStimulus) Sichtbarkeit + Pflicht des Task-Blocks. Auf jedem anderen
+  // Pfad false → der Block rendert nie und taskDefinitionPayload bleibt {}
+  // (byte-identisch).
+  const needsTask = form.useCase === "usability_test";
+  // Create/update-payload key für die Usability-Aufgabe. Nur gesetzt, wenn
+  // needsTask UND eine Instruktion getippt ist; sonst {} (kein Key) → jeder
+  // Nicht-Usability-Body byte-identisch. Spiegelt die stimulusDescriptionPayload-
+  // Disziplin (nur im finalen Submit-Body, nicht im Draft-Create).
+  const taskDefinitionPayload =
+    needsTask && form.taskInstruction.trim() !== ""
+      ? {
+          taskDefinition: {
+            instruction: form.taskInstruction.trim(),
+            successCriterion:
+              form.taskSuccessCriterion.trim() === ""
+                ? null
+                : form.taskSuccessCriterion.trim(),
+            targetUrl:
+              form.taskTargetUrl.trim() === ""
+                ? null
+                : form.taskTargetUrl.trim(),
+            prototypeHosting: form.taskPrototypeHosting,
+          },
+        }
+      : {};
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1090,6 +1143,14 @@ export function ResearchPlanForm({
       return;
     }
 
+    // Hard requirement: a usability study (useCase 'usability_test', gated by
+    // needsTask) needs a task instruction. Other use-cases keep needsTask=false,
+    // so this never fires for them (byte-identical).
+    if (needsTask && form.taskInstruction.trim() === "") {
+      setError(t("errTaskInstruction"));
+      return;
+    }
+
     // Optional sampleTarget: empty string -> null. Non-numeric / out-of-range
     // is rejected here so the user sees a precise message instead of a
     // generic 400 from the API's Zod validation.
@@ -1161,6 +1222,7 @@ export function ResearchPlanForm({
               ...useCasePayload,
               ...audienceTypePayload,
               ...stimulusDescriptionPayload,
+              ...taskDefinitionPayload,
             }),
           },
         );
@@ -1198,6 +1260,7 @@ export function ResearchPlanForm({
           ...audienceTypePayload,
           ...studyTypePayload,
           ...stimulusDescriptionPayload,
+          ...taskDefinitionPayload,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -1501,6 +1564,74 @@ export function ResearchPlanForm({
             </div>
           </div>
         </div>
+
+        {/* Usability-Aufgabe — NUR bei needsTask (usability_test). Reine
+            Metadaten (Instruktion + Erfolgskriterium + Prototyp-URL + Hosting);
+            KEINE Aufzeichnung/Instrumentierung in Phase 1 (das ist Phase 2,
+            rechtlich gegated). Auf jedem anderen Pfad ist needsTask false → der
+            Block rendert nie (byte-identisch). */}
+        {needsTask && (
+          <div className="space-y-4 rounded-lg border border-neutral-200 bg-card p-4">
+            <div className="min-w-0">
+              <span className="block text-body-strong text-neutral-900">
+                {t("taskSectionTitle")}
+              </span>
+              <span className="mt-1 block text-caption text-neutral-500">
+                {t("taskSectionDesc")}
+              </span>
+            </div>
+            <Field label={t("fldTaskInstruction")} required>
+              <textarea
+                value={form.taskInstruction}
+                onChange={(e) => update("taskInstruction", e.target.value)}
+                placeholder={t("phTaskInstruction")}
+                rows={2}
+                disabled={submitting}
+                className={FIELD_TEXTAREA_CLASS}
+              />
+            </Field>
+            <Field label={t("fldTaskSuccess")} hint={t("taskSuccessHint")}>
+              <input
+                value={form.taskSuccessCriterion}
+                onChange={(e) => update("taskSuccessCriterion", e.target.value)}
+                placeholder={t("phTaskSuccess")}
+                disabled={submitting}
+                className={FIELD_INPUT_CLASS}
+              />
+            </Field>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label={t("fldTaskUrl")} hint={t("taskUrlHint")}>
+                <input
+                  value={form.taskTargetUrl}
+                  onChange={(e) => update("taskTargetUrl", e.target.value)}
+                  placeholder={t("phTaskUrl")}
+                  inputMode="url"
+                  disabled={submitting}
+                  className={FIELD_INPUT_CLASS}
+                />
+              </Field>
+              <Field label={t("fldPrototypeHosting")}>
+                <select
+                  value={form.taskPrototypeHosting}
+                  onChange={(e) =>
+                    update(
+                      "taskPrototypeHosting",
+                      e.target.value as PrototypeHosting,
+                    )
+                  }
+                  disabled={submitting}
+                  className={FIELD_INPUT_CLASS}
+                >
+                  {PROTOTYPE_HOSTING.map((h) => (
+                    <option key={h} value={h}>
+                      {t(`prototypeHosting_${h}`)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          </div>
+        )}
 
         {/* Stimulus — NUR bei needsStimulus (creative_test / concept_test).
             Das Asset (Bild/Link) wird über die dedizierte Route an einen

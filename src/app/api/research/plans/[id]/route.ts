@@ -13,6 +13,7 @@ import {
   getResearchPlan,
   updateResearchPlan,
 } from "@/lib/research/plans-service";
+import { TaskDefinitionSchema } from "@/lib/research/task";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 /**
@@ -44,6 +45,7 @@ const UseCaseSchema = z.enum([
   "brand_research",
   "creative_test",
   "concept_test",
+  "usability_test",
 ]);
 
 const AudienceSchema = z.enum(["b2b", "b2c"]);
@@ -69,6 +71,9 @@ const UpdatePlanBodySchema = z
     ttsEnabled: z.boolean().optional(),
     signalsEnabled: z.boolean().optional(),
     useCase: UseCaseSchema.nullable().optional(),
+    // Usability-Aufgabe (Phase 1) — `null` löscht sie, ein Objekt setzt sie,
+    // `undefined` lässt sie unberührt. Nur der Usability-Studientyp sendet sie.
+    taskDefinition: TaskDefinitionSchema.nullable().optional(),
     audienceType: AudienceSchema.optional(),
     // stimulusUrl/stimulusType render on the public participant page
     // (StimulusPanel <a href>/<img>). The dedicated stimulus routes already
@@ -120,6 +125,7 @@ const UpdatePlanBodySchema = z
       data.ttsEnabled !== undefined ||
       data.signalsEnabled !== undefined ||
       data.useCase !== undefined ||
+      data.taskDefinition !== undefined ||
       data.audienceType !== undefined ||
       data.stimulusUrl !== undefined ||
       data.stimulusType !== undefined ||
@@ -203,6 +209,7 @@ export async function PATCH(
       maxRounds: parsed.data.maxRounds,
       maxDurationSeconds: parsed.data.maxDurationSeconds,
       interviewDepth: parsed.data.interviewDepth,
+      taskDefinition: parsed.data.taskDefinition,
     });
     if (!plan) {
       // Defensive: the existence check above passed, so this only fires on

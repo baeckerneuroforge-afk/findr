@@ -22,6 +22,11 @@ import {
   resolveExpectedQuestions,
   type InterviewDepth,
 } from "@/lib/research/interview-duration";
+import {
+  PROTOTYPE_HOSTING,
+  type PrototypeHosting,
+  type TaskDefinition,
+} from "@/lib/research/task";
 
 /**
  * EditStudyForm — bearbeitet eine BESTEHENDE Studie (research plan / market
@@ -47,13 +52,15 @@ type UseCase =
   | "general_survey"
   | "brand_research"
   | "creative_test"
-  | "concept_test";
+  | "concept_test"
+  | "usability_test";
 
 const USE_CASES: readonly UseCase[] = [
   "general_survey",
   "brand_research",
   "creative_test",
   "concept_test",
+  "usability_test",
 ];
 
 /** Pill-Label-Key pro Use-Case (research.plans Namespace, wie im Create-Form). */
@@ -62,6 +69,7 @@ const USE_CASE_TITLE_KEY: Record<UseCase, string> = {
   brand_research: "ucBrandResearchTitle",
   creative_test: "ucCreativeTestTitle",
   concept_test: "ucConceptTestTitle",
+  usability_test: "ucUsabilityTestTitle",
 };
 
 /** Reaktiver Methodik-Hinweis pro Use-Case — reiner Read, kein State-Write. */
@@ -70,6 +78,7 @@ const METHOD_NOTE_KEY: Record<UseCase, string> = {
   brand_research: "methodNoteBrand",
   creative_test: "methodNoteCreative",
   concept_test: "methodNoteConcept",
+  usability_test: "methodNoteUsability",
 };
 
 /** Minimaler Plan-Ausschnitt, den das Edit-Formular vorbefüllt. Der Server-Page
@@ -93,6 +102,9 @@ export interface EditStudyInitial {
   maxRounds: number | null;
   maxDurationSeconds: number | null;
   interviewDepth: InterviewDepth | null;
+  // Usability task (Phase 1). null for every non-usability study. Only the
+  // usability_test path edits it; PATCH only sends it when present.
+  taskDefinition: TaskDefinition | null;
 }
 
 interface FormState {
@@ -110,6 +122,10 @@ interface FormState {
   maxRounds: number | null;
   interviewDepth: InterviewDepth | null;
   maxDurationMinutes: number | null;
+  taskInstruction: string;
+  taskSuccessCriterion: string;
+  taskTargetUrl: string;
+  taskPrototypeHosting: PrototypeHosting;
   topics: TopicDraft[];
 }
 
@@ -142,6 +158,11 @@ function initialFormState(plan: EditStudyInitial): FormState {
       plan.maxDurationSeconds !== null
         ? Math.round(plan.maxDurationSeconds / 60)
         : null,
+    taskInstruction: plan.taskDefinition?.instruction ?? "",
+    taskSuccessCriterion: plan.taskDefinition?.successCriterion ?? "",
+    taskTargetUrl: plan.taskDefinition?.targetUrl ?? "",
+    taskPrototypeHosting:
+      plan.taskDefinition?.prototypeHosting ?? "first_party_iframe",
     topics,
   };
 }
@@ -187,6 +208,27 @@ export function EditStudyForm({
   const audienceTypePayload = isMarket
     ? { audienceType: form.audienceType }
     : {};
+  // Usability-Aufgabe — true NUR für usability_test; steuert Task-Block +
+  // Pflicht. Nur gesetzt, wenn eine Instruktion getippt ist → sonst {} (der
+  // PATCH lässt task_definition unberührt; eine bestehende Aufgabe bleibt).
+  const needsTask = form.useCase === "usability_test";
+  const taskDefinitionPayload =
+    isMarket && needsTask && form.taskInstruction.trim() !== ""
+      ? {
+          taskDefinition: {
+            instruction: form.taskInstruction.trim(),
+            successCriterion:
+              form.taskSuccessCriterion.trim() === ""
+                ? null
+                : form.taskSuccessCriterion.trim(),
+            targetUrl:
+              form.taskTargetUrl.trim() === ""
+                ? null
+                : form.taskTargetUrl.trim(),
+            prototypeHosting: form.taskPrototypeHosting,
+          },
+        }
+      : {};
 
   // EINE Wahrheit für die angezeigte Interviewdauer (Längen-Readout) — Zeitlimit
   // gewinnt, sonst aus der Fragen-Obergrenze. Identische Funktionen wie Vorschau
@@ -252,6 +294,11 @@ export function EditStudyForm({
       return;
     }
 
+    if (needsTask && form.taskInstruction.trim() === "") {
+      setError(t("errTaskInstruction"));
+      return;
+    }
+
     const topics = topicDraftsToResearchTopics(form.topics);
 
     setSubmitting(true);
@@ -280,6 +327,7 @@ export function EditStudyForm({
             interviewDepth: form.interviewDepth,
             ...useCasePayload,
             ...audienceTypePayload,
+            ...taskDefinitionPayload,
           }),
         },
       );
@@ -366,6 +414,72 @@ export function EditStudyForm({
               })}
             </div>
           </Field>
+        </section>
+      )}
+
+      {/* Usability-Aufgabe — NUR bei needsTask (usability_test). Wie im Create-
+          Form: reine Metadaten (Instruktion + Erfolgskriterium + Prototyp-URL +
+          Hosting); KEINE Aufzeichnung/Instrumentierung in Phase 1. */}
+      {needsTask && (
+        <section className="space-y-4 rounded-lg border border-neutral-200 bg-card p-4">
+          <div className="min-w-0">
+            <span className="block text-body-strong text-neutral-900">
+              {t("taskSectionTitle")}
+            </span>
+            <span className="mt-1 block text-caption text-neutral-500">
+              {t("taskSectionDesc")}
+            </span>
+          </div>
+          <Field label={t("fldTaskInstruction")} required>
+            <textarea
+              value={form.taskInstruction}
+              onChange={(e) => update("taskInstruction", e.target.value)}
+              placeholder={t("phTaskInstruction")}
+              rows={2}
+              disabled={submitting}
+              className={FIELD_TEXTAREA_CLASS}
+            />
+          </Field>
+          <Field label={t("fldTaskSuccess")} hint={t("taskSuccessHint")}>
+            <input
+              value={form.taskSuccessCriterion}
+              onChange={(e) => update("taskSuccessCriterion", e.target.value)}
+              placeholder={t("phTaskSuccess")}
+              disabled={submitting}
+              className={FIELD_INPUT_CLASS}
+            />
+          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label={t("fldTaskUrl")} hint={t("taskUrlHint")}>
+              <input
+                value={form.taskTargetUrl}
+                onChange={(e) => update("taskTargetUrl", e.target.value)}
+                placeholder={t("phTaskUrl")}
+                inputMode="url"
+                disabled={submitting}
+                className={FIELD_INPUT_CLASS}
+              />
+            </Field>
+            <Field label={t("fldPrototypeHosting")}>
+              <select
+                value={form.taskPrototypeHosting}
+                onChange={(e) =>
+                  update(
+                    "taskPrototypeHosting",
+                    e.target.value as PrototypeHosting,
+                  )
+                }
+                disabled={submitting}
+                className={FIELD_INPUT_CLASS}
+              >
+                {PROTOTYPE_HOSTING.map((h) => (
+                  <option key={h} value={h}>
+                    {t(`prototypeHosting_${h}`)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
         </section>
       )}
 

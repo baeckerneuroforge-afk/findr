@@ -1043,6 +1043,11 @@ export interface ResearchPlanContext {
    *  und der Voice-Agent (hart) es aus dem deal_context lesen können. Fehlend/
    *  null → kein Limit. Gilt für ALLE Studien, auch mit Stimulus-Set. */
   maxDurationSeconds?: number | null;
+  /** Usability-Studie (Phase 1): die Aufgabe, die der Teilnehmer bearbeitet.
+   *  Nur bei useCase 'usability_test' gesetzt (planToAgentContext); sonst
+   *  weggelassen → Prompt byte-identisch. Nachhak-Material: ergänzt die Topics,
+   *  ersetzt sie nie. targetUrl/prototypeHosting bleiben aus dem Modell-Kontext. */
+  task?: { instruction: string; successCriterion: string | null } | null;
 }
 
 /** Vendor / brand context — null for independent / external research. */
@@ -1142,6 +1147,10 @@ export const USE_CASE_FOCUS: Record<ResearchPlanUseCase, string> = {
     "Fokus: Erwartungen an kreative Gestaltung, emotionale Reaktionen, Klarheit möglicher Botschaften und Markenfit. Frag nach den wichtigsten Eindrücken und danach, welche Gestaltungselemente aus Sicht des Teilnehmers welche Wirkung hätten. Tiefe: Flach bis mittel; höchstens EIN gezieltes Nachhaken zu Botschaftsklarheit oder Wirkung, dann weiter oder schließen. Die Basis-Obergrenzen bleiben bindend.",
   concept_test:
     "Fokus: zuerst das Verständnis des untersuchten Konzepts prüfen, dann Relevanz und wahrgenommenen Nutzen. Wenn der Teilnehmer unsicher paraphrasiert, frage direkt, was unklar ist oder wie er das Konzept in eigenen Worten beschreiben würde; nicht nach der Ursache der Unsicherheit. Bei Kaufabsicht vorsichtig sein: statt hypothetischer Zusagen nach aktuellem Verhalten oder Commitment fragen; bei Varianten Präferenz plus Begründung klären. Tiefe: Tiefer als Brand/Creative. Covered erst, wenn das Verständnis wirklich geprüft ist; danach genau eine Stufe zu Relevanz oder wahrgenommenem Nutzen. Die Basis-Obergrenzen bleiben bindend: keine dritte Nachfrage zum selben Punkt, Stop-Ceiling gewinnt.",
+  // Usability (Phase 1) — task-basiertes Usability-Interview. Rote Linie: nur
+  // beobachtbare Reibung, keine Affekt-/Emotions-Labels (integration plan L8).
+  usability_test:
+    "Fokus: task-basiertes Usability-Verständnis. Die Person bearbeitet eine konkrete Aufgabe an einem Prototyp oder einer Seite; begleite sie als neutrale Beobachterin. Frag nach dem Vorgehen (etwa: was würde die Person als Nächstes tun und warum), nach Hängern, Fehlklicks und Stellen, an denen etwas nicht gefunden oder anders erwartet wurde, und nach dem Verständnis der Oberfläche. Beschreibe beobachtbare Reibung (Zögern, Umwege, Missverständnisse) in den Worten der Person — VERMEIDE Emotions-/Affekt-Zuschreibungen wie frustriert oder verärgert; das ist nicht Aufgabe dieses Interviews. Tiefe: mittel; pro Hänger höchstens eine gezielte Vertiefung, dann weiter. Die Basis-Obergrenzen bleiben bindend.",
 };
 
 const STIMULUS_USE_CASE_FOCUS: Partial<Record<ResearchPlanUseCase, string>> = {
@@ -1398,6 +1407,19 @@ ${analysis}`
 ${headline}${analysisBlock}`;
 }
 
+/** Usability-Aufgabe (Phase 1) → Agent-Kontext. Nur gesetzt, wenn useCase
+ *  'usability_test' ist; sonst null → kein Block → Prompt byte-identisch. Die
+ *  rote Linie ist im Text verankert: beobachtbare Reibung in den Worten der
+ *  Person, KEINE Affekt-/Emotions-Labels (integration plan L8). */
+function formatTask(task: ResearchPlanContext["task"]): string | null {
+  const instruction = task?.instruction?.trim();
+  if (!instruction) return null;
+  const criterion = task?.successCriterion?.trim();
+  return `AUFGABE (Usability):
+Der Teilnehmer bearbeitet gerade diese Aufgabe: ${instruction}${criterion ? `\nErfolgskriterium: ${criterion}` : ""}
+Lass die Person die Aufgabe zuerst bearbeiten bzw. laut denken. Frage gezielt nach, wo sie zögert, etwas nicht findet oder anders erwartet hatte, und wie sie die Oberfläche versteht. Beschreibe beobachtbare Reibung (Zögern, Umwege, Missverständnisse) in den Worten der Person — VERWENDE KEINE Emotions-/Affekt-Labels („frustriert", „verärgert"). Dieses Material ergänzt die TOPICS, es ersetzt sie nicht.`;
+}
+
 /**
  * Stable per-session research context (B4) — language, brand grounding, plan,
  * stimulus and topics. Byte-identical across every turn of a session so the
@@ -1415,6 +1437,10 @@ export function buildResearchContext(
   const stimulus = hasStimulusSet(input.plan)
     ? formatStimulusSet(input.plan)
     : formatStimulus(input.plan);
+
+  // Usability-Aufgabe (Phase 1) — nur bei useCase 'usability_test' gesetzt;
+  // sonst null → kein Block → Kontext byte-identisch zu heute.
+  const task = formatTask(input.plan.task);
 
   // B2C-Anrede: nur 'b2c' kommt überhaupt im Kontext an (planToAgentContext
   // lässt 'b2b'/legacy weg) → dieser Block erscheint NUR bei Consumer-Studien.
@@ -1452,7 +1478,7 @@ ${formatBrand(input.brand)}
 RESEARCH PLAN
 Title:     ${input.plan.title}
 Objective: ${input.plan.objective}${persona ? `\nPersona:   ${persona}` : ""}
-${stimulus ? `\n\n${stimulus}` : ""}
+${stimulus ? `\n\n${stimulus}` : ""}${task ? `\n\n${task}` : ""}
 
 TOPICS (cover naturally, 2–4 turns each, start with the lightest):
 ${formatTopics(input.plan.topics)}${depthDirective ? `\n\n${depthDirective}` : ""}${roundCeiling ? `\n\n${roundCeiling}` : ""}`;

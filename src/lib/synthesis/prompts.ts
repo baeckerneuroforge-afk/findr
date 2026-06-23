@@ -253,6 +253,11 @@ export const MARKET_SYNTHESIS_USE_CASE_FOCUS: Record<
     "Fokus: Botschaftsklarheit, erster spontaner Eindruck, emotionale Wirkung und Markenfit verdichten; ordne Gestaltungselemente nur dann einer Wirkung zu, wenn die Inputs das tragen. Betone BRAND_PERCEPTION und, wo tatsächlich verglichen wird, COMPETITIVE_PERCEPTION. Halte die Synthese flach: realistische Tensions betreffen unterschiedliche Deutungen oder Wirkungen der Botschaft, nicht erzwungene Kaufabsicht oder Pain.",
   concept_test:
     "Fokus: zuerst gemeinsames und abweichendes Verständnis des Konzepts verdichten, danach Relevanz, wahrgenommenen Nutzen und belastbare Kaufabsicht. Betone SEGMENT_NEED, PURCHASE_INTENT und BRAND_PERCEPTION; hypothetische Zustimmung zählt schwächer als aktuelles Verhalten, Commitment oder begründete Präferenz. Realistische Tensions liegen zwischen unterschiedlichen Konzeptverständnissen, Relevanzurteilen oder Adoptionspositionen; Verständnis kommt vor Nutzen.",
+  // Usability (Phase 1) — Stage-2-Synthese eines Usability-Interviews
+  // (qualitativ; die metrik-basierte Auswertung kommt in Phase 3). Roter Faden:
+  // wiederkehrende Usability-Hürden, verhaltensbezogen, keine Affekt-Labels (L8).
+  usability_test:
+    "Fokus: wiederkehrende Usability-Hürden verdichten — wo Teilnehmer die Aufgabe nicht lösen konnten, was sie nicht fanden, missverstanden oder anders erwarteten, und wo sie zögerten. Betone SEGMENT_NEED (Usability-Hürden als unerfüllte Bedürfnisse); halte die Synthese verhaltensbezogen und beschreibe Reibung in den Worten der Teilnehmer, KEINE Emotions-/Affekt-Labels. Realistische Tensions liegen zwischen unterschiedlichen Vorgehensweisen oder Erwartungen an die Oberfläche; erfinde keine Preis-/Marken-Tension, wenn die Inputs sie nicht tragen.",
 };
 
 /**

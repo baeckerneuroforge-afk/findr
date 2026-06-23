@@ -19,6 +19,7 @@ import {
   resolveEffectiveMaxRounds,
   type InterviewDepth,
 } from "./interview-duration";
+import type { TaskDefinition } from "./task";
 import {
   ScreeningQuestionSchema,
   type ScreeningQuestion,
@@ -113,6 +114,10 @@ export interface ResearchPlanRecord {
    *  is derived per study from depth × topics at the snapshot boundary
    *  (resolveEffectiveMaxRounds); an explicit maxRounds still wins. */
   interviewDepth: InterviewDepth | null;
+  /** Usability task (Phase 1). Set only on usability_test studies; null for
+   *  every other study. planToAgentContext emits instruction + successCriterion
+   *  into the agent context when useCase is 'usability_test'. No capture in P1. */
+  taskDefinition: TaskDefinition | null;
   createdAt: string;
 }
 
@@ -195,11 +200,41 @@ export function coerceUseCase(raw: unknown): ResearchPlanUseCase | null {
     raw === "general_survey" ||
     raw === "brand_research" ||
     raw === "creative_test" ||
-    raw === "concept_test"
+    raw === "concept_test" ||
+    raw === "usability_test"
   ) {
     return raw;
   }
   return null;
+}
+
+/**
+ * Defensive read-mapper for task_definition (jsonb). Like coerceTopics /
+ * coerceScreeningQuestions: never throws, returns a valid TaskDefinition or
+ * null. Pre-migration reads (column absent → undefined), legacy rows (null) and
+ * any malformed shape all map to null → byte-identical for non-usability
+ * studies. A present-but-unknown prototypeHosting clamps to the safe default
+ * 'first_party_iframe' (like coerceLanguage clamps to 'de') instead of dropping
+ * the whole task.
+ */
+export function coerceTaskDefinition(raw: unknown): TaskDefinition | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.instruction !== "string" || obj.instruction.trim() === "") {
+    return null;
+  }
+  return {
+    instruction: obj.instruction,
+    successCriterion:
+      typeof obj.successCriterion === "string" ? obj.successCriterion : null,
+    targetUrl: typeof obj.targetUrl === "string" ? obj.targetUrl : null,
+    prototypeHosting:
+      obj.prototypeHosting === "first_party_iframe" ||
+      obj.prototypeHosting === "external_url" ||
+      obj.prototypeHosting === "screen_share"
+        ? obj.prototypeHosting
+        : "first_party_iframe",
+  };
 }
 
 // B2C/B2B audience. Pre-migration fail-safe: only 'b2c' flips to consumer;
@@ -298,6 +333,9 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     interviewDepth: coerceDepth(
       (row as { interview_depth?: unknown }).interview_depth,
     ),
+    taskDefinition: coerceTaskDefinition(
+      (row as { task_definition?: unknown }).task_definition,
+    ),
     createdAt: row.created_at,
   };
 }
@@ -386,6 +424,21 @@ export function planToAgentContext(
     // mitgibt — Bestands-Snapshots (deal_context) bleiben byte-identisch.
     ...(plan.studyType === "market_research" && stimuli && stimuli.length > 0
       ? { stimuli: sortStimuli(stimuli).map(stimulusToContext) }
+      : {}),
+    // Usability-Studie (Phase 1): die Aufgabe für den Agenten. Nur bei
+    // market_research + useCase 'usability_test' + vorhandener taskDefinition —
+    // sonst weggelassen → Snapshot byte-identisch für jede Bestands-/Nicht-
+    // Usability-Studie. Nur instruction + successCriterion wandern in den Agent-
+    // Kontext (targetUrl/prototypeHosting sind reine Teilnehmer-UI-Daten, P1b).
+    ...(plan.studyType === "market_research" &&
+    plan.useCase === "usability_test" &&
+    plan.taskDefinition
+      ? {
+          task: {
+            instruction: plan.taskDefinition.instruction,
+            successCriterion: plan.taskDefinition.successCriterion,
+          },
+        }
       : {}),
     // Tiefe + effektive Runden-Obergrenze (oben berechnet) — beide nur ohne
     // Stimulus-Set; Set-Studien behalten ihre inhaltsgetriebene
@@ -792,6 +845,9 @@ export interface CreateResearchPlanInput {
   /** Per-study interview depth. Omitted/null → DB stays NULL → legacy default
    *  length (byte-identical create). New studies stamp 'mittel'. */
   interviewDepth?: InterviewDepth | null;
+  /** Usability task (Phase 1). Only the usability_test create path sets it;
+   *  omitted/null → column stays NULL (byte-identical for every other create). */
+  taskDefinition?: TaskDefinition | null;
 }
 
 /**
@@ -851,6 +907,12 @@ export async function createResearchPlan(
       ...(input.interviewDepth != null
         ? { interview_depth: input.interviewDepth }
         : {}),
+      // Usability-Aufgabe (Phase 1, ohne Capture/Consent). Nur stempeln, wenn
+      // vorhanden; sonst weggelassen → Spalte bleibt NULL (pre-migration-sicher
+      // via Spread; byte-identisch für Legacy-/Nicht-Usability-Creates).
+      ...(input.taskDefinition != null
+        ? { task_definition: input.taskDefinition as unknown as Json }
+        : {}),
     })
     .select("*")
     .single();
@@ -894,6 +956,9 @@ export interface UpdateResearchPlanInput {
   /** Per-study interview depth. `null` clears it (legacy default); a member sets
    *  it. `undefined` leaves it untouched. */
   interviewDepth?: InterviewDepth | null;
+  /** Usability task (Phase 1). `null` clears it; a value sets it. `undefined`
+   *  leaves it untouched. */
+  taskDefinition?: TaskDefinition | null;
 }
 
 /**
@@ -937,6 +1002,7 @@ export async function updateResearchPlan(
     max_rounds?: number | null;
     max_duration_seconds?: number | null;
     interview_depth?: InterviewDepth | null;
+    task_definition?: Json | null;
   } = {};
   if (input.title !== undefined) update.title = input.title;
   if (input.objective !== undefined) update.objective = input.objective;
@@ -971,6 +1037,8 @@ export async function updateResearchPlan(
     update.max_duration_seconds = input.maxDurationSeconds;
   if (input.interviewDepth !== undefined)
     update.interview_depth = input.interviewDepth;
+  if (input.taskDefinition !== undefined)
+    update.task_definition = input.taskDefinition as unknown as Json;
 
   if (Object.keys(update).length === 0) {
     return getResearchPlan(orgId, planId);
