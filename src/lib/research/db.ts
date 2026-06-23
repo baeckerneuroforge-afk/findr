@@ -199,7 +199,11 @@ export type ResearchPlanUseCase =
   | "general_survey"
   | "brand_research"
   | "creative_test"
-  | "concept_test";
+  | "concept_test"
+  // Usability test (Phase 1, 20260723000000) — task-based usability study,
+  // modelled as a market-research use_case (integration plan L1). use_case has
+  // NO DB CHECK, so this literal is validated only in coerceUseCase / route Zod.
+  | "usability_test";
 
 // B2C/B2B audience type per study (20260715000000). Drives the interview
 // Anrede (b2c → "du", b2b → "Sie") and the guide-generator example framing.
@@ -286,6 +290,13 @@ export type ResearchPlanRow = {
   // via the form carry 'mittel' by default. Before the migration lands
   // select("*") omits it; the read mapper (coerceDepth) defaults undefined→null.
   interview_depth: InterviewDepth | null;
+  // Usability task definition (Phase 1, 20260723000000). Soft jsonb, nullable,
+  // no DEFAULT/backfill — typed as Json here like stimulus_analysis; the domain
+  // shape (TaskDefinition) + the lenient reader live in src/lib/research/task.ts
+  // and plans-service coerceTaskDefinition. Before the migration lands
+  // select("*") omits it → coerceTaskDefinition defaults undefined→null →
+  // byte-identical. Set only on usability_test studies; null otherwise.
+  task_definition: Json | null;
   created_at: string;
 };
 
@@ -324,6 +335,9 @@ type ResearchPlanInsert = {
   // Optional beim Insert — neue Studien stempeln 'mittel'; weggelassen → NULL
   // (Legacy-Default-Verhalten, byte-identisch).
   interview_depth?: InterviewDepth | null;
+  // Usability task (Phase 1). Optional; only the usability_test create path sets
+  // it. Omitted → column stays NULL (byte-identical for every other create).
+  task_definition?: Json | null;
   created_at?: string;
 };
 
@@ -354,6 +368,7 @@ type ResearchPlanUpdate = {
   max_rounds?: number | null;
   max_duration_seconds?: number | null;
   interview_depth?: InterviewDepth | null;
+  task_definition?: Json | null;
   created_at?: string;
 };
 

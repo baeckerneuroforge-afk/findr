@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   coerceConversation,
+  coerceTaskDefinition,
   planToAgentContext,
   resolveStimulusSet,
   type ResearchPlanRecord,
@@ -57,6 +58,7 @@ function plan(overrides: Partial<ResearchPlanRecord>): ResearchPlanRecord {
     maxRounds: null,
     maxDurationSeconds: null,
     interviewDepth: null,
+    taskDefinition: null,
     createdAt: "2026-06-01T00:00:00.000Z",
     ...overrides,
   };
@@ -165,6 +167,62 @@ describe("planToAgentContext — interview depth snapshot (Tiefe)", () => {
     );
     expect("depth" in ctx).toBe(false);
     expect("maxRounds" in ctx).toBe(false);
+  });
+});
+
+describe("Usability task (Phase 1)", () => {
+  const TASK = {
+    instruction: "Finde die Kündigung",
+    successCriterion: "Kündigungsseite erreicht",
+    targetUrl: "https://example.com/proto",
+    prototypeHosting: "first_party_iframe" as const,
+  };
+
+  it("coerceTaskDefinition: accepts a well-formed object", () => {
+    expect(coerceTaskDefinition(TASK)).toEqual(TASK);
+  });
+
+  it("coerceTaskDefinition: null/undefined/malformed → null (byte-identical legacy)", () => {
+    expect(coerceTaskDefinition(null)).toBeNull();
+    expect(coerceTaskDefinition(undefined)).toBeNull();
+    expect(coerceTaskDefinition("x")).toBeNull();
+    expect(coerceTaskDefinition({})).toBeNull();
+    expect(coerceTaskDefinition({ instruction: "  " })).toBeNull();
+  });
+
+  it("coerceTaskDefinition: clamps unknown prototypeHosting + nulls optional fields", () => {
+    expect(
+      coerceTaskDefinition({ instruction: "Tu was", prototypeHosting: "bogus" }),
+    ).toEqual({
+      instruction: "Tu was",
+      successCriterion: null,
+      targetUrl: null,
+      prototypeHosting: "first_party_iframe",
+    });
+  });
+
+  it("planToAgentContext: emits task (instruction + successCriterion) for a usability study", () => {
+    const ctx = planToAgentContext(
+      plan({ useCase: "usability_test", taskDefinition: TASK }),
+    );
+    expect(ctx.task).toEqual({
+      instruction: TASK.instruction,
+      successCriterion: TASK.successCriterion,
+    });
+    // targetUrl / prototypeHosting stay OUT of the model context (P1b UI only).
+    expect(ctx.task).not.toHaveProperty("targetUrl");
+  });
+
+  it("planToAgentContext: OMITS task for non-usability studies (byte-identical)", () => {
+    const ctx = planToAgentContext(plan({ useCase: "creative_test" }));
+    expect("task" in ctx).toBe(false);
+  });
+
+  it("planToAgentContext: OMITS task when useCase is usability_test but no taskDefinition", () => {
+    const ctx = planToAgentContext(
+      plan({ useCase: "usability_test", taskDefinition: null }),
+    );
+    expect("task" in ctx).toBe(false);
   });
 });
 

@@ -87,6 +87,7 @@ export default async function EditResearchPlanPage({
             maxRounds: plan.maxRounds,
             maxDurationSeconds: plan.maxDurationSeconds,
             interviewDepth: plan.interviewDepth,
+            taskDefinition: plan.taskDefinition,
           }}
           voiceAvailable={getLiveKitVoiceEnv() !== null}
         />

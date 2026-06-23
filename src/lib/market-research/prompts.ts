@@ -152,6 +152,12 @@ export const MARKET_RESEARCH_USE_CASE_FOCUS: Record<
     "Fokus: Extrahiere zuerst Signale dazu, wie der Teilnehmer das Konzept versteht oder missversteht, danach Relevanz, wahrgenommenen Nutzen und belastbare Kaufabsicht. Priorisiere SEGMENT_NEED, PURCHASE_INTENT und BRAND_PERCEPTION; hypothetische Zustimmung zählt schwächer als aktuelles Verhalten, Commitment oder begründete Präferenz, und Verständnis kommt vor Nutzen.",
   creative_test:
     "Fokus: Extrahiere Botschaftsverständnis, ersten spontanen Eindruck, emotionale Wirkung und Markenfit; ordne Gestaltungselemente nur dann einer Wirkung zu, wenn der Teilnehmer das selbst trägt. Priorisiere BRAND_PERCEPTION und, wo tatsächlich verglichen wird, COMPETITIVE_PERCEPTION; erzwinge keine PURCHASE_INTENT- oder SEGMENT_NEED-Codierung.",
+  // Usability (Phase 1) — Stage-1-Extraktion eines Usability-Interviews. Roter
+  // Faden: Usability-Hürden als unerfüllte Bedürfnisse, verhaltensbezogen, keine
+  // Affekt-Labels (integration plan L8). Die metrik-basierte Auswertung kommt
+  // erst in Phase 3.
+  usability_test:
+    "Fokus: Extrahiere Usability-Beobachtungen — wo die Person die Aufgabe nicht (gut) lösen konnte, was sie nicht fand, missverstand oder anders erwartete, und wo sie zögerte. Priorisiere SEGMENT_NEED (Usability-Hürden als unerfüllte Bedürfnisse); erzwinge keine PRICE_SENSITIVITY-, PURCHASE_INTENT- oder BRAND_PERCEPTION-Codierung, wenn der Teilnehmer darüber nicht spricht. Beschreibe Reibung verhaltensbezogen (Hänger, Umwege, Fehlklicks) in den Worten der Person — KEINE Emotions-/Affekt-Labels.",
 };
 
 /**

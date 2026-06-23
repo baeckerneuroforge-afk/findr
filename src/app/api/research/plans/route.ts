@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { createResearchPlan } from "@/lib/research/plans-service";
+import { TaskDefinitionSchema } from "@/lib/research/task";
 
 /**
  * POST /api/research/plans — create a new research plan.
@@ -29,6 +30,7 @@ const UseCaseSchema = z.enum([
   "brand_research",
   "creative_test",
   "concept_test",
+  "usability_test",
 ]);
 
 const AudienceSchema = z.enum(["b2b", "b2c"]);
@@ -51,6 +53,9 @@ const CreatePlanBodySchema = z.object({
   ttsEnabled: z.boolean().optional().default(false),
   signalsEnabled: z.boolean().optional().default(false),
   useCase: UseCaseSchema.nullable().optional(),
+  // Usability-Aufgabe (Phase 1) — nur der Usability-Studientyp sendet sie; sonst
+  // weggelassen → createResearchPlan lässt die Spalte aus → NULL (byte-identisch).
+  taskDefinition: TaskDefinitionSchema.nullable().optional(),
   // B2C/B2B audience. Only the Market-Research form sends it; omitted on the
   // Discovery path → createResearchPlan leaves the column out → DB DEFAULT
   // 'b2b' (byte-identical Discovery create).
@@ -136,6 +141,7 @@ export async function POST(req: NextRequest) {
       maxRounds: parsed.data.maxRounds ?? null,
       maxDurationSeconds: parsed.data.maxDurationSeconds ?? null,
       interviewDepth: parsed.data.interviewDepth ?? null,
+      taskDefinition: parsed.data.taskDefinition ?? null,
     });
     return NextResponse.json({ success: true, planId: plan.id, plan });
   } catch (err) {

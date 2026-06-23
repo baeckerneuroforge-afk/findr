@@ -94,6 +94,7 @@ export default async function EditMarketStudyPage({
             maxRounds: plan.maxRounds,
             maxDurationSeconds: plan.maxDurationSeconds,
             interviewDepth: plan.interviewDepth,
+            taskDefinition: plan.taskDefinition,
           }}
           voiceAvailable={getLiveKitVoiceEnv() !== null}
         />
