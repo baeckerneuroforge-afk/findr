@@ -13,18 +13,35 @@ function makeSupabase(
   opts: {
     rpcError?: unknown;
     listData?: Array<{ name: string; id: string | null }>;
+    listError?: unknown;
+    removeError?: unknown;
+    /** Buckets reported present by listBuckets(). undefined → both org buckets. */
+    buckets?: Array<{ id: string; name: string }>;
+    listBucketsError?: unknown;
   } = {},
 ) {
-  const remove = vi.fn().mockResolvedValue({ error: null });
-  const list = vi
+  const remove = vi
     .fn()
-    .mockResolvedValue({ data: opts.listData ?? [], error: null });
+    .mockResolvedValue({ error: opts.removeError ?? null });
+  const list = vi.fn().mockResolvedValue({
+    data: opts.listError ? null : (opts.listData ?? []),
+    error: opts.listError ?? null,
+  });
   const storageFrom = vi.fn(() => ({ list, remove }));
+  const listBuckets = vi.fn().mockResolvedValue({
+    data: opts.listBucketsError
+      ? null
+      : (opts.buckets ?? [
+          { id: "research-stimuli", name: "research-stimuli" },
+          { id: "org-branding", name: "org-branding" },
+        ]),
+    error: opts.listBucketsError ?? null,
+  });
   const rpc = vi
     .fn()
     .mockResolvedValue({ data: null, error: opts.rpcError ?? null });
-  const client = { storage: { from: storageFrom }, rpc } as never;
-  return { client, remove, list, storageFrom, rpc };
+  const client = { storage: { from: storageFrom, listBuckets }, rpc } as never;
+  return { client, remove, list, listBuckets, storageFrom, rpc };
 }
 
 function makeClerk() {
@@ -119,5 +136,53 @@ describe("deleteOrganizationData", () => {
 
     await expect(deleteOrganizationData(baseParams)).rejects.toThrow(/db down/);
     expect(clerk.deleteOrganization).not.toHaveBeenCalled();
+  });
+
+  it("fails CLOSED on a storage REMOVE error — DB delete never runs", async () => {
+    const sb = makeSupabase({
+      listData: [{ name: "a.png", id: "f1" }],
+      removeError: { message: "storage 500" },
+    });
+    mockCreateAdminSupabaseClient.mockReturnValue(sb.client);
+    const clerk = makeClerk();
+
+    await expect(deleteOrganizationData(baseParams)).rejects.toThrow(/remove/i);
+    // The owning DB row must NOT be deleted while files might still be stranded.
+    expect(sb.rpc).not.toHaveBeenCalled();
+    expect(clerk.deleteOrganization).not.toHaveBeenCalled();
+  });
+
+  it("fails CLOSED on a storage LIST error — DB delete never runs", async () => {
+    const sb = makeSupabase({ listError: { message: "list boom" } });
+    mockCreateAdminSupabaseClient.mockReturnValue(sb.client);
+    makeClerk();
+
+    await expect(deleteOrganizationData(baseParams)).rejects.toThrow(/list/i);
+    expect(sb.rpc).not.toHaveBeenCalled();
+  });
+
+  it("fails CLOSED if buckets cannot be enumerated — DB delete never runs", async () => {
+    const sb = makeSupabase({ listBucketsError: { message: "no storage" } });
+    mockCreateAdminSupabaseClient.mockReturnValue(sb.client);
+    makeClerk();
+
+    await expect(deleteOrganizationData(baseParams)).rejects.toThrow(/bucket/i);
+    expect(sb.rpc).not.toHaveBeenCalled();
+  });
+
+  it("skips a genuinely-absent bucket without failing", async () => {
+    // Only research-stimuli is provisioned here (org-branding never applied).
+    const sb = makeSupabase({
+      buckets: [{ id: "research-stimuli", name: "research-stimuli" }],
+      listData: [{ name: "a.png", id: "f1" }],
+    });
+    mockCreateAdminSupabaseClient.mockReturnValue(sb.client);
+    makeClerk();
+
+    const result = await deleteOrganizationData(baseParams);
+
+    // Only the present bucket is wiped → 1 object; org-branding skipped, no throw.
+    expect(result.storage_objects_removed).toBe(1);
+    expect(sb.rpc).toHaveBeenCalled();
   });
 });

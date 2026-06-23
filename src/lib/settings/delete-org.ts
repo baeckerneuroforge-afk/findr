@@ -8,11 +8,14 @@ type AdminClient = ReturnType<typeof createAdminSupabaseClient>;
 
 /**
  * Storage buckets whose objects live under an `${orgId}/…` key prefix
- * (research stimulus uploads, white-label logos). Deleting an org removes
- * every object beneath that prefix. A bucket that does not exist in a given
- * environment is tolerated — `org-branding`, for instance, is defined by a
- * migration that was never applied to the Prod baseline, so listing it simply
- * yields nothing.
+ * (research stimulus uploads under `${orgId}/${planId}/…`, white-label logos
+ * under `${orgId}/…`). Deleting an org removes every object beneath that prefix
+ * BEFORE the owning DB row is gone. A bucket not provisioned in a given
+ * environment (e.g. `org-branding`, defined by a migration not applied to every
+ * baseline) is detected via listBuckets() and skipped — a genuinely-absent
+ * bucket is NOT an error. A real list/remove failure on an EXISTING bucket
+ * propagates (fail-closed), so the DB row is never deleted while its files might
+ * still be stranded (Art. 17 DSGVO).
  */
 const ORG_PREFIXED_BUCKETS = ["research-stimuli", "org-branding"] as const;
 
@@ -51,7 +54,16 @@ async function listObjectKeys(
     const { data, error } = await supabase.storage
       .from(bucket)
       .list(prefix, { limit: pageSize, offset });
-    if (error || !data || data.length === 0) break;
+    // Fail-closed: a real list error must abort the whole deletion — treating it
+    // as "no objects" could strand files once the owning DB row is gone. (The
+    // caller only lists buckets it confirmed exist, so this is never a
+    // missing-bucket case.)
+    if (error) {
+      throw new Error(
+        `org-delete storage wipe: list failed for bucket "${bucket}" (depth ${depth}): ${error.message}`,
+      );
+    }
+    if (!data || data.length === 0) break;
 
     for (const entry of data) {
       const path = prefix ? `${prefix}/${entry.name}` : entry.name;
@@ -70,23 +82,50 @@ async function listObjectKeys(
   return keys;
 }
 
-/** Best-effort removal of every storage object owned by the org. */
+/**
+ * Remove every storage object owned by the org — FAIL-CLOSED. A real list/remove
+ * failure (or an inability to enumerate buckets) throws, so the caller aborts
+ * BEFORE the DB delete and never strands files whose owning row is already gone
+ * (Art. 17). Only a bucket that genuinely does not exist in this environment is
+ * skipped, decided via listBuckets() instead of by swallowing errors. Returns
+ * the number of objects removed.
+ */
 async function deleteOrgStorage(
   supabase: AdminClient,
   orgId: string,
 ): Promise<number> {
+  // Which org-scoped buckets actually exist here? A bucket whose migration was
+  // never applied to this baseline simply isn't listed → skipped, without
+  // masking a real failure as "nothing to delete".
+  const { data: buckets, error: bucketsError } =
+    await supabase.storage.listBuckets();
+  if (bucketsError) {
+    throw new Error(
+      `org-delete storage wipe: could not list buckets: ${bucketsError.message}`,
+    );
+  }
+  const present = new Set<string>();
+  for (const b of buckets ?? []) {
+    present.add(b.name);
+    present.add(b.id);
+  }
+
   let removed = 0;
   for (const bucket of ORG_PREFIXED_BUCKETS) {
-    try {
-      const keys = await listObjectKeys(supabase, bucket, orgId);
-      for (let i = 0; i < keys.length; i += 100) {
-        const chunk = keys.slice(i, i + 100);
-        const { error } = await supabase.storage.from(bucket).remove(chunk);
-        if (!error) removed += chunk.length;
+    // Genuinely absent in this environment → nothing to wipe (NOT an error).
+    // Any failure on an EXISTING bucket propagates below and aborts the delete.
+    if (!present.has(bucket)) continue;
+
+    const keys = await listObjectKeys(supabase, bucket, orgId);
+    for (let i = 0; i < keys.length; i += 100) {
+      const chunk = keys.slice(i, i + 100);
+      const { error } = await supabase.storage.from(bucket).remove(chunk);
+      if (error) {
+        throw new Error(
+          `org-delete storage wipe: failed to remove ${chunk.length} object(s) from bucket "${bucket}": ${error.message}`,
+        );
       }
-    } catch {
-      // Missing bucket / transient storage error — skip. The DB delete below
-      // is the source of truth for whether the org's data is gone.
+      removed += chunk.length;
     }
   }
   return removed;
@@ -123,8 +162,11 @@ export async function deleteOrganizationData(params: {
 
   const supabase = createAdminSupabaseClient();
 
-  // 1) Storage first — removing files before the owning DB row means a later
-  //    failure can't strand objects whose org is already gone.
+  // 1) Storage first, FAIL-CLOSED — removing files before the owning DB row
+  //    means a later failure can't strand objects whose org is already gone.
+  //    deleteOrgStorage THROWS on a real list/remove failure, so a storage error
+  //    aborts here and the DB delete (step 2) never runs (Art. 17: no orphaned
+  //    objects once the owning row is gone). A genuinely-absent bucket is skipped.
   const storageObjectsRemoved = await deleteOrgStorage(supabase, params.orgId);
 
   // 2) Delete all org data + the org row atomically via the SQL function —
