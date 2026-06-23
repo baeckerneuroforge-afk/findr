@@ -94,8 +94,12 @@ export default async function MarketSessionTranscriptPage({
       {/* E2 — Signal-Block überm Transkript; rendert nur mit Sidecar-Befund. */}
       <SessionSignalsCard session={session} />
 
-      {/* Phase 2c — Usability-Ergebnis; rendert nur mit berechnetem task_result. */}
-      <TaskResultCard session={session} />
+      {/* Phase 2c — Usability-Ergebnis; rendert nur mit berechnetem task_result.
+          Phase C/D: + Erfolgskriterium (Forscher-Kontext) + Judge-Verdikt. */}
+      <TaskResultCard
+        session={session}
+        successCriterion={plan?.taskDefinition?.successCriterion ?? null}
+      />
 
       {/* Gesprächsverlauf — geteilter Baustein mit dem Drawer (E7b). */}
       <SessionConversationCard session={session} stimuli={stimuli} />

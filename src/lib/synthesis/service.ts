@@ -20,6 +20,10 @@ import type {
 } from "@/lib/schemas/synthesis";
 import { normalizeSignalsSummary, type SignalsSummary } from "./signals";
 import { normalizeStimulusSummary, type StimulusSummary } from "./stimuli";
+import {
+  coerceInteractionSummary,
+  type InteractionSummary,
+} from "@/lib/schemas/synthesis-interaction";
 
 /**
  * Read-side service for the study-synthesis UI. Two functions:
@@ -76,6 +80,10 @@ export interface StudySynthesisRecord {
   stimulus_sections: StimulusSection[];
   /** E7 — LLM-formulierter Vergleich, nur mit Server-Präferenz-Zahlen. */
   stimulus_comparison: string | null;
+  /** Phase D — server-deterministisches Usability-Aggregat (Erfolgsquote, Ø
+   *  Zeit/Klicks, Reibungsrate, Judge-Übereinstimmung). Null unter Mindest-N /
+   *  Nicht-Usability / pre-migration. Aggregate-only (Art. 22). */
+  interaction_summary: InteractionSummary | null;
 }
 
 export type { EmergentTheme, Tension, TensionSide };
@@ -102,6 +110,7 @@ export async function getStudySynthesis(
     stimulus_summary?: unknown;
     stimulus_sections?: unknown;
     stimulus_comparison?: unknown;
+    interaction_summary?: unknown;
   };
   return {
     id: data.id,
@@ -127,6 +136,7 @@ export async function getStudySynthesis(
       row.stimulus_comparison.trim() !== ""
         ? row.stimulus_comparison
         : null,
+    interaction_summary: coerceInteractionSummary(row.interaction_summary),
   };
 }
 

@@ -99,6 +99,10 @@ type InterviewSessionsRow = {
   capture_source: string | null;
   visual_capture: Json | null;
   task_result: Json | null;
+  // Phase C — advisory LLM task-success verdict (TaskSuccessJudgmentRecord,
+  // src/lib/schemas/task-success.ts). NULL = never judged. SEPARATE from
+  // task_result; never feeds back into it ("Zahlen rechnet der Server").
+  task_success_judgment: Json | null;
 };
 
 type InterviewSessionsInsert = {
@@ -140,6 +144,7 @@ type InterviewSessionsInsert = {
   capture_source?: string | null;
   visual_capture?: Json | null;
   task_result?: Json | null;
+  task_success_judgment?: Json | null;
 };
 
 type InterviewSessionsUpdate = {
@@ -181,6 +186,7 @@ type InterviewSessionsUpdate = {
   capture_source?: string | null;
   visual_capture?: Json | null;
   task_result?: Json | null;
+  task_success_judgment?: Json | null;
 };
 
 // ── research_plans ─────────────────────────────────────────────────────────

@@ -38,6 +38,10 @@ import {
   coerceTaskResult,
   type TaskResult,
 } from "@/lib/schemas/task-result";
+import {
+  coerceTaskSuccessJudgment,
+  type TaskSuccessJudgmentRecord,
+} from "@/lib/schemas/task-success";
 
 /**
  * Read + write helpers for the research layer. Mirrors the pattern of
@@ -694,6 +698,11 @@ export interface PlanSessionTranscript {
    *  Version) → die Ergebnis-Karte rendert nicht, die Ansicht bleibt
    *  byte-identisch. Rein behavioral, kein Affekt (L8). */
   taskResult: TaskResult | null;
+  /** Phase C — advisory KI-Erfolgs-Urteil (success|partial|failure + Konfidenz +
+   *  Begründung). Null = nie geurteilt (kein Kriterium, kein Consent, Bestand,
+   *  fremde Version) → der Judge-Chip rendert nicht. FORSCHER-Ansicht (Dashboard);
+   *  NIE in Teilnehmer-Views. SEPARAT von taskResult.success (deterministisch). */
+  taskSuccessJudgment: TaskSuccessJudgmentRecord | null;
 }
 
 /** Server-seitiges Cap der Interviews-Liste (keine Pagination, E2-Scope).
@@ -804,7 +813,7 @@ export async function getSessionWithTranscript(
   const { data, error } = await supabase
     .from("interview_sessions")
     .select(
-      "id, status, mode, conversation, created_at, completed_at, turn_signals, task_result",
+      "id, status, mode, conversation, created_at, completed_at, turn_signals, task_result, task_success_judgment",
     )
     .eq("org_id", orgId)
     .eq("plan_id", planId)
@@ -829,6 +838,12 @@ export async function getSessionWithTranscript(
     // stehen; coerceTaskResult glättet Bestand/Null/Müll zu null.
     taskResult: coerceTaskResult(
       (data as { task_result?: unknown }).task_result,
+    ),
+    // Phase C: lenient like turnSignals/taskResult. task_success_judgment exists
+    // from migration 20260723000005 (apply BEFORE this select goes live — same
+    // discipline as task_result); coerce smooths legacy/null/foreign-version to null.
+    taskSuccessJudgment: coerceTaskSuccessJudgment(
+      (data as { task_success_judgment?: unknown }).task_success_judgment,
     ),
   };
 }

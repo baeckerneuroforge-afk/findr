@@ -72,8 +72,12 @@ export default async function InterceptedSessionDrawerPage({
       <SessionMetaBadges session={session} />
       {/* E2 — Signal-Block; identische Reihenfolge wie die Voll-Seite. */}
       <SessionSignalsCard session={session} />
-      {/* Phase 2c — Usability-Ergebnis; rendert nur mit berechnetem task_result. */}
-      <TaskResultCard session={session} />
+      {/* Phase 2c — Usability-Ergebnis; rendert nur mit berechnetem task_result.
+          Phase C/D: + Erfolgskriterium (Forscher-Kontext) + Judge-Verdikt. */}
+      <TaskResultCard
+        session={session}
+        successCriterion={plan?.taskDefinition?.successCriterion ?? null}
+      />
       <SessionConversationCard session={session} stimuli={stimuli} />
     </TranscriptDrawer>
   );

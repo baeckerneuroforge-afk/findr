@@ -235,12 +235,38 @@ export async function SessionSignalsCard({
  *  byte-identisch. Rein behavioral, KEIN Affekt (L8). */
 export async function TaskResultCard({
   session,
+  successCriterion = null,
 }: {
   session: PlanSessionTranscript;
+  /** Phase C/D — das Erfolgskriterium der Aufgabe (NUR Dashboard/Forscher;
+   *  erreicht NIE den Teilnehmer). Kontext über den Metriken. Null → nichts. */
+  successCriterion?: string | null;
 }) {
   const result = session.taskResult;
   if (!result) return null;
   const tm = await getTranslations("research.market");
+
+  // Phase C — advisory Judge-Verdikt (SEPARAT vom deterministischen Verhaltens-
+  // Erfolg oben). Farbe: success→grün, partial→amber, failure→orange.
+  const judgment = session.taskSuccessJudgment;
+  const verdictVariant: BadgeVariant =
+    judgment?.verdict === "success"
+      ? "success"
+      : judgment?.verdict === "partial"
+        ? "medium"
+        : "high";
+  const verdictLabel = judgment
+    ? judgment.verdict === "success"
+      ? tm("taskJudgeSuccess")
+      : judgment.verdict === "partial"
+        ? tm("taskJudgePartial")
+        : tm("taskJudgeFailure")
+    : "";
+  // Nur einen KLAREN Widerspruch zwischen Verhaltens-Signal und Judge flaggen.
+  const judgeDisagrees =
+    judgment != null &&
+    ((result.success === true && judgment.verdict === "failure") ||
+      (result.success === false && judgment.verdict === "success"));
 
   const outcome =
     result.success === true
@@ -259,6 +285,14 @@ export async function TaskResultCard({
         <h2 className="text-body-strong text-neutral-900">
           {tm("taskResultTitle")}
         </h2>
+        {successCriterion && (
+          <p className="mt-2 text-caption text-neutral-500">
+            <span className="text-neutral-400">
+              {tm("taskCriterionLabel")}:{" "}
+            </span>
+            {successCriterion}
+          </p>
+        )}
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
           <div>
             <dt className="text-caption text-neutral-500">
@@ -287,6 +321,29 @@ export async function TaskResultCard({
             </dd>
           </div>
         </dl>
+        {judgment && (
+          <div className="mt-3 border-t border-neutral-100 pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-caption text-neutral-500">
+                {tm("taskJudgeLabel")}
+              </span>
+              <Badge variant={verdictVariant}>
+                {verdictLabel} · {Math.round(judgment.confidence * 100)}%
+              </Badge>
+              {judgeDisagrees && (
+                <span className="text-caption text-warning-700">
+                  {tm("taskJudgeDisagree")}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-caption text-neutral-500">
+              <span className="text-neutral-400">
+                {tm("taskJudgeReasoning")}:{" "}
+              </span>
+              {judgment.reasoning}
+            </p>
+          </div>
+        )}
         <p className="mt-2 text-caption text-neutral-400">
           {tm("taskResultDisclaimer")}
         </p>

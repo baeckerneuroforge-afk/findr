@@ -9,6 +9,7 @@ import {
   persistResearchTranscriptAndDiscovery,
 } from "@/lib/research/transcript-service";
 import { runTurnSignalsSidecar } from "@/lib/research/turn-signals";
+import { runTaskSuccessJudgeSidecar } from "@/lib/research/task-success-judge";
 import type {
   InterviewLanguage,
   InterviewTurn,
@@ -347,6 +348,7 @@ export async function completeVoiceResearchSession(
     after(async () => {
       await runDiscoveryExtraction();
       await runTurnSignalsSidecar(session.id);
+      await runTaskSuccessJudgeSidecar(session.id);
     });
     return { ok: true, alreadyCompleted: false, discoveryRan: false };
   }
@@ -362,6 +364,8 @@ export async function completeVoiceResearchSession(
   // NULL als Write-Guard). Alle Gates (signals_enabled, Consent-Stempel,
   // Teilnehmer-Turns) liegen im Sidecar selbst.
   after(() => runTurnSignalsSidecar(session.id));
+  // Phase C — Task-Success-Judge-Sidecar (advisory), wie im Text-Finish.
+  after(() => runTaskSuccessJudgeSidecar(session.id));
 
   return { ok: true, alreadyCompleted: false, discoveryRan };
 }

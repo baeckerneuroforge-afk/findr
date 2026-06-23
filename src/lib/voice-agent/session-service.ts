@@ -18,6 +18,7 @@ import {
 import { findInviteByAccessToken } from "@/lib/research/scheduling";
 import { persistResearchTranscriptAndDiscovery } from "@/lib/research/transcript-service";
 import { runTurnSignalsSidecar } from "@/lib/research/turn-signals";
+import { runTaskSuccessJudgeSidecar } from "@/lib/research/task-success-judge";
 import {
   DEFAULT_INTERVIEW_LANGUAGE,
   DEFAULT_VOICE_MODEL,
@@ -1282,6 +1283,10 @@ export async function advanceInterview(
       // (E0-Kopplung) + turn_signals IS NULL (Idempotenz). Fehler bleiben im
       // Sidecar (geloggt, nie geworfen) — dieser Pfad ist davon unberührbar.
       after(() => runTurnSignalsSidecar(session.id));
+      // Phase C — Task-Success-Judge-Sidecar (advisory, gleiche after()-Stelle).
+      // Alle Gates (usability_test, successCriterion, Consent, IS NULL) liegen im
+      // Sidecar selbst; Fehler bleiben dort, dieser Pfad ist unberührbar.
+      after(() => runTaskSuccessJudgeSidecar(session.id));
 
       return toPublicView(toSession(data));
     }

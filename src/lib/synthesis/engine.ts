@@ -33,6 +33,7 @@ import {
   type SynthesisPlanContext,
 } from "./prompts";
 import { loadSynthesisSignalInputs } from "./signals";
+import { loadSynthesisInteractionSummary } from "./interaction";
 import { loadSynthesisStimulusInputs } from "./stimuli";
 
 /**
@@ -144,6 +145,9 @@ type StudySynthesisRow = {
   stimulus_summary: Json | null;
   stimulus_sections: Json | null;
   stimulus_comparison: string | null;
+  // Phase D (20260723000006) — additive, nullable; server-deterministisches
+  // Usability-Aggregat, geschrieben nur vom best-effort Zweit-UPDATE.
+  interaction_summary: Json | null;
   // Personas (M3-Migration) — additive, nullable; geschrieben NUR von der
   // Persona-Stufe (src/lib/synthesis/audience-personas.ts), nie von
   // synthesizeStudy. Der geteilte Service-Client trägt die Spalten, damit die
@@ -170,6 +174,7 @@ type StudySynthesisInsert = {
   stimulus_summary?: Json | null;
   stimulus_sections?: Json | null;
   stimulus_comparison?: string | null;
+  interaction_summary?: Json | null;
   personas?: Json | null;
   personas_summary?: Json | null;
   personas_generated_at?: string | null;
@@ -716,6 +721,14 @@ export async function synthesizeStudy(
   // ab Mindest-N Voll-Reveal-Sessions. Fail-open wie die Signal-Inputs.
   const stimulusInputs = await loadSynthesisStimulusInputs(orgId, planId);
 
+  // Phase D — per-study usability aggregate (server-deterministic, fail-open,
+  // min-N gated, aggregate-only). Only for usability_test studies, where the
+  // success-rate has a task to mean against; null otherwise → no usability card.
+  const interactionSummary =
+    plan.useCase === "usability_test"
+      ? await loadSynthesisInteractionSummary(orgId, planId)
+      : null;
+
   const synthesis = await synthesizeFromInputs(
     {
       plan,
@@ -770,12 +783,15 @@ export async function synthesizeStudy(
       stimulus_summary: (stimulusInputs.summary ?? null) as unknown as Json,
       stimulus_sections: synthesis.stimulus_sections as unknown as Json,
       stimulus_comparison: synthesis.stimulus_comparison,
+      // Phase D — server-deterministic usability aggregate (aggregate-only,
+      // min-N gated). Null for non-usability studies or under min-N.
+      interaction_summary: interactionSummary as unknown as Json,
     })
     .eq("org_id", orgId)
     .eq("plan_id", planId);
   if (extrasErr) {
     console.warn(
-      `[synthesis] extras update failed (migrations 20260704000003 + 20260714000001 applied?): ${extrasErr.message}`,
+      `[synthesis] extras update failed (migrations 20260704000003 + 20260714000001 + 20260723000006 applied?): ${extrasErr.message}`,
     );
   }
 

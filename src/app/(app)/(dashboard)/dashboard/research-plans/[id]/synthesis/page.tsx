@@ -525,6 +525,80 @@ export default async function ResearchPlanSynthesisPage({
             </section>
           )}
 
+          {/* Phase D — Usability-Aggregat (Kennzahlen NUR aus interaction_summary,
+              server-deterministisch berechnet — nie aus LLM-Text). Aggregate-only,
+              ab Mindest-N; rendert nur mit Befund → Bestand byte-identisch. */}
+          {synthesis.interaction_summary && (
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-h2 text-neutral-900">
+                  {t("usabilityTitle")}
+                </h2>
+                <p className="text-body text-neutral-500">
+                  {t("usabilitySessions", {
+                    n: synthesis.interaction_summary.sessionsWithResults,
+                  })}
+                </p>
+              </div>
+              <Card>
+                <CardBody className="space-y-3">
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+                    <div>
+                      <dt className="text-caption text-neutral-500">
+                        {t("usabilitySuccessRate")}
+                      </dt>
+                      <dd className="text-body text-neutral-900">
+                        {synthesis.interaction_summary!.successRate === null
+                          ? "—"
+                          : `${Math.round(synthesis.interaction_summary!.successRate * 100)} %`}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-caption text-neutral-500">
+                        {t("usabilityAvgTime")}
+                      </dt>
+                      <dd className="text-body text-neutral-900">
+                        {synthesis.interaction_summary!.avgTimeSeconds === null
+                          ? "—"
+                          : t("usabilitySeconds", {
+                              n: synthesis.interaction_summary!.avgTimeSeconds,
+                            })}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-caption text-neutral-500">
+                        {t("usabilityAvgClicks")}
+                      </dt>
+                      <dd className="text-body text-neutral-900">
+                        {synthesis.interaction_summary!.avgClicks}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-caption text-neutral-500">
+                        {t("usabilityFrictionRate")}
+                      </dt>
+                      <dd className="text-body text-neutral-900">
+                        {`${Math.round(synthesis.interaction_summary!.frictionRate * 100)} %`}
+                      </dd>
+                    </div>
+                  </dl>
+                  {synthesis.interaction_summary!.judgeAgreement !== null && (
+                    <p className="text-caption text-neutral-500">
+                      {t("usabilityJudgeAgreement", {
+                        n: Math.round(
+                          synthesis.interaction_summary!.judgeAgreement * 100,
+                        ),
+                      })}
+                    </p>
+                  )}
+                  <p className="text-caption text-neutral-400">
+                    {t("usabilityDisclaimer")}
+                  </p>
+                </CardBody>
+              </Card>
+            </section>
+          )}
+
           {synthesis.methodology && (
             <section className="space-y-4">
               <div>
