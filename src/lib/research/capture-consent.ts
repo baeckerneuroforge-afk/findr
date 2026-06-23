@@ -8,18 +8,23 @@
  *
  * STRUCTURAL RED LINE (integration plan L8): there is NO affect/emotion tier and
  * no affect field anywhere here — only NON-biometric behavioural capture
- * (events / replay / screen). Do not add an emotion/affect tier.
+ * (events / screen). Do not add an emotion/affect tier.
+ *
+ * NOTE: a third 'replay' tier was forward-declared but never wired (no UI ever
+ * requested it, no capture route ever gated on it). It has been removed from
+ * the consent surface so no opt-in can be stamped for a capture that does not
+ * exist. The `replay_consent_at` DB column is left in place, reserved for a
+ * future session-replay capture; re-add the tier here when that ships.
  */
 
 /** The behavioural-capture tiers. Each maps 1:1 to its own per-session consent
  *  stamp column on interview_sessions. */
-export type CaptureTier = "events" | "replay" | "screen";
+export type CaptureTier = "events" | "screen";
 
 /** Tier → the `interview_sessions` timestamp column that records the
  *  participant's opt-in for that tier (server-stamped, idempotent). */
 export const CAPTURE_TIER_COLUMN = {
   events: "events_consent_at",
-  replay: "replay_consent_at",
   screen: "screen_consent_at",
 } as const;
 

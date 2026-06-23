@@ -1373,7 +1373,6 @@
       "addTopic": "+ Add topic",
       "modeText": "Text chat",
       "modeVoice": "Voice (preference – text fallback today)",
-      "modeVideo": "Video (preference – text fallback today)",
       "fldName": "Name",
       "inviteNameHint": "Shown in the participant list. \"First Last\" or \"Name, Company\" are both fine.",
       "fldEmail": "Email",

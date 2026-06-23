@@ -21,17 +21,18 @@ import { Field, FIELD_INPUT_CLASS } from "@/components/ui/Field";
  * deaktiviert (gating in SendInviteAction), aber alles andere (Link
  * kopieren, Termin setzen, Löschen) funktioniert ohne.
  *
- * The agent currently only handles the text mode end-to-end; voice and
- * video are accepted as the participant's preference and stored, but the
- * /interview/[token] page renders all three the same way today.
+ * Two interview modes are offered: text (chat) and voice (the spoken agent),
+ * both handled end-to-end. Video is intentionally NOT offered yet — the DB
+ * schema reserves a 'video' mode for later, but no video interview flow is
+ * built, so surfacing it here would silently degrade the participant to text.
+ * Re-add the option (and its i18n key) once the video flow actually ships.
  */
 
-type Mode = "text" | "voice" | "video";
+type Mode = "text" | "voice";
 
 const MODE_OPTIONS: Array<{ value: Mode; labelKey: string }> = [
   { value: "text", labelKey: "modeText" },
   { value: "voice", labelKey: "modeVoice" },
-  { value: "video", labelKey: "modeVideo" },
 ];
 
 interface FormState {

@@ -23,7 +23,7 @@ import {
  *   - Der Request-BODY ist optional. Ohne Body / ohne `purposes` ist die Route
  *     byte-identisch zu vorher: nichts Client-Geliefertes wird persistiert, der
  *     Zeitstempel entsteht server-seitig (markSessionConsentByToken). Phase 2a:
- *     ein optionales `{ purposes: ('events'|'replay'|'screen')[] }` stempelt
+ *     ein optionales `{ purposes: ('events'|'screen')[] }` stempelt
  *     zusätzlich die granularen Tier-Consents — server-seitig gestempelt; der
  *     Client signalisiert nur, WELCHE Tiers zugestimmt wurden.
  *   - Idempotent: nur der ERSTE Accept schreibt (WHERE consent_accepted_at IS
@@ -43,7 +43,7 @@ const TokenSchema = z.string().min(20).max(200);
 // purposes → the base E0 path below (byte-identical). The enum mirrors
 // CaptureTier (no affect tier — structural red line, integration plan L8).
 const BodySchema = z.object({
-  purposes: z.array(z.enum(["events", "replay", "screen"])).max(3).optional(),
+  purposes: z.array(z.enum(["events", "screen"])).max(2).optional(),
 });
 
 export async function POST(

@@ -1373,7 +1373,6 @@
       "addTopic": "+ Thema hinzufügen",
       "modeText": "Text-Chat",
       "modeVoice": "Voice (Wunsch – heute Text-Fallback)",
-      "modeVideo": "Video (Wunsch – heute Text-Fallback)",
       "fldName": "Name",
       "inviteNameHint": "In der Teilnehmerliste angezeigt. \"Vorname Nachname\" oder \"Name, Firma\" sind beide ok.",
       "fldEmail": "E-Mail",
