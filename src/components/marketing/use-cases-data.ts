@@ -78,6 +78,20 @@ const USE_CASE_DATA: UseCaseData[] = [
     status: "live",
   },
   {
+    // LIVE: die Usability-Schleife ist gebaut + deployt (Aufgabe + Verhaltens-
+    // Event-Store + KI-Erfolgs-Urteil + Usability-Metriken) → eigene
+    // /loesungen/ux-research-Seite, rein über status verdrahtet (Nav/Footer/
+    // Sitemap/Cross-Grid ziehen automatisch nach).
+    slug: "ux-research",
+    name: { de: "UX Research", en: "UX Research" },
+    tagline: {
+      de: "Schaffen Menschen die Aufgabe? Task-basiertes Usability-Testing mit Verhaltenssignalen — belegt, nicht vermutet.",
+      en: "Can people complete the task? Task-based usability testing with behavioural signals — evidenced, not assumed.",
+    },
+    icon: "TargetIcon",
+    status: "live",
+  },
+  {
     // LIVE: die Persona-Stufe ist gebaut und deployt (Engine
     // audience-personas.ts, POST /personas, Dashboard-Sub-Route) → bekommt eine
     // eigene /loesungen/personas-Seite und steht in Nav/Footer/Sitemap. Wie die
