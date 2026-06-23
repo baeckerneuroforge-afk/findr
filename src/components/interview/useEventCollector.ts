@@ -69,7 +69,7 @@ export function useEventCollector({
   token: string;
   active: boolean;
   completed: boolean;
-}): void {
+}): { declareOutcome: (outcome: "complete" | "abandon") => void } {
   const bufferRef = useRef<CollectedEvent[]>([]);
   const startEpochRef = useRef(0);
   const startedRef = useRef(false);
@@ -161,4 +161,24 @@ export function useEventCollector({
     push("task_complete");
     flush();
   }, [active, completed, flush, push]);
+
+  // Phase 1b — explicit participant task outcome (the "Aufgabe geschafft /
+  // nicht geschafft" control). This is the AUTHORITATIVE terminal signal: a
+  // behavioural fact the participant declares, NOT a model verdict. Setting
+  // completedSentRef suppresses the interview-completion auto task_complete
+  // above, so an explicit `abandon` is never overwritten by a later auto
+  // `complete`. No-op if the collector never started (no events consent) or a
+  // terminal was already sent. Reuses the existing task_complete/task_abandon
+  // event types, so computeTaskResult (last terminal wins) needs no change.
+  const declareOutcome = useCallback(
+    (outcome: "complete" | "abandon") => {
+      if (!startedRef.current || completedSentRef.current) return;
+      completedSentRef.current = true;
+      push(outcome === "complete" ? "task_complete" : "task_abandon");
+      flush();
+    },
+    [flush, push],
+  );
+
+  return { declareOutcome };
 }

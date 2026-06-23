@@ -53,6 +53,15 @@
       "accept": "I agree",
       "decline": "Continue without recording"
     },
+    "task": {
+      "label": "Your task",
+      "openPrototype": "Open prototype ↗",
+      "outcomePrompt": "Were you able to complete the task?",
+      "done": "Yes, done",
+      "failed": "Couldn't complete it",
+      "recordedDone": "Noted: task completed ✓",
+      "recordedFailed": "Noted: not completed"
+    },
     "stimulus": {
       "label": "Material for this conversation",
       "imageAlt": "The material discussed in this interview",

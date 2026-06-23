@@ -53,6 +53,15 @@
       "accept": "Einverstanden",
       "decline": "Ohne Aufzeichnung fortfahren"
     },
+    "task": {
+      "label": "Ihre Aufgabe",
+      "openPrototype": "Prototyp öffnen ↗",
+      "outcomePrompt": "Konnten Sie die Aufgabe abschließen?",
+      "done": "Ja, geschafft",
+      "failed": "Nicht geschafft",
+      "recordedDone": "Notiert: Aufgabe geschafft ✓",
+      "recordedFailed": "Notiert: nicht abgeschlossen"
+    },
     "stimulus": {
       "label": "Material zum Gespräch",
       "imageAlt": "Das in diesem Interview besprochene Material",

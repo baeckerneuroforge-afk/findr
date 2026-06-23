@@ -52,6 +52,20 @@ export interface TaskDefinition {
   prototypeHosting: PrototypeHosting;
 }
 
+/**
+ * Phase 1b — the PARTICIPANT-SAFE slice of a task: ONLY the fields a participant
+ * may see. successCriterion and prototypeHosting are deliberately absent — they
+ * are researcher-only (the criterion is the measurement target; showing it would
+ * bias the participant, same demand-effect discipline as stimulus_description /
+ * the agent `why` rationale). Encoding the boundary as a TYPE means the
+ * participant payload structurally cannot carry those fields. The participant
+ * page builds this from the live plan's taskDefinition (instruction + targetUrl).
+ */
+export interface ParticipantTask {
+  instruction: string;
+  targetUrl: string | null;
+}
+
 function isHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);

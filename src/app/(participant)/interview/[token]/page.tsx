@@ -185,6 +185,19 @@ export default async function InterviewPage({
     isResearch && stimulusSet.length === 0 ? (plan?.stimulusType ?? null) : null;
   const ttsProps = { ttsEnabled };
   const useCaseProps = { useCase };
+  // Phase 1b — the usability task shown to the PARTICIPANT. instruction +
+  // targetUrl ONLY; successCriterion + prototypeHosting stay researcher-only
+  // (never sent to the participant client — same demand-effect discipline as
+  // stimulus_description / the agent `why`). Built from the live plan (already
+  // loaded above); null for non-usability studies / studies without a task →
+  // both views render byte-identically.
+  const task =
+    isResearch && plan?.useCase === "usability_test" && plan.taskDefinition
+      ? {
+          instruction: plan.taskDefinition.instruction,
+          targetUrl: plan.taskDefinition.targetUrl ?? null,
+        }
+      : null;
 
   // Voice Phase 2 (E1, O1): voice-enabled studies render the LiveKit voice
   // view INSTEAD of the chat — the push-to-talk provisional in InterviewChat
@@ -251,6 +264,8 @@ export default async function InterviewPage({
         panelCompleteRedirect={session.panelCompleteRedirect}
         stimulusUrl={stimulusUrl}
         stimulusType={stimulusType}
+        // Phase 1b — die Usability-Aufgabe (nur instruction + targetUrl).
+        task={task}
         // E6 Multi-Stimulus — Set-Panel mit Agent-Reveal per DataPacket;
         // leer → exakt der bisherige Single-/No-Stimulus-Pfad.
         stimuli={stimulusSet}
@@ -309,6 +324,8 @@ export default async function InterviewPage({
         // chat). Both null for non-research / no-stimulus studies → unchanged.
         stimulusUrl={stimulusUrl}
         stimulusType={stimulusType}
+        // Phase 1b — die Usability-Aufgabe (nur instruction + targetUrl).
+        task={task}
         // E5 Multi-Stimulus — Set-Panel mit Agent-Reveal; leer → Legacy-Pfad.
         stimuli={stimulusSet}
         // Fortschrittsbalken — gestellte Agent-Fragen ÷ diese System-Decke.

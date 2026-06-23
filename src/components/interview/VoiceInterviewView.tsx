@@ -10,6 +10,7 @@ import { WithdrawDataLink } from "./WithdrawDataLink";
 import type { Room } from "livekit-client";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 import type { StimulusSetItem } from "./InterviewChat";
+import type { ParticipantTask } from "@/lib/research/task";
 
 /**
  * Voice Phase 2 (E1) — the participant-facing LiveKit voice interview.
@@ -86,6 +87,11 @@ interface VoiceInterviewViewProps {
   maxDurationSeconds?: number | null;
   /** „Raum betreten"-Zeitstempel (ISO) bzw. null — Basis des Countdowns. */
   startedAt?: string | null;
+  /** Phase 1b — die Usability-Aufgabe als persistente Karte (NUR instruction +
+   *  targetUrl; successCriterion/prototypeHosting trägt der Typ nicht). Voice
+   *  zeigt die Aufgabe nur an — der explizite Abschluss (Phase B) ist text-only
+   *  (kein DOM-Event-Collector im Voice-Pfad). Null → keine Karte. */
+  task?: ParticipantTask | null;
 }
 
 type Phase =
@@ -545,6 +551,7 @@ export function VoiceInterviewView({
   progressTotal = 6,
   maxDurationSeconds = null,
   startedAt = null,
+  task = null,
 }: VoiceInterviewViewProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
@@ -1117,6 +1124,31 @@ export function VoiceInterviewView({
   }
 
   const heading = headingOverride ?? t("header.titleResearch");
+  // Phase 1b — Aufgabenkarte. Voice ZEIGT die Aufgabe nur an; der explizite
+  // Abschluss (Phase B) ist text-only, weil der Voice-Pfad keinen DOM-Event-
+  // Collector hat. Nur instruction (+ optional Prototyp-Link); successCriterion
+  // erreicht den Teilnehmer nie. null → nichts gerendert (byte-identisch).
+  // Gleiche Optik wie die Karte im Text-Chat.
+  const taskCard = task ? (
+    <div className="mb-5 rounded-lg border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-4">
+      <p className="text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
+        {t("task.label")}
+      </p>
+      <p className="mt-2 text-[14px] leading-relaxed text-[#0E0A1F]">
+        {task.instruction}
+      </p>
+      {task.targetUrl && (
+        <a
+          href={task.targetUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex h-[34px] items-center rounded-lg border border-[#E8E4F2] bg-white px-3 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:border-[#CFC9E0]"
+        >
+          {t("task.openPrototype")}
+        </a>
+      )}
+    </div>
+  ) : null;
 
   // Orb state: prefer the published agent state, fall back to the
   // ActiveSpeakersChanged boolean if the attribute never arrived.
@@ -1468,6 +1500,7 @@ export function VoiceInterviewView({
                 {t("header.subtitle")}
               </p>
             </div>
+            {taskCard}
             {content}
           </div>
         </main>
@@ -1479,6 +1512,7 @@ export function VoiceInterviewView({
               {t("header.subtitle")}
             </p>
           </div>
+          {taskCard}
           {content}
         </main>
       )}

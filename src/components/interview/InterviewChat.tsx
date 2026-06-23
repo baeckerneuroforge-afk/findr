@@ -16,6 +16,7 @@ import { EventTrackingConsent } from "./EventTrackingConsent";
 import { useEventCollector } from "./useEventCollector";
 import { KlymeoMark } from "@/components/shared/KlymeoMark";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
+import type { ParticipantTask } from "@/lib/research/task";
 
 type Status = "open" | "completed" | "abandoned";
 
@@ -104,6 +105,11 @@ interface InterviewChatProps {
   maxDurationSeconds?: number | null;
   /** „Raum betreten"-Zeitstempel (ISO) bzw. null. Basis des Countdowns. */
   startedAt?: string | null;
+  /** Phase 1b — die Usability-Aufgabe, die dem Teilnehmer als persistente Karte
+   *  angezeigt wird. NUR teilnehmer-sichere Felder (instruction + targetUrl) —
+   *  successCriterion/prototypeHosting trägt der Typ strukturell nicht. Null für
+   *  Nicht-Usability-Studien → keine Karte, byte-identischer Render. */
+  task?: ParticipantTask | null;
 }
 
 /** E5 Multi-Stimulus — ein Set-Element, wie die Public-Session-View es
@@ -871,6 +877,7 @@ export function InterviewChat({
   progressTotal = 6,
   maxDurationSeconds = null,
   startedAt = null,
+  task = null,
 }: InterviewChatProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
@@ -1036,11 +1043,25 @@ export function InterviewChat({
   >("pending");
   // Phase 2c — the behavioural event collector. Inert unless the events tier is
   // granted; the /events route additionally fail-closes server-side.
-  useEventCollector({
+  const { declareOutcome } = useEventCollector({
     token,
     active: eventTrackingEnabled && eventsConsent === "granted",
     completed: status === "completed",
   });
+  // Phase 1b — the participant's explicit task outcome ("geschafft" / "nicht
+  // geschafft"). null until declared; once set, the buttons collapse into a
+  // recorded-confirmation. Purely local UI state — the authoritative terminal
+  // event is emitted by declareOutcome above.
+  const [taskOutcome, setTaskOutcome] = useState<
+    null | "complete" | "abandon"
+  >(null);
+  const declareTaskOutcome = useCallback(
+    (outcome: "complete" | "abandon") => {
+      declareOutcome(outcome);
+      setTaskOutcome(outcome);
+    },
+    [declareOutcome],
+  );
   const visualConsentPending =
     isOpen &&
     visualCaptureEnabled &&
@@ -2032,6 +2053,64 @@ export function InterviewChat({
           {t("header.subtitle")}
         </p>
       </div>
+
+      {/* Phase 1b — persistente Aufgabenkarte (Usability). Zeigt NUR die
+          Instruktion (+ optional den Prototyp-Link); successCriterion erreicht
+          den Teilnehmer nie. Die Abschluss-Buttons (Phase B) erscheinen nur,
+          wenn die Verhaltens-Erfassung aktiv ist (Events-Consent erteilt) — sie
+          senden das autoritative task_complete/task_abandon-Event. Kein task →
+          nichts gerendert, byte-identisch zu vorher. */}
+      {task && (
+        <div className="mb-5 rounded-lg border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-4">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
+            {t("task.label")}
+          </p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#0E0A1F]">
+            {task.instruction}
+          </p>
+          {task.targetUrl && (
+            <a
+              href={task.targetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex h-[34px] items-center rounded-lg border border-[#E8E4F2] bg-white px-3 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:border-[#CFC9E0]"
+            >
+              {t("task.openPrototype")}
+            </a>
+          )}
+          {eventTrackingEnabled &&
+            eventsConsent === "granted" &&
+            (taskOutcome !== null ? (
+              <p className="mt-4 border-t border-[#E8E4F2] pt-3 text-[12px] font-medium text-[#6B6680]">
+                {taskOutcome === "complete"
+                  ? t("task.recordedDone")
+                  : t("task.recordedFailed")}
+              </p>
+            ) : isOpen ? (
+              <div className="mt-4 border-t border-[#E8E4F2] pt-3">
+                <p className="text-[12px] text-[#6B6680]">
+                  {t("task.outcomePrompt")}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => declareTaskOutcome("complete")}
+                    className="inline-flex h-[34px] items-center rounded-lg bg-[var(--brand-accent)] px-3 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
+                  >
+                    {t("task.done")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => declareTaskOutcome("abandon")}
+                    className="inline-flex h-[34px] items-center rounded-lg border border-[#E8E4F2] bg-white px-3 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:border-[#CFC9E0]"
+                  >
+                    {t("task.failed")}
+                  </button>
+                </div>
+              </div>
+            ) : null)}
+        </div>
+      )}
 
       <InterviewProgress percent={progressPercent} accentColor={accent} />
 
