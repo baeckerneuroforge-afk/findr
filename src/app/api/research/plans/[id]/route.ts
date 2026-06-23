@@ -65,6 +65,7 @@ const UpdatePlanBodySchema = z
       .enum(["draft", "active", "completed", "archived"])
       .optional(),
     visualCaptureEnabled: z.boolean().optional(),
+    eventTrackingEnabled: z.boolean().optional(),
     voiceEnabled: z.boolean().optional(),
     ttsEnabled: z.boolean().optional(),
     signalsEnabled: z.boolean().optional(),
@@ -116,6 +117,7 @@ const UpdatePlanBodySchema = z
       data.sampleTarget !== undefined ||
       data.status !== undefined ||
       data.visualCaptureEnabled !== undefined ||
+      data.eventTrackingEnabled !== undefined ||
       data.voiceEnabled !== undefined ||
       data.ttsEnabled !== undefined ||
       data.signalsEnabled !== undefined ||
@@ -191,6 +193,7 @@ export async function PATCH(
       sampleTarget: parsed.data.sampleTarget,
       status: parsed.data.status,
       visualCaptureEnabled: parsed.data.visualCaptureEnabled,
+      eventTrackingEnabled: parsed.data.eventTrackingEnabled,
       voiceEnabled: parsed.data.voiceEnabled,
       ttsEnabled: parsed.data.ttsEnabled,
       signalsEnabled: parsed.data.signalsEnabled,

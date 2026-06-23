@@ -59,6 +59,9 @@ export interface ResearchPlanRecord {
    *  rows and pre-migration reads, so research interviews stay chat-only until
    *  a study explicitly enables capture. */
   visualCaptureEnabled: boolean;
+  /** Per-study event-tracking switch (Phase 2b). Defaults false for legacy rows
+   *  and pre-migration reads, so usability event capture stays opt-in per study. */
+  eventTrackingEnabled: boolean;
   /** Per-study Voice switch. Defaults false for legacy rows and pre-migration
    *  reads, so audio transport stays opt-in per study. */
   voiceEnabled: boolean;
@@ -213,6 +216,10 @@ function coerceVisualCaptureEnabled(raw: unknown): boolean {
   return raw === true;
 }
 
+function coerceEventTrackingEnabled(raw: unknown): boolean {
+  return raw === true;
+}
+
 function coerceVoiceEnabled(raw: unknown): boolean {
   return raw === true;
 }
@@ -259,6 +266,9 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     status: row.status,
     visualCaptureEnabled: coerceVisualCaptureEnabled(
       (row as { visual_capture_enabled?: unknown }).visual_capture_enabled,
+    ),
+    eventTrackingEnabled: coerceEventTrackingEnabled(
+      (row as { event_tracking_enabled?: unknown }).event_tracking_enabled,
     ),
     voiceEnabled: coerceVoiceEnabled(
       (row as { voice_enabled?: unknown }).voice_enabled,
@@ -764,6 +774,8 @@ export interface CreateResearchPlanInput {
   persona?: string | null;
   sampleTarget?: number | null;
   visualCaptureEnabled?: boolean;
+  /** Per-study event-tracking opt-in (Phase 2b). Omitted/false → no capture. */
+  eventTrackingEnabled?: boolean;
   voiceEnabled?: boolean;
   ttsEnabled?: boolean;
   signalsEnabled?: boolean;
@@ -817,6 +829,7 @@ export async function createResearchPlan(
       persona: input.persona ?? null,
       sample_target: input.sampleTarget ?? null,
       visual_capture_enabled: input.visualCaptureEnabled ?? false,
+      event_tracking_enabled: input.eventTrackingEnabled ?? false,
       voice_enabled: input.voiceEnabled ?? false,
       tts_enabled: input.ttsEnabled ?? false,
       signals_enabled: input.signalsEnabled ?? false,
@@ -872,6 +885,8 @@ export interface UpdateResearchPlanInput {
   sampleTarget?: number | null;
   status?: ResearchPlanRecord["status"];
   visualCaptureEnabled?: boolean;
+  /** Per-study event-tracking opt-in (Phase 2b). undefined leaves it untouched. */
+  eventTrackingEnabled?: boolean;
   voiceEnabled?: boolean;
   ttsEnabled?: boolean;
   signalsEnabled?: boolean;
@@ -923,6 +938,7 @@ export async function updateResearchPlan(
     sample_target?: number | null;
     status?: ResearchPlanRecord["status"];
     visual_capture_enabled?: boolean;
+    event_tracking_enabled?: boolean;
     voice_enabled?: boolean;
     tts_enabled?: boolean;
     signals_enabled?: boolean;
@@ -950,6 +966,8 @@ export async function updateResearchPlan(
   if (input.status !== undefined) update.status = input.status;
   if (input.visualCaptureEnabled !== undefined)
     update.visual_capture_enabled = input.visualCaptureEnabled;
+  if (input.eventTrackingEnabled !== undefined)
+    update.event_tracking_enabled = input.eventTrackingEnabled;
   if (input.voiceEnabled !== undefined) update.voice_enabled = input.voiceEnabled;
   if (input.ttsEnabled !== undefined) update.tts_enabled = input.ttsEnabled;
   if (input.signalsEnabled !== undefined)

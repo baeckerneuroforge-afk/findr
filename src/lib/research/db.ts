@@ -98,6 +98,7 @@ type InterviewSessionsRow = {
   transcript_source: string | null;
   capture_source: string | null;
   visual_capture: Json | null;
+  task_result: Json | null;
 };
 
 type InterviewSessionsInsert = {
@@ -138,6 +139,7 @@ type InterviewSessionsInsert = {
   transcript_source?: string | null;
   capture_source?: string | null;
   visual_capture?: Json | null;
+  task_result?: Json | null;
 };
 
 type InterviewSessionsUpdate = {
@@ -178,6 +180,7 @@ type InterviewSessionsUpdate = {
   transcript_source?: string | null;
   capture_source?: string | null;
   visual_capture?: Json | null;
+  task_result?: Json | null;
 };
 
 // ── research_plans ─────────────────────────────────────────────────────────
@@ -220,6 +223,7 @@ export type ResearchPlanRow = {
   // Vor angewandter Migration liefert select("*") die Spalte nicht; der
   // Lese-Mapper defaultet undefined→false.
   visual_capture_enabled: boolean;
+  event_tracking_enabled: boolean;
   // Voice-Schalter pro Studie. DB: NOT NULL DEFAULT false.
   // Vor angewandter Migration liefert select("*") die Spalte nicht; der
   // Lese-Mapper defaultet undefined→false.
@@ -296,6 +300,7 @@ type ResearchPlanInsert = {
   sample_target?: number | null;
   status?: ResearchPlanStatus;
   visual_capture_enabled?: boolean;
+  event_tracking_enabled?: boolean;
   voice_enabled?: boolean;
   tts_enabled?: boolean;
   signals_enabled?: boolean;
@@ -333,6 +338,7 @@ type ResearchPlanUpdate = {
   sample_target?: number | null;
   status?: ResearchPlanStatus;
   visual_capture_enabled?: boolean;
+  event_tracking_enabled?: boolean;
   voice_enabled?: boolean;
   tts_enabled?: boolean;
   signals_enabled?: boolean;
@@ -652,6 +658,58 @@ type ResearchScreeningResponseUpdate = {
   org_id?: string;
   plan_id?: string;
   verdict?: "qualified" | "rejected";
+  created_at?: string;
+};
+
+// ── research_session_events ──────────────────────────────────────────────────
+//
+// Phase 2b (20260723000003). Behavioural interaction events for a usability task
+// — LEAF table (FK in via session_id + org_id ON DELETE CASCADE, no inbound FK),
+// so events die with the session (withdraw / retention cron) and with the org
+// (delete_organization_data's org_id loop). ts_ms = client event time (ordering +
+// time-on-task); created_at = server clock (authoritative retention/sort). NO
+// affect/emotion column — behavioural only (L8). event_type is a closed set.
+export type ResearchSessionEventType =
+  | "click"
+  | "scroll"
+  | "dwell"
+  | "input_focus"
+  | "input_blur"
+  | "nav"
+  | "task_start"
+  | "task_complete"
+  | "task_abandon";
+
+export type ResearchSessionEventRow = {
+  id: string;
+  session_id: string;
+  org_id: string;
+  event_type: ResearchSessionEventType;
+  ts_ms: number;
+  target_selector: string | null;
+  payload: Json;
+  created_at: string;
+};
+
+type ResearchSessionEventInsert = {
+  id?: string;
+  session_id: string;
+  org_id: string;
+  event_type: ResearchSessionEventType;
+  ts_ms: number;
+  target_selector?: string | null;
+  payload?: Json;
+  created_at?: string;
+};
+
+type ResearchSessionEventUpdate = {
+  id?: string;
+  session_id?: string;
+  org_id?: string;
+  event_type?: ResearchSessionEventType;
+  ts_ms?: number;
+  target_selector?: string | null;
+  payload?: Json;
   created_at?: string;
 };
 
@@ -986,6 +1044,12 @@ export type DatabaseWithResearch = {
         Row: ResearchScreeningResponseRow;
         Insert: ResearchScreeningResponseInsert;
         Update: ResearchScreeningResponseUpdate;
+        Relationships: [];
+      };
+      research_session_events: {
+        Row: ResearchSessionEventRow;
+        Insert: ResearchSessionEventInsert;
+        Update: ResearchSessionEventUpdate;
         Relationships: [];
       };
       synthesis_shares: {

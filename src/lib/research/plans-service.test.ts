@@ -40,6 +40,7 @@ function plan(overrides: Partial<ResearchPlanRecord>): ResearchPlanRecord {
     sampleTarget: null,
     status: "draft",
     visualCaptureEnabled: false,
+    eventTrackingEnabled: false,
     voiceEnabled: false,
     ttsEnabled: false,
     signalsEnabled: false,
