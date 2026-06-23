@@ -36,6 +36,10 @@ import {
   stripTurnInternals,
 } from "./interviewer";
 import { expectedQuestionCount } from "@/lib/research/interview-duration";
+import {
+  CAPTURE_TIER_COLUMN,
+  type CaptureTier,
+} from "@/lib/research/capture-consent";
 
 /**
  * Persistence + orchestration for async post-loss interviews.
@@ -882,13 +886,20 @@ export const CONSENT_TEXT_VERSION = "2026-06-11";
  *     already enforced disclosure + active confirmation; a participant is
  *     NEVER locked out of an interview because the stamp could not be written.
  *   - Token-scoped (capability auth), like every public interview operation.
+ *   - Phase 2a: an optional `purposes` list additionally stamps the matching
+ *     per-tier capture-consent column(s) (events/replay/screen), each idempotent
+ *     on its OWN `<tier>_consent_at` — so a tier can be granted AFTER the
+ *     baseline accept (Arch-6) — and pins instrumentation_consent_version. With
+ *     no `purposes` the behaviour is byte-identical to before.
  */
 export async function markSessionConsentByToken(
   accessToken: string,
   consentVersion: string,
+  purposes?: CaptureTier[],
 ): Promise<void> {
   try {
     const supabase = createResearchSupabase();
+    // Base E0 stamp — unchanged, idempotent on consent_accepted_at.
     const { error } = await supabase
       .from("interview_sessions")
       .update({
@@ -901,6 +912,33 @@ export async function markSessionConsentByToken(
       console.warn(
         `[consent] stamp failed (migration 20260704000001 applied?): ${error.message}`,
       );
+    }
+
+    // Phase 2a — per-purpose tier stamps. Each is idempotent on its OWN column
+    // (WHERE <tier>_consent_at IS NULL): a tier may be granted AFTER the baseline
+    // accept without overwriting an earlier stamp, and the instrumentation text
+    // version is pinned (DSGVO Art. 7(1)). No purposes → loop is a no-op.
+    for (const tier of purposes ?? []) {
+      const stamp = new Date().toISOString();
+      const update: {
+        events_consent_at?: string;
+        replay_consent_at?: string;
+        screen_consent_at?: string;
+        instrumentation_consent_version: string;
+      } = { instrumentation_consent_version: consentVersion };
+      if (tier === "events") update.events_consent_at = stamp;
+      else if (tier === "replay") update.replay_consent_at = stamp;
+      else update.screen_consent_at = stamp;
+      const { error: tierError } = await supabase
+        .from("interview_sessions")
+        .update(update)
+        .eq("access_token", accessToken)
+        .is(CAPTURE_TIER_COLUMN[tier], null);
+      if (tierError) {
+        console.warn(
+          `[consent] tier stamp (${tier}) failed (migration 20260723000002 applied?): ${tierError.message}`,
+        );
+      }
     }
   } catch (err) {
     console.warn("[consent] stamp failed:", err);

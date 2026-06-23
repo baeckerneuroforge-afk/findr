@@ -13,6 +13,7 @@ import {
   resolveVisualCaptureSession,
 } from "@/lib/research/transcript-service";
 import { getResearchPlan } from "@/lib/research/plans-service";
+import { assertCaptureConsent } from "@/lib/research/capture-consent";
 
 /**
  * POST /api/interview/[token]/visual-capture
@@ -125,6 +126,18 @@ export async function POST(
     if (plan.visualCaptureEnabled !== true) {
       return NextResponse.json(
         { error: "Visual capture is not enabled for this study." },
+        { status: 403 },
+      );
+    }
+
+    // C-A fix (integration plan L7, fail-closed): the per-study toggle alone is
+    // NOT participant consent. Verify the stored SCREEN-tier opt-in
+    // (screen_consent_at, stamped via POST /consent {purposes:['screen']} when
+    // the participant accepted the screen-share panel). No stamp → 403, before
+    // any vision spend. Pre-migration the column is absent → undefined → 403.
+    if (!assertCaptureConsent(session, "screen")) {
+      return NextResponse.json(
+        { error: "Screen capture consent is missing for this session." },
         { status: 403 },
       );
     }

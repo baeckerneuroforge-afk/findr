@@ -1303,6 +1303,18 @@ export function InterviewChat({
 
       await video.play();
       setVisualCaptureState("recording");
+      // Phase 2a — record the SCREEN-tier consent server-side now that the
+      // participant accepted the panel AND granted screen-share. The later
+      // /visual-capture submit fail-closes on this stamp (assertCaptureConsent),
+      // so capture is never processed without a recorded opt-in. Fire-and-forget:
+      // the server route is the authoritative gate; a failed stamp simply 403s
+      // the later submit. The participant-facing legal copy is unchanged.
+      void fetch(`/api/interview/${token}/consent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purposes: ["screen"] }),
+        keepalive: true,
+      }).catch(() => {});
       sampleVisualFrame();
       visualTimerRef.current = window.setInterval(
         sampleVisualFrame,

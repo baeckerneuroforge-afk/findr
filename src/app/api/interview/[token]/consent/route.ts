@@ -20,9 +20,12 @@ import {
  * Routen):
  *   - Capability-Auth: der unguessbare 256-bit access_token IST die Berechtigung;
  *     kein Login, keine weitere Identität.
- *   - Der Request-BODY wird komplett IGNORIERT — nichts Client-Geliefertes wird
- *     persistiert; der Zeitstempel entsteht server-seitig
- *     (markSessionConsentByToken).
+ *   - Der Request-BODY ist optional. Ohne Body / ohne `purposes` ist die Route
+ *     byte-identisch zu vorher: nichts Client-Geliefertes wird persistiert, der
+ *     Zeitstempel entsteht server-seitig (markSessionConsentByToken). Phase 2a:
+ *     ein optionales `{ purposes: ('events'|'replay'|'screen')[] }` stempelt
+ *     zusätzlich die granularen Tier-Consents — server-seitig gestempelt; der
+ *     Client signalisiert nur, WELCHE Tiers zugestimmt wurden.
  *   - Idempotent: nur der ERSTE Accept schreibt (WHERE consent_accepted_at IS
  *     NULL); Wiederholungen sind No-ops mit identischer Antwort.
  *   - Antwort ist 204 OHNE Body: über diesen Endpoint verlassen keinerlei
@@ -36,8 +39,15 @@ import {
 
 const TokenSchema = z.string().min(20).max(200);
 
+// Phase 2a — optional granular capture-consent tiers. Absent body / absent
+// purposes → the base E0 path below (byte-identical). The enum mirrors
+// CaptureTier (no affect tier — structural red line, integration plan L8).
+const BodySchema = z.object({
+  purposes: z.array(z.enum(["events", "replay", "screen"])).max(3).optional(),
+});
+
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
@@ -51,9 +61,29 @@ export async function POST(
     return new NextResponse(null, { status: 404 });
   }
 
-  // Nur offene, noch nicht gestempelte Sessions schreiben; alles andere ist ein
-  // idempotenter No-op (gleiche 204 — keine Zustands-Orakel nach außen).
-  if (session.status === "open" && session.consentAcceptedAt === null) {
+  // Optional tiers — defensively parsed; a missing/invalid body yields no
+  // purposes, and the byte-identical base path runs unchanged.
+  const rawBody = await req.json().catch(() => null);
+  const parsedBody = BodySchema.safeParse(rawBody);
+  const purposes =
+    parsedBody.success && parsedBody.data.purposes?.length
+      ? parsedBody.data.purposes
+      : undefined;
+
+  if (purposes) {
+    // Arch-6 fix: a tier may be granted AFTER the baseline accept — stamp the
+    // per-purpose tier(s) ALWAYS, independent of status / consentAcceptedAt
+    // (each tier is idempotent on its own column). markSessionConsentByToken
+    // also (re)stamps the baseline when still open+unstamped (idempotent no-op
+    // otherwise), so a first-contact accept-with-purposes records both.
+    await markSessionConsentByToken(
+      tokenParsed.data,
+      CONSENT_TEXT_VERSION,
+      purposes,
+    );
+  } else if (session.status === "open" && session.consentAcceptedAt === null) {
+    // Base path — byte-identical to before: only open, not-yet-stamped sessions
+    // write; everything else is an idempotent no-op (same 204, no state oracle).
     await markSessionConsentByToken(tokenParsed.data, CONSENT_TEXT_VERSION);
   }
 

@@ -132,6 +132,12 @@ export interface VisualCaptureSessionRow {
   conversation: Json | null;
   capture_source: string | null;
   visual_capture: Json | null;
+  // Phase 2a — per-tier capture-consent stamps, read so the route can fail-
+  // closed via assertCaptureConsent('screen'). Undefined pre-migration
+  // (select("*") omits absent columns) → treated as "no consent" → 403.
+  events_consent_at?: string | null;
+  replay_consent_at?: string | null;
+  screen_consent_at?: string | null;
 }
 
 export type ResolveVisualCaptureSessionResult =
@@ -150,9 +156,10 @@ export async function resolveVisualCaptureSession(
   const supabase = createResearchSupabase();
   const { data: session, error: sessionError } = await supabase
     .from("interview_sessions")
-    .select(
-      "id, org_id, kind, status, plan_id, invite_id, conversation, capture_source, visual_capture",
-    )
+    // select("*") rather than an explicit list so the new per-tier consent
+    // columns are picked up post-migration AND absent-column-safe pre-migration
+    // (the route then fail-closes via assertCaptureConsent, never 500s).
+    .select("*")
     .eq("access_token", accessToken)
     .maybeSingle();
 

@@ -53,6 +53,16 @@ type InterviewSessionsRow = {
   // select("*") beide Spalten nicht → Lese-Mapper defaultet undefined→null.
   consent_accepted_at: string | null;
   consent_version: string | null;
+  // Phase 2a granular capture-consent stamps (20260723000002). One per
+  // behavioural-capture tier (events/replay/screen), server-stamped + idempotent
+  // like consent_accepted_at; instrumentation_consent_version pins the tier text
+  // version (separate from the E0 consent_version). NULL = tier not granted →
+  // capture routes 403 (assertCaptureConsent, fail-closed). Pre-migration
+  // select("*") omits them → defensive reads default undefined→null.
+  events_consent_at: string | null;
+  replay_consent_at: string | null;
+  screen_consent_at: string | null;
+  instrumentation_consent_version: string | null;
   // E1 Turn-Signale (20260704000002) — Ergebnis des Signal-Sidecars
   // (TurnSignalsRecord, src/lib/schemas/turn-signals.ts). NULL für jede nie
   // analysierte Session (Toggle aus, kein Consent, Bestand). Vor angewandter
@@ -97,6 +107,10 @@ type InterviewSessionsInsert = {
   panel_context?: Json | null;
   consent_accepted_at?: string | null;
   consent_version?: string | null;
+  events_consent_at?: string | null;
+  replay_consent_at?: string | null;
+  screen_consent_at?: string | null;
+  instrumentation_consent_version?: string | null;
   turn_signals?: Json | null;
   account_id?: string | null;
   completed_at?: string | null;
@@ -133,6 +147,10 @@ type InterviewSessionsUpdate = {
   panel_context?: Json | null;
   consent_accepted_at?: string | null;
   consent_version?: string | null;
+  events_consent_at?: string | null;
+  replay_consent_at?: string | null;
+  screen_consent_at?: string | null;
+  instrumentation_consent_version?: string | null;
   turn_signals?: Json | null;
   account_id?: string | null;
   completed_at?: string | null;
