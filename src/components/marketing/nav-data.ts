@@ -249,6 +249,13 @@ export function getPrimaryNav(locale: Locale): NavEntry[] {
       label: localizedContent(locale, { de: "Insights", en: "Insights" }),
       href: localizeHref(locale, "/insights"),
     },
+    {
+      // Haltungs-/Positionierungsseite „Mensch & KI" (Augmentation statt
+      // Ersatz) — als flacher Reiter sichtbar in der Hauptnavigation.
+      kind: "flat",
+      label: localizedContent(locale, { de: "Mensch & KI", en: "Humans & AI" }),
+      href: localizeHref(locale, "/mensch-und-ki"),
+    },
   ];
 }
 
