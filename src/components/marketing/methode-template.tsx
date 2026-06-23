@@ -56,15 +56,15 @@ import {
  * methodical essence is grounded in the real
  * in-product use-case notes; the example cards use Klymeo's REAL interview
  * questions and describe the output honestly — NO invented metrics, quotes or
- * customers. The synthesis ProofPoints reuse the vetted homepage claims (only
- * Highlight-Reels carries the conservative "Bald" tag, matching the module page).
+ * customers. The synthesis ProofPoints reuse the vetted homepage claims (all
+ * six capabilities are live, matching the homepage synthesis section).
  */
 
 // ── The shared synthesis engine — "was rauskommt", identical per method ───────
 // Faithful to the vetted homepage synthesis section. The method only changes
 // WHAT is probed; the engine that condenses the conversations is the same one
-// for every method. Highlight-Reels stays "Bald" (the conservative claim);
-// PDF & PowerPoint export are both real (synthesis/{pdf,pptx} routes).
+// for every method. All six capabilities are live, incl. Highlight-Reels
+// (highlights route) and PDF & PowerPoint export (synthesis/{pdf,pptx} routes).
 type ProofData = {
   title: { de: string; en: string };
   body: { de: string; en: string };
@@ -125,7 +125,7 @@ const SYNTHESIS_PROOF_DATA: ProofData[] = [
       en: "The most telling moments as a shareable cut.",
     },
     Icon: TargetIcon,
-    tag: "Bald",
+    tag: "Live",
   },
 ];
 

@@ -7,7 +7,6 @@ describe("assertCaptureConsent (Phase 2a fail-closed gate, L7)", () => {
     const at = "2026-06-22T00:00:00.000Z";
     expect(assertCaptureConsent({ screen_consent_at: at }, "screen")).toBe(true);
     expect(assertCaptureConsent({ events_consent_at: at }, "events")).toBe(true);
-    expect(assertCaptureConsent({ replay_consent_at: at }, "replay")).toBe(true);
   });
 
   it("returns false when the tier stamp is null, absent, or empty (fail-closed)", () => {
@@ -34,7 +33,6 @@ describe("assertCaptureConsent (Phase 2a fail-closed gate, L7)", () => {
   it("maps each tier to its own consent column (no affect tier — red line)", () => {
     expect(CAPTURE_TIER_COLUMN).toEqual({
       events: "events_consent_at",
-      replay: "replay_consent_at",
       screen: "screen_consent_at",
     });
   });

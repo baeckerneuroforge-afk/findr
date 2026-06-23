@@ -888,7 +888,7 @@ export const CONSENT_TEXT_VERSION = "2026-06-11";
  *     NEVER locked out of an interview because the stamp could not be written.
  *   - Token-scoped (capability auth), like every public interview operation.
  *   - Phase 2a: an optional `purposes` list additionally stamps the matching
- *     per-tier capture-consent column(s) (events/replay/screen), each idempotent
+ *     per-tier capture-consent column(s) (events/screen), each idempotent
  *     on its OWN `<tier>_consent_at` — so a tier can be granted AFTER the
  *     baseline accept (Arch-6) — and pins instrumentation_consent_version. With
  *     no `purposes` the behaviour is byte-identical to before.
@@ -923,12 +923,10 @@ export async function markSessionConsentByToken(
       const stamp = new Date().toISOString();
       const update: {
         events_consent_at?: string;
-        replay_consent_at?: string;
         screen_consent_at?: string;
         instrumentation_consent_version: string;
       } = { instrumentation_consent_version: consentVersion };
       if (tier === "events") update.events_consent_at = stamp;
-      else if (tier === "replay") update.replay_consent_at = stamp;
       else update.screen_consent_at = stamp;
       const { error: tierError } = await supabase
         .from("interview_sessions")

@@ -60,7 +60,8 @@ describe("markSessionConsentByToken (Phase 2a tier stamps, L4)", () => {
         instrumentation_consent_version: "v2",
       }),
     );
-    // Red line: a tier write never touches a replay column it wasn't asked for.
+    // Red line: a tier write never touches the (now-removed, reserved) replay
+    // column — it isn't a tier anymore and must never be stamped implicitly.
     expect(sb.is).not.toHaveBeenCalledWith("replay_consent_at", null);
   });
 

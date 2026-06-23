@@ -354,13 +354,14 @@ const CONTENT_DE: HomeContent = {
   sheetQuoteFooter: <>Originalzitat · Session 001 · 02:14</>,
   sealVerified: <>Belegt am</>,
   sealTranscript: <>Transkript</>,
-  // Synthese-Fähigkeiten — die sechs realen Capabilities. Export nennt jetzt
-  // ehrlich beide Formate (PDF-Report UND PowerPoint-Deck); Highlight-Reels
-  // trägt weiter ehrlich „Bald“ (Nicht-Text-Feld `soon`).
+  // Synthese-Fähigkeiten — die sechs realen Capabilities. Alle sechs sind live;
+  // Export nennt ehrlich beide Formate (PDF-Report UND PowerPoint-Deck). Das
+  // `soon`-Feld bleibt im Schema reserviert, falls künftig eine Fähigkeit noch
+  // „Bald“ ist.
   caps: [
     { n: "S.01", t: "Automatische Verdichtung", d: "Themen, Lager und Zitate über alle Interviews" },
     { n: "S.02", t: "Mit den Daten chatten", d: "Rückfragen an den ganzen Studien-Korpus" },
-    { n: "S.03", t: "Highlight-Reels", d: "Die stärksten Momente als Zusammenschnitt", soon: true },
+    { n: "S.03", t: "Highlight-Reels", d: "Die stärksten Momente als Zusammenschnitt" },
     { n: "S.04", t: "Teilbare Ergebnis-Links", d: "Synthese per Link, auch extern, im eigenen Branding" },
     { n: "S.05", t: "Export als PDF & PowerPoint", d: "Report und Folien-Deck, fertig fürs nächste Meeting" },
     { n: "S.06", t: "Studienübergreifende Muster", d: "Was sich über Studien hinweg wiederholt" },
@@ -616,13 +617,14 @@ const CONTENT_EN: HomeContent = {
   sheetQuoteFooter: <>Verbatim · Session 001 · 02:14</>,
   sealVerified: <>Evidenced on</>,
   sealTranscript: <>Transcript</>,
-  // Synthesis capabilities — the six real capabilities. Export now honestly
-  // names both formats (PDF report AND PowerPoint deck); highlight reels
-  // still honestly carries "Soon" (non-text field `soon`).
+  // Synthesis capabilities — the six real capabilities. All six are live;
+  // export honestly names both formats (PDF report AND PowerPoint deck). The
+  // `soon` field stays reserved in the schema in case a future capability is
+  // still in preparation.
   caps: [
     { n: "S.01", t: "Automatic distillation", d: "Themes, camps and quotes across all interviews" },
     { n: "S.02", t: "Chat with your data", d: "Ask follow-ups of the entire study corpus" },
-    { n: "S.03", t: "Highlight reels", d: "The strongest moments as a cut", soon: true },
+    { n: "S.03", t: "Highlight reels", d: "The strongest moments as a cut" },
     { n: "S.04", t: "Shareable result links", d: "Synthesis by link, externally too, in your own branding" },
     { n: "S.05", t: "Export as PDF & PowerPoint", d: "Report and slide deck, ready for the next meeting" },
     { n: "S.06", t: "Cross-study patterns", d: "What repeats across studies" },
