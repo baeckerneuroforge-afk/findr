@@ -81,6 +81,9 @@ export function StudioFx() {
 
       // Ring „heiß“ über Links/Buttons.
       ring?.classList.toggle("hot", !!target?.closest("a,button"));
+
+      // rAF wieder anwerfen, falls er im Leerlauf pausiert wurde.
+      kick();
     };
 
     const tick = () => {
@@ -88,11 +91,21 @@ export function StudioFx() {
       ry += (my - ry) * 0.16;
       if (dot) dot.style.transform = `translate(${mx - 3}px, ${my - 3}px)`;
       if (ring) ring.style.transform = `translate(${rx - 17}px, ${ry - 17}px)`;
+      // Selbst-suspendieren, sobald der Ring den Cursor eingeholt hat: kein
+      // Dauer-rAF mit Style-Writes mehr, während die Maus still steht.
+      if (Math.abs(mx - rx) < 0.25 && Math.abs(my - ry) < 0.25) {
+        raf = 0;
+        return;
+      }
       raf = requestAnimationFrame(tick);
     };
 
+    const kick = () => {
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+
     document.addEventListener("pointermove", onMove, { passive: true });
-    raf = requestAnimationFrame(tick);
+    kick();
 
     return () => {
       document.removeEventListener("pointermove", onMove);

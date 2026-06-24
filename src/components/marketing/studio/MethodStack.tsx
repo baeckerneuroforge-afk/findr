@@ -89,6 +89,10 @@ export function MethodStack({
 
     const stackTick = () => {
       ticking = false;
+      // Erst ALLE Geometrien lesen, dann ALLE Styles schreiben — kein
+      // verschachteltes Read-after-Write (sonst Layout-Flush pro Karte).
+      const tops = cards.map((card) => card.getBoundingClientRect().top);
+      const vh = window.innerHeight;
       cards.forEach((card, i) => {
         const next = cards[i + 1];
         if (!next) {
@@ -96,11 +100,7 @@ export function MethodStack({
           card.style.opacity = "";
           return;
         }
-        const r = next.getBoundingClientRect();
-        const cover = Math.min(
-          1,
-          Math.max(0, 1 - (r.top - 84) / window.innerHeight),
-        );
+        const cover = Math.min(1, Math.max(0, 1 - (tops[i + 1] - 84) / vh));
         card.style.transform = `scale(${1 - cover * 0.05}) translateY(${-cover * 14}px)`;
         card.style.opacity = String(1 - cover * 0.35);
       });

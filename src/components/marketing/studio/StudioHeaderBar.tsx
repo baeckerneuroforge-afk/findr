@@ -14,7 +14,16 @@ export function StudioHeaderBar({ children }: { children: ReactNode }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const onScroll = () => el.classList.toggle("solid", window.scrollY > 12);
+    // Klasse nur beim Schwellen-Übergang umschalten — der Listener feuert pro
+    // Scroll-Event, aber wir mutieren den (blur-tragenden) Header nur, wenn
+    // sich der Zustand wirklich ändert.
+    let solid = false;
+    const onScroll = () => {
+      const next = window.scrollY > 12;
+      if (next === solid) return;
+      solid = next;
+      el.classList.toggle("solid", next);
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);

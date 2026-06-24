@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import {
   Hanken_Grotesk,
   Instrument_Serif,
-  JetBrains_Mono,
   Space_Grotesk,
   Space_Mono,
 } from "next/font/google";
@@ -29,11 +28,10 @@ import "@/components/marketing/studio/studio.css";
 // Origin — kein Google-Request zur Laufzeit, keine DSGVO-Regression). Bewusst
 // HIER geladen statt im Root-Layout: die Variablen hängen am .studio-Wrapper
 // unten, damit Dashboard/Interview/Auth keine zusätzlichen Fonts preloaden.
-// Die Stimmen sind jetzt die PLATTFORM-Stimmen — Marketing und Produkt
-// sprechen dieselbe Sprache (Hanken Grotesk + JetBrains Mono, wie die
-// Dashboard-Shell), plus Instrument Serif als Stimme der Befragten:
-//   Hanken Grotesk   → Display/Headlines + Fließtext (--font-marketing/--font-body)
-//   JetBrains Mono   → Konsolen-Etiketten, Timecodes, Kapitelmarken (--font-mono)
+// Die Stimmen der Twilight-Konsole:
+//   Space Grotesk    → Display/Headlines (--font-display, via --font-marketing)
+//   Hanken Grotesk   → Fließtext (--font-body)
+//   Space Mono       → Konsolen-Etiketten, Timecodes, Kapitelmarken (--font-mono)
 //   Instrument Serif → kursiver Serif-Akzent in Headlines + Originalzitate
 // Eigene Var-Namen (-mkt) statt der Root-Layout-Namen, damit klar bleibt,
 // dass dieser Tree seine Fonts selbst lädt (Multi-Root: kein Sharing).
@@ -47,11 +45,6 @@ const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
   style: "italic",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jbmono-mkt",
-  subsets: ["latin"],
 });
 
 const spaceGrotesk = Space_Grotesk({
@@ -190,7 +183,7 @@ export default async function MarketingLayout({
     >
       <body className="min-h-full">
         <div
-          className={`studio ${hanken.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
+          className={`studio ${hanken.variable} ${instrumentSerif.variable} ${spaceGrotesk.variable} ${spaceMono.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
         >
           <div className="st-grid" aria-hidden />
           <div className="st-grain" aria-hidden />

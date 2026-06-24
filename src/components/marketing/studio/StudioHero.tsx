@@ -127,7 +127,6 @@ export function StudioHero({
     const wave = waveRef.current;
     const wctx = wave?.getContext("2d") ?? null;
     let raf = 0;
-    let waveVisible = true;
     let io: IntersectionObserver | null = null;
 
     // Waveform-Füllfarbe aus dem Token --st-wave (im Dark-Mode heller). Einmal
@@ -191,13 +190,24 @@ export function StudioHero({
     } else {
       const tick = (now: number) => {
         if (tcEl) tcEl.textContent = fmt(now - t0);
-        if (waveVisible) drawWave(now);
+        drawWave(now);
         raf = requestAnimationFrame(tick);
       };
-      raf = requestAnimationFrame(tick);
+      // Schleife (inkl. Timecode-Write) KOMPLETT anhalten, wenn die Waveform
+      // off-screen ist — nicht nur den Draw überspringen. Spart einen
+      // dauerhaften rAF + DOM-Write für den ganzen Rest der Seite.
+      const start = () => {
+        if (!raf) raf = requestAnimationFrame(tick);
+      };
+      const stop = () => {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      };
+      start();
       if (wave && "IntersectionObserver" in window) {
         io = new IntersectionObserver((e) => {
-          waveVisible = !!e[0]?.isIntersecting;
+          if (e[0]?.isIntersecting) start();
+          else stop();
         });
         io.observe(wave);
       }
