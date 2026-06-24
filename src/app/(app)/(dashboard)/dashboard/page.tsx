@@ -13,7 +13,7 @@ import { DealTableWithFilters } from "@/components/dashboard/DealTableWithFilter
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { ENABLED_MODULES } from "@/config/modules";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { loadOrgSynthesisStudyIds } from "@/lib/mission-control/engine";
 import {
   countCompletedSessionsForPlans,
@@ -166,9 +166,9 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
   const nav = await getTranslations("nav");
   const locale = await getLocale();
 
-  // Begrüßung ist Deko — ein Clerk-Schluckauf darf die Startseite nie kippen.
-  const user = await currentUser().catch(() => null);
-  const firstName = user?.firstName ?? null;
+  // Begrüßung ist Deko — ein Session-Schluckauf darf die Startseite nie kippen.
+  const session = await auth().catch(() => null);
+  const firstName = session?.user?.name?.split(" ")[0] ?? null;
 
   const plans = await listResearchPlans(orgId, "market_research");
 
@@ -568,6 +568,8 @@ export default async function DashboardPage() {
   const closingSoon = deals.filter((d) => {
     if (!ACTIVE_STAGES.has(d.stage)) return false;
     const close = new Date(d.closeDate).getTime();
+    // Server Component: renders once per request, so a per-request "now" is fine.
+    // eslint-disable-next-line react-hooks/purity
     const days = (close - Date.now()) / (1000 * 60 * 60 * 24);
     return days >= 0 && days <= 30;
   }).length;

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
@@ -27,30 +27,33 @@ function canUseDevOrgFallback(): boolean {
   );
 }
 
-async function syncClerkOrgToSupabase(clerkOrgId: string): Promise<string> {
+async function syncZitadelOrgToSupabase(
+  zitadelOrgId: string,
+  orgName: string | undefined,
+): Promise<string> {
   try {
-    const client = await clerkClient();
-    const clerkOrg = await client.organizations.getOrganization({
-      organizationId: clerkOrgId,
-    });
     const supabase = createAdminSupabaseClient();
 
+    // Auto-mirror: the org lives in Zitadel (one customer = one Zitadel org).
+    // On first login we mirror it into the organizations table, keyed by
+    // zitadel_org_id; the name comes from the Zitadel resource-owner claim, so
+    // there is no IdP SDK round-trip (unlike the old Clerk sync).
     const { data, error } = await supabase
       .from("organizations")
       .upsert(
         {
-          clerk_org_id: clerkOrgId,
-          name: clerkOrg.name,
+          zitadel_org_id: zitadelOrgId,
+          name: orgName && orgName.trim() ? orgName : "Organization",
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "clerk_org_id" },
+        { onConflict: "zitadel_org_id" },
       )
       .select("id")
       .single();
 
     if (error || !data) {
       throw new OrgResolutionError(
-        `Clerk org ${clerkOrgId} could not be synced to organizations table`,
+        `Zitadel org ${zitadelOrgId} could not be synced to organizations table`,
         "org_not_in_db",
       );
     }
@@ -59,19 +62,21 @@ async function syncClerkOrgToSupabase(clerkOrgId: string): Promise<string> {
   } catch (err) {
     if (err instanceof OrgResolutionError) throw err;
     throw new OrgResolutionError(
-      `Clerk org ${clerkOrgId} could not be synced to organizations table`,
+      `Zitadel org ${zitadelOrgId} could not be synced to organizations table`,
       "org_not_in_db",
     );
   }
 }
 
 /**
- * Resolves the current Clerk org to an internal organizations.id (UUID).
- * Throws OrgResolutionError if the user is not authenticated or has no
- * active org.
+ * Resolves the current Zitadel org (resource owner) to an internal
+ * organizations.id (UUID). Throws OrgResolutionError if the user is not
+ * authenticated or has no active org.
  *
- * In local development only, ALLOW_DEV_ORG_FALLBACK=true can fall back to the
- * demo org UUID for signed-in users with no active Clerk org.
+ * Identity comes from the NextAuth session (Zitadel): session.user.id = sub,
+ * session.user.orgId = the Zitadel organization id. In local development only,
+ * ALLOW_DEV_ORG_FALLBACK=true can fall back to the demo org UUID for signed-in
+ * users with no active org.
  *
  * Wrapped in React `cache()`: nearly every dashboard page/layout/service calls
  * this, so within a single request the `auth()` read AND the `organizations`
@@ -81,13 +86,15 @@ async function syncClerkOrgToSupabase(clerkOrgId: string): Promise<string> {
  * cross-request/cross-user leakage. No behavior change, fewer DB round-trips.
  */
 export const requireOrgId = cache(async (): Promise<string> => {
-  const { userId, orgId: clerkOrgId } = await auth();
+  const session = await auth();
+  const userId = session?.user?.id;
+  const zitadelOrgId = session?.user?.orgId;
 
   if (!userId) {
     throw new OrgResolutionError("Not authenticated", "no_auth");
   }
 
-  if (!clerkOrgId) {
+  if (!zitadelOrgId) {
     if (canUseDevOrgFallback()) {
       return getDevOrgId();
     }
@@ -98,18 +105,18 @@ export const requireOrgId = cache(async (): Promise<string> => {
   const { data, error } = await supabase
     .from("organizations")
     .select("id")
-    .eq("clerk_org_id", clerkOrgId)
+    .eq("zitadel_org_id", zitadelOrgId)
     .maybeSingle();
 
   if (error) {
     throw new OrgResolutionError(
-      `Clerk org ${clerkOrgId} not found in organizations table`,
+      `Zitadel org ${zitadelOrgId} not found in organizations table`,
       "org_not_in_db",
     );
   }
 
   if (!data) {
-    return syncClerkOrgToSupabase(clerkOrgId);
+    return syncZitadelOrgToSupabase(zitadelOrgId, session?.user?.orgName);
   }
 
   return (data as { id: string }).id;

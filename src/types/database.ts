@@ -1037,28 +1037,31 @@ export type Database = {
       }
       organizations: {
         Row: {
-          clerk_org_id: string
+          clerk_org_id: string | null
           created_at: string
           id: string
           name: string
           plan: Database["public"]["Enums"]["plan_tier"]
           updated_at: string
+          zitadel_org_id: string | null
         }
         Insert: {
-          clerk_org_id: string
+          clerk_org_id?: string | null
           created_at?: string
           id?: string
           name: string
           plan?: Database["public"]["Enums"]["plan_tier"]
           updated_at?: string
+          zitadel_org_id?: string | null
         }
         Update: {
-          clerk_org_id?: string
+          clerk_org_id?: string | null
           created_at?: string
           id?: string
           name?: string
           plan?: Database["public"]["Enums"]["plan_tier"]
           updated_at?: string
+          zitadel_org_id?: string | null
         }
         Relationships: []
       }
@@ -1491,6 +1494,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          locale: string | null
           org_id: string
           role: Database["public"]["Enums"]["user_role"]
         }
@@ -1499,6 +1503,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          locale?: string | null
           org_id: string
           role?: Database["public"]["Enums"]["user_role"]
         }
@@ -1507,6 +1512,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          locale?: string | null
           org_id?: string
           role?: Database["public"]["Enums"]["user_role"]
         }

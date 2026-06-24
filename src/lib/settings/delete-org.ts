@@ -1,6 +1,5 @@
 import "server-only";
 
-import { clerkClient } from "@clerk/nextjs/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { validateDeleteConfirmation } from "./roles";
 
@@ -22,12 +21,6 @@ const ORG_PREFIXED_BUCKETS = ["research-stimuli", "org-branding"] as const;
 export interface DeleteOrgResult {
   /** The organizations row — and every CASCADE child table — was deleted. */
   org_data_deleted: boolean;
-  /**
-   * The Clerk organization was deleted. `false` means the GDPR-critical data
-   * is gone but the Clerk shell lingers (the data delete is the source of
-   * truth; Clerk removal is retryable).
-   */
-  clerk_org_deleted: boolean;
   /** Total storage objects removed across all org-prefixed buckets. */
   storage_objects_removed: number;
 }
@@ -132,9 +125,11 @@ async function deleteOrgStorage(
 }
 
 /**
- * Permanently delete an organization: all data, all uploaded files, and the
- * Clerk organization itself (full account closure). User accounts survive but
- * lose access to this org.
+ * Permanently delete an organization's data and all uploaded files (Art. 17
+ * DSGVO). The Zitadel organization itself is intentionally NOT deleted here —
+ * with "one customer = one Zitadel org", closing the IdP org is a deliberate
+ * account-closure operation (Zitadel Management API / manual), not a best-effort
+ * tail of a data wipe. User accounts survive but lose access to this org's data.
  *
  * The data deletion runs in the `delete_organization_data` SQL function, which
  * deletes from every org_id-bearing table (plus the two org-less transcript
@@ -147,7 +142,6 @@ async function deleteOrgStorage(
  */
 export async function deleteOrganizationData(params: {
   orgId: string;
-  clerkOrgId: string;
   organizationName: string;
   confirmationName: string;
 }): Promise<DeleteOrgResult> {
@@ -177,25 +171,10 @@ export async function deleteOrganizationData(params: {
   );
   if (deleteError) throw deleteError;
 
-  // 3) Delete the Clerk organization. Done last: the GDPR-critical data is
-  //    already gone, and if Clerk hiccups the admin still has access to retry.
-  //    We report the outcome instead of throwing so a Clerk failure does not
-  //    masquerade as "data not deleted".
-  let clerkOrgDeleted = false;
-  try {
-    const client = await clerkClient();
-    await client.organizations.deleteOrganization(params.clerkOrgId);
-    clerkOrgDeleted = true;
-  } catch (err) {
-    console.error(
-      `[delete-org] data deleted but Clerk org ${params.clerkOrgId} removal failed:`,
-      err instanceof Error ? err.message : err,
-    );
-  }
-
+  // The Zitadel org is deliberately left intact (see the function docstring):
+  // account closure in the IdP is a separate, explicit operation.
   return {
     org_data_deleted: true,
-    clerk_org_deleted: clerkOrgDeleted,
     storage_objects_removed: storageObjectsRemoved,
   };
 }

@@ -1,11 +1,11 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { getTranslations } from "next-intl/server";
 import { ThemedOrganizationProfile } from "@/components/settings/ThemedClerkProfile";
-import { isAdminRole } from "@/lib/settings/roles";
+import { hasAdminRole } from "@/lib/settings/roles";
 
 export default async function TeamSettingsPage() {
-  const { orgRole } = await auth();
-  const isAdmin = isAdminRole(orgRole);
+  const session = await auth();
+  const isAdmin = hasAdminRole(session?.user?.roles);
   const t = await getTranslations("settings");
 
   return (

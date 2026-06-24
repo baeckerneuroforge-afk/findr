@@ -1,24 +1,31 @@
 import "server-only";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
-import { isAdminRole } from "./roles";
+import { hasAdminRole } from "./roles";
 
 export interface SettingsAdminContext {
+  /** Internal organizations.id (UUID) — what every settings mutation scopes by. */
   orgId: string;
-  clerkOrgId: string;
+  /** Zitadel subject (sub) of the acting admin. */
   userId: string;
-  orgRole: string;
 }
 
+/**
+ * Server-side admin gate behind every settings-mutation route. Reads identity
+ * from the NextAuth/Zitadel session (replaces Clerk's auth().{userId,orgId,
+ * orgRole}); admin is decided by hasAdminRole() over the Zitadel role claim.
+ */
 export async function requireSettingsAdminOrError(): Promise<
   SettingsAdminContext | { error: NextResponse }
 > {
   const t = await getTranslations("errors");
   const session = await auth();
-  if (!session.userId) {
+  const userId = session?.user?.id;
+
+  if (!userId) {
     return {
       error: NextResponse.json(
         { success: false, error: t("unauthorized") },
@@ -27,7 +34,7 @@ export async function requireSettingsAdminOrError(): Promise<
     };
   }
 
-  if (!session.orgId) {
+  if (!session?.user?.orgId) {
     return {
       error: NextResponse.json(
         { success: false, error: t("settings.noActiveOrg") },
@@ -36,7 +43,7 @@ export async function requireSettingsAdminOrError(): Promise<
     };
   }
 
-  if (!isAdminRole(session.orgRole)) {
+  if (!hasAdminRole(session.user.roles)) {
     return {
       error: NextResponse.json(
         { success: false, error: t("settings.adminOnly") },
@@ -47,12 +54,7 @@ export async function requireSettingsAdminOrError(): Promise<
 
   try {
     const orgId = await requireOrgId();
-    return {
-      orgId,
-      clerkOrgId: session.orgId,
-      userId: session.userId,
-      orgRole: session.orgRole ?? "",
-    };
+    return { orgId, userId };
   } catch (err) {
     if (err instanceof OrgResolutionError) {
       const message =

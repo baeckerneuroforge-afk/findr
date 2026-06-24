@@ -60,9 +60,7 @@ describe("settings delete-org route", () => {
   it("rejects missing confirmation text", async () => {
     mockRequireSettingsAdminOrError.mockResolvedValue({
       orgId: "org_1",
-      clerkOrgId: "org_clerk_1",
       userId: "user_1",
-      orgRole: "org:admin",
     });
 
     const response = await POST(
@@ -79,14 +77,11 @@ describe("settings delete-org route", () => {
   it("deletes org-scoped data when confirmation matches", async () => {
     mockRequireSettingsAdminOrError.mockResolvedValue({
       orgId: "org_1",
-      clerkOrgId: "org_clerk_1",
       userId: "user_1",
-      orgRole: "org:admin",
     });
     mockOrganizationLookup("Acme GmbH");
     mockDeleteOrganizationData.mockResolvedValue({
       org_data_deleted: true,
-      clerk_org_deleted: true,
       storage_objects_removed: 3,
     });
 
@@ -102,12 +97,10 @@ describe("settings delete-org route", () => {
     expect(body).toEqual({
       success: true,
       org_data_deleted: true,
-      clerk_org_deleted: true,
       storage_objects_removed: 3,
     });
     expect(mockDeleteOrganizationData).toHaveBeenCalledWith({
       orgId: "org_1",
-      clerkOrgId: "org_clerk_1",
       organizationName: "Acme GmbH",
       confirmationName: "Acme GmbH",
     });
@@ -116,9 +109,7 @@ describe("settings delete-org route", () => {
   it("rejects a confirmation mismatch in-route with a localized 400", async () => {
     mockRequireSettingsAdminOrError.mockResolvedValue({
       orgId: "org_1",
-      clerkOrgId: "org_clerk_1",
       userId: "user_1",
-      orgRole: "org:admin",
     });
     mockOrganizationLookup("Acme GmbH");
 

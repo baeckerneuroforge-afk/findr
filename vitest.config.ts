@@ -12,6 +12,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // MUST precede the "@" alias (matched first): the real "@/auth"
+      // (src/auth.ts) pulls in next-auth, whose internal `next/server` import
+      // fails to resolve under pnpm+Vitest. Unit tests mock the session, so we
+      // stub the module. See src/test/auth.ts.
+      "@/auth": path.resolve(__dirname, "./src/test/auth.ts"),
       "@": path.resolve(__dirname, "./src"),
       "server-only": path.resolve(__dirname, "./src/test/server-only.ts"),
       // next-intl/server resolves to a throwing client stub outside the RSC

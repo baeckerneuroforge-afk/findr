@@ -36,9 +36,7 @@ describe("settings export route", () => {
   it("returns a JSON attachment for organization admins", async () => {
     mockRequireSettingsAdminOrError.mockResolvedValue({
       orgId: "org_1",
-      clerkOrgId: "org_clerk_1",
       userId: "user_1",
-      orgRole: "org:admin",
     });
     mockBuildDataExport.mockResolvedValue({
       exported_at: "2026-05-21T10:00:00.000Z",
@@ -61,9 +59,7 @@ describe("settings export route", () => {
   it("returns a clear server error when export generation fails", async () => {
     mockRequireSettingsAdminOrError.mockResolvedValue({
       orgId: "org_1",
-      clerkOrgId: "org_clerk_1",
       userId: "user_1",
-      orgRole: "org:admin",
     });
     mockBuildDataExport.mockRejectedValue(new Error("Supabase unavailable"));
 

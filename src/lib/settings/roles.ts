@@ -10,6 +10,15 @@ export function isAdminRole(role: string | null | undefined): boolean {
   );
 }
 
+/**
+ * Admin gate for the Zitadel role model: a user is an org admin if ANY of their
+ * granted role names qualifies via isAdminRole(). Used by the settings gates
+ * (server: session.user.roles; client: useSession().user.roles).
+ */
+export function hasAdminRole(roles: string[] | null | undefined): boolean {
+  return (roles ?? []).some(isAdminRole);
+}
+
 export function validateDeleteConfirmation(
   providedName: string | null | undefined,
   organizationName: string,
