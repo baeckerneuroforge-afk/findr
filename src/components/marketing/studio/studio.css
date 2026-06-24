@@ -365,6 +365,15 @@
   transition: background 0.3s, border-color 0.3s, backdrop-filter 0.3s;
 }
 
+/* Header-Leiste sprengt den 1280px-Content-Container: volle Breite + schmaler
+   Außenrand, damit das Logo nahe an die linke und Nav/Aktionen nahe an die
+   rechte Viewport-Kante rücken (überschreibt die max-w/px-Utilities des
+   Containers — studio.css ist unlayered und gewinnt über Tailwind-Utilities). */
+.st-bar {
+  max-width: none;
+  padding-inline: clamp(20px, 1.8vw, 36px);
+}
+
 /* Strukturelle Segment-Hüllen (Logo / Nav+Aktionen). Display + Flex-Verhalten
    kommen per Tailwind an den Elementen — hier NUR die Insel-Haut, damit das
    responsive `hidden md:flex` der Main-Insel nicht überschrieben wird. */
@@ -388,10 +397,17 @@
    Transition läuft einmalig beim Schwellen-Übergang, nicht pro Frame. */
 @media (min-width: 768px) {
   .st-bar {
-    transition: margin-top 0.42s var(--st-ease);
+    transition: margin-top 0.42s var(--st-ease),
+      padding-inline 0.42s var(--st-ease);
   }
+  /* Beim Scrollen fließen Logo und Nav zur Mitte zusammen: der äußere Rand
+     wächst, der freie Raum dazwischen schrumpft auf eine bewusste Lücke (Inhalt
+     ~1101px breit → Lücke ≈ 1180−Inhalt). padding-inline ist überall flüssig
+     animierbar (kein justify-content-Sprung). Auf schmalem Desktop greift der
+     20px-Boden, dann bleibt es randbündig (kein Platz zum Zusammenfließen). */
   .st-top.solid .st-bar {
     margin-top: 10px;
+    padding-inline: clamp(20px, calc((100vw - 1180px) / 2), 600px);
   }
   .st-seg {
     transition: background 0.3s, border-color 0.3s,
@@ -415,9 +431,7 @@
     padding-inline: 14px;
   }
   .st-top.solid .st-seg--main {
-    /* Insel umschließt ihren Inhalt (Nav + Aktionen) statt flex-1 zu füllen —
-       so sitzt sie rechts, Logo-Insel links, der Abstand entsteht von selbst. */
-    flex: 0 0 auto;
+    /* Innen-Padding der Nav-Insel (Inhalt nicht bündig an der Pillenkante). */
     padding-inline: 10px;
   }
 }

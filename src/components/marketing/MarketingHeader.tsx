@@ -51,12 +51,12 @@ export function MarketingHeader({
   });
   return (
     <StudioHeaderBar>
-      <Container className="st-bar flex h-16 items-center justify-between gap-3">
+      <Container className="st-bar flex h-16 items-center justify-between">
         <div className="st-seg st-seg--brand flex items-center">
           <Wordmark href={localizePath(lang, "/")} />
         </div>
 
-        <div className="st-seg st-seg--main hidden flex-1 items-center justify-end gap-8 md:flex">
+        <div className="st-seg st-seg--main hidden items-center gap-8 md:flex">
           <MegaMenu nav={nav} mainNav={mainNavLabel} />
 
           <div className="flex items-center gap-3">
