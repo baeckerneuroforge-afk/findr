@@ -42,7 +42,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         params: {
           // offline_access is REQUIRED for Zitadel to issue a refresh token;
           // the jwt() callback below performs refresh-token rotation.
-          scope: "openid profile email offline_access",
+          // urn:zitadel:iam:user:resourceowner surfaces the user's Zitadel org
+          // (resource owner) claims in the token. Project roles come from the
+          // Zitadel app/project settings ("User Roles Inside ID Token").
+          scope:
+            "openid profile email offline_access urn:zitadel:iam:user:resourceowner",
         },
       },
     }),
@@ -51,7 +55,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, account, profile }) {
       // 1) Initial sign-in: persist the stable subject + the OIDC tokens.
       if (account) {
-        token.sub = (profile?.sub as string | undefined) ?? token.sub;
+        const claims = (profile ?? {}) as Record<string, unknown>;
+        token.sub = (claims.sub as string | undefined) ?? token.sub;
+        // Tenant identity from Zitadel's reserved resource-owner claims (the
+        // user's Zitadel organization = the customer). Read defensively: they
+        // only appear when the Zitadel app is configured to assert them.
+        token.orgId =
+          (claims["urn:zitadel:iam:user:resourceowner:id"] as
+            | string
+            | undefined) ?? token.orgId;
+        token.orgName =
+          (claims["urn:zitadel:iam:user:resourceowner:name"] as
+            | string
+            | undefined) ?? token.orgName;
+        token.roles = extractZitadelRoles(claims);
+        // OIDC tokens. id_token is the JWT carrier we forward to Supabase
+        // third-party auth (forward-compat); it is present here at sign-in and
+        // re-captured on refresh (see rotateZitadelToken).
+        token.idToken = account.id_token;
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
@@ -78,11 +99,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
     async session({ session, token }) {
-      // Stable Zitadel identity for app code — this is the value that replaces
-      // Clerk's user_id wherever step 2 rewires the data layer.
+      // Stable Zitadel identity + tenant context for app code. This replaces
+      // Clerk's auth().{userId,orgId,orgRole} across the dashboard.
       if (session.user) {
         session.user.id = token.sub ?? "";
+        session.user.orgId = token.orgId;
+        session.user.orgName = token.orgName;
+        session.user.roles = token.roles ?? [];
       }
+      // Short-lived ID token for Supabase third-party auth (forward-compat).
+      // NEVER expose the refresh token here — the session is browser-readable.
+      session.idToken = token.idToken;
       session.error = token.error;
       return session;
     },
@@ -121,6 +148,7 @@ async function rotateZitadelToken(token: JWT): Promise<JWT> {
     access_token: string;
     expires_in: number;
     refresh_token?: string;
+    id_token?: string;
   };
 
   return {
@@ -129,6 +157,23 @@ async function rotateZitadelToken(token: JWT): Promise<JWT> {
     expiresAt: Math.floor(Date.now() / 1000) + Number(data.expires_in),
     // Keep the previous refresh token if Zitadel did not rotate it this time.
     refreshToken: data.refresh_token ?? token.refreshToken,
+    // Refresh the id_token when re-issued so a long session never forwards an
+    // expired one to Supabase; otherwise keep the sign-in id_token.
+    idToken: data.id_token ?? token.idToken,
     error: undefined,
   };
+}
+
+/**
+ * Zitadel returns granted project roles as a claim map keyed by role name
+ * (urn:zitadel:iam:org:project:roles → { "<role>": { "<orgId>": "<domain>" } }).
+ * We surface the role names; isAdminRole() (src/lib/settings/roles.ts) decides
+ * which of them grant admin.
+ */
+function extractZitadelRoles(claims: Record<string, unknown>): string[] {
+  const map = claims["urn:zitadel:iam:org:project:roles"];
+  if (map && typeof map === "object") {
+    return Object.keys(map as Record<string, unknown>);
+  }
+  return [];
 }
