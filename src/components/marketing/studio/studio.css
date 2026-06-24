@@ -415,6 +415,9 @@
     padding-inline: 14px;
   }
   .st-top.solid .st-seg--main {
+    /* Insel umschließt ihren Inhalt (Nav + Aktionen) statt flex-1 zu füllen —
+       so sitzt sie rechts, Logo-Insel links, der Abstand entsteht von selbst. */
+    flex: 0 0 auto;
     padding-inline: 10px;
   }
 }

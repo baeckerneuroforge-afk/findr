@@ -56,7 +56,7 @@ export function MarketingHeader({
           <Wordmark href={localizePath(lang, "/")} />
         </div>
 
-        <div className="st-seg st-seg--main hidden flex-1 items-center justify-between gap-6 md:flex">
+        <div className="st-seg st-seg--main hidden flex-1 items-center justify-end gap-8 md:flex">
           <MegaMenu nav={nav} mainNav={mainNavLabel} />
 
           <div className="flex items-center gap-3">
