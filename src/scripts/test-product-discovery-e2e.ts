@@ -10,7 +10,7 @@
  * calling that function directly: the service module statically imports
  * `@/lib/supabase/server`, `@/lib/auth/org`, `@/lib/settings/org-settings`,
  * `@/lib/accounts/service`, and `@/lib/deals/service` — every one of which
- * transitively pulls in `@clerk/nextjs/server` → `next/server` →
+ * transitively pulls in `@/auth` (next-auth) → `next/server` →
  * `next/navigation`. Outside the Next bundler, tsx hits a hard wall:
  *   - without `--conditions=react-server`, the `server-only` package
  *     refuses to load and throws on import;
@@ -155,7 +155,8 @@ async function main(): Promise<void> {
     {
       transcript: call.transcript,
       // No account context: would require getOrgName/getAccount/getDealById,
-      // which all sit on the Clerk-imports chain we can't load here. The
+      // which all sit on the next-auth/next-server import chain we can't load
+      // here. The
       // classifier handles missing account context cleanly (see prompts.ts
       // "(none provided — base your analysis solely on the transcript below)").
       recordedAt: call.recorded_at,

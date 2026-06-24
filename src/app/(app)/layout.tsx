@@ -7,7 +7,6 @@ import {
   Space_Mono,
 } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
-import { ClerkProvider } from "@clerk/nextjs";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
@@ -97,43 +96,20 @@ export default async function RootLayout({
   const locale: Locale = isLocale(resolved) ? resolved : DEFAULT_LOCALE;
 
   return (
-    <ClerkProvider
-      afterSignOutUrl="/"
-      signInFallbackRedirectUrl="/dashboard"
-      signUpFallbackRedirectUrl="/onboarding/create-org"
-      appearance={{
-        variables: {
-          colorPrimary: "#4f46e5",
-          colorBackground: "#ffffff",
-          colorText: "#18181b",
-          colorTextSecondary: "#71717a",
-          colorInputBackground: "#ffffff",
-          colorInputText: "#18181b",
-          colorNeutral: "#71717a",
-          fontFamily: "var(--font-geist-sans), system-ui",
-        },
-        elements: {
-          organizationSwitcherTrigger:
-            "px-2 py-1.5 hover:bg-neutral-50 rounded-md transition-colors text-neutral-900",
-        },
-      }}
+    <html
+      lang={locale}
+      data-scroll-behavior="smooth"
+      className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} h-full scroll-smooth antialiased`}
     >
       {/* data-scroll-behavior: Next 16 überschreibt scroll-behavior bei
           Navigationen nur noch mit diesem Opt-in — ohne es animiert das
           scroll-smooth der Klasse JEDEN Routenwechsel (träges Hochscrollen).
           Mit Attribut: Routenwechsel springen sofort, Anker-Sprünge (z. B.
           E6-Startkarten) bleiben smooth. Siehe upgrading/version-16.md. */}
-      <html
-        lang={locale}
-        data-scroll-behavior="smooth"
-        className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} h-full scroll-smooth antialiased`}
-      >
-        <body className="min-h-full flex flex-col bg-obsidian text-white">
-          {/* SessionProvider (NextAuth/Zitadel) for the new login identity.
-              ClerkProvider is intentionally kept ALONGSIDE it for now so the
-              not-yet-migrated Clerk dashboard components still render — Clerk is
-              fully removed in step 2 (org-model migration). */}
-          <SessionProviderWrapper>
+      <body className="min-h-full flex flex-col bg-obsidian text-white">
+        {/* SessionProvider (NextAuth/Zitadel) stellt die Login-Identität für
+            Client-Komponenten bereit. Clerk wurde vollständig entfernt. */}
+        <SessionProviderWrapper>
           <NextIntlClientProvider
             locale={locale}
             messages={{
@@ -160,9 +136,8 @@ export default async function RootLayout({
           >
             {children}
           </NextIntlClientProvider>
-          </SessionProviderWrapper>
-        </body>
-      </html>
-    </ClerkProvider>
+        </SessionProviderWrapper>
+      </body>
+    </html>
   );
 }
