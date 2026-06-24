@@ -13,6 +13,7 @@ import { getLocale } from "next-intl/server";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
 import { MESSAGES } from "@/i18n/messages";
 import { SITE_URL } from "@/lib/marketing/seo";
+import { SessionProviderWrapper } from "@/components/auth/SessionProviderWrapper";
 import "../globals.css";
 
 const inter = Inter({
@@ -128,6 +129,11 @@ export default async function RootLayout({
         className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} h-full scroll-smooth antialiased`}
       >
         <body className="min-h-full flex flex-col bg-obsidian text-white">
+          {/* SessionProvider (NextAuth/Zitadel) for the new login identity.
+              ClerkProvider is intentionally kept ALONGSIDE it for now so the
+              not-yet-migrated Clerk dashboard components still render — Clerk is
+              fully removed in step 2 (org-model migration). */}
+          <SessionProviderWrapper>
           <NextIntlClientProvider
             locale={locale}
             messages={{
@@ -154,6 +160,7 @@ export default async function RootLayout({
           >
             {children}
           </NextIntlClientProvider>
+          </SessionProviderWrapper>
         </body>
       </html>
     </ClerkProvider>
