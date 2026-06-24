@@ -1,10 +1,13 @@
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/auth";
+import { zitadelConsoleUrl } from "@/lib/auth/zitadel";
 import { OrganizationSettingsForm } from "@/components/settings/OrganizationSettingsForm";
 import { AutoInterviewSettingForm } from "@/components/settings/AutoInterviewSettingForm";
 import { BrandingSettingsForm } from "@/components/settings/BrandingSettingsForm";
 
 export default async function OrganizationSettingsPage() {
   const t = await getTranslations("settings");
+  const session = await auth();
 
   return (
     <div className="space-y-5">
@@ -14,7 +17,11 @@ export default async function OrganizationSettingsPage() {
           {t("organization.subtitle")}
         </p>
       </div>
-      <OrganizationSettingsForm />
+      <OrganizationSettingsForm
+        orgName={session?.user?.orgName ?? null}
+        orgId={session?.user?.orgId ?? null}
+        consoleUrl={zitadelConsoleUrl()}
+      />
       <AutoInterviewSettingForm />
       <BrandingSettingsForm />
     </div>

@@ -373,7 +373,9 @@
     },
     "profile": {
       "title": "Profile",
-      "subtitle": "Update your name, email addresses, password, and security settings."
+      "subtitle": "Your account, name, email, and security settings are managed in the Zitadel console.",
+      "consoleTitle": "Manage your account in Zitadel",
+      "consoleDescription": "Update your name, email addresses, password, and security settings in the Zitadel console."
     },
     "organization": {
       "title": "Organization",
@@ -381,8 +383,10 @@
     },
     "team": {
       "title": "Team",
-      "subtitle": "Manage members, invitations, and organization roles through Clerk.",
-      "adminOnly": "Only organization admins can manage members, invitations, and roles."
+      "subtitle": "Members, invitations, and organization roles are managed in the Zitadel console.",
+      "adminOnly": "Only organization admins can manage members, invitations, and roles.",
+      "consoleTitle": "Manage your team in Zitadel",
+      "consoleDescription": "Invite members, assign roles, and change organization settings in the Zitadel console."
     },
     "data": {
       "title": "Data & Privacy",
@@ -394,7 +398,7 @@
       "gdprHeading": "DSGVO / GDPR posture",
       "gdprBody": "Klymeo is designed for DACH sales teams: organization data can be exported, deleted, and kept separate by tenant. Production deployments should use EU-hosted Supabase infrastructure, for example Frankfurt, where required by the customer contract.",
       "deleteHeading": "Delete organization",
-      "deleteDesc": "This permanently deletes this organization: all Klymeo data (deals, calls, studies, interview transcripts, syntheses, participants, integrations) including uploaded files — and the Clerk organization itself. User accounts remain but lose access to this organization.",
+      "deleteDesc": "This permanently deletes this organization: all Klymeo data (deals, calls, studies, interview transcripts, syntheses, participants, integrations) including uploaded files. The Zitadel organization itself remains and is managed separately. User accounts remain but lose access to this organization.",
       "confirmLabel": "Type \"{org}\" to confirm",
       "deleting": "Deleting…",
       "deleteButton": "Permanently delete organization",
@@ -426,19 +430,12 @@
       "stripeNote": "Stripe billing integration deferred — see roadmap."
     },
     "orgForm": {
-      "loading": "Loading organization…",
       "noActiveOrg": "No active organization selected.",
       "profileHeading": "Organization profile",
-      "profileSubtitle": "Manage the workspace name your team sees across Klymeo.",
+      "profileSubtitle": "Your organization's name and members are managed in the Zitadel console.",
       "nameLabel": "Organization name",
-      "adminOnlyName": "Only organization admins can change this.",
-      "clerkIdLabel": "Clerk organization ID",
-      "createdLabel": "Created",
-      "logoInfo": "Logo upload is managed by Clerk and can be enabled later when brand customization becomes part of the customer workflow.",
-      "saving": "Saving…",
-      "save": "Save changes",
-      "updated": "Organization updated.",
-      "updateError": "Could not update organization."
+      "orgIdLabel": "Organization ID",
+      "manageInZitadel": "Manage in Zitadel"
     },
     "slack": {
       "setupTitle": "How to set up",

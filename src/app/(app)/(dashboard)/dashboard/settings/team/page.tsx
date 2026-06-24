@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { getTranslations } from "next-intl/server";
-import { ThemedOrganizationProfile } from "@/components/settings/ThemedClerkProfile";
+import { ZitadelConsoleCard } from "@/components/settings/ZitadelConsoleCard";
+import { zitadelConsoleUrl } from "@/lib/auth/zitadel";
 import { hasAdminRole } from "@/lib/settings/roles";
 
 export default async function TeamSettingsPage() {
@@ -15,7 +16,12 @@ export default async function TeamSettingsPage() {
         <p className="mt-1 text-body text-neutral-500">{t("team.subtitle")}</p>
       </div>
       {isAdmin ? (
-        <ThemedOrganizationProfile />
+        <ZitadelConsoleCard
+          title={t("team.consoleTitle")}
+          description={t("team.consoleDescription")}
+          linkLabel={t("orgForm.manageInZitadel")}
+          href={zitadelConsoleUrl()}
+        />
       ) : (
         <div className="rounded-lg border border-neutral-200 bg-card p-5 text-body text-neutral-500">
           {t("team.adminOnly")}

@@ -373,7 +373,9 @@
     },
     "profile": {
       "title": "Profil",
-      "subtitle": "Aktualisieren Sie Name, E-Mail-Adressen, Passwort und Sicherheitseinstellungen."
+      "subtitle": "Konto, Name, E-Mail und Sicherheitseinstellungen verwalten Sie in der Zitadel-Konsole.",
+      "consoleTitle": "Konto in Zitadel verwalten",
+      "consoleDescription": "Name, E-Mail-Adressen, Passwort und Sicherheitseinstellungen ändern Sie in der Zitadel-Konsole."
     },
     "organization": {
       "title": "Organisation",
@@ -381,8 +383,10 @@
     },
     "team": {
       "title": "Team",
-      "subtitle": "Verwalten Sie Mitglieder, Einladungen und Organisationsrollen über Clerk.",
-      "adminOnly": "Nur Organisations-Admins können Mitglieder, Einladungen und Rollen verwalten."
+      "subtitle": "Mitglieder, Einladungen und Organisationsrollen werden in der Zitadel-Konsole verwaltet.",
+      "adminOnly": "Nur Organisations-Admins können Mitglieder, Einladungen und Rollen verwalten.",
+      "consoleTitle": "Team in Zitadel verwalten",
+      "consoleDescription": "Mitglieder einladen, Rollen zuweisen und Organisationseinstellungen ändern Sie in der Zitadel-Konsole."
     },
     "data": {
       "title": "Daten & Datenschutz",
@@ -394,7 +398,7 @@
       "gdprHeading": "DSGVO / GDPR-Status",
       "gdprBody": "Klymeo ist für DACH-Vertriebsteams konzipiert: Organisationsdaten können exportiert, gelöscht und mandantengetrennt gehalten werden. Produktiv-Deployments sollten EU-gehostete Supabase-Infrastruktur nutzen, etwa Frankfurt, sofern der Kundenvertrag dies verlangt.",
       "deleteHeading": "Organisation löschen",
-      "deleteDesc": "Dies löscht diese Organisation unwiderruflich: alle Klymeo-Daten (Deals, Calls, Studien, Gesprächstranskripte, Synthesen, Teilnehmer, Integrationen) samt hochgeladener Dateien — und die Clerk-Organisation selbst. Benutzerkonten bleiben bestehen, verlieren aber den Zugriff auf diese Organisation.",
+      "deleteDesc": "Dies löscht diese Organisation unwiderruflich: alle Klymeo-Daten (Deals, Calls, Studien, Gesprächstranskripte, Synthesen, Teilnehmer, Integrationen) samt hochgeladener Dateien. Die Zitadel-Organisation selbst bleibt bestehen und wird separat verwaltet. Benutzerkonten bleiben bestehen, verlieren aber den Zugriff auf diese Organisation.",
       "confirmLabel": "Geben Sie zur Bestätigung \"{org}\" ein",
       "deleting": "Wird gelöscht …",
       "deleteButton": "Organisation endgültig löschen",
@@ -426,19 +430,12 @@
       "stripeNote": "Stripe-Abrechnungsintegration verschoben — siehe Roadmap."
     },
     "orgForm": {
-      "loading": "Organisation wird geladen …",
       "noActiveOrg": "Keine aktive Organisation ausgewählt.",
       "profileHeading": "Organisationsprofil",
-      "profileSubtitle": "Verwalten Sie den Namen des Arbeitsbereichs, den Ihr Team in Klymeo sieht.",
+      "profileSubtitle": "Name und Mitglieder Ihrer Organisation werden in der Zitadel-Konsole verwaltet.",
       "nameLabel": "Organisationsname",
-      "adminOnlyName": "Nur Organisations-Admins können dies ändern.",
-      "clerkIdLabel": "Clerk-Organisations-ID",
-      "createdLabel": "Erstellt",
-      "logoInfo": "Der Logo-Upload wird von Clerk verwaltet und kann später aktiviert werden, sobald Markenanpassung Teil des Kunden-Workflows wird.",
-      "saving": "Wird gespeichert …",
-      "save": "Änderungen speichern",
-      "updated": "Organisation aktualisiert.",
-      "updateError": "Organisation konnte nicht aktualisiert werden."
+      "orgIdLabel": "Organisations-ID",
+      "manageInZitadel": "In Zitadel verwalten"
     },
     "slack": {
       "setupTitle": "So richtest du es ein",

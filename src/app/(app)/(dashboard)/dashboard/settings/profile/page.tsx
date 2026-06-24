@@ -1,7 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
-import { ThemedUserProfile } from "@/components/settings/ThemedClerkProfile";
+import { ZitadelConsoleCard } from "@/components/settings/ZitadelConsoleCard";
+import { zitadelConsoleUrl } from "@/lib/auth/zitadel";
 
 export default async function ProfileSettingsPage() {
   const t = await getTranslations("settings");
@@ -16,7 +17,12 @@ export default async function ProfileSettingsPage() {
       </div>
       <LanguageSwitcher variant="settings" />
       <ThemeSwitcher variant="settings" />
-      <ThemedUserProfile />
+      <ZitadelConsoleCard
+        title={t("profile.consoleTitle")}
+        description={t("profile.consoleDescription")}
+        linkLabel={t("orgForm.manageInZitadel")}
+        href={zitadelConsoleUrl()}
+      />
     </div>
   );
 }
