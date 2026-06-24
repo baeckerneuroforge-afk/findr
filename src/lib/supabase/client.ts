@@ -1,20 +1,22 @@
 "use client";
 
 import { createClient } from "@supabase/supabase-js";
-import { useAuth } from "@clerk/nextjs";
+import { getSession } from "next-auth/react";
 import { useMemo } from "react";
 import type { Database } from "@/types/database";
 
 /**
- * Browser-side Supabase client, authenticated via Clerk's session token.
- * Requires Clerk's native Supabase third-party auth integration to be enabled
- * (or a Clerk JWT template configured for Supabase).
+ * Browser-side Supabase client, authenticated via the Zitadel token (NextAuth
+ * session). The accessToken callback fetches the current session on each call
+ * (getSession hits /api/auth/session, which returns the freshly-rotated token),
+ * forwarding the Zitadel ID token as the Supabase access token for RLS.
  *
- * Use this in client components to read/write with the user's RLS context.
+ * NOTE (Schritt 2, Q1 = "nur de-Clerken"): FORWARD-COMPAT. Nothing uses this
+ * client today (all reads go through the service-role admin client), and
+ * Supabase Third-Party Auth for the Zitadel issuer is not yet registered. See
+ * src/lib/supabase/server.ts for what enabling RLS would require.
  */
 export function useSupabaseClient() {
-  const { getToken } = useAuth();
-
   return useMemo(
     () =>
       createClient<Database>(
@@ -22,10 +24,11 @@ export function useSupabaseClient() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
           async accessToken() {
-            return (await getToken()) ?? null;
+            const session = await getSession();
+            return session?.idToken ?? null;
           },
         },
       ),
-    [getToken],
+    [],
   );
 }
