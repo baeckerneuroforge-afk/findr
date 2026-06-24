@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { isAdminRole } from "@/lib/settings/roles";
+import { hasAdminRole } from "@/lib/settings/roles";
 
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 const DEFAULT_ACCENT = "#4A51A8";
@@ -19,8 +19,8 @@ const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
  */
 export function BrandingSettingsForm() {
   const t = useTranslations("branding");
-  const { orgRole } = useAuth();
-  const isAdmin = isAdminRole(orgRole);
+  const { data: session } = useSession();
+  const isAdmin = hasAdminRole(session?.user?.roles);
 
   const [brandName, setBrandName] = useState("");
   const [accentColor, setAccentColor] = useState("");

@@ -358,6 +358,9 @@
     }
   },
   "settings": {
+    "userMenu": {
+      "signOut": "Abmelden"
+    },
     "title": "Einstellungen",
     "subtitle": "Verwalten Sie Konto, Arbeitsbereich, Team, Daten und Tarif.",
     "navAria": "Einstellungs-Navigation",

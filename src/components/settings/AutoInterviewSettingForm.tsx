@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { isAdminRole } from "@/lib/settings/roles";
+import { useSession } from "next-auth/react";
+import { hasAdminRole } from "@/lib/settings/roles";
 
 /**
  * Org-level toggle: automatically start + invite the post-loss interview when a
@@ -10,8 +10,8 @@ import { isAdminRole } from "@/lib/settings/roles";
  * (org-scoped). Mirrors the slack preferences toggle pattern.
  */
 export function AutoInterviewSettingForm() {
-  const { orgRole } = useAuth();
-  const isAdmin = isAdminRole(orgRole);
+  const { data: session } = useSession();
+  const isAdmin = hasAdminRole(session?.user?.roles);
 
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
