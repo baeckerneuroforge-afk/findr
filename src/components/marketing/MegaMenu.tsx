@@ -119,7 +119,7 @@ export function MegaMenu({
     <nav
       ref={rootRef}
       aria-label={mainNav}
-      className="hidden items-center gap-8 md:flex"
+      className="hidden items-center gap-1 md:flex"
     >
       {nav.map((entry) => {
         if (entry.kind === "flat") {
@@ -127,7 +127,7 @@ export function MegaMenu({
             <Link
               key={entry.href}
               href={entry.href}
-              className="rounded font-mono text-[11.5px] uppercase tracking-[0.14em] text-neutral-500 transition-colors hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
+              className="st-navitem font-mono text-[11.5px] uppercase tracking-[0.14em] text-neutral-500 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
             >
               {entry.label}
             </Link>
@@ -167,8 +167,8 @@ export function MegaMenu({
               aria-expanded={isOpen}
               aria-controls={panelId}
               onClick={() => toggle(entry.id)}
-              className={`inline-flex items-center gap-1 rounded font-mono text-[11.5px] uppercase tracking-[0.14em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 ${
-                isOpen ? "text-neutral-900" : "text-neutral-500 hover:text-neutral-900"
+              className={`st-navitem font-mono text-[11.5px] uppercase tracking-[0.14em] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 ${
+                isOpen ? "is-open text-neutral-900" : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
               {entry.label}

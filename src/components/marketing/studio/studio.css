@@ -351,7 +351,11 @@
   background: rgba(238, 239, 248, 0.07);
 }
 
-/* ── Header ───────────────────────────────────────────────────────── */
+/* ── Header ───────────────────────────────────────────────────────────
+   Oben: transparent, volle Breite, „zusammenhängend". Beim Scrollen (.solid):
+   ab md trennt sich das Logo als eigene Pille ab, Nav + Aktionen bilden die
+   zweite schwebende Insel (zwei .st-seg-Pillen mit Lücke dazwischen); darunter
+   (mobil) bleibt es eine klassische, milchglas-hinterlegte Leiste. */
 .st-top {
   position: sticky;
   top: 0;
@@ -360,13 +364,84 @@
   background: transparent;
   transition: background 0.3s, border-color 0.3s, backdrop-filter 0.3s;
 }
-.st-top.solid {
-  background: rgba(250, 250, 250, 0.84);
-  /* Kleinerer Blur-Radius = deutlich günstigeres Per-Scroll-Resampling des
-     Hintergrunds; bei 0.84 Alpha optisch praktisch identisch zu 14px. */
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  border-bottom-color: var(--st-line);
+
+/* Strukturelle Segment-Hüllen (Logo / Nav+Aktionen). Display + Flex-Verhalten
+   kommen per Tailwind an den Elementen — hier NUR die Insel-Haut, damit das
+   responsive `hidden md:flex` der Main-Insel nicht überschrieben wird. */
+.st-seg {
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Mobil: klassische Milchglas-Leiste (kein Split). */
+@media (max-width: 767.98px) {
+  .st-top.solid {
+    background: rgba(250, 250, 250, 0.84);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-bottom-color: var(--st-line);
+  }
+}
+
+/* Desktop: schwebende Doppel-Insel — Logo-Pille + Nav/Aktions-Insel. Die
+   Transition läuft einmalig beim Schwellen-Übergang, nicht pro Frame. */
+@media (min-width: 768px) {
+  .st-bar {
+    transition: margin-top 0.42s var(--st-ease);
+  }
+  .st-top.solid .st-bar {
+    margin-top: 10px;
+  }
+  .st-seg {
+    transition: background 0.3s, border-color 0.3s,
+      border-radius 0.42s var(--st-ease), box-shadow 0.42s var(--st-ease),
+      padding 0.35s var(--st-ease);
+  }
+  .st-top.solid .st-seg {
+    /* Feste, für beide Segmente gleiche Insel-Höhe — sonst bläht der h-16-
+       Hover-Wrapper der Dropdown-Trigger die Nav-Insel auf 66px auf, während
+       die Logo-Pille nur 46px hoch wäre. Der Wrapper überragt die Pille
+       unsichtbar (overflow sichtbar) und behält seine Treffer-/Hover-Fläche. */
+    height: 50px;
+    background: rgba(250, 250, 250, 0.82);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-color: var(--st-line-strong);
+    border-radius: 14px;
+    box-shadow: 0 16px 34px -18px rgba(20, 23, 52, 0.5);
+  }
+  .st-top.solid .st-seg--brand {
+    padding-inline: 14px;
+  }
+  .st-top.solid .st-seg--main {
+    padding-inline: 10px;
+  }
+}
+
+/* Reduced-motion: keine Bewegung, nur Zustandswechsel. */
+@media (prefers-reduced-motion: reduce) {
+  .st-bar,
+  .st-seg {
+    transition: none;
+  }
+}
+
+/* Nav-Item-Pille: dezente Umrandung bei Hover / offenem Dropdown (transparente
+   Border im Grundzustand → kein Layout-Sprung). */
+.st-navitem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 8px 9px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+.st-navitem:hover,
+.st-navitem.is-open {
+  background: var(--st-paper-shade);
+  border-color: var(--st-line-strong);
 }
 .st-brand {
   display: inline-flex;
@@ -2091,9 +2166,20 @@
     background-image: radial-gradient(rgba(238, 239, 248, 0.045) 1px, transparent 1.1px);
   }
 
-  /* Header-Milchglas: Nacht-Canvas statt Lab-Weiß. */
+  /* Header-Milchglas: Nacht-Canvas statt Lab-Weiß (mobile Leiste + Insel-Pillen). */
   .st-top.solid {
     background: rgba(14, 13, 26, 0.84);
+  }
+  @media (min-width: 768px) {
+    .st-top.solid .st-seg {
+      background: rgba(14, 13, 26, 0.84);
+      border-color: var(--st-cream-line);
+    }
+  }
+  .st-navitem:hover,
+  .st-navitem.is-open {
+    background: rgba(238, 239, 248, 0.08);
+    border-color: var(--st-cream-line);
   }
 
   /* Ghost-Button-Hover: Cream-Wash statt Ink-Wash (wie .st-on-dark). */

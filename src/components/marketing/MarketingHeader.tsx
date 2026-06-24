@@ -51,23 +51,27 @@ export function MarketingHeader({
   });
   return (
     <StudioHeaderBar>
-      <Container className="flex h-16 items-center justify-between gap-4">
-        <Wordmark href={localizePath(lang, "/")} />
+      <Container className="st-bar flex h-16 items-center justify-between gap-3">
+        <div className="st-seg st-seg--brand flex items-center">
+          <Wordmark href={localizePath(lang, "/")} />
+        </div>
 
-        <MegaMenu nav={nav} mainNav={mainNavLabel} />
+        <div className="st-seg st-seg--main hidden flex-1 items-center justify-between gap-6 md:flex">
+          <MegaMenu nav={nav} mainNav={mainNavLabel} />
 
-        <div className="hidden items-center gap-3 md:flex">
-          <MarketingLanguageSwitcher />
-          <span aria-hidden className="h-4 w-px bg-neutral-200" />
-          <Link
-            href="/sign-in"
-            className="rounded px-2 font-mono text-[11.5px] uppercase tracking-[0.14em] text-neutral-500 transition-colors hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
-          >
-            Log in
-          </Link>
-          <CtaLink href={DEMO_BOOKING_URL} variant="primary">
-            {demoLabel}
-          </CtaLink>
+          <div className="flex items-center gap-3">
+            <MarketingLanguageSwitcher />
+            <span aria-hidden className="h-4 w-px bg-neutral-200" />
+            <Link
+              href="/sign-in"
+              className="st-navitem font-mono text-[11.5px] uppercase tracking-[0.14em] text-neutral-500 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
+            >
+              Log in
+            </Link>
+            <CtaLink href={DEMO_BOOKING_URL} variant="primary">
+              {demoLabel}
+            </CtaLink>
+          </div>
         </div>
 
         <MobileNav
