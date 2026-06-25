@@ -73,27 +73,52 @@ export function CrossStudyAgentPanel({ studies }: CrossStudyAgentPanelProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const turnIdRef = useRef(0);
+  const questionRef = useRef<HTMLTextAreaElement>(null);
 
   const ready = studies.length > 0;
   const titleByStudy = new Map(studies.map((s) => [s.studyId, s.studyTitle]));
 
   // Konsoul-Zustand — 1:1 aus dem Panel-State, kein neuer Datenpfad: loading →
-  // recherchiert; beim Tippen → hört zu; sonst spiegelt die letzte Antwort
-  // (belegt / Interpretation / ehrliche Ablehnung); sonst Ruhe.
+  // recherchiert; sein Name im Feld → winkt (greet); beim Tippen → hört zu;
+  // sonst spiegelt die letzte Antwort (belegt / Interpretation / Ablehnung);
+  // sonst Ruhe.
   const lastResult = [...turns]
     .reverse()
     .find((turn) => turn.role === "assistant")?.result;
+  const mentionsName = /\bkonsoul\b/i.test(question);
   const konsoulState: KonsoulState = loading
     ? "research"
-    : question.trim() !== ""
-      ? "listen"
-      : lastResult
-        ? !lastResult.answered
-          ? "refuse"
-          : lastResult.interpretation.trim() !== ""
-            ? "hedge"
-            : "answer"
-        : "idle";
+    : mentionsName
+      ? "greet"
+      : question.trim() !== ""
+        ? "listen"
+        : lastResult
+          ? !lastResult.answered
+            ? "refuse"
+            : lastResult.interpretation.trim() !== ""
+              ? "hedge"
+              : "answer"
+          : "idle";
+
+  // Klickbare Einstiegs-Vorschläge (nur im leeren Verlauf). Bei ≥2 Studien wird
+  // der erste Vorschlag dynamisch aus echten Studientiteln gebaut.
+  const suggestions =
+    studies.length >= 2
+      ? [
+          t("sugCompare", {
+            a: titleFor(studies[0].studyId),
+            b: titleFor(studies[1].studyId),
+          }),
+          t("sug1"),
+          t("sug3"),
+        ]
+      : [t("sug1"), t("sug2"), t("sug3")];
+
+  function applySuggestion(text: string) {
+    if (loading) return;
+    setQuestion(text);
+    questionRef.current?.focus();
+  }
 
   function nextTurnId(): number {
     turnIdRef.current += 1;
@@ -190,7 +215,11 @@ export function CrossStudyAgentPanel({ studies }: CrossStudyAgentPanelProps) {
               Interpretation / Ablehnung), bevor man sie liest. Auf schmalen
               Screens ausgeblendet, damit der Header nicht überläuft. */}
           <div className="flex shrink-0 flex-col items-end gap-2">
-            <Konsoul state={konsoulState} className="hidden sm:block" />
+            <Konsoul
+              state={konsoulState}
+              greeting={t("konsoulHi")}
+              className="hidden sm:block"
+            />
             {turns.length > 0 && (
               <button
                 type="button"
@@ -268,8 +297,30 @@ export function CrossStudyAgentPanel({ studies }: CrossStudyAgentPanelProps) {
               </ul>
             )}
 
+            {turns.length === 0 && (
+              <div className="space-y-2">
+                <div className="text-caption font-medium uppercase tracking-wider text-neutral-500">
+                  {t("suggestTitle")}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => applySuggestion(s)}
+                      disabled={loading}
+                      className="rounded-full border border-neutral-200 bg-card px-3 py-1.5 text-left text-small text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-2">
               <textarea
+                ref={questionRef}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder={t("placeholder")}

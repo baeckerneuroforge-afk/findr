@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * Konsoul — der sprechbare Bot-Charakter des Cross-Study-Agenten: ein winziges
+ * Konsoul — der sprechbare Bot-Charakter des Cross-Study-Agenten: ein kleines
  * „Terminal-Fenster mit Gesicht", das die Ehrlichkeits-Stufe der Antwort
  * spiegelt, BEVOR man sie liest. Rein monochrom-Ink (Plattform-Tokens, also
  * automatisch Hell/Dunkel); Farbe NUR als Daten-Pip (grün=belegt,
@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
  *   answer    — lächelt, grüner Beleg-Pip (answered + belegt)
  *   hedge     — amber Schulterzucken (Interpretation vorhanden)
  *   refuse    — ruhige, ebene Augen (ehrliche Ablehnung), nie rot
+ *   greet     — winkt + Sprechblase, wenn man seinen Namen tippt („Konsoul")
  */
 export type KonsoulState =
   | "idle"
@@ -25,7 +26,8 @@ export type KonsoulState =
   | "research"
   | "answer"
   | "hedge"
-  | "refuse";
+  | "refuse"
+  | "greet";
 
 const EYE_L = 46;
 const EYE_R = 94;
@@ -60,7 +62,7 @@ function DashEye({ cx }: { cx: number }) {
 function Face({ state }: { state: KonsoulState }) {
   return (
     <svg viewBox="0 0 140 46" className="h-full w-full overflow-visible">
-      {state === "answer" ? (
+      {state === "answer" || state === "greet" ? (
         <>
           <ArcEye cx={EYE_L} />
           <ArcEye cx={EYE_R} />
@@ -124,9 +126,12 @@ function footPip(state: KonsoulState): { cls: string; sym: string } {
 
 export function Konsoul({
   state,
+  greeting,
   className = "",
 }: {
   state: KonsoulState;
+  /** Lokalisierter Gruß-Text — als Sprechblase im „greet"-Zustand gezeigt. */
+  greeting?: string;
   className?: string;
 }) {
   // Tipp-Trace beim Recherchieren. Der Start ist via Timeout DEFERRED (kein
@@ -150,75 +155,86 @@ export function Konsoul({
   const pip = footPip(state);
 
   return (
-    <div
-      aria-hidden="true"
-      className={`w-[168px] shrink-0 overflow-hidden rounded-card border border-neutral-200 bg-card text-neutral-900 shadow-card ${className}`}
-    >
-      {/* Titelleiste */}
-      <div className="flex h-[22px] items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-2.5">
-        <span className="flex gap-[5px]">
-          <i className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
-          <i className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
-          <i className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
-        </span>
-        <span className="font-mono text-[11px] text-neutral-500">konsoul</span>
-      </div>
+    <div aria-hidden="true" className={`relative ${className}`}>
+      {/* Sprechblase, wenn man seinen Namen tippt */}
+      {state === "greet" && greeting && (
+        <div className="absolute right-full top-1.5 z-10 mr-3 w-max max-w-[200px] rounded-lg border border-neutral-200 bg-card px-3 py-1.5 text-small text-neutral-900 shadow-md">
+          {greeting}
+          <span className="absolute right-[-5px] top-3 h-2.5 w-2.5 rotate-45 border-r border-t border-neutral-200 bg-card" />
+        </div>
+      )}
 
-      {/* Gesicht ODER Tipp-Trace */}
-      <div className="relative flex h-[66px] flex-col justify-center px-3">
-        {state === "research" ? (
-          <div className="flex flex-col justify-center gap-[3px] font-mono text-[10.5px] leading-tight text-neutral-500">
-            {TRACE.slice(0, traceCount).map((line, i) => (
-              <div key={i} className="truncate">
-                {line}
-                {i === traceCount - 1 && (
-                  <span className="ml-0.5 inline-block h-[10px] w-[5px] translate-y-px bg-neutral-900 align-baseline knsl-blink" />
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="h-[40px]">
-            <Face state={state} />
-          </div>
-        )}
-
-        {/* amber Schulterzucken-Klammern (hedge) */}
-        {state === "hedge" && (
-          <>
-            <span className="pointer-events-none absolute left-2 top-[30px] font-mono text-[15px] text-warning-500">
-              ⌐
-            </span>
-            <span className="pointer-events-none absolute right-2 top-[30px] font-mono text-[15px] text-warning-500">
-              ¬
-            </span>
-          </>
-        )}
-      </div>
-
-      {/* Progress-Sliver (research) */}
-      <div className="h-[2px] overflow-hidden bg-neutral-100">
-        {state === "research" && (
-          <div className="h-full w-2/5 rounded-full bg-neutral-900 animate-analysis-progress" />
-        )}
-      </div>
-
-      {/* Daten-Pip */}
-      <div className="flex min-h-[26px] items-center gap-1.5 border-t border-neutral-200 px-3 py-1.5 font-mono text-[11px] text-neutral-500">
-        <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${pip.cls}`} />
-        {pip.sym && (
-          <span
-            className={
-              state === "answer"
-                ? "font-semibold text-success-700"
-                : state === "hedge"
-                  ? "text-warning-700"
-                  : ""
-            }
-          >
-            {pip.sym}
+      <div
+        className={`w-[200px] overflow-hidden rounded-card border border-neutral-200 bg-card text-neutral-900 shadow-card ${
+          state === "greet" ? "knsl-bounce" : ""
+        }`}
+      >
+        {/* Titelleiste */}
+        <div className="flex h-[24px] items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-3">
+          <span className="flex gap-[5px]">
+            <i className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
+            <i className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
+            <i className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
           </span>
-        )}
+          <span className="font-mono text-[11.5px] text-neutral-500">konsoul</span>
+        </div>
+
+        {/* Gesicht ODER Tipp-Trace */}
+        <div className="relative flex h-[76px] flex-col justify-center px-3.5">
+          {state === "research" ? (
+            <div className="flex flex-col justify-center gap-1 font-mono text-[11px] leading-tight text-neutral-500">
+              {TRACE.slice(0, traceCount).map((line, i) => (
+                <div key={i} className="truncate">
+                  {line}
+                  {i === traceCount - 1 && (
+                    <span className="ml-0.5 inline-block h-[11px] w-[5px] translate-y-px bg-neutral-900 align-baseline knsl-blink" />
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-[46px]">
+              <Face state={state} />
+            </div>
+          )}
+
+          {/* amber Schulterzucken-Klammern (hedge) */}
+          {state === "hedge" && (
+            <>
+              <span className="pointer-events-none absolute left-2.5 top-[34px] font-mono text-[17px] text-warning-500">
+                ⌐
+              </span>
+              <span className="pointer-events-none absolute right-2.5 top-[34px] font-mono text-[17px] text-warning-500">
+                ¬
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Progress-Sliver (research) */}
+        <div className="h-[2px] overflow-hidden bg-neutral-100">
+          {state === "research" && (
+            <div className="h-full w-2/5 rounded-full bg-neutral-900 animate-analysis-progress" />
+          )}
+        </div>
+
+        {/* Daten-Pip */}
+        <div className="flex min-h-[28px] items-center gap-1.5 border-t border-neutral-200 px-3.5 py-1.5 font-mono text-[11.5px] text-neutral-500">
+          <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${pip.cls}`} />
+          {pip.sym && (
+            <span
+              className={
+                state === "answer"
+                  ? "font-semibold text-success-700"
+                  : state === "hedge"
+                    ? "text-warning-700"
+                    : ""
+              }
+            >
+              {pip.sym}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

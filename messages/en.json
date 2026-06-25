@@ -2612,7 +2612,13 @@
     "errNoAccess": "No access — please sign in and select an organization.",
     "errInvalidRequest": "The request was invalid.",
     "errEngine": "The cross-study agent is currently unavailable.",
-    "errNetwork": "Connection failed. Please try again."
+    "errNetwork": "Connection failed. Please try again.",
+    "konsoulHi": "Hi! 👋 Ask me anything about your studies.",
+    "suggestTitle": "Try one of these",
+    "sug1": "In how many studies does the onboarding theme appear?",
+    "sug2": "Compare the pricing findings across the studies.",
+    "sug3": "Which theme comes up most often?",
+    "sugCompare": "Compare “{a}” and “{b}”."
   },
   "syntheticTest": {
     "pageTitle": "Test the study — dry run",

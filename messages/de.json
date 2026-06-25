@@ -2612,7 +2612,13 @@
     "errNoAccess": "Kein Zugriff — bitte melde dich an und wähle eine Organisation.",
     "errInvalidRequest": "Die Anfrage war ungültig.",
     "errEngine": "Der Cross-Study-Agent ist momentan nicht verfügbar.",
-    "errNetwork": "Verbindung fehlgeschlagen. Bitte versuche es erneut."
+    "errNetwork": "Verbindung fehlgeschlagen. Bitte versuche es erneut.",
+    "konsoulHi": "Hallo! 👋 Frag mich was über deine Studien.",
+    "suggestTitle": "Probier mal",
+    "sug1": "In wie vielen Studien taucht das Onboarding-Thema auf?",
+    "sug2": "Vergleiche die Pricing-Befunde über die Studien hinweg.",
+    "sug3": "Welches Thema kommt am häufigsten vor?",
+    "sugCompare": "Vergleiche „{a}“ und „{b}“."
   },
   "syntheticTest": {
     "pageTitle": "Studie testen — Trockenlauf",
