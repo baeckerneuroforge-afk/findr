@@ -2120,7 +2120,7 @@
       "ucUsability": "Usability test",
       "ucUsabilityHint": "Have participants solve a task on a prototype",
       "s2MaterialTitle": "Material for the {kind}",
-      "s2MaterialDesc": "Link what participants should evaluate. You can upload files on the study page after creating it.",
+      "s2MaterialDesc": "Upload or link what participants should evaluate. Klymeo analyses the material so the interviewer can reference it during the conversation.",
       "s2MaterialLinkLabel": "Link to the material",
       "s2MaterialLinkPh": "https://…  (image, Figma, landing page)",
       "s2TaskLabel": "Task for participants",

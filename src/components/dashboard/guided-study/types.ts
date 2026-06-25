@@ -31,10 +31,9 @@ export interface WizardState {
   audienceType: AudienceType;
   useCase: UseCase;
   topics: TopicDraft[];
-  /** Bedingtes Material (concept_test/creative_test). */
-  stimulusUrl: string;
-  stimulusDescription: string;
-  /** Bedingte Aufgabe (usability_test). */
+  /** Bedingte Aufgabe (usability_test). Das Material (concept_test/creative_test)
+   *  lebt NICHT im WizardState, sondern als echte /stimuli-Zeilen am Draft-Plan
+   *  (siehe StimulusUploader). */
   taskInstruction: string;
   taskTargetUrl: string;
 
@@ -59,8 +58,6 @@ export function initialWizardState(): WizardState {
     audienceType: "b2c",
     useCase: "general_survey",
     topics: [],
-    stimulusUrl: "",
-    stimulusDescription: "",
     taskInstruction: "",
     taskTargetUrl: "",
     voiceEnabled: false,

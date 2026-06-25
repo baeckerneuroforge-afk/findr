@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { emptyTopicDraft, type TopicDraft } from "@/components/dashboard/TopicEditor";
 import { USE_CASES, getUseCaseMeta, type WizardState } from "../types";
+import { StimulusUploader, type StimulusItem } from "../StimulusUploader";
 import {
   ArrowRightIcon,
   Card,
@@ -18,19 +19,26 @@ import {
 /**
  * Schritt 2 — „Dein Studienvorschlag". Verschmilzt Zielgruppe + Leitfaden zu
  * einem Screen. Titel + Themen sind KI-vorbefüllt; Zielgruppe/Art bestätigt der
- * Nutzer. Bedingtes Material (Stimulus/Aufgabe) erscheint nur inline, wenn der
- * Use-Case es braucht.
+ * Nutzer. Bedingtes Material (echter Upload + KI-Analyse via StimulusUploader
+ * bzw. Usability-Aufgabe) erscheint nur inline, wenn der Use-Case es braucht.
  */
 export function StepProposal({
   state,
   patch,
+  planId,
+  ensureDraftPlanId,
+  stimuli,
+  setStimuli,
   genError,
   onBack,
   onNext,
 }: {
   state: WizardState;
   patch: (p: Partial<WizardState>) => void;
-  voiceAvailable?: boolean;
+  planId: string | null;
+  ensureDraftPlanId: () => Promise<string>;
+  stimuli: StimulusItem[];
+  setStimuli: React.Dispatch<React.SetStateAction<StimulusItem[]>>;
   genError: string | null;
   onBack: () => void;
   onNext: () => void;
@@ -117,28 +125,20 @@ export function StepProposal({
             <p className="mt-1.5 text-caption text-neutral-400">{tw(meta.hintKey)}</p>
           </div>
 
-          {/* Bedingtes Material */}
+          {/* Bedingtes Material — echter Upload (Bild/Video/Link) + KI-Analyse;
+              das analysierte Asset hängt am Draft-Plan, der Agent bezieht es im
+              Interview ein. */}
           {meta.needsStimulus ? (
             <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
               <p className="text-small font-medium text-neutral-700">
                 {tw("s2MaterialTitle", { kind: tw(meta.labelKey) })}
               </p>
               <p className="mt-0.5 text-caption text-neutral-400">{tw("s2MaterialDesc")}</p>
-              <label className="mb-1.5 mt-3 block text-small font-medium text-neutral-700">
-                {tw("s2MaterialLinkLabel")}
-              </label>
-              <TextInput
-                type="url"
-                inputMode="url"
-                placeholder={tw("s2MaterialLinkPh")}
-                value={state.stimulusUrl}
-                onChange={(e) => patch({ stimulusUrl: e.target.value })}
-              />
-              <TextArea
-                rows={2}
-                className="mt-3"
-                value={state.stimulusDescription}
-                onChange={(e) => patch({ stimulusDescription: e.target.value })}
+              <StimulusUploader
+                planId={planId}
+                ensureDraftPlanId={ensureDraftPlanId}
+                stimuli={stimuli}
+                setStimuli={setStimuli}
               />
             </div>
           ) : null}

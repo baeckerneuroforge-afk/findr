@@ -15,6 +15,7 @@ import {
   type WizardState,
 } from "./types";
 import { CheckIcon } from "./wizard-ui";
+import { type StimulusItem } from "./StimulusUploader";
 import { StepBriefing } from "./steps/StepBriefing";
 import { StepProposal } from "./steps/StepProposal";
 import { StepInterview } from "./steps/StepInterview";
@@ -47,15 +48,6 @@ function guideTopicsToDrafts(guide: GeneratedGuide): TopicDraft[] {
   }));
 }
 
-function isHttpUrl(value: string): boolean {
-  try {
-    const u = new URL(value);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
 export function GuidedStudyWizard({
   voiceAvailable = true,
 }: {
@@ -72,6 +64,10 @@ export function GuidedStudyWizard({
   const [finalizing, setFinalizing] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // Material-Set (Creative-/Konzepttest): echte /stimuli-Zeilen am Draft-Plan,
+  // server-synchronisiert — hier gehalten, damit es Schritte überdauert und
+  // finalize die Asset-Pflicht prüfen kann.
+  const [stimuli, setStimuli] = useState<StimulusItem[]>([]);
   const draftPromiseRef = useRef<Promise<string> | null>(null);
 
   function patch(p: Partial<WizardState>) {
@@ -217,6 +213,12 @@ export function GuidedStudyWizard({
       setFormError(tp("errTaskInstruction"));
       return;
     }
+    // Creative-/Konzepttest brauchen ein analysiertes Material — die Assets
+    // hängen bereits als echte /stimuli-Zeilen am Draft (StimulusUploader).
+    if (meta.needsStimulus && stimuli.length === 0) {
+      setFormError(tp("errStimulusRequired"));
+      return;
+    }
 
     let sampleTarget: number | null = null;
     if (state.sampleTarget.trim() !== "") {
@@ -250,22 +252,6 @@ export function GuidedStudyWizard({
 
     const topics = topicDraftsToResearchTopics(state.topics);
 
-    // Bedingtes Material (concept_test/creative_test) — optional: ein gültiger
-    // http(s)-Link wird als Stimulus gespeichert, Datei-Upload bleibt der
-    // Studienseite vorbehalten. Beschreibung reist immer mit, wenn relevant.
-    const stimulusUrl = state.stimulusUrl.trim();
-    const stimulusPayload = meta.needsStimulus
-      ? {
-          stimulusDescription:
-            state.stimulusDescription.trim() === ""
-              ? null
-              : state.stimulusDescription.trim(),
-          ...(isHttpUrl(stimulusUrl)
-            ? { stimulusUrl, stimulusType: "link" as const }
-            : {}),
-        }
-      : {};
-
     const taskPayload =
       meta.needsTask && state.taskInstruction.trim() !== ""
         ? {
@@ -298,7 +284,6 @@ export function GuidedStudyWizard({
       interviewDepth: state.interviewDepth,
       useCase: state.useCase,
       audienceType: state.audienceType,
-      ...stimulusPayload,
       ...taskPayload,
     };
 
@@ -403,7 +388,10 @@ export function GuidedStudyWizard({
         <StepProposal
           state={state}
           patch={patch}
-          voiceAvailable={voiceAvailable}
+          planId={planId}
+          ensureDraftPlanId={ensureDraftPlanId}
+          stimuli={stimuli}
+          setStimuli={setStimuli}
           genError={genError}
           onBack={() => setStep(0)}
           onNext={() => setStep(2)}
