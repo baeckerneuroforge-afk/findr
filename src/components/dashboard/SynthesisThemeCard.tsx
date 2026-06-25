@@ -143,7 +143,7 @@ export function SynthesisThemeCard({
                       {href && (
                         <Link
                           href={href}
-                          className="shrink-0 text-caption font-medium text-primary-700 transition-colors hover:text-primary-800"
+                          className="shrink-0 text-caption font-medium text-primary-700 transition-colors hover:underline"
                         >
                           {t("openInterview")}
                         </Link>

@@ -5,6 +5,9 @@ interface StatCardProps {
   value: string | number;
   subtitle?: string;
   status?: "default" | "primary" | "warning" | "critical" | "success";
+  /** Optionales Linien-Icon, dezent oben rechts (gemutet). Wird nur gerendert,
+   *  wenn gesetzt — bestehende Aufrufe ohne icon bleiben layout-identisch. */
+  icon?: ReactNode;
 }
 
 const STATUS_VALUE_STYLES: Record<NonNullable<StatCardProps["status"]>, string> = {
@@ -20,9 +23,18 @@ export function StatCard({
   value,
   subtitle,
   status = "default",
+  icon,
 }: StatCardProps) {
   return (
-    <div className="bg-card border border-neutral-200 rounded-card shadow-card p-5">
+    <div className="relative bg-card border border-neutral-200 rounded-card shadow-card p-5">
+      {icon && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-5 top-5 [&>svg]:h-4 [&>svg]:w-4 text-neutral-400"
+        >
+          {icon}
+        </span>
+      )}
       <div className="mb-2 flex items-center gap-1.5 text-caption font-medium uppercase tracking-wider text-neutral-500">
         {label}
       </div>

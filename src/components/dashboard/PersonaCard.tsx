@@ -233,7 +233,7 @@ export function PersonaCard({ persona, total, sessionHrefById }: PersonaCardProp
                           <Link
                             key={`${id}-${idx}`}
                             href={href}
-                            className="text-caption font-medium text-primary-700 transition-colors hover:text-primary-800"
+                            className="text-caption font-medium text-primary-700 transition-colors hover:underline"
                           >
                             {t("openInterview")}
                           </Link>

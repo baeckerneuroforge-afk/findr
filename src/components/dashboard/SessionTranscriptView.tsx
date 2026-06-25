@@ -352,8 +352,11 @@ export async function TaskResultCard({
   );
 }
 
-/** Der Gesprächsverlauf — Interviewer links (neutral), Teilnehmer rechts
- *  (primary-Fläche), gespiegelte Chat-Leserichtung der Teilnehmer-Ansicht.
+/** Der Gesprächsverlauf — Interviewer links (zarte neutrale Fläche),
+ *  Teilnehmer rechts (kräftigere neutrale Fläche + rechte Akzentkante +
+ *  betontes Label), gespiegelte Chat-Leserichtung der Teilnehmer-Ansicht.
+ *  Sprecher-Unterscheidung trägt OHNE Markenton (Ausrichtung + Akzentkante +
+ *  Gewicht), robust in Hell und Dunkel.
  *  E2: trägt die Session Turn-Signale, bekommen Teilnehmer-Antworten ihre
  *  Chips + Beleg-Disclosure; ohne Signale ist das Markup byte-identisch. */
 export async function SessionConversationCard({
@@ -426,16 +429,22 @@ export async function SessionConversationCard({
                     }`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-lg px-4 py-2.5 md:max-w-[70%] ${
+                      className={`max-w-[85%] rounded-lg px-4 py-2.5 text-neutral-900 md:max-w-[70%] ${
                         turn.role === "customer"
-                          ? "bg-primary-50 text-neutral-900"
-                          : "bg-neutral-100 text-neutral-900"
+                          ? // Teilnehmer: betonte Bubble — kräftigere neutrale
+                            // Fläche + Akzentkante an der Außenseite (rechts).
+                            // Trägt die Sprecher-Unterscheidung OHNE Markenton,
+                            // robust in Hell UND Dunkel (Akzentkante + Gewicht
+                            // statt Farbe; primary-50 ≈ neutral-100 nach dem
+                            // Ink-Remap, deshalb nicht mehr farbtragend).
+                            "border-r-2 border-neutral-400 bg-neutral-100"
+                          : "bg-neutral-50"
                       }`}
                     >
                       <div
                         className={`text-caption font-medium uppercase tracking-wider ${
                           turn.role === "customer"
-                            ? "text-primary-700"
+                            ? "text-neutral-700"
                             : "text-neutral-400"
                         }`}
                       >

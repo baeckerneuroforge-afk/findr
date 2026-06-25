@@ -25,7 +25,7 @@ export function ConfidenceIndicator({
 
   const dotColor = {
     high: "bg-success-500",
-    medium: "bg-primary-500",
+    medium: "bg-warning-500",
     low: "bg-neutral-400",
   };
 

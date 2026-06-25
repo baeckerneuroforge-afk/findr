@@ -489,7 +489,7 @@ export default async function MarketCampaignDetailPage({
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="min-w-0 flex-1 truncate text-small text-primary-700 underline underline-offset-2 hover:text-primary-800"
+                    className="min-w-0 flex-1 truncate text-small text-primary-700 underline underline-offset-2 decoration-neutral-300 hover:decoration-neutral-500"
                   >
                     {item.url}
                   </a>
@@ -755,7 +755,7 @@ export default async function MarketCampaignDetailPage({
               <p className="text-body text-neutral-700">{ts("pageSubtitle")}</p>
               <Link
                 href={`/dashboard/market-research/${plan.id}/test`}
-                className="shrink-0 text-body-strong text-primary-700 hover:underline"
+                className="shrink-0 text-body-strong text-primary-700 underline underline-offset-2 decoration-neutral-300 hover:decoration-neutral-500"
               >
                 {ts("linkOutCta")}
               </Link>
@@ -1118,7 +1118,7 @@ export default async function MarketCampaignDetailPage({
               </p>
               <Link
                 href={`/dashboard/research-plans/${plan.id}/synthesis`}
-                className="shrink-0 text-body-strong text-primary-700 hover:underline"
+                className="shrink-0 text-body-strong text-primary-700 underline underline-offset-2 decoration-neutral-300 hover:decoration-neutral-500"
               >
                 {t("viewSynthesis")}
               </Link>
@@ -1145,7 +1145,7 @@ export default async function MarketCampaignDetailPage({
               </p>
               <Link
                 href={`/dashboard/research-plans/${plan.id}/personas`}
-                className="shrink-0 text-body-strong text-primary-700 hover:underline"
+                className="shrink-0 text-body-strong text-primary-700 underline underline-offset-2 decoration-neutral-300 hover:decoration-neutral-500"
               >
                 {t("viewPersonas")}
               </Link>

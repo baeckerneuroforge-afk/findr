@@ -313,7 +313,7 @@ export default async function MarketResearchOverviewPage({
               {t("filterNoMatch")}{" "}
               <Link
                 href="/dashboard/market-research"
-                className="font-medium text-primary-700 hover:text-primary-800"
+                className="font-medium text-primary-700 underline underline-offset-2 decoration-neutral-300 hover:decoration-neutral-500"
               >
                 {t("filterReset")}
               </Link>

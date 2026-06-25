@@ -51,7 +51,7 @@ export function RiskDrilldownPanel({
         onClick={onClose}
       />
       <div className="fixed bottom-0 right-0 top-0 z-50 w-full max-w-2xl overflow-y-auto border-l border-neutral-200 bg-card">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-card/95 backdrop-blur-xl px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-card px-6 py-4">
           <div className="min-w-0">
             <div className="mb-0.5 text-caption uppercase tracking-wider text-neutral-500">
               Risk drilldown

@@ -125,7 +125,7 @@ export function AnalyzeProductDiscoveryButton({
         type="button"
         onClick={handleAnalyze}
         disabled={analyzing}
-        className="text-caption font-medium text-primary-700 hover:text-primary-800 disabled:opacity-50 transition-colors"
+        className="text-caption font-medium text-primary-700 hover:underline disabled:opacity-50 transition-colors"
       >
         {label}
       </button>

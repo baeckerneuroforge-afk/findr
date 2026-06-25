@@ -205,8 +205,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       // AUSSERHALB des .dark-Wrappers (ThemeShell) und die Palette bliebe im
       // Dunkelmodus hell. Der Container verankert das Portal im Shell-Div.
       container={portalContainer}
-      overlayClassName="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-      contentClassName="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border border-neutral-200 bg-card shadow-2xl"
+      overlayClassName="fixed inset-0 z-40 bg-black/40"
+      contentClassName="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border border-neutral-200 bg-card shadow-lg"
     >
       <Command.Input
         placeholder={

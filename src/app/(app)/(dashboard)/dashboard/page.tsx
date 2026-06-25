@@ -478,7 +478,7 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
                 </p>
                 <Link
                   href={`/dashboard/research-plans/${plan.id}/synthesis`}
-                  className="shrink-0 text-small font-medium text-primary-700 transition-colors hover:text-primary-800"
+                  className="shrink-0 text-small font-medium text-primary-700 transition-colors hover:underline"
                 >
                   {t("synthOpen")}
                 </Link>

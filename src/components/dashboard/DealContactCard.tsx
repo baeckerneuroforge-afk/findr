@@ -208,12 +208,15 @@ function ContactRow({
         {kind === "email" ? (
           <a
             href={`mailto:${value}`}
-            className="text-primary-700 hover:underline"
+            className="text-primary-700 underline underline-offset-2 decoration-neutral-300 hover:decoration-neutral-500"
           >
             {value}
           </a>
         ) : kind === "phone" ? (
-          <a href={`tel:${value}`} className="text-primary-700 hover:underline">
+          <a
+            href={`tel:${value}`}
+            className="text-primary-700 underline underline-offset-2 decoration-neutral-300 hover:decoration-neutral-500"
+          >
             {value}
           </a>
         ) : (

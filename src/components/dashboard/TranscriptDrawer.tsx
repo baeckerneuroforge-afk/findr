@@ -77,7 +77,7 @@ export function TranscriptDrawer({
           <div className="flex shrink-0 items-center gap-2 pt-0.5">
             <a
               href={fullHref}
-              className="text-small font-medium text-primary-700 transition-colors hover:text-primary-800"
+              className="text-small font-medium text-primary-700 transition-colors hover:underline"
             >
               {t("transcriptOpenFull")}
             </a>

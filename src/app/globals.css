@@ -85,8 +85,8 @@
      unaffected. (Fraunces was unloaded from layout.tsx in the perf cleanup —
      to restore the serif headings, re-add it there and flip --font-heading
      back to var(--font-fraunces).) */
-  --font-heading: var(--font-display), var(--font-hanken);
-  --font-body: var(--font-hanken);
+  --font-heading: var(--font-geist-sans);
+  --font-body: var(--font-geist-sans);
   --font-mono: var(--font-spacemono), var(--font-jetbrains-mono);
 
   /* Marketing-site headline voice. The public (marketing) route-group renders
@@ -131,9 +131,9 @@
      eigene Werte. primary-hover existiert, weil primary-700 doppelt belegt
      war (Link-TEXT und Button-Hover-FLÄCHE) — im Dunkelmodus divergieren
      diese Rollen zwingend (Text muss aufhellen, Fläche nicht). */
-  --color-surface: #fafafa;
+  --color-surface: #fbfbfc;
   --color-card: #ffffff;
-  --color-primary-hover: #353c8a;
+  --color-primary-hover: #34353b;
 
   /* Neutrals (gray-scale) */
   --color-neutral-0: #ffffff;
@@ -146,29 +146,30 @@
   --color-neutral-700: #3f3f46;
   --color-neutral-900: #18181b;
 
-  /* Primary accent — Klymeo brand violet #4A51A8 (monochrome shell).
-     The dashboard/onboarding base is already monochrome (neutral grays);
-     this is the ONE chromatic accent, used SPARINGLY by the components
-     that consume primary-*: primary button background, focused-input
-     border + focus ring, links / active labels, and subtle active-state
-     washes (bg-primary-50). Swapped from indigo so the platform accent
-     matches the approved klymeo-shell-v2 design. 600 is the exact brand
-     violet; 500 = lighter (rings/borders), 700 = darker (hover/active).
-     NOTE: the full 50–900 ramp is now defined. 200/300/400/800/900 were
-     referenced by components but previously UNDEFINED (dead classes); filling
-     them in (interpolated/extrapolated smoothly in the #4A51A8 hue) makes those
-     subtle violet card/quote borders (border-primary-200/300/400) and the
-     darker-violet hover text (text-primary-800/900) render for the first time. */
-  --color-primary-50: #eeeff8;
-  --color-primary-100: #ededf6;
-  --color-primary-200: #dcdeef;
-  --color-primary-300: #b8bbdd;
-  --color-primary-400: #9398cc;
-  --color-primary-500: #6f74ba;
-  --color-primary-600: #4a51a8;
-  --color-primary-700: #353c8a;
-  --color-primary-800: #2a306d;
-  --color-primary-900: #1f2350;
+  /* Primary accent — INK/graphite (monochrome shell, no brand hue).
+     The dashboard/onboarding base is monochrome (neutral grays); the primary-*
+     ramp is now a neutral ink/graphite scale, NOT a chromatic accent. Colour
+     lives only in the data layer (status tints, category-tag dots); chrome that
+     consumes primary-* — primary button background, focused-input border + focus
+     ring, links / active labels, subtle active-state washes (bg-primary-50) —
+     reads as ink, and meaning is carried structurally (status/tag tokens,
+     underline affordance, luminance) rather than by hue.
+     Ramp roles: 50/100 = light wash (near-white card/active tint),
+     200/300 = hairlines (subtle card/quote borders, border-primary-200/300),
+     400 = faint, 500 = ring / border gray (focus ring, input border),
+     600/700 = ink #1c1d22 (button fill + link/label text, white text on 600
+     > 15:1), 800/900 = deepest ink for hover/active text (text-primary-800/900).
+     The full 50–900 ramp is defined; every step is a neutral graphite tone. */
+  --color-primary-50: #f4f5f7;
+  --color-primary-100: #eceef1;
+  --color-primary-200: #e2e4e8;
+  --color-primary-300: #cdd0d6;
+  --color-primary-400: #9a9da6;
+  --color-primary-500: #4b4d55;
+  --color-primary-600: #1c1d22;
+  --color-primary-700: #1c1d22;
+  --color-primary-800: #111216;
+  --color-primary-900: #0c0d10;
 
   /* Status colors */
   --color-success-50: #f0fdf4;
@@ -183,6 +184,17 @@
   --color-danger-500: #ef4444;
   --color-danger-700: #b91c1c;
 
+  /* Category-tag dots — the ONLY chromatic colour in the redesigned shell.
+     Used exclusively as small, muted data dots (8px) in front of neutral
+     text (Notion-tag style), one hue per study type — never as chrome.
+     Dark overrides (lightened for AA on dark surfaces) live in the .dark block. */
+  --color-tag-indigo: #6366f1;
+  --color-tag-teal: #0d9488;
+  --color-tag-amber: #d97706;
+  --color-tag-rose: #e11d48;
+  --color-tag-violet: #7c3aed;
+  --color-tag-slate: #64748b;
+
   /* Risk-level mapping (Klymeo-specific) */
   --color-risk-low: #10b981;
   --color-risk-medium: #f59e0b;
@@ -196,33 +208,8 @@
   --shadow-card: 0 1px 2px rgba(24, 24, 27, 0.04);
 
   /* Animations (Tailwind v4 — exposed as utilities animate-*) */
-  --animate-gradient-slow: gradient 15s ease infinite;
-  --animate-shimmer: shimmer 3s linear infinite;
-  --animate-float: float 6s ease-in-out infinite;
-  --animate-pulse-glow: pulse-glow 3s ease-in-out infinite;
-  --animate-border-flow: border-flow 4s linear infinite;
   --animate-analysis-progress: analysis-progress 1.8s ease-in-out infinite;
 
-  @keyframes gradient {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-  }
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-12px); }
-  }
-  @keyframes pulse-glow {
-    0%, 100% { opacity: 0.4; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.05); }
-  }
-  @keyframes border-flow {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-  }
   @keyframes analysis-progress {
     0% { transform: translateX(-120%); }
     55% { transform: translateX(110%); }
@@ -264,20 +251,21 @@
   --color-neutral-800: #e2dcea;
   --color-neutral-900: #f2eff6;    /* Überschriften */
 
-  /* Primary-Rampe rolleninvertiert: 50/100 = dunkle Washes, 200/300 =
-     dunkle violette Hairlines, 600 = Button-Fläche (weißer Text 5,1:1),
-     700–900 = helle Link-/Labeltöne (700 auf Surface 7,6:1). */
-  --color-primary-50: #232744;
-  --color-primary-100: #282d52;
-  --color-primary-200: #353b6e;
-  --color-primary-300: #434a85;
-  --color-primary-400: #565d9d;
-  --color-primary-500: #7a80c5;
-  --color-primary-600: #5e65c0;
-  --color-primary-700: #a3a8d9;
-  --color-primary-800: #bcc0e4;
-  --color-primary-900: #d6d8ef;
-  --color-primary-hover: #4f56b4;
+  /* Primary-Rampe (INK/graphite) rolleninvertiert: 50/100 = dunkle Graphit-
+     Washes, 200/300 = dunkle graphitgraue Hairlines, 600 = Mittel-Graphit
+     #3a3b42 als Button-Fläche (weißer Text ~11:1), 700–900 = helle Link-/
+     Labeltöne (700 auf Surface 7,6:1). Kein Markenviolett — nur Neutralgraphit. */
+  --color-primary-50: #202126;
+  --color-primary-100: #2a2b30;
+  --color-primary-200: #34363c;
+  --color-primary-300: #41434a;
+  --color-primary-400: #6b6e76;
+  --color-primary-500: #8a8d95;
+  --color-primary-600: #3a3b42;
+  --color-primary-700: #e6e7ea;
+  --color-primary-800: #f0f1f3;
+  --color-primary-900: #f7f8f9;
+  --color-primary-hover: #45464d;
 
   /* Status-Tints: 50er werden tiefe Farb-Washes, 700er helle Texttöne
      (Badge-Kombi bg-*-50 + text-*-700 bleibt damit stimmig). 500er
@@ -289,6 +277,14 @@
   --color-warning-700: #fbbf24;
   --color-danger-50: #321519;
   --color-danger-700: #f87171;
+
+  /* Category-tag dots, lightened for AA on the dark shell surfaces. */
+  --color-tag-indigo: #818cf8;
+  --color-tag-teal: #2dd4bf;
+  --color-tag-amber: #fbbf24;
+  --color-tag-rose: #fb7185;
+  --color-tag-violet: #a78bfa;
+  --color-tag-slate: #94a3b8;
 
   /* Schatten tragen auf Dunkel kaum — Trennung übernehmen die Hairlines. */
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -377,5 +373,6 @@ body {
 /* Dark Gen-1 landing decorative utilities (.gradient-mesh, .glass-card,
    .glass-card-hover, .text-gradient, .glow-border) were removed in Etappe D
    with the dead landing trees — grep verified 0 remaining users. The
-   @keyframes `gradient` / `border-flow` they animated stay in @theme above
-   (still referenced by the --animate-* tokens). */
+   @keyframes `gradient` / `shimmer` / `float` / `pulse-glow` / `border-flow`
+   they (and other dead trees) animated were removed in the platform redesign
+   (E1) — grep verified 0 remaining users. */

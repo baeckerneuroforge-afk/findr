@@ -53,7 +53,7 @@ export function TR({ children, className = "", onClick }: TRProps) {
     <tr
       className={`border-b border-neutral-100 last:border-b-0 ${
         onClick
-          ? "cursor-pointer hover:bg-neutral-50 transition-colors"
+          ? "cursor-pointer hover:bg-neutral-50 active:bg-neutral-100 transition-colors duration-150"
           : ""
       } ${className}`}
       onClick={onClick}

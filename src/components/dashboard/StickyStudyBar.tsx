@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { useNavCollapsed } from "@/components/dashboard/nav-collapse";
 
 /**
  * Sticky-Kontextleiste der Studien-Detailseite (Konsole-v5 E4): erscheint
@@ -10,12 +11,17 @@ import { Badge, type BadgeVariant } from "@/components/ui/Badge";
  * Ziel-Pool-Stand und den Synthese-Sprung im Blick — die Seite ist lang,
  * der Kontext soll es nicht sein.
  *
- * position:fixed unter dem sticky Header (top-14, z-20 < Header z-30);
- * left-60 entspricht der festen Sidebar-Breite (Layout pl-60). Solange
- * versteckt: opacity-0 + pointer-events-none + inert — unsichtbar UND Klicks
- * gehen DURCH die Leiste auf den Inhalt darunter. (translate-y allein reichte
- * nicht: die inerte, aber sichtbare Leiste überdeckte H1/Badges und blockte
- * deren Klicks, weil ein inert-Element Klicks nicht durchlässt.)
+ * position:fixed unter dem sticky Header (top-14, z-20 < Header z-30); der
+ * linke Versatz folgt der Sidebar-Breite im Gleichschritt (left-60 ⇄ left-16 =
+ * 240/64 px, exakt wie ShellFrame sein pl-60 ⇄ pl-16 schaltet). Weil die Leiste
+ * viewport-fixiert ist und NICHT in der gepaddeten Hauptspalte hängt, kann sie
+ * die Sidebar-Breite nicht erben — sie liest den eingeklappt-Zustand aus dem
+ * NavCollapse-Kontext (Quelle: ShellFrame) und animiert den `left`-Wert über
+ * dieselbe Dauer/Kurve wie die Sidebar (340 ms), unter Reduced-Motion sofort.
+ * Solange versteckt: opacity-0 + pointer-events-none + inert — unsichtbar UND
+ * Klicks gehen DURCH die Leiste auf den Inhalt darunter. (translate-y allein
+ * reichte nicht: die inerte, aber sichtbare Leiste überdeckte H1/Badges und
+ * blockte deren Klicks, weil ein inert-Element Klicks nicht durchlässt.)
  */
 export function StickyStudyBar({
   title,
@@ -33,6 +39,10 @@ export function StickyStudyBar({
   ctaLabel: string;
 }) {
   const [show, setShow] = useState(false);
+  // Eingeklappt-Zustand der Sidebar (Quelle: ShellFrame via NavCollapse-
+  // Kontext). Default false (ausgeklappt) ohne Provider → sicherer left-60-
+  // Fallback, gleicher Wert auf Server und im ersten Client-Render.
+  const collapsed = useNavCollapsed();
 
   useEffect(() => {
     let ticking = false;
@@ -53,7 +63,9 @@ export function StickyStudyBar({
     <div
       inert={!show}
       aria-hidden={!show}
-      className={`fixed left-60 right-0 top-14 z-20 border-b border-neutral-200 bg-card/95 backdrop-blur transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${
+      className={`fixed right-0 top-14 z-20 border-b border-neutral-200 bg-card transition-[transform,opacity,left] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+        collapsed ? "left-16" : "left-60"
+      } ${
         show
           ? "translate-y-0 opacity-100 pointer-events-auto"
           : "-translate-y-2 opacity-0 pointer-events-none"

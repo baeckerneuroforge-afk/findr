@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
-import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { ShellFrame } from "@/components/dashboard/ShellFrame";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ThemeShell } from "@/components/theme/ThemeShell";
 
@@ -19,22 +18,22 @@ export default async function DashboardLayout({
   // und muss die .dark-Variablen erben (der Shell-Div hat keinen transform —
   // position:fixed bleibt am Fenster verankert, die template.tsx-Regel aus
   // dem Toast-Kommentar gilt weiter).
+  //
+  // E3: Sidebar + Hauptspalte ziehen in den Client-Wrapper ShellFrame um, der
+  // den kollabierbaren Zustand hält (localStorage) und das Links-Padding der
+  // Spalte mit der Sidebar-Breite synchronisiert. Dieses Layout bleibt ein
+  // Server-Component: es holt nur die Session und reicht Identität + children
+  // weiter (Header/Main rendert jetzt ShellFrame, identisch zu vorher).
   return (
     <ThemeShell>
       <ToastProvider>
-        <DashboardSidebar />
-        <div className="pl-60">
-          <DashboardHeader
-            orgName={session?.user?.orgName ?? null}
-            userName={session?.user?.name ?? null}
-            userEmail={session?.user?.email ?? null}
-          />
-          {/* 1120px-Mittelspalte (v5-Mockup .content-inner): die ruhige,
-              fokussierte Lesespalte ist der größte Einzelhebel für den
-              aufgeräumten Eindruck — vorher 1400px, auf denen sich die
-              Karten zerdehnten. */}
-          <main className="px-8 py-8 max-w-[1120px] mx-auto">{children}</main>
-        </div>
+        <ShellFrame
+          orgName={session?.user?.orgName ?? null}
+          userName={session?.user?.name ?? null}
+          userEmail={session?.user?.email ?? null}
+        >
+          {children}
+        </ShellFrame>
       </ToastProvider>
     </ThemeShell>
   );

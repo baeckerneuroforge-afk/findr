@@ -15,14 +15,17 @@ describe("ConfidenceIndicator", () => {
     expect(html).toContain('aria-label="High confidence 86%"');
   });
 
-  it("renders medium confidence with primary accent", () => {
+  it("renders medium confidence with warning accent", () => {
+    // Redesign (Ink-Palette): die mittlere Stufe trägt jetzt das WARNING-Token
+    // (Amber) statt des — nun graphitgrauen — primary-500, damit die 3-Stufen-
+    // Skala success/amber/grau auf einen Blick lesbar bleibt.
     const html = renderToStaticMarkup(
       createElement(ConfidenceIndicator, { confidence: 0.67, size: "md" }),
     );
 
     expect(html).toContain("Medium confidence");
     expect(html).toContain("67%");
-    expect(html).toContain("bg-primary-500");
+    expect(html).toContain("bg-warning-500");
   });
 
   it("renders low confidence without visible label in sm mode", () => {

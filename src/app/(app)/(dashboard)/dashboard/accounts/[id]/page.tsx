@@ -156,7 +156,7 @@ export default async function AccountDetailPage({
                 {sourceDeal ? (
                   <Link
                     href={`/dashboard/deals/${account.sourceDealId}`}
-                    className="text-primary-700 hover:underline"
+                    className="text-primary-700 underline underline-offset-2 decoration-neutral-300 hover:decoration-neutral-500"
                   >
                     {t("fromDeal", { name: sourceDeal.name })}
                   </Link>

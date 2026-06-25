@@ -67,13 +67,13 @@ const SIGNAL_META: Record<
 
 function getSeverityFill(severity: number): string {
   if (severity >= 4) return "bg-danger-500";
-  if (severity >= 3) return "bg-primary-500";
+  if (severity >= 3) return "bg-warning-500";
   return "bg-success-500";
 }
 
 function getRiskHeaderStyle(level: string): string {
   if (level === "critical") return "bg-danger-50 border-danger-500/30";
-  if (level === "high") return "bg-neutral-50 border-primary-500/25";
+  if (level === "high") return "bg-neutral-50 border-warning-500/25";
   if (level === "medium") return "bg-neutral-50 border-neutral-200";
   return "bg-success-50 border-success-500/30";
 }
@@ -82,7 +82,7 @@ function getRiskBadgeStyle(level: string): string {
   if (level === "critical")
     return "border-danger-500 bg-danger-500 text-white";
   if (level === "high")
-    return "border-primary-200 bg-primary-50 text-primary-700";
+    return "border-warning-500/30 bg-warning-50 text-warning-700";
   if (level === "medium")
     return "border-neutral-200 bg-card text-neutral-700";
   return "border-success-500/30 bg-success-50 text-success-700";
@@ -101,7 +101,7 @@ function getSeverityBadge(severity: number): {
   if (severity >= 3) {
     return {
       labelKey: "sevElevated",
-      className: "border-primary-200 bg-primary-50 text-primary-700",
+      className: "border-warning-500/30 bg-warning-50 text-warning-700",
     };
   }
   return {
