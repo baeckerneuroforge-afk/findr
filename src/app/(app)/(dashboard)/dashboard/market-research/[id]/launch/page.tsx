@@ -14,6 +14,7 @@ import {
   getProlificStudyForPlan,
 } from "@/lib/panel/service";
 import { Card, CardBody } from "@/components/ui/Card";
+import { WizardSteps } from "@/components/dashboard/guided-study/wizard-ui";
 import { InviteFromPoolForm } from "@/components/dashboard/InviteFromPoolForm";
 import { OpenLinkPanel } from "@/components/dashboard/OpenLinkPanel";
 import { ProlificDraftPanel } from "@/components/dashboard/ProlificDraftPanel";
@@ -93,8 +94,21 @@ export default async function StudyLaunchPage({
   );
   const archived = plan.status === "archived";
 
+  const stepLabels = [
+    tw("stepBriefing"),
+    tw("stepProposal"),
+    tw("stepInterview"),
+    tw("stepStart"),
+    tw("stepDistribution"),
+  ];
+
   return (
     <div className="mx-auto max-w-2xl space-y-8">
+      {/* Derselbe Wizard-Fortschritt — Schritt 5 (Verteilung) aktiv: die Seite
+          liest sich als letzter Schritt des gefuehrten Flows, nicht als
+          fremde Seite. */}
+      <WizardSteps labels={stepLabels} current={4} />
+
       <div className="st-rise" style={{ "--st": 0 } as React.CSSProperties}>
         <h1 className="text-display text-neutral-900">{tw("launchTitle")}</h1>
         <p className="mt-2 max-w-[54ch] text-body text-neutral-500">

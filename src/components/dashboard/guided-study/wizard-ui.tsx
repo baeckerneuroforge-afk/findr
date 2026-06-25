@@ -236,6 +236,56 @@ export function Collapsible({
   );
 }
 
+/* ── Fortschrittsanzeige (Wizard + Launch-Seite teilen sie) ───────────── */
+
+export function WizardSteps({
+  labels,
+  current,
+}: {
+  labels: string[];
+  current: number;
+}) {
+  return (
+    <ol className="mb-9 flex items-center">
+      {labels.map((label, i) => {
+        const done = current > i;
+        const active = current === i;
+        return (
+          <li key={label} className="flex flex-1 items-center last:flex-none">
+            <div className="flex items-center gap-2">
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-caption font-medium transition-colors ${
+                  done
+                    ? "border-primary-600 bg-primary-600 text-white"
+                    : active
+                      ? "border-primary-400 bg-primary-50 text-primary-700"
+                      : "border-neutral-200 bg-card text-neutral-400"
+                }`}
+              >
+                {done ? <CheckIcon className="h-3.5 w-3.5" /> : i + 1}
+              </span>
+              <span
+                className={`hidden text-small font-medium sm:inline ${
+                  active
+                    ? "text-neutral-900"
+                    : done
+                      ? "text-neutral-500"
+                      : "text-neutral-400"
+                }`}
+              >
+                {label}
+              </span>
+            </div>
+            {i < labels.length - 1 ? (
+              <span className={`mx-2 h-px flex-1 ${done ? "bg-primary-300" : "bg-neutral-200"}`} />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 /* ── Karte ─────────────────────────────────────────────────────────────── */
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {

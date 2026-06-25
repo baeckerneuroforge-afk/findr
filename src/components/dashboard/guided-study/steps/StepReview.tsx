@@ -84,6 +84,10 @@ export function StepReview({
         </Group>
       </Card>
 
+      <p className="mt-4 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2.5 text-small text-primary-700">
+        {tw("reviewNextHint")}
+      </p>
+
       {formError ? <ErrorNote>{formError}</ErrorNote> : null}
 
       <div className="mt-8 flex items-center justify-between gap-4">

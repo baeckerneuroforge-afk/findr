@@ -2081,7 +2081,7 @@
     },
     "wizard": {
       "badge": "Geführt",
-      "stepCounter": "Schritt {n} von 4",
+      "stepCounter": "Schritt {n} von 5",
       "stepBriefing": "Briefing",
       "stepProposal": "Vorschlag",
       "stepInterview": "Interview",
@@ -2194,7 +2194,9 @@
       "errFinalize": "Konnte die Studie nicht starten. Bitte erneut versuchen.",
       "launchTitle": "Studie erstellt — so gewinnst du Teilnehmer:innen",
       "launchDesc": "Wähle einen oder mehrere Wege. Alles lässt sich später auf der Studienseite anpassen.",
-      "launchToStudy": "Zur Studie"
+      "launchToStudy": "Zur Studie",
+      "stepDistribution": "Verteilung",
+      "reviewNextHint": "Gleich danach: Teilnehmer:innen gewinnen — Teilnehmerpool, öffentlicher Link und Prolific (mit Kostenschätzung)."
     }
   },
   "errors": {

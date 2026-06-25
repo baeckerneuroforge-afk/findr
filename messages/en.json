@@ -2081,7 +2081,7 @@
     },
     "wizard": {
       "badge": "Guided",
-      "stepCounter": "Step {n} of 4",
+      "stepCounter": "Step {n} of 5",
       "stepBriefing": "Briefing",
       "stepProposal": "Proposal",
       "stepInterview": "Interview",
@@ -2194,7 +2194,9 @@
       "errFinalize": "Could not start the study. Please try again.",
       "launchTitle": "Study created — how to recruit participants",
       "launchDesc": "Pick one or more channels. You can adjust everything later on the study page.",
-      "launchToStudy": "Go to study"
+      "launchToStudy": "Go to study",
+      "stepDistribution": "Distribution",
+      "reviewNextHint": "Right after: recruit participants — participant pool, public link and Prolific (with cost estimate)."
     }
   },
   "errors": {
