@@ -147,7 +147,7 @@ const CONTENT: UseCaseContent = {
       },
       {
         title: "DSGVO-nativ, in Frankfurt gehostet",
-        body: "Auf Deutsch und Englisch, in der EU gehostet, keine US-Cloud — die Stimmen deiner Nutzer:innen verlassen die EU nicht.",
+        body: "Auf Deutsch und Englisch, EU-Datenresidenz in Frankfurt, kein biometrisches Affekt-Tracking — und jede Erkenntnis am Transkript belegt.",
         Icon: ShieldCheckIcon,
         tag: "Live",
       },
@@ -235,7 +235,7 @@ const CONTENT_EN: UseCaseContent = {
       },
       {
         title: "GDPR-native, hosted in Frankfurt",
-        body: "In German and English, hosted in the EU, no US cloud — your users' voices never leave the EU.",
+        body: "In German and English, EU data residency in Frankfurt, no biometric affect tracking — and every finding evidenced at the transcript.",
         Icon: ShieldCheckIcon,
         tag: "Live",
       },

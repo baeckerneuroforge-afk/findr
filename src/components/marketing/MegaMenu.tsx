@@ -251,7 +251,7 @@ function LeafLink({ leaf, onNavigate }: { leaf: NavLeaf; onNavigate: () => void 
       onClick={onNavigate}
       className="flex items-start gap-3 rounded-md p-3 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
     >
-      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary-600" />
+      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-neutral-500" />
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="text-sm font-medium text-neutral-900">{leaf.label}</span>
         <span className="line-clamp-2 text-[13px] leading-relaxed text-neutral-500">
@@ -277,7 +277,7 @@ function OverviewLink({
     <Link
       href={href}
       onClick={onNavigate}
-      className="group/ov inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium text-primary-700 transition-colors hover:text-primary-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
+      className="group/ov inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium text-neutral-900 transition-colors hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
     >
       {label}
       <span aria-hidden className="transition-transform group-hover/ov:translate-x-0.5">

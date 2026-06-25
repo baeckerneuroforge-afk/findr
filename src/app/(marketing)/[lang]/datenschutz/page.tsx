@@ -46,7 +46,7 @@ export async function generateMetadata({
 }
 
 const CONTACT_LINK =
-  "text-primary-700 underline underline-offset-2 transition-colors hover:text-primary-900";
+  "text-neutral-900 underline underline-offset-2 transition-colors hover:text-neutral-700";
 
 /* Eingesetzte Auftragsverarbeiter / Dienste (Abschnitt 9). Pro Eintrag die fünf
    Pflichtfelder Zweck / Datenkategorien / Rechtsgrundlage / Serverstandort /
@@ -354,7 +354,7 @@ export default async function DatenschutzPage({
                 key={p.name}
                 className="flex flex-col gap-1.5 rounded border border-neutral-200 bg-neutral-50/60 px-4 py-3.5"
               >
-                <span className="font-marketing text-[16px] font-semibold text-neutral-900">
+                <span className="font-marketing text-[16px] [font-weight:var(--st-display-weight)] text-neutral-900">
                   {p.name}
                 </span>
                 <span>

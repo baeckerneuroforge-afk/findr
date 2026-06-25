@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import {
+  Inter,
   Hanken_Grotesk,
   Instrument_Serif,
+  IBM_Plex_Serif,
   Space_Grotesk,
   Space_Mono,
 } from "next/font/google";
@@ -35,6 +37,14 @@ import "@/components/marketing/studio/studio.css";
 //   Instrument Serif → kursiver Serif-Akzent in Headlines + Originalzitate
 // Eigene Var-Namen (-mkt) statt der Root-Layout-Namen, damit klar bleibt,
 // dass dieser Tree seine Fonts selbst lädt (Multi-Root: kein Sharing).
+// Inter → strenge, neutrale Marketing-Stimme (Conveo-Richtung): trägt jetzt
+// Display + Body (--font-marketing/--font-body). Die alten Stimmen bleiben
+// geladen, falls einzelne Twilight-Unterseiten sie noch referenzieren.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
 const hanken = Hanken_Grotesk({
   variable: "--font-hanken-mkt",
   subsets: ["latin"],
@@ -45,6 +55,17 @@ const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
   style: "italic",
+});
+
+// IBM Plex Serif → GENAU die Headline-Serif von conveo.ai (deren Site lädt
+// exakt diese Familie). Diskrete Schnitte (kein Variable-Font): 400/500/600
+// geladen, damit die Display-Dicke fein abstimmbar ist; studio.css remappt
+// --font-marketing auf diese Stimme. Body bleibt Inter.
+const ibmPlexSerif = IBM_Plex_Serif({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
 });
 
 const spaceGrotesk = Space_Grotesk({
@@ -183,7 +204,7 @@ export default async function MarketingLayout({
     >
       <body className="min-h-full">
         <div
-          className={`studio ${hanken.variable} ${instrumentSerif.variable} ${spaceGrotesk.variable} ${spaceMono.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
+          className={`studio ${inter.variable} ${hanken.variable} ${instrumentSerif.variable} ${ibmPlexSerif.variable} ${spaceGrotesk.variable} ${spaceMono.variable} flex min-h-dvh flex-col bg-canvas font-body text-neutral-900 antialiased`}
         >
           <div className="st-grid" aria-hidden />
           <div className="st-grain" aria-hidden />

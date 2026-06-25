@@ -46,7 +46,7 @@ export async function generateMetadata({
 }
 
 const CONTACT_LINK =
-  "text-primary-700 underline underline-offset-2 transition-colors hover:text-primary-900";
+  "text-neutral-900 underline underline-offset-2 transition-colors hover:text-neutral-700";
 
 /* Eingesetzte Cookies / Speichertechnologien (Abschnitt 5). Pro Eintrag die
    Pflichtfelder einer rechtssicheren Cookie-Tabelle: Anbieter / Typ / Kategorie /

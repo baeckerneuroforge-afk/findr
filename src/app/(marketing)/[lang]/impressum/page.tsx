@@ -36,7 +36,7 @@ export async function generateMetadata({
 }
 
 const CONTACT_LINK =
-  "text-primary-700 underline underline-offset-2 transition-colors hover:text-primary-900";
+  "text-neutral-900 underline underline-offset-2 transition-colors hover:text-neutral-700";
 
 export default async function ImpressumPage({
   params,

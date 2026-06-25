@@ -143,7 +143,7 @@ export default async function DemoPage({
             <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-6 rounded border border-neutral-200 bg-neutral-0 px-6 py-14 text-center sm:px-12">
               <CornerBrackets className="border-primary-300" />
               <Eyebrow>{c.bookingEyebrow}</Eyebrow>
-              <h2 className="font-marketing text-[clamp(24px,3vw,34px)] font-semibold leading-[1.12] tracking-[-0.02em] text-neutral-900">
+              <h2 className="font-marketing text-[clamp(24px,3vw,34px)] [font-weight:var(--st-display-weight)] leading-[1.12] tracking-[-0.02em] text-neutral-900">
                 {c.bookingHeading}
               </h2>
               <p className="max-w-lg text-[16px] leading-relaxed text-neutral-500">

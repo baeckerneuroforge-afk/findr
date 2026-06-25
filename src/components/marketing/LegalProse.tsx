@@ -54,7 +54,7 @@ export function LegalProse({
     <Section className="pt-14 sm:pt-20">
       <Container>
         <article className="mx-auto flex max-w-[760px] flex-col">
-          <h1 className="font-marketing text-[clamp(30px,4.5vw,46px)] font-semibold leading-[1.08] tracking-[-0.02em] text-neutral-900">
+          <h1 className="font-marketing text-[clamp(30px,4.5vw,46px)] [font-weight:var(--st-display-weight)] leading-[1.08] tracking-[-0.02em] text-neutral-900">
             {title}
           </h1>
           {intro ? (
@@ -100,7 +100,7 @@ export function LegalPlaceholderNotice() {
       <span className="inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-warning-700">
         <span aria-hidden>⚠</span> Entwurf — keine Rechtsberatung
       </span>
-      <p className="text-[15px] leading-relaxed text-neutral-700">
+      <p className="text-[15px] leading-relaxed text-warning-700">
         Diese Seite ist ein <strong className="font-semibold">Entwurf</strong>.
         Unkritische Abschnitte sind als Standardtext vorausgefüllt; alle mit{" "}
         <code className="rounded bg-warning-100 px-1 font-mono text-[13px] text-warning-700">
@@ -129,7 +129,7 @@ export function LegalLanguageNotice() {
       <span className="inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-neutral-700">
         <span aria-hidden>⚖</span> Legally binding in German
       </span>
-      <p className="text-[15px] leading-relaxed text-neutral-600">
+      <p className="text-[15px] leading-relaxed text-neutral-500">
         This page is legally binding in German only. The German text below is the
         authoritative version; this notice is informational and not a certified
         translation.
@@ -148,10 +148,10 @@ export function LegalSection({
 }) {
   return (
     <section className="flex flex-col gap-2.5">
-      <h2 className="font-marketing text-xl font-semibold leading-snug text-neutral-900">
+      <h2 className="font-marketing text-xl [font-weight:var(--st-display-weight)] leading-snug text-neutral-900">
         {heading}
       </h2>
-      <div className="text-[15px] leading-relaxed text-neutral-600">
+      <div className="text-[15px] leading-relaxed text-neutral-500">
         {children}
       </div>
     </section>

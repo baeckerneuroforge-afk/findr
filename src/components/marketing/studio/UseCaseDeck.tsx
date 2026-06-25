@@ -48,7 +48,7 @@ export function UseCaseDeck({
           <>
             <div className="flex items-center justify-between">
               <span className="st-idx">{idx}</span>
-              <Icon className="h-6 w-6 text-[var(--st-rec)]" />
+              <Icon className="h-6 w-6 text-[var(--st-ink-60)]" />
             </div>
             <h3>{u.name}</h3>
             <p>{u.tagline}</p>

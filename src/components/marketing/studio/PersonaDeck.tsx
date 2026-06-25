@@ -399,7 +399,7 @@ export function PersonaDeck({ locale = MARKETING_DEFAULT_LOCALE }: { locale?: Lo
             {/* App-Fenster-Leiste */}
             <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="text-[13px] font-semibold text-primary-700">Klymeo</span>
+                <span className="text-[13px] font-semibold text-neutral-900">Klymeo</span>
                 <span className="truncate text-[12px] text-neutral-400">{c.breadcrumb}</span>
               </div>
               <span className="shrink-0 rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] text-neutral-500">
@@ -471,14 +471,14 @@ export function PersonaDeck({ locale = MARKETING_DEFAULT_LOCALE }: { locale?: Lo
                     <ul className="space-y-3">
                       {d.evidence.map((ev, i) => (
                         <li key={i} className="border-l-2 border-primary-200 pl-3">
-                          <p className="text-[13px] italic leading-snug text-neutral-600">
+                          <p className="text-[13px] italic leading-snug text-neutral-500">
                             „{ev.quote}“
                           </p>
                           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                             <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] text-neutral-500">
                               {ev.field}
                             </span>
-                            <span className="inline-flex items-center gap-1 text-[12px] font-medium text-primary-700">
+                            <span className="inline-flex items-center gap-1 text-[12px] font-medium text-neutral-900">
                               {c.openInterview}
                               <ArrowUpRight />
                             </span>

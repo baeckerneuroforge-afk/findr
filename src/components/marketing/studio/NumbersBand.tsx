@@ -9,8 +9,10 @@ import {
 
 /**
  * Zahlen-Band: riesige Bricolage-Ziffern mit Count-up beim Einscrollen.
- * Ehrliche Positionierungs-Anker — KEINE erfundenen Volumen-/Kundenzahlen
- * (100 % EU-Hosting, 0 US-Cloud, 4 Methoden, 1 Engine).
+ * Ehrliche, am Code belegbare Anker — KEINE erfundenen Volumen-/Kundenzahlen
+ * und KEIN „0 US-Cloud"-Claim (LLM-Inferenz läuft über die US-Anthropic-API;
+ * EU gilt für die Datenresidenz, nicht für jede Verarbeitung). Stattdessen:
+ * Transkript-Verankerung, Methoden/Engine, Sprachen, kein Affekt-Tracking.
  *
  * SSR-/no-JS-/reduced-motion-Muster wie überall: die ENDWERTE stehen bereits
  * im Markup; nur Motion-User sehen die Animation 0 → Ziel (das Band liegt
@@ -21,17 +23,17 @@ import {
 // sind sprachneutral; STATS_EN spiegelt die Struktur exakt (gleiche Reihenfolge,
 // gleiche Werte/Suffixe).
 const STATS_DE: { value: number; suffix?: string; label: string }[] = [
-  { value: 100, suffix: "%", label: "EU-gehostet · DSGVO-konform" },
-  { value: 0, label: "US-Cloud · null Datentransfer" },
-  { value: 4, label: "Methoden · alle live" },
-  { value: 1, label: "Engine · alle Methoden" },
+  { value: 100, suffix: "%", label: "am Transkript belegt" },
+  { value: 4, label: "Methoden · eine Engine" },
+  { value: 2, label: "Sprachen · Deutsch & Englisch" },
+  { value: 0, label: "biometrisches Affekt-Tracking" },
 ];
 
 const STATS_EN: { value: number; suffix?: string; label: string }[] = [
-  { value: 100, suffix: "%", label: "EU-hosted · GDPR-compliant" },
-  { value: 0, label: "US cloud · zero data transfer" },
-  { value: 4, label: "Methods · all live" },
-  { value: 1, label: "Engine · all methods" },
+  { value: 100, suffix: "%", label: "evidenced at the transcript" },
+  { value: 4, label: "methods · one engine" },
+  { value: 2, label: "languages · German & English" },
+  { value: 0, label: "biometric affect tracking" },
 ];
 
 export function NumbersBand({

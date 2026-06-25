@@ -53,7 +53,7 @@ export function ModuleHero({
         <Reveal>
           <div className="flex max-w-3xl flex-col items-start gap-6">
             <Eyebrow>{eyebrow}</Eyebrow>
-            <h1 className="font-marketing text-[clamp(36px,5.8vw,66px)] font-bold leading-[1.02] tracking-[-0.03em] text-neutral-900">
+            <h1 className="font-marketing text-[clamp(36px,5.8vw,66px)] [font-weight:var(--st-display-weight)] leading-[1.02] tracking-[-0.03em] text-neutral-900">
               {title}
             </h1>
             <p className="max-w-xl text-[18px] leading-relaxed text-neutral-500">
@@ -126,6 +126,7 @@ export function ExampleCard({
   badge,
   rows,
   tone = "risk",
+  note,
   className = "",
 }: {
   badge?: string;
@@ -133,12 +134,15 @@ export function ExampleCard({
   /** Badge-Stempel: "risk" = REC-Rot (blinder Fleck / Verlust-Signale),
    * "neutral" = Tinte (belegte, positive Befunde). Gleiche API wie zuvor. */
   tone?: "risk" | "neutral";
+  /** Ehrlichkeits-Fußnote: markiert die Karte als ILLUSTRATIVES Beispiel
+   * (keine echten Kundendaten), wo konkrete Beispiel-Befunde gezeigt werden. */
+  note?: ReactNode;
   className?: string;
 }) {
   const stampTone =
     tone === "neutral"
       ? "border-neutral-700 text-neutral-700"
-      : "border-[var(--st-rec)] text-[var(--st-rec-deep)]";
+      : "border-[var(--st-rec)] text-[var(--st-ink-60)]";
   return (
     <div
       className={`relative rounded-[10px] bg-neutral-0 p-6 shadow-[0_1px_0_rgba(25,21,18,0.05),0_40px_90px_-45px_rgba(60,45,25,0.4),0_0_0_1px_rgba(25,21,18,0.08)] sm:p-7 ${className}`}
@@ -168,6 +172,11 @@ export function ExampleCard({
           </div>
         ))}
       </div>
+      {note ? (
+        <p className="mt-5 border-t border-neutral-200 pt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-400">
+          {note}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -214,10 +223,10 @@ export function ProofPoints({
               className="flex h-full flex-col gap-3 bg-neutral-0 p-7"
             >
               <div className="flex items-center justify-between">
-                <p.Icon className="h-6 w-6 text-primary-600" />
+                <p.Icon className="h-6 w-6 text-neutral-500" />
                 {p.tag ? <StatusTag status={p.tag} lang={locale} /> : null}
               </div>
-              <h3 className="font-marketing text-lg font-semibold leading-snug text-neutral-900">
+              <h3 className="font-marketing text-lg [font-weight:var(--st-display-weight)] leading-snug text-neutral-900">
                 {p.title}
               </h3>
               <p className="text-sm leading-relaxed text-neutral-500">{p.body}</p>

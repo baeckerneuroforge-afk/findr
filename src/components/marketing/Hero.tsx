@@ -42,7 +42,7 @@ export function Hero({
           <Reveal>
             <div className="flex flex-col items-start gap-6">
               {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-              <h1 className="font-marketing text-[clamp(38px,6.4vw,72px)] font-bold leading-[1.02] tracking-[-0.03em] text-neutral-900">
+              <h1 className="font-marketing text-[clamp(38px,6.4vw,72px)] [font-weight:var(--st-display-weight)] leading-[1.02] tracking-[-0.03em] text-neutral-900">
                 {title}
               </h1>
               <p className="max-w-xl text-[18px] leading-relaxed text-neutral-500">

@@ -20,10 +20,10 @@ export function InsightTeaser({ article }: { article: InsightArticle }) {
       className="group relative flex h-full flex-col gap-3 rounded border border-neutral-200 bg-neutral-0 p-7 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
     >
       <CornerBrackets className="border-primary-200" />
-      <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-primary-600">
+      <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-neutral-500">
         {article.category}
       </span>
-      <h3 className="font-marketing text-xl font-semibold leading-snug text-neutral-900">
+      <h3 className="font-marketing text-xl [font-weight:var(--st-display-weight)] leading-snug text-neutral-900">
         {article.title}
       </h3>
       <p className="flex-grow text-sm leading-relaxed text-neutral-500">
@@ -33,7 +33,7 @@ export function InsightTeaser({ article }: { article: InsightArticle }) {
         <time dateTime={article.date}>{formatDate(article.date, locale)}</time>
         <span
           aria-hidden
-          className="font-medium text-primary-600 transition-transform group-hover:translate-x-0.5"
+          className="font-medium text-neutral-500 transition-transform group-hover:translate-x-0.5"
         >
           {localizedContent(locale, { de: "Lesen", en: "Read" })} →
         </span>

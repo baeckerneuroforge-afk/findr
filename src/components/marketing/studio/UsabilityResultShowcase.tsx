@@ -105,7 +105,7 @@ export function UsabilityResultShowcase({ locale }: { locale: Locale }) {
     <Section>
       <Container>
         <Reveal>
-          <p className="inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-primary-600">
+          <p className="inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-neutral-500">
             <span className="h-px w-10 bg-[var(--st-line)]" />
             {c.label}
           </p>

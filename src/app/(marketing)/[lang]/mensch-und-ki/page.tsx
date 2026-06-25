@@ -387,7 +387,7 @@ export default async function MenschUndKiPage({
       {/* 1 ── HERO ─────────────────────────────────────────────────────────── */}
       <section className="st-sky relative overflow-hidden pb-[clamp(70px,10vh,120px)] pt-[clamp(120px,16vh,180px)]">
         <div className={WRAP}>
-          <Rv as="p" className="st-fade st-tag !text-[var(--st-rec-deep)]">
+          <Rv as="p" className="st-fade st-tag !text-[var(--st-ink-60)]">
             {c.heroEyebrow}
           </Rv>
           <Rv as="h1" className="st-rv st-display mt-5 text-[clamp(38px,7vw,108px)]">
@@ -427,7 +427,7 @@ export default async function MenschUndKiPage({
 
           <Rv className="st-fade">
             <div className="overflow-hidden rounded-xl bg-[var(--st-paper)] shadow-[0_1px_0_rgba(24,24,27,0.04),0_50px_110px_-45px_rgba(31,35,80,0.4),0_0_0_1px_var(--st-line)]">
-              <div className="flex items-center justify-between gap-3 border-b border-[var(--st-line)] bg-gradient-to-b from-[#fbfbfd] to-[var(--st-paper-shade)] px-[clamp(18px,3vw,26px)] py-4">
+              <div className="flex items-center justify-between gap-3 border-b border-[var(--st-line)] bg-gradient-to-b from-[var(--st-paper)] to-[var(--st-paper-shade)] px-[clamp(18px,3vw,26px)] py-4">
                 <span className="st-tag">{c.splitCardTag}</span>
                 <span className="st-deck-rec">
                   <b aria-hidden />
@@ -457,7 +457,7 @@ export default async function MenschUndKiPage({
                 </div>
                 {/* Mensch — in Tinte, mit Indigo-Markern */}
                 <div className="border-t border-[var(--st-line)] p-[clamp(20px,3vw,30px)] sm:border-l sm:border-t-0">
-                  <div className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--st-rec-deep)]">
+                  <div className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--st-ink-60)]">
                     {c.humanHead}
                   </div>
                   <ul className="flex flex-col">
@@ -474,7 +474,7 @@ export default async function MenschUndKiPage({
                       </li>
                     ))}
                   </ul>
-                  <p className="st-quote mt-4 text-[17px] text-[var(--st-rec)]">
+                  <p className="st-quote mt-4 text-[17px] text-[var(--st-ink)]">
                     {c.humanFoot}
                   </p>
                 </div>
@@ -502,7 +502,7 @@ export default async function MenschUndKiPage({
           <div className="grid gap-6 sm:grid-cols-3">
             {c.proofCards.map((card, i) => (
               <Rv key={i} className="st-fade st-tool" threshold={0.3} d={i * 100}>
-                <span className="st-tag !text-[var(--st-rec-deep)]">{card.tag}</span>
+                <span className="st-tag !text-[var(--st-ink-60)]">{card.tag}</span>
                 <p>{card.body}</p>
                 <div className="st-tool-foot">
                   <span>{card.pill}</span>

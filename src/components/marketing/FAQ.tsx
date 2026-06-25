@@ -35,11 +35,11 @@ export function FAQ({
               key={it.q}
               className="group border-b border-neutral-200 last:border-b-0"
             >
-              <summary className="font-marketing flex cursor-pointer list-none items-center justify-between gap-4 rounded py-5 text-left text-[17px] font-semibold text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+              <summary className="font-marketing flex cursor-pointer list-none items-center justify-between gap-4 rounded py-5 text-left text-[17px] [font-weight:var(--st-display-weight)] text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
                 {it.q}
                 <span
                   aria-hidden
-                  className="shrink-0 text-xl leading-none text-primary-600 transition-transform duration-200 group-open:rotate-45"
+                  className="shrink-0 text-xl leading-none text-neutral-500 transition-transform duration-200 group-open:rotate-45"
                 >
                   +
                 </span>

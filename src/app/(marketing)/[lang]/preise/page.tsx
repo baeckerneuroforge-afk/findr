@@ -439,8 +439,8 @@ export default async function PreisePage({
                 delay={i * 0.06}
                 className="flex h-full flex-col gap-3 bg-neutral-0 p-7"
               >
-                <f.Icon className="h-6 w-6 text-primary-600" />
-                <h3 className="font-marketing text-lg font-semibold leading-snug text-neutral-900">
+                <f.Icon className="h-6 w-6 text-neutral-500" />
+                <h3 className="font-marketing text-lg [font-weight:var(--st-display-weight)] leading-snug text-neutral-900">
                   {f.title}
                 </h3>
                 <p className="text-sm leading-relaxed text-neutral-500">
@@ -478,7 +478,7 @@ export default async function PreisePage({
                 delay={i * 0.05}
                 className="flex h-full items-start gap-3.5 bg-neutral-0 p-7"
               >
-                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-primary-200 text-primary-600">
+                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-primary-200 text-neutral-500">
                   <a.Icon className="h-[18px] w-[18px]" />
                 </span>
                 <div>
@@ -514,14 +514,14 @@ export default async function PreisePage({
         <Container className="relative z-10 py-20 sm:py-28">
           <Reveal>
             <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 text-center">
-              <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-primary-300">
+              <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-anchor-foreground/65">
                 <span aria-hidden className="h-px w-6 bg-primary-400" />
                 {c.ctaEyebrow}
               </span>
-              <h2 className="font-marketing text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
+              <h2 className="font-marketing text-[clamp(28px,4vw,46px)] [font-weight:var(--st-display-weight)] leading-[1.08] tracking-[-0.02em] text-white">
                 {c.ctaTitle}
               </h2>
-              <p className="max-w-xl text-[17px] leading-relaxed text-neutral-300">
+              <p className="max-w-xl text-[17px] leading-relaxed text-anchor-foreground/65">
                 {c.ctaLead}
               </p>
               <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
@@ -530,7 +530,7 @@ export default async function PreisePage({
                 </CtaLink>
                 <Link
                   href="/produkt"
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded border border-white/25 px-6 text-[15px] font-medium text-neutral-300 transition-colors hover:border-white/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-anchor"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded border border-white/25 px-6 text-[15px] font-medium text-anchor-foreground/75 transition-colors hover:border-white/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-anchor"
                 >
                   {c.ctaSecondary}
                 </Link>

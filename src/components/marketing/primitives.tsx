@@ -74,7 +74,7 @@ export function Eyebrow({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-primary-600 ${className}`}
+      className={`inline-flex items-center gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-neutral-500 ${className}`}
     >
       {children}
       <span aria-hidden className="h-px w-10 bg-[var(--st-line)]" />
@@ -126,7 +126,7 @@ export function SectionHeading({
   return (
     <div className={`flex flex-col gap-4 ${alignment} ${className}`}>
       {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-      <Heading className="font-marketing text-[clamp(28px,4vw,46px)] font-bold leading-[1.04] tracking-[-0.02em] text-neutral-900">
+      <Heading className="font-marketing text-[clamp(28px,4vw,46px)] [font-weight:var(--st-display-weight)] leading-[1.04] tracking-[-0.02em] text-neutral-900">
         {title}
       </Heading>
       {lead ? (

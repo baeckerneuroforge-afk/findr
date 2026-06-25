@@ -79,8 +79,12 @@
      (die Plattform-Stimme), font-mono → Space Mono (Konsole/Timecodes),
      Instrument Serif als kursiver Akzent. Die Variablen setzt next/font im
      (marketing)/layout.tsx auf genau diesem Wrapper. */
-  --font-marketing: var(--font-display), var(--font-hanken-mkt), ui-sans-serif, system-ui, sans-serif;
-  --font-body: var(--font-hanken-mkt), ui-sans-serif, system-ui, sans-serif;
+  /* Editorial-Richtung (Conveo nutzt EXAKT diese Familie): IBM Plex Serif trägt
+     alle Headlines/Display (--font-marketing), Inter den Fließtext (--font-body).
+     Eine Display-Dicke für ALLE Serif-Headings über --st-display-weight. */
+  --font-marketing: var(--font-serif), Georgia, "Times New Roman", serif;
+  --st-display-weight: 400;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-spacemono-mkt), ui-monospace, monospace;
 
   background-color: var(--color-canvas);
@@ -185,7 +189,7 @@
   margin-bottom: clamp(36px, 5vw, 64px);
 }
 .st-kap .st-tag {
-  color: var(--st-rec-deep);
+  color: var(--st-ink-60);
   flex-shrink: 0;
 }
 .st-kap::after {
@@ -195,26 +199,21 @@
   background: var(--st-line);
 }
 
-/* Serif-Akzent in Headlines (Instrument Serif kursiv, Twilight-Indigo). */
+/* Akzentwort in Headlines: EINHEITLICH mit der Überschrift — gleiche Schrift,
+   gleiche Dicke, gerade (kein Kursiv, kein 400er-Bruch). <em> erbt sonst das
+   UA-Kursiv; hier neutralisiert. So stehen in einem Hero nie zwei Schnitte. */
 .st-serif {
-  font-family: var(--font-instrument), Georgia, serif;
-  font-style: italic;
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: -0.01em;
-  color: var(--st-rec-deep);
-}
-.st-on-dark .st-serif {
-  color: var(--st-indigo-300);
+  font-style: normal;
+  font-weight: inherit;
 }
 
-/* Poster-Display (Homepage + große Sektionsköpfe). */
+/* Display: streng & clean (kein Versal-Poster mehr), Inter, eng gesetzt. */
 .st-display {
   font-family: var(--font-marketing);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: -0.025em;
-  line-height: 0.97;
+  font-weight: var(--st-display-weight);
+  text-transform: none;
+  letter-spacing: -0.03em;
+  line-height: 1.03;
 }
 
 /* ── Zeilen-Maskenreveal + Fades (Konsolen-Choreografie) ──────────────
@@ -318,19 +317,23 @@
     transform 0.25s, box-shadow 0.25s;
   will-change: transform;
 }
+/* Primärer CTA: monochrom (Near-Black) statt Indigo — Conveo-Richtung.
+   Tokenisiert, damit der Button im Dark-Mode mitdreht: --st-ink invertiert auf
+   Creme (heller Pill), die Schrift fährt über --st-paper auf Dunkel mit — sonst
+   weiß-auf-hell = unsichtbar. Hover ebenfalls über einen invertierenden Token. */
 .st-btn-rec {
-  background: var(--st-rec);
-  color: #ffffff;
-  box-shadow: 0 18px 40px -18px rgba(53, 60, 138, 0.6);
+  background: var(--st-ink);
+  color: var(--st-paper);
+  box-shadow: 0 18px 40px -22px rgba(24, 24, 27, 0.55);
 }
 .st-btn-rec:hover {
-  background: var(--st-rec-deep);
+  background: var(--color-neutral-700);
 }
 .st-btn-rec .st-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--st-paper);
   flex-shrink: 0;
 }
 .st-btn-ghost {
@@ -453,18 +456,23 @@
   padding: 8px 9px;
   border: 1px solid transparent;
   border-radius: 9px;
+  /* Menü-Schriftzüge: volles Ink = schwarz (Dark-Mode: Creme, invertiert via Token).
+     Überschreibt die text-neutral-*-Utility (studio.css ist unlayered → gewinnt
+     über Tailwind). Hover/offenes Dropdown setzt zusätzlich die Pille. */
+  color: var(--st-ink);
   transition: background 0.18s, border-color 0.18s, color 0.18s;
 }
 .st-navitem:hover,
 .st-navitem.is-open {
   background: var(--st-paper-shade);
   border-color: var(--st-line-strong);
+  color: var(--st-ink);
 }
 .st-brand {
   display: inline-flex;
   align-items: baseline;
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   letter-spacing: -0.02em;
   color: var(--st-ink);
 }
@@ -507,7 +515,9 @@
   background:
     radial-gradient(1100px 520px at 78% -12%, rgba(74, 81, 168, 0.16), transparent 62%),
     radial-gradient(900px 460px at 12% -8%, rgba(111, 116, 186, 0.12), transparent 58%),
-    linear-gradient(to bottom, #f1f2f9 0%, var(--color-canvas) 46%);
+    /* invertierbarer Token statt festem Hellton — sonst heller Streifen über
+       dem dunklen Hero (und cremefarbene Headline darauf unsichtbar) im Dark-Mode */
+    linear-gradient(to bottom, var(--color-warm) 0%, var(--color-canvas) 46%);
 }
 .st-rec-chip {
   display: inline-flex;
@@ -555,7 +565,7 @@
 }
 .st-marquee span {
   font-family: var(--font-marketing);
-  font-weight: 300;
+  font-weight: var(--st-display-weight);
   font-size: clamp(18px, 2.2vw, 26px);
   letter-spacing: 0.02em;
   color: var(--st-ink-60);
@@ -579,7 +589,7 @@
 /* ── Statement + Regeln ───────────────────────────────────────────── */
 .st-big {
   font-family: var(--font-marketing);
-  font-weight: 500;
+  font-weight: var(--st-display-weight);
   font-size: clamp(27px, 4.4vw, 58px);
   line-height: 1.22;
   letter-spacing: -0.02em;
@@ -606,11 +616,11 @@
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.2em;
-  color: var(--st-rec-deep);
+  color: var(--st-ink-60);
 }
 .st-rule h3 {
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   font-size: clamp(20px, 2.6vw, 30px);
   letter-spacing: -0.015em;
   text-transform: uppercase;
@@ -675,7 +685,7 @@
   gap: 12px;
   padding: 18px 26px;
   border-bottom: 1px solid var(--st-line);
-  background: linear-gradient(to bottom, #fbfbfd, var(--st-paper-shade));
+  background: linear-gradient(to bottom, var(--st-paper), var(--st-paper-shade));
 }
 .st-deck-rec {
   display: inline-flex;
@@ -773,7 +783,7 @@
   transform: rotate(7deg) scale(1.6);
   opacity: 0;
   border: 1.5px solid var(--st-rec);
-  color: var(--st-rec-deep);
+  color: var(--st-ink-60);
   background: rgba(238, 239, 248, 0.7);
   border-radius: 5px;
   font-family: var(--font-mono);
@@ -852,7 +862,7 @@
 .st-findings {
   border-top: 1px solid var(--st-line);
   padding: clamp(22px, 3.5vw, 32px);
-  background: #fcfcfd;
+  background: var(--st-paper-shade);
 }
 @media (min-width: 1000px) {
   .st-findings {
@@ -883,7 +893,7 @@
 }
 .st-finding .st-f-name {
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   font-size: 13.5px;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -940,7 +950,7 @@
 }
 .st-verdikt .neu {
   font-weight: 600;
-  color: var(--st-rec-deep);
+  color: var(--st-ink);
   text-align: right;
 }
 
@@ -1000,7 +1010,7 @@
 }
 .st-tapecard h3 {
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   text-transform: uppercase;
   font-size: clamp(30px, 5.4vw, 72px);
   line-height: 0.98;
@@ -1089,7 +1099,7 @@
 }
 .st-theme .st-t-name {
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   font-size: 17px;
   text-transform: uppercase;
   letter-spacing: 0.01em;
@@ -1228,7 +1238,7 @@
   font-size: 8.5px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--st-rec-deep);
+  color: var(--st-ink-60);
   opacity: 0;
   transform: scale(1.5);
   transition: opacity 0.4s var(--st-ease) 1.5s, transform 0.4s var(--st-ease-stamp) 1.5s;
@@ -1274,7 +1284,7 @@
 }
 .st-cap .st-t {
   font-family: var(--font-marketing);
-  font-weight: 500;
+  font-weight: var(--st-display-weight);
   font-size: clamp(17px, 1.8vw, 21px);
   letter-spacing: -0.01em;
 }
@@ -1328,7 +1338,7 @@
 }
 .st-num .st-v {
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   font-size: clamp(52px, 7.5vw, 110px);
   line-height: 0.95;
   letter-spacing: -0.03em;
@@ -1336,8 +1346,8 @@
 }
 .st-num .st-v small {
   font-size: 0.42em;
-  font-weight: 500;
-  color: var(--st-rec-deep);
+  font-weight: var(--st-display-weight);
+  color: var(--st-ink-60);
   letter-spacing: 0;
 }
 .st-num .st-l {
@@ -1370,7 +1380,7 @@
   display: block;
   font-style: normal;
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   font-size: 1.5em;
   letter-spacing: 0.04em;
   color: var(--st-ink);
@@ -1381,11 +1391,11 @@
 }
 .st-bigstamp--rec {
   border-color: var(--st-rec);
-  color: rgba(53, 60, 138, 0.85);
+  color: var(--st-ink-60);
   background: rgba(238, 239, 248, 0.7);
 }
 .st-bigstamp--rec em {
-  color: var(--st-rec-deep);
+  color: var(--st-ink);
 }
 @media (prefers-reduced-motion: reduce) {
   .st-bigstamp {
@@ -1457,7 +1467,7 @@
   bottom: -0.22em;
   transform: translateX(-50%);
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   font-size: clamp(140px, 26vw, 420px);
   line-height: 1;
   letter-spacing: -0.04em;
@@ -1502,7 +1512,7 @@
 }
 .st-minitape h3 {
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   text-transform: uppercase;
   font-size: clamp(19px, 1.8vw, 23px);
   line-height: 1.04;
@@ -1565,7 +1575,7 @@
 }
 .st-tool h3 {
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   text-transform: uppercase;
   font-size: clamp(20px, 2.2vw, 28px);
   letter-spacing: -0.015em;
@@ -1605,7 +1615,7 @@
   height: 76px;
   border: 1px solid var(--st-line);
   border-radius: 8px;
-  background: #fcfcfd;
+  background: var(--st-paper-shade);
   overflow: hidden;
 }
 .st-voicebars i {
@@ -1638,7 +1648,7 @@
   gap: 12px;
   border: 1px solid var(--st-line);
   border-radius: 8px;
-  background: #fcfcfd;
+  background: var(--st-paper-shade);
   padding: 12px;
 }
 @media (max-width: 419px) {
@@ -1653,16 +1663,16 @@
   gap: 6px;
   border: 1px solid var(--st-indigo-200);
   border-radius: 6px;
-  background: linear-gradient(150deg, var(--st-indigo-50), #ffffff 65%);
+  background: linear-gradient(150deg, var(--st-indigo-50), var(--st-paper) 65%);
   padding: 10px;
   min-height: 110px;
 }
 .st-stim-asset b {
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   font-size: 34px;
   line-height: 1;
-  color: var(--st-rec);
+  color: var(--st-ink);
 }
 .st-stim-chat {
   display: flex;
@@ -1823,7 +1833,7 @@
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--st-rec-deep);
+  color: var(--st-ink-60);
 }
 .st-orbstatus span {
   font-size: 11px;
@@ -1889,7 +1899,7 @@
 }
 .st-packshot-brand {
   font-family: var(--font-marketing);
-  font-weight: 800;
+  font-weight: var(--st-display-weight);
   letter-spacing: 0.2em;
   font-size: 12.5px;
   color: #eef0fb;
@@ -2020,7 +2030,7 @@
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--st-rec-deep);
+  color: var(--st-ink-60);
   opacity: 0;
   transition: opacity 0.2s;
 }
@@ -2229,7 +2239,7 @@
     background: rgba(31, 35, 80, 0.7);
   }
   .st-bigstamp--rec {
-    color: rgba(184, 187, 221, 0.85);
+    color: var(--st-ink-60);
     background: rgba(31, 35, 80, 0.7);
   }
 }

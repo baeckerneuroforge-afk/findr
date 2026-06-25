@@ -101,7 +101,7 @@ export function HowItWorksTimeline({ steps }: { steps: HowStep[] }) {
                 </div>
               ) : null}
               <div className="flex flex-wrap items-center gap-2.5">
-                <h3 className="font-marketing text-xl font-semibold text-neutral-900">
+                <h3 className="font-marketing text-xl [font-weight:var(--st-display-weight)] text-neutral-900">
                   {s.title}
                 </h3>
                 {s.tag ? <StatusTag status={s.tag} /> : null}

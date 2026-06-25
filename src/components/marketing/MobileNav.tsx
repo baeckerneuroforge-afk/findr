@@ -65,7 +65,7 @@ export function MobileNav({
   }, [open]);
 
   const leafLinkCls =
-    "rounded px-2 py-3 text-base text-neutral-700 hover:bg-neutral-50 hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2";
+    "rounded px-2 py-3 text-base text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2";
 
   return (
     <div className="md:hidden">
@@ -145,7 +145,7 @@ export function MobileNav({
                         setSection((cur) => (cur === entry.id ? null : entry.id))
                       }
                       className={`flex w-full items-center justify-between rounded px-2 py-3 text-base transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 ${
-                        expanded ? "text-primary-700" : "text-neutral-700 hover:text-primary-700"
+                        expanded ? "text-neutral-900" : "text-neutral-700 hover:text-neutral-900"
                       }`}
                     >
                       <span>{entry.label}</span>
@@ -181,9 +181,9 @@ export function MobileNav({
                                   key={leaf.href}
                                   href={leaf.href}
                                   onClick={closeAll}
-                                  className="flex items-center gap-2.5 rounded px-2 py-2.5 text-[15px] text-neutral-700 hover:bg-neutral-50 hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
+                                  className="flex items-center gap-2.5 rounded px-2 py-2.5 text-[15px] text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
                                 >
-                                  <Icon className="h-[18px] w-[18px] shrink-0 text-primary-600" />
+                                  <Icon className="h-[18px] w-[18px] shrink-0 text-neutral-500" />
                                   {leaf.label}
                                 </Link>
                               );
@@ -193,7 +193,7 @@ export function MobileNav({
                               <Link
                                 href={group.overview.href}
                                 onClick={closeAll}
-                                className="mt-0.5 inline-flex items-center gap-1.5 rounded px-2 py-2 text-sm font-medium text-primary-700 transition-colors hover:text-primary-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
+                                className="mt-0.5 inline-flex items-center gap-1.5 rounded px-2 py-2 text-sm font-medium text-neutral-900 transition-colors hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
                               >
                                 {group.overview.label}
                                 <span aria-hidden>→</span>
@@ -214,7 +214,7 @@ export function MobileNav({
                 <Link
                   href="/sign-in"
                   onClick={closeAll}
-                  className="rounded px-2 py-3 text-base text-neutral-700 hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
+                  className="rounded px-2 py-3 text-base text-neutral-700 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
                 >
                   Log in
                 </Link>

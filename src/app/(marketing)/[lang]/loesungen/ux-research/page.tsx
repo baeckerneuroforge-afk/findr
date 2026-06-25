@@ -149,7 +149,7 @@ const CONTENT: UseCaseContent = {
       },
       {
         title: "AI-Act- & DSGVO-sauber",
-        body: "Nur Verhalten — keine Emotionserkennung, keine Biometrie, granulare Einwilligung. In der EU gehostet, keine US-Cloud.",
+        body: "Nur Verhalten — keine Emotionserkennung, keine Biometrie. Einwilligung vor jeder Erfassung, EU-Datenresidenz in Frankfurt.",
         Icon: ShieldCheckIcon,
         tag: "Live",
       },
@@ -238,7 +238,7 @@ const CONTENT_EN: UseCaseContent = {
       },
       {
         title: "AI-Act- & GDPR-clean",
-        body: "Behaviour only — no emotion recognition, no biometrics, granular consent. Hosted in the EU, no US cloud.",
+        body: "Behaviour only — no emotion recognition, no biometrics. Consent before any capture, EU data residency in Frankfurt.",
         Icon: ShieldCheckIcon,
         tag: "Live",
       },

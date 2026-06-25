@@ -373,7 +373,7 @@ function NarrativeBand({
           <Reveal>
             <div className="flex flex-col gap-5">
               <Eyebrow>{eyebrow}</Eyebrow>
-              <h2 className="font-marketing text-[clamp(26px,3.5vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-neutral-900">
+              <h2 className="font-marketing text-[clamp(26px,3.5vw,40px)] [font-weight:var(--st-display-weight)] leading-[1.1] tracking-[-0.02em] text-neutral-900">
                 {title}
               </h2>
               {children}
@@ -434,11 +434,11 @@ export function IndustryGrid({
                   href={localizePath(locale, `/branchen/${i.slug}`)}
                   className="group flex h-full flex-col gap-2 bg-neutral-0 p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                 >
-                  <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-neutral-900">
+                  <div className="flex items-center justify-between gap-2 font-marketing text-base [font-weight:var(--st-display-weight)] text-neutral-900">
                     {i.name}
                     <span
                       aria-hidden
-                      className="text-primary-600 transition-transform group-hover:translate-x-0.5"
+                      className="text-neutral-500 transition-transform group-hover:translate-x-0.5"
                     >
                       →
                     </span>
@@ -453,7 +453,7 @@ export function IndustryGrid({
                   href={localizePath(locale, "/produkt")}
                   className="group flex h-full flex-col gap-2 bg-neutral-0 p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                 >
-                  <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-primary-700">
+                  <div className="flex items-center justify-between gap-2 font-marketing text-base [font-weight:var(--st-display-weight)] text-neutral-900">
                     {localizedContent(locale, {
                       de: "Die Plattform im Detail",
                       en: "The platform in detail",
@@ -515,7 +515,17 @@ export function IndustryPage({
       <NarrativeBand
         eyebrow={content.pain.eyebrow}
         title={content.pain.title}
-        card={<ExampleCard tone="risk" badge={content.pain.blindCard.badge} rows={content.pain.blindCard.rows} />}
+        card={
+          <ExampleCard
+            tone="risk"
+            badge={content.pain.blindCard.badge}
+            rows={content.pain.blindCard.rows}
+            note={localizedContent(locale, {
+              de: "Illustratives Beispiel — keine echten Kundendaten",
+              en: "Illustrative example — not real client data",
+            })}
+          />
+        }
       >
         <p className="text-[16px] leading-relaxed text-neutral-500">
           {content.pain.problem}
@@ -544,7 +554,17 @@ export function IndustryPage({
       <NarrativeBand
         eyebrow={content.solution.eyebrow}
         title={content.solution.title}
-        card={<ExampleCard tone="neutral" badge={content.solution.answerCard.badge} rows={content.solution.answerCard.rows} />}
+        card={
+          <ExampleCard
+            tone="neutral"
+            badge={content.solution.answerCard.badge}
+            rows={content.solution.answerCard.rows}
+            note={localizedContent(locale, {
+              de: "Illustratives Beispiel — keine echten Kundendaten",
+              en: "Illustrative example — not real client data",
+            })}
+          />
+        }
       >
         <p className="text-[16px] leading-relaxed text-neutral-700">
           {content.solution.body}
@@ -561,7 +581,17 @@ export function IndustryPage({
         tone="default"
         eyebrow={content.proactive.eyebrow}
         title={content.proactive.title}
-        card={<ExampleCard tone="neutral" badge={content.proactive.card.badge} rows={content.proactive.card.rows} />}
+        card={
+          <ExampleCard
+            tone="neutral"
+            badge={content.proactive.card.badge}
+            rows={content.proactive.card.rows}
+            note={localizedContent(locale, {
+              de: "Illustratives Beispiel — keine echten Kundendaten",
+              en: "Illustrative example — not real client data",
+            })}
+          />
+        }
       >
         <p className="text-[16px] leading-relaxed text-neutral-700">
           {content.proactive.body}

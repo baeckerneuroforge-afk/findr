@@ -10,10 +10,10 @@ export default function NotFound() {
   return (
     <Container className="py-24">
       <div className="mx-auto flex max-w-lg flex-col items-center gap-5 text-center">
-        <span className="font-marketing text-6xl font-semibold text-primary-600">
+        <span className="font-marketing text-6xl [font-weight:var(--st-display-weight)] text-neutral-500">
           404
         </span>
-        <h1 className="font-marketing text-3xl font-semibold tracking-[-0.02em] text-neutral-900">
+        <h1 className="font-marketing text-3xl [font-weight:var(--st-display-weight)] tracking-[-0.02em] text-neutral-900">
           Seite nicht gefunden.
         </h1>
         <p className="text-neutral-500">

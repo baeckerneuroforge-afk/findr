@@ -232,7 +232,7 @@ function NarrativeBand({
           <Reveal>
             <div className="flex flex-col gap-5">
               <Eyebrow>{eyebrow}</Eyebrow>
-              <h2 className="font-marketing text-[clamp(26px,3.5vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-neutral-900">
+              <h2 className="font-marketing text-[clamp(26px,3.5vw,40px)] [font-weight:var(--st-display-weight)] leading-[1.1] tracking-[-0.02em] text-neutral-900">
                 {title}
               </h2>
               {children}
@@ -291,11 +291,11 @@ function MethodGrid({
                   href={localizePath(locale, m.href)}
                   className="group flex h-full flex-col gap-3 bg-neutral-0 p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                 >
-                  <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-neutral-900">
+                  <div className="flex items-center justify-between gap-2 font-marketing text-base [font-weight:var(--st-display-weight)] text-neutral-900">
                     {m.name}
                     <span
                       aria-hidden
-                      className="text-primary-600 transition-transform group-hover:translate-x-0.5"
+                      className="text-neutral-500 transition-transform group-hover:translate-x-0.5"
                     >
                       →
                     </span>
@@ -310,7 +310,7 @@ function MethodGrid({
                 href={localizePath(locale, "/produkt")}
                 className="group flex h-full flex-col gap-3 bg-neutral-0 p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
               >
-                <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-primary-700">
+                <div className="flex items-center justify-between gap-2 font-marketing text-base [font-weight:var(--st-display-weight)] text-neutral-900">
                   {localizedContent(locale, {
                     de: "Die Engine dahinter",
                     en: "The engine behind it",

@@ -99,11 +99,11 @@ export function UseCaseGrid({
                   href={localizePath(locale, getUseCaseHref(u.slug))}
                   className="group flex h-full flex-col gap-2 bg-neutral-0 p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                 >
-                  <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-neutral-900">
+                  <div className="flex items-center justify-between gap-2 font-marketing text-base [font-weight:var(--st-display-weight)] text-neutral-900">
                     {u.name}
                     <span
                       aria-hidden
-                      className="text-primary-600 transition-transform group-hover:translate-x-0.5"
+                      className="text-neutral-500 transition-transform group-hover:translate-x-0.5"
                     >
                       →
                     </span>
@@ -117,7 +117,7 @@ export function UseCaseGrid({
                 href={localizePath(locale, "/produkt")}
                 className="group flex h-full flex-col gap-2 bg-neutral-0 p-6 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
               >
-                <div className="flex items-center justify-between gap-2 font-marketing text-base font-semibold text-primary-700">
+                <div className="flex items-center justify-between gap-2 font-marketing text-base [font-weight:var(--st-display-weight)] text-neutral-900">
                   {localizedContent(locale, {
                     de: "Die Plattform im Detail",
                     en: "The platform in detail",

@@ -53,7 +53,7 @@ export function CTASection({
               {eyebrow}
               <span aria-hidden className="h-px w-10 bg-white/15" />
             </span>
-            <h2 className="font-marketing max-w-[18ch] text-[clamp(32px,5.5vw,76px)] font-bold leading-[1.02] tracking-[-0.025em] text-anchor-foreground">
+            <h2 className="font-marketing max-w-[18ch] text-[clamp(32px,5.5vw,76px)] [font-weight:var(--st-display-weight)] leading-[1.02] tracking-[-0.025em] text-anchor-foreground">
               {title}
             </h2>
             <p className="max-w-xl text-[17px] leading-relaxed text-anchor-foreground/65">

@@ -165,7 +165,7 @@ export function PlatformModules({
                   </span>
                   <StatusTag status={m.status} lang={locale} />
                 </div>
-                <Icon className="h-6 w-6 text-[var(--st-rec)]" />
+                <Icon className="h-6 w-6 text-[var(--st-ink-60)]" />
                 <h3>{m.name}</h3>
                 <p>{m.blurb}</p>
                 <span className="st-more">

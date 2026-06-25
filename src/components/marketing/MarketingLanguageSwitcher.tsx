@@ -45,7 +45,7 @@ export function MarketingLanguageSwitcher({
       {MARKETING_LOCALES.map((loc, i) => (
         <Fragment key={loc}>
           {i > 0 ? (
-            <span aria-hidden className="text-neutral-300">
+            <span aria-hidden className="text-neutral-400">
               /
             </span>
           ) : null}

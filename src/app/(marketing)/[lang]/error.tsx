@@ -16,10 +16,10 @@ export default function Error({
 }) {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-neutral-0 px-6 text-center font-body text-neutral-900 antialiased">
-      <span className="font-marketing text-5xl font-semibold text-primary-600">
+      <span className="font-marketing text-5xl [font-weight:var(--st-display-weight)] text-neutral-500">
         Hoppla.
       </span>
-      <h1 className="font-marketing text-3xl font-semibold tracking-[-0.02em] text-neutral-900">
+      <h1 className="font-marketing text-3xl [font-weight:var(--st-display-weight)] tracking-[-0.02em] text-neutral-900">
         Etwas ist schiefgelaufen.
       </h1>
       <p className="max-w-md text-neutral-500">

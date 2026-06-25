@@ -545,7 +545,7 @@ export default async function ProduktPage({
       {/* ── Poster-Kopf ──────────────────────────────────────────────── */}
       <section className="st-sky relative overflow-hidden pb-[clamp(70px,10vh,120px)] pt-[clamp(120px,16vh,180px)]">
         <div className={WRAP}>
-          <Rv as="p" className="st-fade st-tag !text-[var(--st-rec-deep)]">
+          <Rv as="p" className="st-fade st-tag !text-[var(--st-ink-60)]">
             {c.heroEyebrow}
           </Rv>
           <Rv as="h1" className="st-rv st-display mt-5 text-[clamp(38px,7vw,108px)]">
@@ -696,7 +696,7 @@ export default async function ProduktPage({
           <div className="grid gap-6 lg:grid-cols-3">
             {c.syntheseCards.map((card, i) => (
               <Rv key={card.n} className="st-fade st-tool !gap-3" d={i * 90}>
-                <span className="st-tag !text-[var(--st-rec-deep)]">{card.n}</span>
+                <span className="st-tag !text-[var(--st-ink-60)]">{card.n}</span>
                 <h3 className="!text-[clamp(19px,1.9vw,24px)]">{card.t}</h3>
                 <p>{card.d}</p>
               </Rv>

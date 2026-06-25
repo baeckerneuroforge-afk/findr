@@ -84,7 +84,7 @@ function ArticleBlock({ block }: { block: InsightBlock }) {
   switch (block.kind) {
     case "h2":
       return (
-        <h2 className="mt-12 font-marketing text-[clamp(22px,3vw,30px)] font-semibold leading-snug tracking-[-0.01em] text-neutral-900">
+        <h2 className="mt-12 font-marketing text-[clamp(22px,3vw,30px)] [font-weight:var(--st-display-weight)] leading-snug tracking-[-0.01em] text-neutral-900">
           {block.text}
         </h2>
       );
@@ -162,7 +162,7 @@ export default async function InsightArticlePage({
             <article className="mx-auto max-w-2xl">
               <header className="flex flex-col gap-4">
                 <Eyebrow>{article.category}</Eyebrow>
-                <h1 className="font-marketing text-[clamp(30px,5vw,52px)] font-semibold leading-[1.06] tracking-[-0.03em] text-neutral-900">
+                <h1 className="font-marketing text-[clamp(30px,5vw,52px)] [font-weight:var(--st-display-weight)] leading-[1.06] tracking-[-0.03em] text-neutral-900">
                   {article.title}
                 </h1>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-neutral-400">
@@ -184,7 +184,7 @@ export default async function InsightArticlePage({
               <footer className="mt-14 border-t border-neutral-200 pt-6">
                 <Link
                   href="/insights"
-                  className="inline-flex items-center gap-2 rounded text-sm font-medium text-primary-700 transition-colors hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
+                  className="inline-flex items-center gap-2 rounded text-sm font-medium text-neutral-900 transition-colors hover:text-neutral-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2"
                 >
                   <span aria-hidden>←</span> Alle Insights
                 </Link>
