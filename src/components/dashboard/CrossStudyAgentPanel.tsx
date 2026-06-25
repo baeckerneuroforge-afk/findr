@@ -5,6 +5,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Konsoul, type KonsoulState } from "@/components/dashboard/Konsoul";
 
 /**
  * Cross-Study-Agent — Panel (Bau 3). The AGENTIC sibling of MissionControlPanel:
@@ -75,6 +76,24 @@ export function CrossStudyAgentPanel({ studies }: CrossStudyAgentPanelProps) {
 
   const ready = studies.length > 0;
   const titleByStudy = new Map(studies.map((s) => [s.studyId, s.studyTitle]));
+
+  // Konsoul-Zustand — 1:1 aus dem Panel-State, kein neuer Datenpfad: loading →
+  // recherchiert; beim Tippen → hört zu; sonst spiegelt die letzte Antwort
+  // (belegt / Interpretation / ehrliche Ablehnung); sonst Ruhe.
+  const lastResult = [...turns]
+    .reverse()
+    .find((turn) => turn.role === "assistant")?.result;
+  const konsoulState: KonsoulState = loading
+    ? "research"
+    : question.trim() !== ""
+      ? "listen"
+      : lastResult
+        ? !lastResult.answered
+          ? "refuse"
+          : lastResult.interpretation.trim() !== ""
+            ? "hedge"
+            : "answer"
+        : "idle";
 
   function nextTurnId(): number {
     turnIdRef.current += 1;
@@ -162,21 +181,27 @@ export function CrossStudyAgentPanel({ studies }: CrossStudyAgentPanelProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-h3 text-neutral-900">{t("title")}</h2>
             <p className="mt-1 text-small text-neutral-500">{t("subtitle")}</p>
           </div>
-          {turns.length > 0 && (
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={loading}
-              className="shrink-0 rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-caption font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
-            >
-              {t("clear")}
-            </button>
-          )}
+          {/* Konsoul — der Bot-Charakter spiegelt die Antwort-Stufe (belegt /
+              Interpretation / Ablehnung), bevor man sie liest. Auf schmalen
+              Screens ausgeblendet, damit der Header nicht überläuft. */}
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Konsoul state={konsoulState} className="hidden sm:block" />
+            {turns.length > 0 && (
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={loading}
+                className="rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-caption font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
+              >
+                {t("clear")}
+              </button>
+            )}
+          </div>
         </div>
       </CardHeader>
 

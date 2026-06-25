@@ -376,3 +376,23 @@ body {
    @keyframes `gradient` / `shimmer` / `float` / `pulse-glow` / `border-flow`
    they (and other dead trees) animated were removed in the platform redesign
    (E1) — grep verified 0 remaining users. */
+
+/* ────────────────────────────────────────────────────────────────
+   Konsoul — Bot-Charakter des Cross-Study-Agenten (src/components/dashboard/
+   Konsoul.tsx). Nur Mund-Cursor-Blinken + Augen-Scan; das Recherche-Sliver
+   nutzt das bestehende animate-analysis-progress. Reduced-Motion = ruhiges
+   Gesicht (Animation aus). currentColor-Ink. */
+@keyframes knsl-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes knsl-scan {
+  from { transform: translateX(-5px); }
+  to { transform: translateX(5px); }
+}
+.knsl-blink { animation: knsl-blink 1.05s steps(1) infinite; }
+.knsl-scan { animation: knsl-scan 1.1s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .knsl-blink,
+  .knsl-scan { animation: none; }
+}
