@@ -2191,7 +2191,10 @@
       "analysisNone": "keine",
       "startCta": "Studie starten",
       "starting": "Wird angelegt …",
-      "errFinalize": "Konnte die Studie nicht starten. Bitte erneut versuchen."
+      "errFinalize": "Konnte die Studie nicht starten. Bitte erneut versuchen.",
+      "launchTitle": "Studie erstellt — so gewinnst du Teilnehmer:innen",
+      "launchDesc": "Wähle einen oder mehrere Wege. Alles lässt sich später auf der Studienseite anpassen.",
+      "launchToStudy": "Zur Studie"
     }
   },
   "errors": {

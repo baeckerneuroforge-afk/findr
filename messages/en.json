@@ -2191,7 +2191,10 @@
       "analysisNone": "none",
       "startCta": "Start study",
       "starting": "Creating …",
-      "errFinalize": "Could not start the study. Please try again."
+      "errFinalize": "Could not start the study. Please try again.",
+      "launchTitle": "Study created — how to recruit participants",
+      "launchDesc": "Pick one or more channels. You can adjust everything later on the study page.",
+      "launchToStudy": "Go to study"
     }
   },
   "errors": {

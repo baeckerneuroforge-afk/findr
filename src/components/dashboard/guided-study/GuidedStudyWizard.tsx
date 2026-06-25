@@ -302,7 +302,7 @@ export function GuidedStudyWizard({
           const data = (await res.json().catch(() => ({}))) as { error?: string };
           throw new Error(data.error ?? tp("errSavePlan"));
         }
-        router.push(`${DETAIL_BASE}/${planId}`);
+        router.push(`${DETAIL_BASE}/${planId}/launch`);
         return;
       }
 
@@ -318,7 +318,7 @@ export function GuidedStudyWizard({
       if (!res.ok || !data.planId) {
         throw new Error(data.error ?? tp("errCreatePlan"));
       }
-      router.push(`${DETAIL_BASE}/${data.planId}`);
+      router.push(`${DETAIL_BASE}/${data.planId}/launch`);
     } catch (err) {
       setFormError(err instanceof Error ? err.message : tw("errFinalize"));
       setFinalizing(false);
