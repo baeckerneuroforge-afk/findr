@@ -17,7 +17,6 @@ import { appBaseUrl } from "@/lib/email/research-invite";
 import { listSynthesisShares } from "@/lib/synthesis/share-service";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ChatWithDataPanel } from "@/components/dashboard/ChatWithDataPanel";
 import { ResearchAgentPanel } from "@/components/dashboard/ResearchAgentPanel";
 import { ExportSynthesisPdfButton } from "@/components/dashboard/ExportSynthesisPdfButton";
 import { ExportSynthesisPptxButton } from "@/components/dashboard/ExportSynthesisPptxButton";
@@ -646,13 +645,6 @@ export default async function ResearchPlanSynthesisPage({
             </div>
 
             <div className="mt-8 space-y-8 lg:mt-0">
-
-          {/* Chat-with-data — only when the synthesis actually exists. The
-              engine would short-circuit a zero-insight study server-side,
-              but the panel needs the synthesis surface to be coherent
-              before we offer "ask your data". `ready` is the same gate as
-              "PDF export button is shown". */}
-          <ChatWithDataPanel planId={planId} ready={true} />
 
           {/* Research-Agent — build deliverables (summary / breakdown /
               theme-ranking) on instruction from THIS synthesis. Same readiness

@@ -299,7 +299,7 @@
       "marketResearch": "Studies",
       "newStudy": "New study",
       "participantPool": "Participant Pool",
-      "crossStudy": "Cross-Study",
+      "crossStudy": "Ask Konsoul",
       "dataSources": "Data Sources",
       "settings": "Settings"
     }
@@ -2565,8 +2565,8 @@
     }
   },
   "missionControl": {
-    "pageTitle": "Cross-Study",
-    "pageIntro": "Ask a question ACROSS ALL studies in your organization — answers come exclusively from the study syntheses, with a source citation per study.",
+    "pageTitle": "Ask Konsoul",
+    "pageIntro": "Ask Konsoul across ALL of your organization's studies — the agent researches cross-study, loads the relevant studies on demand, counts exactly, and anchors every statement with a per-study citation.",
     "title": "Ask across studies",
     "subtitle": "Ask across all of your organization's study syntheses. Every statement is anchored to a verbatim quote from the study it cites — when there's no evidence you get an honest refusal instead of a fabricated answer.",
     "clear": "Clear history",

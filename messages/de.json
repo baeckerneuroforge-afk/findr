@@ -299,7 +299,7 @@
       "marketResearch": "Studien",
       "newStudy": "Neue Studie",
       "participantPool": "Teilnehmer-Pool",
-      "crossStudy": "Cross-Study",
+      "crossStudy": "Frag Konsoul",
       "dataSources": "Datenquellen",
       "settings": "Einstellungen"
     }
@@ -2565,8 +2565,8 @@
     }
   },
   "missionControl": {
-    "pageTitle": "Cross-Study",
-    "pageIntro": "Stell eine Frage über ALLE Studien deiner Organisation hinweg — Antworten ausschließlich aus den Studien-Synthesen, mit Quellenangabe je Studie.",
+    "pageTitle": "Frag Konsoul",
+    "pageIntro": "Frag Konsoul über ALLE Studien deiner Organisation — der Agent recherchiert studienübergreifend, lädt gezielt die passenden Studien, zählt exakt aus und verankert jede Aussage mit einem Beleg je Studie.",
     "title": "Studienübergreifend fragen",
     "subtitle": "Frag über alle Studien-Synthesen deiner Organisation hinweg. Jede Aussage ist mit einem wörtlichen Beleg aus der jeweiligen Studie verankert — ohne Beleg gibt es eine ehrliche Absage statt einer erfundenen Antwort.",
     "clear": "Verlauf löschen",

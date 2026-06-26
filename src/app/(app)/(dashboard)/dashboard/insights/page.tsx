@@ -3,26 +3,27 @@ import { getTranslations } from "next-intl/server";
 
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { loadOrgSyntheses } from "@/lib/mission-control/engine";
-import { InsightsModeSwitcher } from "@/components/dashboard/InsightsModeSwitcher";
+import { CrossStudyAgentPanel } from "@/components/dashboard/CrossStudyAgentPanel";
 
 /**
- * /dashboard/insights — cross-study surface, with a MODE SWITCHER (Bau 3) between
- * "Chat" (the Mission-Control chat panel, Etappe 2 — unchanged) and "Agent" (the
- * Cross-Study-Agent panel — multi-step research: loads studies on demand, counts
- * exactly, compares).
+ * /dashboard/insights — cross-study surface. The "Chat" mode was removed: the org
+ * keeps only the more capable Cross-Study-Agent (Konsoul) here, so this page now
+ * renders <CrossStudyAgentPanel /> directly (no mode switcher). The agent does
+ * multi-step research — lists studies, loads the relevant ones on demand, counts
+ * exactly, and compares — before answering.
  *
  * Org-level (NOT inside a single study): ask questions ACROSS ALL of the org's
  * study syntheses and get answers with per-study verbatim citations that link
- * back to each source study's synthesis. Both panels share this page's study
- * list; each engine owns its own anti-hallucination per-study anchor filter.
+ * back to each source study's synthesis; the engine owns its own
+ * anti-hallucination per-study anchor filter.
  *
  * Study titles come from the canonical loadOrgSyntheses() — the SAME read path
- * both engines use per question, so there is no parallel data path. We keep only
- * the {studyId, studyTitle} the panels need for the source links; the synthesis
+ * the engine uses per question, so there is no parallel data path. We keep only
+ * the {studyId, studyTitle} the panel needs for the source links; the synthesis
  * content itself is re-loaded + re-anchored by the engine on every turn.
  *
  * Auth mirrors the synthesis page: requireOrgId(), redirect on no_auth/no_org.
- * Both panels are session-local (no persistence).
+ * The panel is session-local (no persistence).
  */
 
 export default async function InsightsPage() {
@@ -53,7 +54,7 @@ export default async function InsightsPage() {
         <p className="mt-1 text-body text-neutral-500">{t("pageIntro")}</p>
       </div>
 
-      <InsightsModeSwitcher studies={studies} />
+      <CrossStudyAgentPanel studies={studies} />
     </div>
   );
 }
