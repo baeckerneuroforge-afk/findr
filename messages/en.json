@@ -2589,11 +2589,6 @@
     "errNetwork": "Connection failed. Please try again."
   },
   "crossStudyAgent": {
-    "modeChat": "Chat",
-    "modeAgent": "Agent",
-    "modeAria": "Choose mode",
-    "chatHint": "Chat — quickly answers a question across all study syntheses at once. For deeper research (selective loading, exact counting, comparison) switch to the Agent.",
-    "agentHint": "Agent — researches in multiple steps: loads the relevant studies on demand, counts themes exactly (e.g. \"in how many studies …\") and compares. More thorough, but slower than Chat.",
     "title": "Cross-Study agent",
     "subtitle": "The agent researches across studies — it loads the relevant studies on demand, counts themes exactly, and compares. Every statement is anchored to a verbatim quote per study; anything it can't ground it labels as interpretation or honestly declines.",
     "clear": "Clear history",
@@ -2619,7 +2614,17 @@
     "sug1": "In how many studies does the onboarding theme appear?",
     "sug2": "Compare the pricing findings across the studies.",
     "sug3": "Which theme comes up most often?",
-    "sugCompare": "Compare “{a}” and “{b}”."
+    "sugCompare": "Compare “{a}” and “{b}”.",
+    "guidanceLabel": "How-to",
+    "guidanceSourcesLabel": "Based on",
+    "portfolioLabel": "Overview",
+    "studyStatusLabel": "Study status",
+    "factCompleted": "{count, plural, one {# interview} other {# interviews}} completed",
+    "factCompletedUnknown": "Interviews: —",
+    "factSynthesis": "Synthesis ready",
+    "factNoSynthesis": "no synthesis yet",
+    "factPoolSize": "{count, plural, one {# person} other {# people}} in pool",
+    "factNewSince": "{count} new since synthesis"
   },
   "syntheticTest": {
     "pageTitle": "Test the study — dry run",

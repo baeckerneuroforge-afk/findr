@@ -17,6 +17,8 @@ import { useEffect, useState } from "react";
  *   research  — tippt seine Recherche-Schleife mit (loading)
  *   answer    — lächelt, grüner Beleg-Pip (answered + belegt)
  *   hedge     — amber Schulterzucken (Interpretation vorhanden)
+ *   guidance  — ruhig-aufmerksam, NEUTRALER Pip (Hilfe/How-to/Status); deutlich
+ *               KEIN grünes Belegt-Gesicht — „beantwortet, nicht belegt"
  *   refuse    — ruhige, ebene Augen (ehrliche Ablehnung), nie rot
  *   greet     — winkt + Sprechblase, wenn man seinen Namen tippt („Konsoul")
  */
@@ -26,6 +28,7 @@ export type KonsoulState =
   | "research"
   | "answer"
   | "hedge"
+  | "guidance"
   | "refuse"
   | "greet";
 
@@ -80,6 +83,15 @@ function Face({ state }: { state: KonsoulState }) {
           <DotEye cx={EYE_R} />
           <path d="M60 37 q5 -5 10 0 t10 0" {...STROKE} />
         </>
+      ) : state === "guidance" ? (
+        /* guidance — ruhig-aufmerksam, monochrom: ebene Punkt-Augen + ein neutral
+           gerader Mund mit dezenter Aufwärts-Note (hilfsbereit, NICHT das
+           „belegt"-Lächeln). Kein currentColor-Grün, statisch (reduced-motion). */
+        <>
+          <DotEye cx={EYE_L} />
+          <DotEye cx={EYE_R} />
+          <path d="M61 36 H79" {...STROKE} />
+        </>
       ) : state === "listen" ? (
         <>
           <g className="knsl-scan">
@@ -115,6 +127,8 @@ function footPip(state: KonsoulState): { cls: string; sym: string } {
       return { cls: "bg-success-500", sym: "✓" };
     case "hedge":
       return { cls: "bg-warning-500", sym: "~" };
+    case "guidance":
+      return { cls: "bg-neutral-400", sym: "›" };
     case "refuse":
       return { cls: "bg-neutral-400", sym: "—" };
     case "research":

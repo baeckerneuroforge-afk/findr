@@ -2589,11 +2589,6 @@
     "errNetwork": "Verbindung fehlgeschlagen. Bitte versuche es erneut."
   },
   "crossStudyAgent": {
-    "modeChat": "Chat",
-    "modeAgent": "Agent",
-    "modeAria": "Modus wählen",
-    "chatHint": "Chat — beantwortet schnell eine Frage über alle Studien-Synthesen auf einmal. Für tiefere Recherche (gezieltes Laden, exaktes Zählen, Vergleich) wechsle zum Agent.",
-    "agentHint": "Agent — recherchiert mehrstufig: lädt gezielt die relevanten Studien, zählt exakt (z. B. „in wie vielen Studien …\") und vergleicht. Gründlicher, aber langsamer als der Chat.",
     "title": "Cross-Study-Agent",
     "subtitle": "Der Agent recherchiert studienübergreifend — er lädt gezielt die passenden Studien, zählt Themen exakt aus und vergleicht. Jede Aussage ist mit einem wörtlichen Beleg je Studie verankert; was nicht belegbar ist, kennzeichnet er als Interpretation oder lehnt ehrlich ab.",
     "clear": "Verlauf löschen",
@@ -2619,7 +2614,17 @@
     "sug1": "In wie vielen Studien taucht das Onboarding-Thema auf?",
     "sug2": "Vergleiche die Pricing-Befunde über die Studien hinweg.",
     "sug3": "Welches Thema kommt am häufigsten vor?",
-    "sugCompare": "Vergleiche „{a}“ und „{b}“."
+    "sugCompare": "Vergleiche „{a}“ und „{b}“.",
+    "guidanceLabel": "So geht's",
+    "guidanceSourcesLabel": "Grundlage",
+    "portfolioLabel": "Überblick",
+    "studyStatusLabel": "Studien-Status",
+    "factCompleted": "{count, plural, one {# Interview} other {# Interviews}} abgeschlossen",
+    "factCompletedUnknown": "Interviews: —",
+    "factSynthesis": "Synthese vorhanden",
+    "factNoSynthesis": "noch keine Synthese",
+    "factPoolSize": "{count, plural, one {# Person} other {# Personen}} im Pool",
+    "factNewSince": "{count} neue seit der Synthese"
   },
   "syntheticTest": {
     "pageTitle": "Studie testen — Trockenlauf",
