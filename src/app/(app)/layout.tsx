@@ -132,6 +132,10 @@ export default async function RootLayout({
               missionControl: MESSAGES[locale].missionControl,
               crossStudyAgent: MESSAGES[locale].crossStudyAgent,
               syntheticTest: MESSAGES[locale].syntheticTest,
+              // "kalender" wird von der Client-Komponente ScheduleActivationPanel
+              // (Deferred Activation) gelesen — wie "heute" oben MUSS der
+              // Namespace hier stehen, sonst rendert next-intl rohe Keypfade.
+              kalender: MESSAGES[locale].kalender,
             }}
           >
             {children}

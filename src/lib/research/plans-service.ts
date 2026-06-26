@@ -9,6 +9,8 @@ import type {
 } from "@/lib/voice-agent/interviewer";
 import {
   createResearchSupabase,
+  type ActivationMode,
+  type ActivationState,
   type ResearchPlanAudience,
   type ResearchPlanRow,
   type ResearchPlanStimulusRow,
@@ -129,7 +131,35 @@ export interface ResearchPlanRecord {
    *  every other study. planToAgentContext emits instruction + successCriterion
    *  into the agent context when useCase is 'usability_test'. No capture in P1. */
   taskDefinition: TaskDefinition | null;
+  /** Deferred Activation (Kalender/Scheduler, 20260724000000). The scheduling
+   *  lifecycle is carried by activationState, ORTHOGONAL to status — a scheduled
+   *  study is status='draft' WITH activationState='scheduled'. Legacy rows + pre-
+   *  migration reads default to 'none'/'manual', so behavior is byte-identical
+   *  for every non-scheduled study. */
+  activationState: ActivationState;
+  activationMode: ActivationMode;
+  /** ISO timestamp the study is scheduled to go live; null when unscheduled. */
+  scheduledActivationAt: string | null;
+  /** ISO timestamp the study was actually released; null until activated. */
+  activatedAt: string | null;
+  /** Last activation failure detail (Phase 2 cron mostly); null on success. */
+  activationError: ActivationErrorRecord | null;
+  /** Zitadel subject + email of whoever scheduled the activation (audit +
+   *  Phase-2 reminder recipient); null when nobody scheduled it. */
+  scheduledByUserId: string | null;
+  scheduledByEmail: string | null;
+  /** Phase-2 reminder idempotency stamps; always null in Phase 1 (no cron). */
+  activationReminder24hSentAt: string | null;
+  activationReminder1hSentAt: string | null;
   createdAt: string;
+}
+
+/** Shape of research_plans.activation_error (jsonb). Bounded + defensively read;
+ *  written only by the scheduler on a failed release. */
+export interface ActivationErrorRecord {
+  code: string;
+  message: string | null;
+  at: string | null;
 }
 
 /**
@@ -297,6 +327,36 @@ function coerceDepth(raw: unknown): InterviewDepth | null {
   return raw === "flach" || raw === "mittel" || raw === "tief" ? raw : null;
 }
 
+// Deferred Activation read-mappers. Pre-migration fail-safe: undefined
+// (select("*") omits the column) / null / any non-member → the inert default,
+// mirroring coerceStudyType / coerceAudience. So every non-scheduled study reads
+// byte-identically both before and after the migration.
+function coerceActivationState(raw: unknown): ActivationState {
+  return raw === "scheduled" ||
+    raw === "activating" ||
+    raw === "activated" ||
+    raw === "failed"
+    ? raw
+    : "none";
+}
+
+function coerceActivationMode(raw: unknown): ActivationMode {
+  return raw === "auto" ? "auto" : "manual";
+}
+
+// Defensive read for activation_error (jsonb). Never throws; drops a malformed
+// shape to null. Only `code` is required; message/at default to null.
+function coerceActivationError(raw: unknown): ActivationErrorRecord | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.code !== "string" || obj.code.trim() === "") return null;
+  return {
+    code: obj.code,
+    message: typeof obj.message === "string" ? obj.message : null,
+    at: typeof obj.at === "string" ? obj.at : null,
+  };
+}
+
 function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
   return {
     id: row.id,
@@ -353,6 +413,35 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     ),
     taskDefinition: coerceTaskDefinition(
       (row as { task_definition?: unknown }).task_definition,
+    ),
+    activationState: coerceActivationState(
+      (row as { activation_state?: unknown }).activation_state,
+    ),
+    activationMode: coerceActivationMode(
+      (row as { activation_mode?: unknown }).activation_mode,
+    ),
+    scheduledActivationAt: coerceNullableString(
+      (row as { scheduled_activation_at?: unknown }).scheduled_activation_at,
+    ),
+    activatedAt: coerceNullableString(
+      (row as { activated_at?: unknown }).activated_at,
+    ),
+    activationError: coerceActivationError(
+      (row as { activation_error?: unknown }).activation_error,
+    ),
+    scheduledByUserId: coerceNullableString(
+      (row as { scheduled_by_user_id?: unknown }).scheduled_by_user_id,
+    ),
+    scheduledByEmail: coerceNullableString(
+      (row as { scheduled_by_email?: unknown }).scheduled_by_email,
+    ),
+    activationReminder24hSentAt: coerceNullableString(
+      (row as { activation_reminder_24h_sent_at?: unknown })
+        .activation_reminder_24h_sent_at,
+    ),
+    activationReminder1hSentAt: coerceNullableString(
+      (row as { activation_reminder_1h_sent_at?: unknown })
+        .activation_reminder_1h_sent_at,
     ),
     createdAt: row.created_at,
   };

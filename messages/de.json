@@ -297,6 +297,7 @@
       "productDiscovery": "Aus Gesprächen",
       "researchPlans": "Research-Pläne",
       "marketResearch": "Studien",
+      "kalender": "Kalender",
       "newStudy": "Neue Studie",
       "participantPool": "Teilnehmer-Pool",
       "crossStudy": "Frag Konsoul",
@@ -1007,6 +1008,64 @@
       "rowRenewal": "Renewal",
       "rowNotes": "Notizen"
     }
+  },
+  "kalender": {
+    "sectionTitle": "Zeitplan",
+    "sectionDesc": "Plane, wann diese Studie live geht — oder schalte sie jetzt frei.",
+    "state": {
+      "none": "Nicht terminiert",
+      "scheduled": "Geplant",
+      "activating": "Wird aktiviert",
+      "activated": "Aktiviert",
+      "failed": "Fehlgeschlagen"
+    },
+    "scheduledForLabel": "Geplant für {when}",
+    "liveSince": "Live seit {when}",
+    "pickTimeLabel": "Aktivierungszeitpunkt",
+    "setSchedule": "Für später planen",
+    "changeSchedule": "Umplanen",
+    "cancelSchedule": "Planung aufheben",
+    "activateNow": "Jetzt aktivieren",
+    "activating": "Aktiviere …",
+    "saveSchedule": "Termin speichern",
+    "saving": "Speichern …",
+    "cancel": "Abbrechen",
+    "releaseHint": "„Jetzt aktivieren\" schaltet die Studie live und versendet die vorbereiteten Pool-Einladungen. Prolific wird nicht veröffentlicht — das bleibt ein separater Schritt.",
+    "toastScheduled": "Aktivierung geplant.",
+    "toastCancelled": "Planung aufgehoben.",
+    "toastActivatedLive": "Studie ist jetzt live.",
+    "releaseSent": "{count} versendet",
+    "releaseNeedsSchedule": "{count} brauchen noch einen Termin",
+    "releaseNeedsContact": "{count} ohne E-Mail",
+    "releaseFailed": "{count} fehlgeschlagen",
+    "errPickDate": "Bitte einen Zeitpunkt wählen.",
+    "errFutureDate": "Der Zeitpunkt muss in der Zukunft liegen.",
+    "errSaveSchedule": "Termin konnte nicht gespeichert werden.",
+    "errActivate": "Studie konnte nicht aktiviert werden.",
+    "widgetTitle": "Anstehende Studien",
+    "widgetSeeAll": "Alle ansehen",
+    "pageTitle": "Kalender",
+    "pageSubtitle": "Was ansteht — geplante Aktivierungen, laufende Studien und planbare Entwürfe.",
+    "planStudyCta": "Studie planen",
+    "kpiScheduled": "Geplant",
+    "kpiActive": "Aktiv",
+    "kpiDrafts": "Entwürfe",
+    "bucket": {
+      "past": "Jetzt fällig",
+      "today": "Heute",
+      "tomorrow": "Morgen",
+      "thisWeek": "Diese Woche",
+      "later": "Später"
+    },
+    "dueHint": "Geplante Zeit erreicht — jetzt aktivieren",
+    "sectionRunning": "Laufend",
+    "runningLabel": "Aktiv",
+    "sectionDrafts": "Nicht terminierte Entwürfe",
+    "scheduleCta": "Terminieren",
+    "emptyTitle": "Noch nichts geplant",
+    "emptyDesc": "Lege eine Studie an und plane, wann sie live gehen soll — du siehst sie dann hier in der Agenda.",
+    "emptyCta": "Studie anlegen",
+    "tzNote": "Alle Zeiten in Europe/Berlin"
   },
   "research": {
     "common": {
@@ -2220,6 +2279,12 @@
       "suggestion": "Vorschlag nicht gefunden",
       "poolEntry": "Pool-Eintrag nicht gefunden",
       "quota": "Quote nicht gefunden"
+    },
+    "scheduler": {
+      "notDraft": "Nur eine Entwurfs-Studie kann terminiert oder aktiviert werden.",
+      "inPast": "Der Aktivierungszeitpunkt muss in der Zukunft liegen.",
+      "couldNotSchedule": "Aktivierung konnte nicht geplant werden.",
+      "couldNotActivate": "Studie konnte nicht aktiviert werden."
     },
     "deals": {
       "notWon": "Deal nicht gefunden oder nicht als gewonnen markiert",

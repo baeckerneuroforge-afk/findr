@@ -68,6 +68,9 @@ const ICONS = {
     <path d="M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M14 9h4a1 1 0 0 1 1 1v11M3 21h18M8 8h2M8 12h2M8 16h2M17 13h-1M17 17h-1" />
   ),
   activity: <path d="M3 12h3.5L9 5l4 14 2.5-7H21" />,
+  calendar: (
+    <path d="M8 3v3m8-3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+  ),
   gitBranch: (
     <path d="M6 4v12M6 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM6 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 7a6 6 0 0 1-6 6h-2a4 4 0 0 0-4 4" />
   ),
@@ -166,6 +169,9 @@ const MODULES: Array<NavGroupDef & { module: DashboardModuleKey }> = [
     module: "marketResearch",
     items: [
       { href: "/dashboard/market-research", labelKey: "item.marketResearch", icon: "beaker" },
+      // Studien-Zeitplaner — Kalender-Agenda über geplante Aktivierungen
+      // (Deferred Activation). Eigene Top-Level-Route, market_research-scoped.
+      { href: "/dashboard/kalender", labelKey: "item.kalender", icon: "calendar" },
       // Org-weiter Teilnehmer-Pool — Route bleibt /research-plans/pool;
       // isActive() trennt ihn bereits vom researchPlans-Eintrag (PD-Gruppe).
       { href: "/dashboard/research-plans/pool", labelKey: "item.participantPool", icon: "people" },

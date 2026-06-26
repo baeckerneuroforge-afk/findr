@@ -217,6 +217,18 @@ export type ResearchPlanUseCase =
 // undefined→'b2b' so every legacy row + pre-migration read stays formal "Sie".
 export type ResearchPlanAudience = "b2b" | "b2c";
 
+// Deferred Activation (20260724000000). activation_state is the scheduling
+// lifecycle, ORTHOGONAL to status (which stays the 4-value union). A scheduled
+// study is status='draft' WITH activation_state='scheduled'. activation_mode
+// decides whether the Phase-2 cron may auto-release it.
+export type ActivationState =
+  | "none"
+  | "scheduled"
+  | "activating"
+  | "activated"
+  | "failed";
+export type ActivationMode = "manual" | "auto";
+
 export type ResearchPlanRow = {
   id: string;
   org_id: string | null;
@@ -303,6 +315,18 @@ export type ResearchPlanRow = {
   // select("*") omits it → coerceTaskDefinition defaults undefined→null →
   // byte-identical. Set only on usability_test studies; null otherwise.
   task_definition: Json | null;
+  // Deferred Activation (20260724000000). activation_state / activation_mode are
+  // NOT NULL DEFAULT in the DB ('none' / 'manual'); the others are nullable. The
+  // read mapper defaults undefined→'none'/'manual'/null pre-migration.
+  scheduled_activation_at: string | null;
+  activation_mode: ActivationMode;
+  activation_state: ActivationState;
+  activated_at: string | null;
+  activation_error: Json | null;
+  scheduled_by_user_id: string | null;
+  scheduled_by_email: string | null;
+  activation_reminder_24h_sent_at: string | null;
+  activation_reminder_1h_sent_at: string | null;
   created_at: string;
 };
 
@@ -344,6 +368,18 @@ type ResearchPlanInsert = {
   // Usability task (Phase 1). Optional; only the usability_test create path sets
   // it. Omitted → column stays NULL (byte-identical for every other create).
   task_definition?: Json | null;
+  // Deferred Activation (20260724000000). Never set at create time — a plan is
+  // born with the DB defaults ('none' / 'manual'); the scheduler routes write
+  // these later. Listed here so the typed client accepts the update.
+  scheduled_activation_at?: string | null;
+  activation_mode?: ActivationMode;
+  activation_state?: ActivationState;
+  activated_at?: string | null;
+  activation_error?: Json | null;
+  scheduled_by_user_id?: string | null;
+  scheduled_by_email?: string | null;
+  activation_reminder_24h_sent_at?: string | null;
+  activation_reminder_1h_sent_at?: string | null;
   created_at?: string;
 };
 
@@ -375,7 +411,56 @@ type ResearchPlanUpdate = {
   max_duration_seconds?: number | null;
   interview_depth?: InterviewDepth | null;
   task_definition?: Json | null;
+  // Deferred Activation (20260724000000) — written by the scheduler routes.
+  scheduled_activation_at?: string | null;
+  activation_mode?: ActivationMode;
+  activation_state?: ActivationState;
+  activated_at?: string | null;
+  activation_error?: Json | null;
+  scheduled_by_user_id?: string | null;
+  scheduled_by_email?: string | null;
+  activation_reminder_24h_sent_at?: string | null;
+  activation_reminder_1h_sent_at?: string | null;
   created_at?: string;
+};
+
+// ── scheduler_events — Phase-1 audit log (20260724000001) ──────────────────
+
+export type SchedulerEventType =
+  | "scheduled"
+  | "rescheduled"
+  | "schedule_cancelled"
+  | "manual_activated"
+  | "auto_activated"
+  | "activation_failed"
+  | "reminder_sent";
+
+export type SchedulerEventRow = {
+  id: string;
+  org_id: string;
+  plan_id: string;
+  event_type: SchedulerEventType;
+  triggered_by: "manual" | "cron";
+  triggered_by_user_id: string | null;
+  triggered_by_email: string | null;
+  detail: Json | null;
+  created_at: string;
+};
+
+type SchedulerEventInsert = {
+  id?: string;
+  org_id: string;
+  plan_id: string;
+  event_type: SchedulerEventType;
+  triggered_by?: "manual" | "cron";
+  triggered_by_user_id?: string | null;
+  triggered_by_email?: string | null;
+  detail?: Json | null;
+  created_at?: string;
+};
+
+type SchedulerEventUpdate = {
+  detail?: Json | null;
 };
 
 // ── research_invites ───────────────────────────────────────────────────────
@@ -1137,6 +1222,12 @@ export type DatabaseWithResearch = {
         Row: KonsoulActionLogRow;
         Insert: KonsoulActionLogInsert;
         Update: KonsoulActionLogUpdate;
+        Relationships: [];
+      };
+      scheduler_events: {
+        Row: SchedulerEventRow;
+        Insert: SchedulerEventInsert;
+        Update: SchedulerEventUpdate;
         Relationships: [];
       };
       synthesis_shares: {

@@ -28,6 +28,7 @@ import {
   computeKonsoulSignals,
   type KonsoulSignal,
 } from "@/lib/konsoul/signals";
+import { UpcomingStudiesWidget } from "@/components/dashboard/UpcomingStudiesWidget";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { buildForecastSummary } from "@/lib/forecast/service";
 import { getOnboardingStatus } from "@/lib/onboarding/status";
@@ -354,6 +355,10 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
           subtitle={t("kpiPoolSub")}
         />
       </div>
+
+      {/* Anstehende Studien — geplante Aktivierungen (Deferred Activation).
+          Rendert nichts, wenn keine Studie terminiert ist. */}
+      <UpcomingStudiesWidget plans={plans} locale={locale} />
 
       {topSteps.length > 0 && (
         <Card

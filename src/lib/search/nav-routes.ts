@@ -55,6 +55,7 @@ const ALL_PALETTE_ROUTES: PaletteRouteDef[] = [
   // bewusst NICHT in der Sidebar (dort stehen Orte, keine Aktionen); die
   // dokumentierte Sidebar-Parallelität gilt für alle übrigen Einträge.
   { module: "marketResearch", labelKey: "nav.item.marketResearch", href: "/dashboard/market-research", groupKey: "nav.group.marketResearch" },
+  { module: "marketResearch", labelKey: "nav.item.kalender", href: "/dashboard/kalender", groupKey: "nav.group.marketResearch" },
   { module: "marketResearch", labelKey: "nav.item.newStudy", href: "/dashboard/market-research/new", groupKey: "nav.group.marketResearch" },
   { module: "marketResearch", labelKey: "nav.item.participantPool", href: "/dashboard/research-plans/pool", groupKey: "nav.group.marketResearch" },
 

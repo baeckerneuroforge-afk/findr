@@ -297,6 +297,7 @@
       "productDiscovery": "From Conversations",
       "researchPlans": "Research Plans",
       "marketResearch": "Studies",
+      "kalender": "Calendar",
       "newStudy": "New study",
       "participantPool": "Participant Pool",
       "crossStudy": "Ask Konsoul",
@@ -1007,6 +1008,64 @@
       "rowRenewal": "Renewal",
       "rowNotes": "Notes"
     }
+  },
+  "kalender": {
+    "sectionTitle": "Schedule",
+    "sectionDesc": "Plan when this study goes live — or release it right now.",
+    "state": {
+      "none": "Not scheduled",
+      "scheduled": "Scheduled",
+      "activating": "Activating",
+      "activated": "Activated",
+      "failed": "Failed"
+    },
+    "scheduledForLabel": "Scheduled for {when}",
+    "liveSince": "Live since {when}",
+    "pickTimeLabel": "Activation time",
+    "setSchedule": "Schedule for later",
+    "changeSchedule": "Reschedule",
+    "cancelSchedule": "Cancel schedule",
+    "activateNow": "Activate now",
+    "activating": "Activating …",
+    "saveSchedule": "Save time",
+    "saving": "Saving …",
+    "cancel": "Cancel",
+    "releaseHint": "“Activate now” takes the study live and sends the prepared pool invites. Prolific is not published — that stays a separate step.",
+    "toastScheduled": "Activation scheduled.",
+    "toastCancelled": "Schedule cancelled.",
+    "toastActivatedLive": "Study is now live.",
+    "releaseSent": "{count} sent",
+    "releaseNeedsSchedule": "{count} still need a time",
+    "releaseNeedsContact": "{count} without email",
+    "releaseFailed": "{count} failed",
+    "errPickDate": "Please pick a time.",
+    "errFutureDate": "The time must be in the future.",
+    "errSaveSchedule": "Could not save the time.",
+    "errActivate": "Could not activate the study.",
+    "widgetTitle": "Upcoming studies",
+    "widgetSeeAll": "See all",
+    "pageTitle": "Calendar",
+    "pageSubtitle": "What's coming up — scheduled activations, running studies and drafts you can plan.",
+    "planStudyCta": "Plan a study",
+    "kpiScheduled": "Scheduled",
+    "kpiActive": "Active",
+    "kpiDrafts": "Drafts",
+    "bucket": {
+      "past": "Due now",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This week",
+      "later": "Later"
+    },
+    "dueHint": "Scheduled time reached — activate now",
+    "sectionRunning": "Running",
+    "runningLabel": "Active",
+    "sectionDrafts": "Unscheduled drafts",
+    "scheduleCta": "Schedule",
+    "emptyTitle": "Nothing planned yet",
+    "emptyDesc": "Create a study and plan when it should go live — it then shows up here in the agenda.",
+    "emptyCta": "Create a study",
+    "tzNote": "All times in Europe/Berlin"
   },
   "research": {
     "common": {
@@ -2220,6 +2279,12 @@
       "suggestion": "Suggestion not found",
       "poolEntry": "Pool entry not found",
       "quota": "Quota not found"
+    },
+    "scheduler": {
+      "notDraft": "Only a draft study can be scheduled or activated.",
+      "inPast": "The activation time must be in the future.",
+      "couldNotSchedule": "Could not schedule the activation.",
+      "couldNotActivate": "Could not activate the study."
     },
     "deals": {
       "notWon": "Deal not found or not marked won",

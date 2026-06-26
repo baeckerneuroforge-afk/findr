@@ -43,6 +43,7 @@ import { PlanQuotaPanel } from "@/components/dashboard/PlanQuotaPanel";
 import { PlanStatusControl } from "@/components/dashboard/PlanStatusControl";
 import { ProlificDraftPanel } from "@/components/dashboard/ProlificDraftPanel";
 import { ScreeningQuestionsPanel } from "@/components/dashboard/ScreeningQuestionsPanel";
+import { ScheduleActivationPanel } from "@/components/dashboard/ScheduleActivationPanel";
 import { ScheduleInviteAction } from "@/components/dashboard/ScheduleInviteAction";
 import { SectionRail } from "@/components/dashboard/SectionRail";
 import { SendInviteAction } from "@/components/dashboard/SendInviteAction";
@@ -151,6 +152,7 @@ export default async function MarketCampaignDetailPage({
   const t = await getTranslations("research.plans");
   const tm = await getTranslations("research.market");
   const ts = await getTranslations("syntheticTest");
+  const tk = await getTranslations("kalender");
   const locale = await getLocale();
 
   const { id: planId } = await params;
@@ -277,6 +279,7 @@ export default async function MarketCampaignDetailPage({
       items: [
         { id: "s-auswertung", label: t("synthesisLinkTitle") },
         { id: "s-personas", label: t("personasLinkTitle") },
+        { id: "s-schedule", label: tk("sectionTitle") },
         { id: "s-lifecycle", label: t("lifecycleTitle") },
       ],
     },
@@ -1152,6 +1155,21 @@ export default async function MarketCampaignDetailPage({
             </div>
           </CardBody>
         </Card>
+      </section>
+
+      {/* Zeitplan — Deferred Activation: terminieren + jetzt freischalten. */}
+      <section id="s-schedule" className="scroll-mt-28 space-y-3">
+        <div>
+          <h2 className="text-h3 text-neutral-900">{tk("sectionTitle")}</h2>
+          <p className="text-small text-neutral-500">{tk("sectionDesc")}</p>
+        </div>
+        <ScheduleActivationPanel
+          planId={plan.id}
+          status={plan.status}
+          activationState={plan.activationState}
+          scheduledActivationAt={plan.scheduledActivationAt}
+          activatedAt={plan.activatedAt}
+        />
       </section>
 
       {/* Status-Lifecycle */}
