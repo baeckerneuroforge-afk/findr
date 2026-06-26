@@ -660,15 +660,27 @@ function ProposalBlock({
   /** Baut den minimalen, orgId-freien Body für die jeweilige Ziel-Route. */
   function bodyFor(): Record<string, unknown> {
     switch (proposal.actionType) {
-      case "create_study_draft":
-        // POST /api/research/plans erwartet title + objective (Pflichtfelder).
-        // Beides kommt aus dem engine-gebauten Vorschlag (targetTitle + die
-        // rationale-Prosa als Objective, server-re-validiert per Zod, min 3).
-        // Status=draft setzt der DB-Default.
+      case "create_study_draft": {
+        // POST /api/research/plans erwartet title + objective (Pflichtfelder, je
+        // server-re-validiert min 3). objective = die rationale-Prosa (Engine
+        // garantiert sie nicht-leer). Status=draft setzt der DB-Default.
+        // studyType MUSS 'market_research' sein, damit Konsouls Entwurf in seinem
+        // eigenen Scope (Market-Research-Übersicht) landet — ohne das Feld greift
+        // im Schema der Default 'product_discovery' und der Entwurf taucht im
+        // MR-Bereich nicht auf. createResearchPlan stempelt dann study_type
+        // (sonst bleibt der Insert-Key weg → DB-DEFAULT). Keine weiteren Pflichtfelder.
+        //
+        // Titel-Fallback: studyTitle ist im Tool OPTIONAL → das Modell kann einen
+        // titellosen Vorschlag bauen. Ein leerer/zu kurzer Titel (<3) würde die
+        // title-Validierung 400en. Darum ein sicherer, lokalisierter Ersatztitel,
+        // damit der bestätigte Entwurf nie daran scheitert (umbenennbar).
+        const draftTitle = (proposal.targetTitle ?? "").trim();
         return {
-          title: proposal.targetTitle ?? "",
+          title: draftTitle.length >= 3 ? draftTitle : t("untitledStudy"),
           objective: result.rationale,
+          studyType: "market_research" as const,
         };
+      }
       case "run_guide":
         // POST /…/guide erwartet { goal } (min 3). studyId steckt im Pfad, nie
         // im Body. Der Vorschlag trägt kein separates Ziel-Feld → die rationale-
