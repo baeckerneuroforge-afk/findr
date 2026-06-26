@@ -22,7 +22,12 @@ import {
 } from "@/lib/research/plans-service";
 import { countPoolMembers } from "@/lib/research/participant-pool";
 import { HeuteGreeting } from "@/components/dashboard/HeuteGreeting";
-import { KonsoulSuggestions } from "@/components/dashboard/KonsoulSuggestions";
+import {
+  HeuteCoachSections,
+  CoachedHeuteSections,
+  type HeuteNextStep,
+} from "@/components/dashboard/HeuteCoachSections";
+import { isKonsoulCoachEnabled } from "@/lib/konsoul/coach-flag";
 import { AutoRefresh } from "@/components/dashboard/AutoRefresh";
 import {
   computeKonsoulSignals,
@@ -98,17 +103,6 @@ function formatDate(iso: string, locale: string): string {
     month: "short",
     day: "numeric",
   });
-}
-
-/** Ein regelbasierter „Nächster Schritt“ auf der Heute-Seite — rein aus
- *  Status + Zählungen abgeleitet, kein Score, keine Heuristik-Magie. */
-interface HeuteNextStep {
-  key: string;
-  planTitle: string;
-  action: string;
-  desc: string;
-  cta: string;
-  href: string;
 }
 
 /**
@@ -360,53 +354,35 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
           Rendert nichts, wenn keine Studie terminiert ist. */}
       <UpcomingStudiesWidget plans={plans} locale={locale} />
 
-      {topSteps.length > 0 && (
-        <Card
-          className="st-rise"
-          style={{ "--st": 2 } as React.CSSProperties}
+      {/* „Nächste Schritte" (R1/R2/R3, --st 2) + „Konsoul schlägt vor" (Signale,
+          --st 3) als eine Einheit. P4-Coach (flag-gated): wenn das Flag AN ist,
+          wertet ein Suspense-Loader beide Sektionen mit einer anchor-gefilterten
+          Opus-Kopfzeile auf — der Fallback rendert EXAKT die deterministischen
+          Karten (sofortiges Malen, nur progressive Verbesserung). Wenn das Flag
+          AUS ist (Default), wird dieselbe Komponente OHNE Suspense inline
+          gerendert (kein Opus, keine Streaming-Marker) ⇒ byte-gleich zum
+          P1-Stand. */}
+      {isKonsoulCoachEnabled() ? (
+        <Suspense
+          fallback={
+            <HeuteCoachSections
+              topSteps={topSteps}
+              konsoulSignals={konsoulSignals}
+            />
+          }
         >
-          <CardHeader className="flex items-center justify-between gap-4">
-            <h2 className="text-h3 text-neutral-900">{t("nextTitle")}</h2>
-            <span className="text-caption text-neutral-400">
-              {t("nextHint")}
-            </span>
-          </CardHeader>
-          {topSteps.map((step) => (
-            <div
-              key={step.key}
-              className="flex items-center justify-between gap-4 border-b border-neutral-100 px-5 py-4 last:border-b-0"
-            >
-              <div className="min-w-0">
-                <p className="text-body-strong text-neutral-900">
-                  {step.action}
-                  <span className="font-normal text-neutral-500">
-                    {" "}
-                    — {step.planTitle}
-                  </span>
-                </p>
-                <p className="mt-0.5 text-small text-neutral-500">
-                  {step.desc}
-                </p>
-              </div>
-              <Link
-                href={step.href}
-                className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-card px-3 text-small font-medium text-neutral-900 transition-colors hover:bg-neutral-50"
-              >
-                {step.cta}
-              </Link>
-            </div>
-          ))}
-        </Card>
-      )}
-
-      {/* Konsoul schlägt vor — proaktive, geerdete Vorschläge (Plan §4B). Nur
-          wenn der SignalEngine wirklich Signale liefert; additiv neben „Nächste
-          Schritte", gleiche Karten-Grammatik. Reiht sich in die st-rise-Staffel
-          direkt nach „Nächste Schritte" (--st 2) ein. */}
-      {konsoulSignals.length > 0 && (
-        <div className="st-rise" style={{ "--st": 3 } as React.CSSProperties}>
-          <KonsoulSuggestions signals={konsoulSignals} />
-        </div>
+          <CoachedHeuteSections
+            orgId={orgId}
+            locale={locale}
+            topSteps={topSteps}
+            konsoulSignals={konsoulSignals}
+          />
+        </Suspense>
+      ) : (
+        <HeuteCoachSections
+          topSteps={topSteps}
+          konsoulSignals={konsoulSignals}
+        />
       )}
 
       <div

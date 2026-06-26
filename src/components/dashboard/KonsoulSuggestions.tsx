@@ -29,7 +29,7 @@ import type {
  * max. 3 gekappt.
  */
 
-const MAX_CARDS = 3;
+export const MAX_CARDS = 3;
 
 /** Pro Signal-Kind: i18n-Schlüssel des Vorschlags-Satzes + des CTA-Buttons.
  *  Die Hrefs zeigen NUR auf sichere, lesende/anlegende Routen — nie
@@ -75,8 +75,14 @@ function tipArgs(signal: KonsoulSignal): Record<string, string | number> {
 
 export async function KonsoulSuggestions({
   signals,
+  frames,
 }: {
   signals: KonsoulSignal[];
+  /** P4 (Coach): optionale, anchor-gefilterte Opus-Kopfzeile je signal.key. Fehlt
+   *  ein Eintrag (Flag aus / LLM-Fehler / Filter-Reject), bleibt der
+   *  deterministische i18n-Tip stehen. NIE eine Zahl — die Evidenz-Zeile darunter
+   *  trägt die echte Zählung unverändert. */
+  frames?: Map<string, string>;
 }) {
   const t = await getTranslations("konsoulCoach");
 
@@ -128,7 +134,7 @@ export async function KonsoulSuggestions({
                 </p>
               )}
               <p className="text-body-strong text-neutral-900">
-                {t(TIP_KEY[signal.kind], tipArgs(signal))}
+                {frames?.get(signal.key) ?? t(TIP_KEY[signal.kind], tipArgs(signal))}
               </p>
               <p
                 className={
