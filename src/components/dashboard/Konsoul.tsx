@@ -165,35 +165,35 @@ export function Konsoul({
       )}
 
       <div
-        className={`w-[200px] overflow-hidden rounded-card border border-neutral-200 bg-card text-neutral-900 shadow-card ${
+        className={`w-[248px] overflow-hidden rounded-card border border-neutral-200 bg-card text-neutral-900 shadow-card ${
           state === "greet" ? "knsl-bounce" : ""
         }`}
       >
         {/* Titelleiste */}
-        <div className="flex h-[24px] items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-3">
+        <div className="flex h-[28px] items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-4">
           <span className="flex gap-[5px]">
-            <i className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
-            <i className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
-            <i className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
+            <i className="h-[7px] w-[7px] rounded-full bg-neutral-400" />
+            <i className="h-[7px] w-[7px] rounded-full bg-neutral-400" />
+            <i className="h-[7px] w-[7px] rounded-full bg-neutral-400" />
           </span>
-          <span className="font-mono text-[11.5px] text-neutral-500">konsoul</span>
+          <span className="font-mono text-[12px] text-neutral-500">konsoul</span>
         </div>
 
         {/* Gesicht ODER Tipp-Trace */}
-        <div className="relative flex h-[76px] flex-col justify-center px-3.5">
+        <div className="relative flex h-[98px] flex-col justify-center px-4">
           {state === "research" ? (
-            <div className="flex flex-col justify-center gap-1 font-mono text-[11px] leading-tight text-neutral-500">
+            <div className="flex flex-col justify-center gap-1.5 font-mono text-[12.5px] leading-tight text-neutral-500">
               {TRACE.slice(0, traceCount).map((line, i) => (
                 <div key={i} className="truncate">
                   {line}
                   {i === traceCount - 1 && (
-                    <span className="ml-0.5 inline-block h-[11px] w-[5px] translate-y-px bg-neutral-900 align-baseline knsl-blink" />
+                    <span className="ml-0.5 inline-block h-[12px] w-[6px] translate-y-px bg-neutral-900 align-baseline knsl-blink" />
                   )}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="h-[46px]">
+            <div className="h-[62px]">
               <Face state={state} />
             </div>
           )}
@@ -201,10 +201,10 @@ export function Konsoul({
           {/* amber Schulterzucken-Klammern (hedge) */}
           {state === "hedge" && (
             <>
-              <span className="pointer-events-none absolute left-2.5 top-[34px] font-mono text-[17px] text-warning-500">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-[55%] font-mono text-[22px] text-warning-500">
                 ⌐
               </span>
-              <span className="pointer-events-none absolute right-2.5 top-[34px] font-mono text-[17px] text-warning-500">
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-[55%] font-mono text-[22px] text-warning-500">
                 ¬
               </span>
             </>
@@ -219,8 +219,8 @@ export function Konsoul({
         </div>
 
         {/* Daten-Pip */}
-        <div className="flex min-h-[28px] items-center gap-1.5 border-t border-neutral-200 px-3.5 py-1.5 font-mono text-[11.5px] text-neutral-500">
-          <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${pip.cls}`} />
+        <div className="flex min-h-[32px] items-center gap-2 border-t border-neutral-200 px-4 py-2 font-mono text-[12.5px] text-neutral-500">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${pip.cls}`} />
           {pip.sym && (
             <span
               className={
