@@ -8,16 +8,22 @@ import type { CrossStudyAgentResult } from "@/lib/schemas/cross-study-agent";
 import type { MissionControlHistoryTurn } from "@/lib/schemas/mission-control";
 import {
   KonsoulResultSchema,
+  KonsoulActionTypeSchema,
   type KonsoulAgentRequest,
   type KonsoulResult,
+  type KonsoulProposal,
+  type KonsoulProposalActionType,
+  type KonsoulProposalPrecondition,
   type PortfolioFacts,
+  type PortfolioStudyFact,
 } from "@/lib/schemas/konsoul-agent";
 import {
-  KONSOUL_TOOL_DEFS,
   GET_PORTFOLIO_OVERVIEW_TOOL,
   GET_STUDY_STATUS_TOOL,
   GET_HELP_TOOL,
   DELEGATE_CROSS_STUDY_TOOL,
+  PROPOSE_ACTION_TOOL_NAME,
+  konsoulToolDefs,
   makeKonsoulReadTools,
   formatPortfolioFactsForTool,
   formatHelpTopicForTool,
@@ -28,6 +34,11 @@ import {
   type HelpLocale,
 } from "./tools";
 import { KONSOUL_AGENT_SYSTEM_PROMPT } from "./prompts";
+import { isKonsoulActionsEnabled } from "@/lib/konsoul/actions-flag";
+import {
+  logProposed,
+  type KonsoulCountsKey,
+} from "./action-audit";
 
 /**
  * Konsoul-Orchestrator (P2) — 'ein Gehirn, mehrere Türen', STRIKT read-only.
@@ -67,6 +78,10 @@ export const KONSOUL_ORCHESTRATOR_MODEL = CLAUDE_MODELS.sonnet;
 const STEP_BUDGET = 6;
 const MAX_TOKENS = 1500;
 const EMIT_TOOL_NAME = "emit_guidance";
+
+/** Prompt-/Vertrags-Version, die ins Audit (`model_version`) wandert. KEIN
+ *  Modell-Output — ein statischer Bezeichner für Reproduzierbarkeit. */
+const KONSOUL_PROMPT_VERSION = "konsoul-p3.1";
 
 /** Ruhige, ehrliche Ablehnung, wenn kein Tool verwertbare Evidenz lieferte und
  *  das Modell nichts ehrlich formulieren kann. Nie rot. */
@@ -172,6 +187,152 @@ function buildGuidance(
   });
 }
 
+// ── propose_action (P3 — TERMINAL, deterministischer Vorschlags-Builder) ──────
+
+/** Aktionen mit Opus-Lauf (Kosten). create_study_draft ist LLM-frei. */
+const COSTS_MODEL_ACTIONS = new Set<KonsoulProposalActionType>([
+  "run_synthesis",
+  "run_personas",
+  "run_guide",
+]);
+
+/** Aktionen, die zwingend eine bestehende Zielstudie (studyId) brauchen.
+ *  create_study_draft legt eine NEUE Zeile an → kein studyId. */
+const STUDY_TARGET_ACTIONS = new Set<KonsoulProposalActionType>([
+  "run_synthesis",
+  "run_personas",
+  "run_guide",
+]);
+
+/** Das vom Builder zurückgegebene Ergebnis: entweder ein fertiger, deterministisch
+ *  gebauter Vorschlag — oder ein strukturierter Fehler mit Nudge-Text fürs Modell
+ *  (fremde/halluzinierte studyId, fehlende studyId, unbekannter actionType). NIE
+ *  ein Vorschlag bei ungültigem Input. */
+type BuildProposalOutcome =
+  | { ok: true; proposal: KonsoulProposal; targetStudy: PortfolioStudyFact | null }
+  | { ok: false; nudge: string };
+
+/**
+ * Baut den Aktions-Vorschlag DETERMINISTISCH aus den Modell-Args + dem bereits
+ * geladenen `acc.data` (PortfolioFacts). KEINE Ausführung. Das Modell liefert nur
+ * actionType/studyId/Titel; precondition/destructive/costsModel kommen
+ * AUSSCHLIESSLICH aus acc.data bzw. dem actionType — nie aus Modell-Prosa.
+ *
+ * Org-Grenzschutz VOR dem Klick: eine studyId, die nicht im org-gefilterten
+ * PortfolioFacts steht (fremd/halluziniert), führt zu `{ ok:false }` → is_error +
+ * Nudge, NIE zu einem Vorschlag.
+ */
+export function buildProposalFromArgs(
+  input: unknown,
+  data: PortfolioFacts | undefined,
+): BuildProposalOutcome {
+  // actionType deterministisch gegen die 4er-Allowlist validieren (Backstop zum
+  // Tool-Enum; ein halluzinierter Wert wird hier hart abgewiesen).
+  const rawAction = readStringArg(input, "actionType");
+  const parsedAction = KonsoulActionTypeSchema.safeParse(rawAction);
+  if (!parsedAction.success) {
+    return {
+      ok: false,
+      nudge: `Unbekannter actionType '${rawAction ?? "?"}'. Erlaubt sind genau: create_study_draft, run_synthesis, run_personas, run_guide. Für jede andere Aktion hast du kein Tool — lehne sie über emit_guidance ehrlich ab.`,
+    };
+  }
+  const actionType = parsedAction.data;
+  const costsModel = COSTS_MODEL_ACTIONS.has(actionType);
+
+  // create_study_draft: NEUE Zeile, kein studyId, nicht-destruktiv, LLM-frei.
+  if (actionType === "create_study_draft") {
+    const studyTitle = readStringArg(input, "studyTitle");
+    const proposal: KonsoulProposal = {
+      actionType,
+      destructive: false,
+      costsModel,
+      ...(studyTitle ? { targetTitle: studyTitle } : {}),
+    };
+    return { ok: true, proposal, targetStudy: null };
+  }
+
+  // run_*: braucht eine BESTEHENDE Studie. studyId deterministisch gegen den
+  // org-gefilterten PortfolioFacts validieren.
+  if (STUDY_TARGET_ACTIONS.has(actionType)) {
+    const studyId = readStringArg(input, "studyId");
+    if (!studyId) {
+      return {
+        ok: false,
+        nudge: `${actionType} braucht eine studyId einer BESTEHENDEN Studie. Rufe zuerst get_portfolio_overview und übergib eine echte id.`,
+      };
+    }
+    const study = (data?.studies ?? []).find((s) => s.studyId === studyId);
+    if (!study) {
+      // Fremde/halluzinierte id → NIE ein Vorschlag (erster Org-Grenzschutz).
+      return {
+        ok: false,
+        nudge: `Studie id='${studyId}' gehört nicht zum Portfolio dieser Organisation. Nutze ausschließlich ids aus get_portfolio_overview — erfinde keine. Für unbekannte Studien hast du keinen Vorschlag.`,
+      };
+    }
+
+    // destructive NUR aus acc.data: run_synthesis/run_personas ersetzen ein
+    // bestehendes Artefakt, wenn es schon existiert (upsert onConflict). run_guide
+    // überschreibt topic_script — dessen Befüll-Stand trägt PortfolioFacts nicht,
+    // darum hier konservativ NICHT als destructive markiert (die stärkere Guide-
+    // Warnung ist P3.3 und braucht ein topic_script-Flag, das hier fehlt).
+    //
+    // run_personas: hasPersonas wird im Prod-Pfad deterministisch geladen (true =
+    // Personas existieren bereits → Re-Run ersetzt sie, stark warnen; false =
+    // erstmalig, leichte Karte). KONSERVATIVER FALLBACK: schlug der hasPersonas-
+    // Read fehl (undefined) UND existiert eine Synthese (Personas leiten sich aus
+    // ihr ab, könnten also schon da sein) → lieber als destruktiv markieren als
+    // still zu überschreiben.
+    const destructive =
+      actionType === "run_synthesis"
+        ? study.hasSynthesis
+        : actionType === "run_personas"
+          ? study.hasPersonas === true ||
+            (study.hasPersonas === undefined && study.hasSynthesis === true)
+          : false;
+
+    const precondition: KonsoulProposalPrecondition = {
+      completedSessions: study.completedSessions,
+      hasSynthesis: study.hasSynthesis,
+      ...(study.hasPersonas !== undefined
+        ? { hasPersonas: study.hasPersonas }
+        : {}),
+      ...(study.basedOnCount !== undefined
+        ? { basedOnCount: study.basedOnCount }
+        : {}),
+    };
+
+    const proposal: KonsoulProposal = {
+      actionType,
+      targetStudyId: studyId,
+      destructive,
+      costsModel,
+      precondition,
+    };
+    return { ok: true, proposal, targetStudy: study };
+  }
+
+  // Unerreichbar (alle 4 Typen oben behandelt) — fail-closed.
+  return {
+    ok: false,
+    nudge: `actionType '${actionType}' wird nicht unterstützt.`,
+  };
+}
+
+/** Sammelt die whitelisted Audit-Counts aus dem Ziel-Studienfaktum. Nur Zahlen,
+ *  die das Audit-Schema (COUNTS_KEY_WHITELIST) zulässt — sanitizeCounts ist der
+ *  zweite Filter. Kein Synthese-/Persona-Inhalt, keine Prosa. */
+function auditCountsFor(
+  study: PortfolioStudyFact | null,
+): Partial<Record<KonsoulCountsKey, number>> {
+  if (!study) return {};
+  const counts: Partial<Record<KonsoulCountsKey, number>> = {};
+  if (study.completedSessions !== null)
+    counts.completed_sessions = study.completedSessions;
+  if (study.basedOnCount !== undefined)
+    counts.based_on_count = study.basedOnCount;
+  return counts;
+}
+
 // ── Emit-Tool (NUR für den guidance-Pfad — die Prosa) ────────────────────────
 
 /** Das erzwungene Emit-Tool für guidance. Das Modell liefert NUR die Prosa
@@ -230,8 +391,16 @@ export async function runKonsoulAgentWith(
   request: KonsoulAgentRequest,
   locale: HelpLocale = "de",
   model: string = KONSOUL_ORCHESTRATOR_MODEL,
+  // P3-Flag (default aus der Env-Quelle). Ist es aus, wird `propose_action` dem
+  // Modell NICHT angeboten → Konsoul bleibt exakt das P2-read-only-Verhalten
+  // (byte-gleich). Der Test injiziert true/false explizit.
+  actionsEnabled: boolean = isKonsoulActionsEnabled(),
 ): Promise<KonsoulResult> {
   const client = getAnthropicClient();
+
+  // Bei aktivem Flag bietet der Loop zusätzlich propose_action an; sonst exakt das
+  // heutige P2-Toolset. Das Emit-Tool wird wie bisher separat dazugemischt.
+  const offeredTools = [...konsoulToolDefs(actionsEnabled), EMIT_GUIDANCE_TOOL];
 
   const messages: Anthropic.MessageParam[] = [
     ...(request.history ?? []).map((h) => ({
@@ -252,7 +421,7 @@ export async function runKonsoulAgentWith(
           max_tokens: MAX_TOKENS,
           system: KONSOUL_AGENT_SYSTEM_PROMPT,
           messages,
-          tools: [...KONSOUL_TOOL_DEFS, EMIT_GUIDANCE_TOOL],
+          tools: offeredTools,
           // Erster Turn: irgendein Tool erzwingen (handeln, nicht freitexten);
           // danach auto, damit das Modell entscheidet, wann es delegiert/emittet.
           tool_choice: step === 0 ? { type: "any" } : { type: "auto" },
@@ -309,6 +478,65 @@ export async function runKonsoulAgentWith(
         );
       }
       return mapCrossStudyToKonsoul(csResult);
+    }
+
+    // PROPOSE_ACTION (P3 — terminal, wie delegate/emit). NUR bei aktivem Flag
+    // verarbeitet; sonst wurde das Tool gar nicht angeboten und ein etwaiger
+    // Aufruf fällt in den generischen 'Unbekanntes Tool'-is_error-Pfad unten
+    // (defense-in-depth: die Engine baut OHNE Flag NIE einen Vorschlag).
+    const proposeUse = actionsEnabled
+      ? toolUses.find((tu) => tu.name === PROPOSE_ACTION_TOOL_NAME)
+      : undefined;
+    if (proposeUse) {
+      const outcome = buildProposalFromArgs(proposeUse.input, acc.data);
+      if (!outcome.ok) {
+        // Fremde/halluzinierte studyId, fehlende studyId oder unbekannter
+        // actionType → is_error + Nudge, NIE ein Vorschlag. Weiterlaufen lassen
+        // (Budget bremst), das Modell kann korrigieren oder ehrlich ablehnen.
+        messages.push({
+          role: "user",
+          content: [
+            {
+              type: "tool_result",
+              tool_use_id: proposeUse.id,
+              content: outcome.nudge,
+              is_error: true,
+            },
+          ],
+        });
+        continue;
+      }
+
+      // Deterministischer Vorschlag steht. Das Modell liefert NUR die rationale-
+      // Prosa fürs UI — sie wird NIE persistiert (das Audit trägt kein Freitext-
+      // Feld). Falls leer, eine neutrale Default-Zeile, damit der Vertrag hält.
+      const rationale =
+        readStringArg(proposeUse.input, "rationale") ??
+        "Vorgeschlagene Aktion auf Basis deines Portfolios.";
+
+      // Audit-Schreibung #1 ('proposed', VOR jeder Ausführung). Fail-open: ein
+      // Schreibfehler darf den Vorschlag nicht kippen (logProposed loggt + gibt
+      // auditId:null zurück). Nur whitelisted Metadaten reisen mit; sanitizeCounts
+      // ist der zweite Filter im Audit-Writer. Die auditId reist im Envelope mit,
+      // damit der spätere Confirm-/Dismiss-Beacon GENAU diese Zeile auf accepted/
+      // ignored setzen kann (Audit-Schreibung #2).
+      const { auditId } = await logProposed({
+        orgId: request.orgId,
+        actionType: outcome.proposal.actionType,
+        planId: outcome.proposal.targetStudyId ?? null,
+        model,
+        modelVersion: KONSOUL_PROMPT_VERSION,
+        counts: auditCountsFor(outcome.targetStudy),
+      });
+
+      return assertKonsoulResult({
+        kind: "proposal",
+        answered: true,
+        rationale,
+        proposal: outcome.proposal,
+        ...(auditId ? { auditId } : {}),
+        ...(acc.data ? { data: acc.data } : {}),
+      });
     }
 
     // EMIT (guidance) — das Modell hat genug; Engine setzt kind:'guidance' und

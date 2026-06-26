@@ -2,7 +2,10 @@ import "server-only";
 
 import type Anthropic from "@anthropic-ai/sdk";
 
-import { loadOrgSyntheses } from "@/lib/mission-control/engine";
+import {
+  loadOrgSyntheses,
+  loadOrgPersonaPlanIds,
+} from "@/lib/mission-control/engine";
 import type { MissionControlSynthesisInput } from "@/lib/mission-control/prompts";
 import {
   listResearchPlans,
@@ -260,15 +263,94 @@ export const DELEGATE_CROSS_STUDY_TOOL: Anthropic.Tool = {
   },
 };
 
-/** Alle vier Konsoul-Tools, die der Orchestrator-Loop anbietet. Statisch
- *  exportiert für den PII-Negativtest (die gebundene Tool-Liste darf KEINES der
- *  verbotenen PII-Reads enthalten). */
+/** Alle vier read-only Konsoul-Tools (P2), die der Orchestrator-Loop IMMER
+ *  anbietet. Statisch exportiert für den PII-Negativtest (die gebundene Tool-
+ *  Liste darf KEINES der verbotenen PII-Reads enthalten). Diese Liste bleibt
+ *  byte-gleich zu P2 — das P3-Aktions-Tool wird NICHT hier gemischt, sondern
+ *  über `konsoulToolDefs()` flag-gegated angehängt. */
 export const KONSOUL_TOOL_DEFS: Anthropic.Tool[] = [
   GET_PORTFOLIO_OVERVIEW_TOOL,
   GET_STUDY_STATUS_TOOL,
   GET_HELP_TOOL,
   DELEGATE_CROSS_STUDY_TOOL,
 ];
+
+// ── P3 propose_action (flag-gated, additiv, TERMINAL, NIE selbst ausführend) ──
+
+/** Der EINE additive Aktions-Tool-Name (P3). Genau EINE Tool-Definition mit
+ *  einem actionType-Enum der vier erlaubten Aktionen (statt vier Einzel-Tools →
+ *  eine Validierungsstelle in der Engine). */
+export const PROPOSE_ACTION_TOOL_NAME = "propose_action";
+
+/** Die GENAU VIER erlaubten Aktionstypen (Allowlist, fail-closed). Single Source
+ *  of Truth für das Tool-Enum UND den Engine-seitigen Validierungs-Backstop.
+ *  VERBOTEN (existieren als Aktion NICHT): publish/Prolific, invites, invite-from-
+ *  pool, open-link, panel/*, screening/quotas, participants, stimuli, share, chat. */
+export const KONSOUL_PROPOSE_ACTION_TYPES = [
+  "create_study_draft",
+  "run_synthesis",
+  "run_personas",
+  "run_guide",
+] as const;
+
+/**
+ * Das terminale `propose_action`-Tool (P3). Spiegelbild zu emit_guidance /
+ * delegate_cross_study: das Modell liefert NUR Argumente (actionType aus dem 4er-
+ * Enum + studyId/Titel + kurze rationale-Prosa fürs UI); die ENGINE baut den
+ * Vorschlag deterministisch (kind:'proposal'), validiert studyId gegen
+ * PortfolioFacts und führt NICHTS aus. KEINE orgId — die ist server-autoritativ
+ * und das Modell sieht sie nie.
+ *
+ * NUR über `konsoulToolDefs()` angeboten, und auch nur bei aktivem Flag.
+ */
+export const PROPOSE_ACTION_TOOL: Anthropic.Tool = {
+  name: PROPOSE_ACTION_TOOL_NAME,
+  description:
+    "SCHLÄGT dem Forscher eine SICHERE, org-seitige Aktion VOR (du führst sie NIE aus — der Mensch bestätigt sie per Klick). Nutze dies, wenn der Nutzer ausdrücklich eine dieser vier Aktionen anstößt ('leg mir einen Entwurf an', 'starte die Synthese', 'erzeuge Personas', 'generiere den Leitfaden'). Erlaubt sind GENAU VIER actionType-Werte: create_study_draft (neue Studien-Entwurfszeile; gib studyTitle), run_synthesis / run_personas / run_guide (auf eine BESTEHENDE Studie; gib studyId aus get_portfolio_overview). Für JEDE andere, teilnehmer- oder geld-nahe Aktion (etwa Veröffentlichen, Rekrutierung, Material- oder Link-Mutationen) hast du KEIN Tool — lehne sie ehrlich über emit_guidance ab. Du setzt NIE orgId. Übergib actionType, ggf. studyId/studyTitle und eine kurze deutsche Begründung (rationale).",
+  input_schema: {
+    type: "object",
+    properties: {
+      actionType: {
+        type: "string",
+        enum: [...KONSOUL_PROPOSE_ACTION_TYPES],
+        description:
+          "Eine der vier erlaubten Aktionen. Jeder andere Wert wird verworfen.",
+      },
+      studyId: {
+        type: "string",
+        description:
+          "Die id einer BESTEHENDEN Studie aus get_portfolio_overview (Pflicht bei run_synthesis/run_personas/run_guide). Eine fremde/erfundene id wird verworfen.",
+      },
+      studyTitle: {
+        type: "string",
+        description:
+          "Vorgeschlagener Titel der NEUEN Studie — NUR bei create_study_draft.",
+      },
+      rationale: {
+        type: "string",
+        description:
+          "Kurze, neutrale deutsche Begründung, warum diese Aktion jetzt sinnvoll ist. Fürs UI — nenne nur tool-gelieferte Zahlen, schätze nicht.",
+      },
+    },
+    required: ["actionType", "rationale"],
+  },
+};
+
+/**
+ * Die Tool-Liste, die der Orchestrator-Loop dem Modell anbietet. Bei AKTIVEM
+ * Aktions-Flag wird `propose_action` additiv angehängt; sonst exakt das heutige
+ * P2-Read-Toolset (byte-gleich). Das Emit-Tool (emit_guidance) mischt die Engine
+ * separat dazu.
+ *
+ * Der Flag-Wert wird als Argument hereingereicht (kein Import von actions-flag
+ * hier), damit diese Datei rein/testbar bleibt und der Aufrufer (Engine) die eine
+ * Flag-Quelle besitzt.
+ */
+export function konsoulToolDefs(actionsEnabled: boolean): Anthropic.Tool[] {
+  return actionsEnabled
+    ? [...KONSOUL_TOOL_DEFS, PROPOSE_ACTION_TOOL]
+    : KONSOUL_TOOL_DEFS;
+}
 
 // ── Production-Toolset (org-backed, read-only, orgId per Closure) ─────────────
 
@@ -288,16 +370,20 @@ export const KONSOUL_TOOL_DEFS: Anthropic.Tool[] = [
 export function makeKonsoulReadTools(orgId: string): KonsoulReadToolset {
   async function loadPortfolioFresh(): Promise<PortfolioFacts> {
     // market_research-Scope (wie P1-Signale): das ist Konsouls Portfolio-Universe.
-    const [plans, syntheses, signals, poolSize] = await Promise.all([
-      listResearchPlans(orgId, "market_research").catch(
-        () => [] as ResearchPlanRecord[],
-      ),
-      loadOrgSyntheses(orgId).catch(
-        () => [] as MissionControlSynthesisInput[],
-      ),
-      computeKonsoulSignals(orgId).catch(() => [] as KonsoulSignal[]),
-      countPoolMembers(orgId).catch(() => 0),
-    ]);
+    // personaPlanIds: Set der plan_ids mit bereits erzeugten Personas (oder null
+    // bei Lese-Fehler) — treibt die ehrliche run_personas-Überschreib-Warnung.
+    const [plans, syntheses, signals, poolSize, personaPlanIds] =
+      await Promise.all([
+        listResearchPlans(orgId, "market_research").catch(
+          () => [] as ResearchPlanRecord[],
+        ),
+        loadOrgSyntheses(orgId).catch(
+          () => [] as MissionControlSynthesisInput[],
+        ),
+        computeKonsoulSignals(orgId).catch(() => [] as KonsoulSignal[]),
+        countPoolMembers(orgId).catch(() => 0),
+        loadOrgPersonaPlanIds(orgId).catch(() => null),
+      ]);
     const completedByPlan =
       plans.length > 0
         ? await countCompletedSessionsForPlans(
@@ -305,12 +391,19 @@ export function makeKonsoulReadTools(orgId: string): KonsoulReadToolset {
             plans.map((p) => p.id),
           ).catch(() => null)
         : new Map<string, number>();
+    // Nur bei erfolgreichem Read einen deterministischen true/false-Flag pro Plan
+    // setzen; bei Lese-Fehler (null) hasPersonasByPlan WEGLASSEN → fact.hasPersonas
+    // bleibt undefined → die Engine warnt konservativ (undefined && hasSynthesis).
+    const hasPersonasByPlan = personaPlanIds
+      ? new Map(plans.map((p) => [p.id, personaPlanIds.has(p.id)]))
+      : undefined;
     return buildPortfolioFacts({
       plans,
       syntheses,
       completedByPlan,
       poolSize,
       signals,
+      ...(hasPersonasByPlan ? { hasPersonasByPlan } : {}),
     });
   }
 

@@ -49,9 +49,30 @@ vi.mock("@/lib/anthropic/client", () => ({
   }),
 }));
 
+// P3: the propose-action terminal path fires logProposed → createResearchSupabase.
+// Fake the research-Supabase so the audit write is captured (and asserts the
+// metadata-only contract from the engine side) without touching a real DB.
+let auditInserts: Record<string, unknown>[] = [];
+vi.mock("@/lib/research/db", () => ({
+  createResearchSupabase: () => ({
+    from: () => ({
+      insert: (row: Record<string, unknown>) => {
+        auditInserts.push(row);
+        return {
+          select: () => ({
+            single: () =>
+              Promise.resolve({ data: { id: "audit_test" }, error: null }),
+          }),
+        };
+      },
+    }),
+  }),
+}));
+
 import {
   runKonsoulAgentWith,
   mapCrossStudyToKonsoul,
+  buildProposalFromArgs,
   KonsoulAgentUnavailableError,
   KONSOUL_ORCHESTRATOR_MODEL,
   type CrossStudyDelegate,
@@ -61,9 +82,14 @@ import {
   pickStudyFacts,
   formatPortfolioFactsForTool,
   resolveHelpTopicKey,
+  konsoulToolDefs,
   KONSOUL_TOOL_DEFS,
+  PROPOSE_ACTION_TOOL,
+  PROPOSE_ACTION_TOOL_NAME,
+  KONSOUL_PROPOSE_ACTION_TYPES,
   type KonsoulReadToolset,
 } from "./tools";
+import { COUNTS_KEY_WHITELIST } from "./action-audit";
 import type { PortfolioFacts } from "@/lib/schemas/konsoul-agent";
 
 // ── Message-Bausteine (Anthropic.Message-Form) ───────────────────────────────
@@ -192,6 +218,7 @@ beforeEach(() => {
   scriptedResponses = [];
   createCalls = [];
   createImpl = null;
+  auditInserts = [];
 });
 
 // ── Deterministic tools ──────────────────────────────────────────────────────
@@ -588,5 +615,355 @@ describe("KONSOUL_TOOL_DEFS — PII negative test", () => {
         expect(JSON.stringify(tool.input_schema)).not.toContain(bad);
       }
     }
+  });
+});
+
+// ── P3 PII negative test (Review-AUFLAGE 2) — the ACTIVE-flag tool surface ─────
+//
+// Bei AKTIVEM Aktions-Flag bietet der Loop GENAU die vier read-only Tools PLUS
+// `propose_action` an — und NICHTS Teilnehmer-/Geld-/Versand-nahes. Diese Liste
+// wird hier exakt festgenagelt (toEqual), der propose_action.actionType-Enum
+// exakt auf die vier erlaubten Aktionen, und KEIN Tool-Name/input_schema darf
+// einen der verbotenen Verben-Substrings tragen (Name UND Schema geprüft).
+describe("konsoulToolDefs(true) — P3 action-tool allowlist (AUFLAGE 2)", () => {
+  const activeDefs = konsoulToolDefs(true);
+
+  it("the active-flag surface is EXACTLY the 4 reads + propose_action (toEqual)", () => {
+    const names = activeDefs.map((t) => t.name).sort();
+    expect(names).toEqual(
+      [
+        "get_portfolio_overview",
+        "get_study_status",
+        "get_help",
+        "delegate_cross_study",
+        "propose_action",
+      ].sort(),
+    );
+    // propose_action is the ONE additive tool over the P2 read set.
+    expect(names).toHaveLength(5);
+    expect(activeDefs).toContain(PROPOSE_ACTION_TOOL);
+    expect(PROPOSE_ACTION_TOOL.name).toBe(PROPOSE_ACTION_TOOL_NAME);
+  });
+
+  it("propose_action.actionType enum is EXACTLY the 4 allowed actions (toEqual)", () => {
+    const schema = PROPOSE_ACTION_TOOL.input_schema as {
+      properties?: { actionType?: { enum?: string[] } };
+    };
+    const actionEnum = schema.properties?.actionType?.enum ?? [];
+    expect([...actionEnum].sort()).toEqual(
+      ["create_study_draft", "run_synthesis", "run_personas", "run_guide"].sort(),
+    );
+    // The enum is sourced from the single allowlist constant.
+    expect([...actionEnum].sort()).toEqual(
+      [...KONSOUL_PROPOSE_ACTION_TYPES].sort(),
+    );
+    // No forbidden action ever appears in the enum.
+    for (const a of actionEnum) {
+      expect(a).not.toMatch(
+        /publish|invite|pool|open[-_]?link|send|screening|quota|stimulus|share|participant/i,
+      );
+    }
+  });
+
+  it("NO tool NAME carries a forbidden participant/money/send verb, and the action tool's input_schema is clean", () => {
+    // The hard red lines: nothing publish/Prolific, invite, invite-from-pool,
+    // open-link, pool, send, screening, quota, stimulus, share, participant.
+    //
+    // Two checks with the right scope:
+    //  - NO offered tool may be NAMED with a forbidden verb (the capability never
+    //    exists as a tool — fail-closed Whitelist).
+    //  - The ACTION tool (propose_action) — the only model-controllable mutation
+    //    surface — must carry none of these verbs in its input_schema either
+    //    (name AND schema, per AUFLAGE 2). (The read tools' help descriptions may
+    //    legitimately *document* how-to topics like 'pool.invite'; that's the P2
+    //    read-only surface already guarded by the PII negative test above, and
+    //    nothing there is an action.)
+    const forbiddenSubstrings = [
+      "publish",
+      "invite",
+      "invite-from-pool",
+      "open-link",
+      "open_link",
+      "openlink",
+      "pool",
+      "send",
+      "screening",
+      "quota",
+      "stimulus",
+      "share",
+      "participant",
+    ];
+    for (const tool of activeDefs) {
+      const haystackName = tool.name.toLowerCase();
+      for (const bad of forbiddenSubstrings) {
+        expect(
+          haystackName.includes(bad),
+          `tool name '${tool.name}' contains forbidden '${bad}'`,
+        ).toBe(false);
+      }
+    }
+    // The action tool's full input_schema is held to the stricter standard.
+    const actionSchema = JSON.stringify(
+      PROPOSE_ACTION_TOOL.input_schema,
+    ).toLowerCase();
+    for (const bad of forbiddenSubstrings) {
+      expect(
+        actionSchema.includes(bad),
+        `propose_action input_schema contains forbidden '${bad}'`,
+      ).toBe(false);
+    }
+  });
+
+  it("flag OFF → konsoulToolDefs(false) is byte-identical to the P2 read set (no propose_action)", () => {
+    const offDefs = konsoulToolDefs(false);
+    expect(offDefs).toEqual(KONSOUL_TOOL_DEFS);
+    expect(offDefs.map((t) => t.name)).not.toContain("propose_action");
+  });
+});
+
+// ── P3 propose_action — engine terminal behavior + studyId validation ─────────
+
+/** A portfolio with a synthesized+personas'd study (p2) and a bare study (p1),
+ *  so destructive/precondition can be exercised deterministically. */
+const P3_PORTFOLIO: PortfolioFacts = buildPortfolioFacts({
+  plans: [
+    makePlan({ id: "p1", title: "Onboarding", status: "active" }),
+    makePlan({ id: "p2", title: "Pricing", status: "completed" }),
+  ],
+  syntheses: [makeSynth({ studyId: "p2", basedOnCount: 12 })],
+  completedByPlan: new Map([
+    ["p1", 3],
+    ["p2", 12],
+  ]),
+  poolSize: 7,
+  signals: [],
+  hasPersonasByPlan: new Map([
+    ["p1", false],
+    ["p2", true],
+  ]),
+});
+
+describe("buildProposalFromArgs — deterministic, validates studyId, no execution", () => {
+  it("create_study_draft → non-destructive, LLM-free, no studyId required", () => {
+    const out = buildProposalFromArgs(
+      { actionType: "create_study_draft", studyTitle: "Neue Pricing-Studie" },
+      P3_PORTFOLIO,
+    );
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.proposal.actionType).toBe("create_study_draft");
+      expect(out.proposal.destructive).toBe(false);
+      expect(out.proposal.costsModel).toBe(false);
+      expect(out.proposal.targetTitle).toBe("Neue Pricing-Studie");
+      expect(out.proposal.targetStudyId).toBeUndefined();
+    }
+  });
+
+  it("run_synthesis on a study WITH a synthesis → destructive:true, costs a model run", () => {
+    const out = buildProposalFromArgs(
+      { actionType: "run_synthesis", studyId: "p2" },
+      P3_PORTFOLIO,
+    );
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.proposal.destructive).toBe(true); // re-run replaces existing
+      expect(out.proposal.costsModel).toBe(true);
+      expect(out.proposal.targetStudyId).toBe("p2");
+      expect(out.proposal.precondition?.basedOnCount).toBe(12);
+    }
+  });
+
+  it("run_personas on a study WITHOUT personas → destructive:false (first-time)", () => {
+    const out = buildProposalFromArgs(
+      { actionType: "run_personas", studyId: "p1" },
+      P3_PORTFOLIO,
+    );
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.proposal.destructive).toBe(false);
+      expect(out.proposal.targetStudyId).toBe("p1");
+    }
+  });
+
+  it("run_personas on a study WITH personas → destructive:true (re-run replaces them)", () => {
+    const out = buildProposalFromArgs(
+      { actionType: "run_personas", studyId: "p2" }, // p2 hasPersonas:true
+      P3_PORTFOLIO,
+    );
+    expect(out.ok).toBe(true);
+    if (out.ok) expect(out.proposal.destructive).toBe(true);
+  });
+
+  it("run_personas in PRODUCTION (no hasPersonas flag) but WITH a synthesis → destructive:true (conservative fallback, never a silent overwrite)", () => {
+    // Mirrors makeKonsoulReadTools when the persona-presence read fails: the
+    // portfolio carries NO hasPersonasByPlan → fact.hasPersonas is undefined. A
+    // synthesized study could already have personas, so we must warn strongly
+    // rather than show the light first-time card.
+    const prodLike = buildPortfolioFacts({
+      plans: [makePlan({ id: "s1", title: "Checkout", status: "completed" })],
+      syntheses: [makeSynth({ studyId: "s1", basedOnCount: 14 })],
+      completedByPlan: new Map([["s1", 14]]),
+      poolSize: 0,
+      signals: [],
+      // NOTE: hasPersonasByPlan deliberately omitted (production read-fail path).
+    });
+    const out = buildProposalFromArgs(
+      { actionType: "run_personas", studyId: "s1" },
+      prodLike,
+    );
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.proposal.precondition?.hasPersonas).toBeUndefined();
+      expect(out.proposal.destructive).toBe(true);
+    }
+  });
+
+  it("a FOREIGN / hallucinated studyId is rejected → NO proposal, a nudge instead", () => {
+    const out = buildProposalFromArgs(
+      { actionType: "run_synthesis", studyId: "ghost-from-another-org" },
+      P3_PORTFOLIO,
+    );
+    expect(out.ok).toBe(false);
+    if (!out.ok) {
+      expect(out.nudge).toMatch(/Portfolio|get_portfolio_overview/i);
+    }
+  });
+
+  it("a run_* action with NO studyId is rejected → NO proposal", () => {
+    const out = buildProposalFromArgs({ actionType: "run_guide" }, P3_PORTFOLIO);
+    expect(out.ok).toBe(false);
+  });
+
+  it("an unknown actionType (outside the 4-allowlist) is rejected → NO proposal", () => {
+    const out = buildProposalFromArgs(
+      { actionType: "publish_prolific", studyId: "p2" },
+      P3_PORTFOLIO,
+    );
+    expect(out.ok).toBe(false);
+    if (!out.ok) expect(out.nudge).toMatch(/create_study_draft/);
+  });
+});
+
+describe("runKonsoulAgentWith — P3 propose_action is terminal (1 turn, no execute)", () => {
+  it("flag ON: get_portfolio_overview then propose_action → kind:proposal, ONE model turn after the read, NO execution", async () => {
+    scriptedResponses = [
+      toolUseMsg("get_portfolio_overview", {}),
+      toolUseMsg("propose_action", {
+        actionType: "run_synthesis",
+        studyId: "p2",
+        rationale: "Pricing hat 12 Interviews — Zeit für die Synthese.",
+      }),
+      // A never-used response proves the loop terminates at the proposal.
+      toolUseMsg("emit_guidance", { answer: "unreachable" }),
+    ];
+    const { fn } = makeDelegate({
+      answered: false,
+      answer: "x",
+      citations: [],
+      interpretation: "",
+    });
+    const result = await runKonsoulAgentWith(
+      fakeToolset(P3_PORTFOLIO),
+      fn,
+      { orgId: "org_1", question: "Starte die Synthese für Pricing." },
+      "de",
+      KONSOUL_ORCHESTRATOR_MODEL,
+      true, // actionsEnabled
+    );
+    expect(KonsoulResultSchema.safeParse(result).success).toBe(true);
+    expect(result.kind).toBe("proposal");
+    if (result.kind === "proposal") {
+      expect(result.proposal.actionType).toBe("run_synthesis");
+      expect(result.proposal.targetStudyId).toBe("p2");
+      expect(result.proposal.destructive).toBe(true);
+      expect(result.rationale).toContain("Synthese");
+      // Belegter Kontext reist mit, aber NIE Zitate (proposal trägt kein citations).
+      expect(result.data).toBeDefined();
+      expect("citations" in result).toBe(false);
+      // Die auditId aus logProposed reist im Envelope mit → der Confirm-/Dismiss-
+      // Beacon kann GENAU diese proposed-Zeile auf accepted/ignored setzen.
+      expect(result.auditId).toBe("audit_test");
+    }
+    // Exactly the read turn + the propose turn ran — the 3rd scripted response
+    // (emit_guidance 'unreachable') is never consumed → terminal proposal.
+    expect(createCalls).toHaveLength(2);
+    // Audit-Schreibung #1 happened ('proposed', metadata only) — the engine
+    // logs the proposal BEFORE any execution. Execution itself NEVER happens here.
+    expect(auditInserts).toHaveLength(1);
+    const row = auditInserts[0];
+    expect(row.status).toBe("proposed");
+    expect(row.action_type).toBe("run_synthesis");
+    expect(row.org_id).toBe("org_1");
+    // The audit row carries NO free text — only whitelisted count keys.
+    const counts = row.counts as Record<string, unknown>;
+    for (const k of Object.keys(counts)) {
+      expect(COUNTS_KEY_WHITELIST as readonly string[]).toContain(k);
+    }
+    expect(JSON.stringify(row)).not.toContain("Zeit für die Synthese");
+  });
+
+  it("flag ON: a hallucinated studyId → is_error + nudge, NEVER a proposal; the model can then emit an honest guidance", async () => {
+    scriptedResponses = [
+      toolUseMsg("get_portfolio_overview", {}),
+      toolUseMsg("propose_action", {
+        actionType: "run_synthesis",
+        studyId: "does-not-exist",
+        rationale: "Synthese starten.",
+      }),
+      // After the is_error nudge the model honestly declines via guidance.
+      toolUseMsg("emit_guidance", { answer: "Diese Studie kenne ich nicht." }),
+    ];
+    const { fn } = makeDelegate({
+      answered: false,
+      answer: "x",
+      citations: [],
+      interpretation: "",
+    });
+    const result = await runKonsoulAgentWith(
+      fakeToolset(P3_PORTFOLIO),
+      fn,
+      { orgId: "org_1", question: "Starte die Synthese für Studie zzz." },
+      "de",
+      KONSOUL_ORCHESTRATOR_MODEL,
+      true,
+    );
+    // Foreign id NEVER becomes a proposal — it degrades to honest guidance.
+    expect(result.kind).toBe("guidance");
+    expect(result.kind).not.toBe("proposal");
+    // And NOTHING was audited (no proposal was ever built).
+    expect(auditInserts).toHaveLength(0);
+  });
+
+  it("flag OFF: propose_action is NOT offered → kind is NEVER 'proposal' (P2 read-only behavior)", async () => {
+    // Even if the (mis-scripted) model tried propose_action, the engine never
+    // offered it and never processes it → it falls into the generic is_error
+    // path and the run resolves as guidance, never a proposal.
+    scriptedResponses = [
+      toolUseMsg("get_portfolio_overview", {}),
+      toolUseMsg("emit_guidance", { answer: "Dein Portfolio steht." }),
+    ];
+    const { fn } = makeDelegate({
+      answered: false,
+      answer: "x",
+      citations: [],
+      interpretation: "",
+    });
+    const result = await runKonsoulAgentWith(
+      fakeToolset(P3_PORTFOLIO),
+      fn,
+      { orgId: "org_1", question: "Wie steht mein Portfolio?" },
+      "de",
+      KONSOUL_ORCHESTRATOR_MODEL,
+      false, // actionsEnabled = OFF
+    );
+    expect(result.kind).not.toBe("proposal");
+    expect(result.kind).toBe("guidance");
+    // The offered tool set on every call excluded propose_action.
+    for (const call of createCalls) {
+      const names = (call.tools ?? []).map((t) => t.name);
+      expect(names).not.toContain("propose_action");
+    }
+    // Nothing was ever audited (no proposal path with the flag off).
+    expect(auditInserts).toHaveLength(0);
   });
 });

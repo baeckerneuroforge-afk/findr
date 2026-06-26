@@ -2624,7 +2624,31 @@
     "factSynthesis": "Synthese vorhanden",
     "factNoSynthesis": "noch keine Synthese",
     "factPoolSize": "{count, plural, one {# Person} other {# Personen}} im Pool",
-    "factNewSince": "{count} neue seit der Synthese"
+    "factNewSince": "{count} neue seit der Synthese",
+    "proposalLabel": "Konsoul schlägt vor",
+    "proposalSummary": "{action} für „{study}“?",
+    "proposalAction": {
+      "create_study_draft": "Studien-Entwurf anlegen",
+      "run_synthesis": "Synthese erstellen",
+      "run_personas": "Personas erzeugen",
+      "run_guide": "Leitfaden generieren"
+    },
+    "proposalCostHint": "Diese Aktion startet einen KI-Lauf und verursacht Kosten.",
+    "proposalOverwriteSynthesis": "Es gibt schon eine Synthese auf Basis von {count, plural, one {# Interview} other {# Interviews}}. Ein erneuter Lauf ersetzt sie vollständig.",
+    "proposalOverwritePersonas": "Es gibt schon Personas auf Basis von {count, plural, one {# Interview} other {# Interviews}}. Ein erneuter Lauf ersetzt sie vollständig.",
+    "proposalOverwriteGuide": "Diese Studie hat bereits einen Leitfaden. Ein erneuter Lauf überschreibt die bestehenden Themen.",
+    "proposalConfirm": "Bestätigen",
+    "proposalConfirmDestructive": "Trotzdem ersetzen",
+    "proposalConfirmFinal": "Ja, endgültig ersetzen",
+    "proposalCancelArm": "Abbrechen",
+    "proposalDismiss": "Verwerfen",
+    "proposalDismissed": "Vorschlag verworfen.",
+    "proposalRunning": "Wird ausgeführt …",
+    "proposalDone": "{action} erledigt.",
+    "proposalDoneLabel": "Erledigt",
+    "proposalDoneLink": "Studie öffnen",
+    "proposalErrInvalid": "Diese Aktion ist gerade nicht ausführbar.",
+    "proposalErrRun": "Die Aktion konnte nicht ausgeführt werden. Bitte versuche es erneut."
   },
   "syntheticTest": {
     "pageTitle": "Studie testen — Trockenlauf",

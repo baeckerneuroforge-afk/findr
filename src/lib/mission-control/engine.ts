@@ -416,6 +416,30 @@ export async function loadOrgSynthesisStudyIds(
 }
 
 /**
+ * Wie loadOrgSynthesisStudyIds, aber NUR die plan_ids, deren Synthese bereits
+ * Personas trägt (study_synthesis.personas ist nicht null). Org-scoped, nur ids
+ * (kein Persona-INHALT — Datensparsamkeit/PII). Treibt in Konsoul P3 die ehrliche
+ * Re-Run-Überschreib-Warnung für run_personas (vorhanden → starke Warnung;
+ * erstmalig → leichte Karte).
+ *
+ * Gibt bei DB-Fehler `null` (NICHT ein leeres Set) zurück, damit der Aufrufer
+ * „Read fehlgeschlagen" von „keine Personas" unterscheiden und konservativ warnen
+ * kann (ein leeres Set würde fälschlich „nirgends Personas" behaupten).
+ */
+export async function loadOrgPersonaPlanIds(
+  orgId: string,
+): Promise<Set<string> | null> {
+  const supabase = createMissionControlSupabase();
+  const { data, error } = await supabase
+    .from("study_synthesis")
+    .select("plan_id")
+    .eq("org_id", orgId)
+    .not("personas", "is", null);
+  if (error || !data) return null;
+  return new Set(data.map((row) => row.plan_id));
+}
+
+/**
  * Org entry — load all org syntheses, then answer the cross-study question with
  * full anchor discipline. The engine is complete and ready to wire; the route +
  * UI + any persistence of the conversation are Etappe 2.

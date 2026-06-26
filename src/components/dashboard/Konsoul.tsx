@@ -19,6 +19,10 @@ import { useEffect, useState } from "react";
  *   hedge     — amber Schulterzucken (Interpretation vorhanden)
  *   guidance  — ruhig-aufmerksam, NEUTRALER Pip (Hilfe/How-to/Status); deutlich
  *               KEIN grünes Belegt-Gesicht — „beantwortet, nicht belegt"
+ *   propose   — P3.1 „suggest": ein Vorschlag liegt vor, der Mensch entscheidet.
+ *               Fragend-aufmerksam, NEUTRALER Pip „?". BEWUSST kein grünes
+ *               Belegt-Gesicht — ein Vorschlag ist nicht belegt, sondern eine
+ *               Handlungs-Einladung. Statisch (reduced-motion-fest), aria-hidden.
  *   refuse    — ruhige, ebene Augen (ehrliche Ablehnung), nie rot
  *   greet     — winkt + Sprechblase, wenn man seinen Namen tippt („Konsoul")
  */
@@ -29,6 +33,7 @@ export type KonsoulState =
   | "answer"
   | "hedge"
   | "guidance"
+  | "propose"
   | "refuse"
   | "greet";
 
@@ -92,6 +97,17 @@ function Face({ state }: { state: KonsoulState }) {
           <DotEye cx={EYE_R} />
           <path d="M61 36 H79" {...STROKE} />
         </>
+      ) : state === "propose" ? (
+        /* propose (P3.1 „suggest") — fragend-aufmerksam, monochrom: ein leicht
+           gehobenes Auge (Bogen) + ein wachsames Punkt-Auge und ein kleiner,
+           offener „o"-Mund — die Haltung „ich schlage etwas vor, du entscheidest".
+           BEWUSST nicht das Lächeln; Farbe trägt allein der neutrale „?"-Pip.
+           Komplett statisch → reduced-motion-fest, aria-hidden via Wrapper. */
+        <>
+          <ArcEye cx={EYE_L} />
+          <DotEye cx={EYE_R} />
+          <circle cx={70} cy={36} r={4} {...STROKE} />
+        </>
       ) : state === "listen" ? (
         <>
           <g className="knsl-scan">
@@ -129,6 +145,10 @@ function footPip(state: KonsoulState): { cls: string; sym: string } {
       return { cls: "bg-warning-500", sym: "~" };
     case "guidance":
       return { cls: "bg-neutral-400", sym: "›" };
+    case "propose":
+      // P3.1 „suggest" — NEUTRALER Pip + „?": eine Handlungs-Einladung, kein
+      // grünes „belegt". Die Bedeutung trägt das Panel-Label, nicht die Farbe.
+      return { cls: "bg-neutral-400", sym: "?" };
     case "refuse":
       return { cls: "bg-neutral-400", sym: "—" };
     case "research":

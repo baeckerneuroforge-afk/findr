@@ -144,6 +144,94 @@ export const KonsoulRefusalResultSchema = z.object({
 });
 export type KonsoulRefusalResult = z.infer<typeof KonsoulRefusalResultSchema>;
 
+// ── kind:'proposal' (P3 — additiv, flag-gated, NIE selbst ausführend) ─────────
+
+/** Die GENAU VIER erlaubten Aktionen (Allowlist, fail-closed, Whitelist statt
+ *  Blacklist). Jeder andere Endpunkt ist für Konsoul verboten und existiert als
+ *  Aktion NICHT. VERBOTEN (nie hier): publish/Prolific, invites, invite-from-
+ *  pool, open-link, panel/*, screening/quotas, participants, stimuli, share,
+ *  chat. Diese Enum-Liste ist der einzige Ort, an dem die vier Typen leben — der
+ *  Tabellen-CHECK (konsoul_action_log.action_type) ist der DB-seitige Backstop. */
+export const KonsoulActionTypeSchema = z.enum([
+  "create_study_draft",
+  "run_synthesis",
+  "run_personas",
+  "run_guide",
+]);
+export type KonsoulProposalActionType = z.infer<typeof KonsoulActionTypeSchema>;
+
+/** Deterministische Vorbedingung — von der ENGINE aus `acc.data` (PortfolioFacts)
+ *  gebaut, NIE aus Modell-Prosa. Treibt die Confirm-Stärke + Kosten-Hinweis im
+ *  Frontend. Reine Zahlen/Flags, kein Synthese-/Persona-Inhalt. */
+export const KonsoulProposalPreconditionSchema = z.object({
+  /** Interviews, auf denen eine Synthese/Personas fußen würde (aus PortfolioFacts). */
+  basedOnCount: z.number().int().optional(),
+  /** Abgeschlossene Interviews der Zielstudie (für „erstmalig erzeugen?"). */
+  completedSessions: z.number().int().nullable().optional(),
+  /** Existiert schon eine Synthese? (für die Re-Run-Überschreib-Warnung.) */
+  hasSynthesis: z.boolean().optional(),
+  /** Existieren schon Personas? */
+  hasPersonas: z.boolean().optional(),
+});
+export type KonsoulProposalPrecondition = z.infer<
+  typeof KonsoulProposalPreconditionSchema
+>;
+
+/** Der eigentliche Vorschlag. Die ENGINE baut ihn deterministisch (actionType +
+ *  studyId engine-validiert gegen PortfolioFacts; precondition/destructive/
+ *  costsModel aus acc.data). Das Modell liefert NUR actionType + studyId/Felder +
+ *  die freie `rationale`-Prosa. */
+export const KonsoulProposalSchema = z.object({
+  actionType: KonsoulActionTypeSchema,
+  /** Zielstudie bei Re-Run-Aktionen (run_synthesis/run_personas/run_guide).
+   *  Engine-validiert gegen den geladenen PortfolioFacts-Block — eine fremde/
+   *  halluzinierte id wird NIE zum Vorschlag (→ is_error + Nudge). Fehlt bei
+   *  create_study_draft. */
+  targetStudyId: z.string().optional(),
+  /** Vorgeschlagener Titel — NUR bei create_study_draft (Studienfeld). */
+  targetTitle: z.string().optional(),
+  /** Deterministische Vorbedingung aus acc.data (nie Modell-Prosa). */
+  precondition: KonsoulProposalPreconditionSchema.optional(),
+  /** true, wenn der Confirm ein bestehendes Artefakt ersetzt (run_synthesis/
+   *  run_personas bei vorhandenem Datensatz; run_guide bei befülltem topic_script).
+   *  Triggert im Frontend die stärkere 2-Schritt-Bestätigung. Aus acc.data. */
+  destructive: z.boolean(),
+  /** true, wenn der Confirm einen Opus-Lauf (Kosten) auslöst — alles außer
+   *  create_study_draft. Aus dem actionType abgeleitet, nie aus Modell-Prosa. */
+  costsModel: z.boolean(),
+});
+export type KonsoulProposal = z.infer<typeof KonsoulProposalSchema>;
+
+/**
+ * kind:'proposal' — Konsoul SCHLÄGT eine sichere Aktion VOR; der Mensch
+ * entscheidet per Confirm-Klick. KEINE Ausführung in der Engine: dieser Envelope
+ * trägt nur die Beschreibung des Vorschlags. Die Ausführung lebt ausschließlich
+ * im Frontend-Confirm-Klick gegen den BESTEHENDEN org-scoped Endpunkt (POST
+ * /plans, /[id]/synthesis|personas|guide), der orgId via requireOrgIdOrError aus
+ * der Session zieht — NIE über /api/konsoul-agent, NIE ein Auto-Submit.
+ *
+ * `answered:true` = „der Vorschlag ist formuliert", NICHT „belegt": KEIN grüner
+ * Pip, KEINE Zitate. `rationale` ist Modell-Prosa fürs UI und wird NIE
+ * persistiert (das Audit trägt nur Metadaten — kein Freitext-Feld).
+ */
+export const KonsoulProposalResultSchema = z.object({
+  kind: z.literal("proposal"),
+  answered: z.literal(true),
+  /** Modell-Prosa: warum diese Aktion jetzt sinnvoll ist. UI-only, NIE persistiert. */
+  rationale: z.string(),
+  proposal: KonsoulProposalSchema,
+  /** Audit-Zeilen-ID (aus logProposed). Reist mit, damit der Confirm-/Dismiss-
+   *  Beacon (POST /api/konsoul-agent/decision) GENAU diese 'proposed'-Zeile auf
+   *  accepted/ignored setzen kann. null/fehlend, wenn die proposed-Schreibung
+   *  fail-open schlug → die Decision wird dann zum No-op. Eine UUID, NIE PII. */
+  auditId: z.string().nullable().optional(),
+  /** Belegter Kontext für die Confirm-Karte (wie bei guidance). */
+  data: PortfolioFactsSchema.optional(),
+});
+export type KonsoulProposalResult = z.infer<
+  typeof KonsoulProposalResultSchema
+>;
+
 /**
  * Der vereinheitlichte Response-Typ. Das Frontend rendert ausschließlich nach
  * `kind` (prüft `kind==='guidance'` ZUERST, fällt dann in die heutige
@@ -154,5 +242,9 @@ export const KonsoulResultSchema = z.discriminatedUnion("kind", [
   KonsoulInterpretationResultSchema,
   KonsoulGuidanceResultSchema,
   KonsoulRefusalResultSchema,
+  // P3 — additiv, flag-gated. Ist das Aktions-Flag aus, baut die Engine NIE einen
+  // 'proposal'; der Zweig existiert nur im Schema und ändert die vier Altzweige
+  // byte-gleich nicht. assertKonsoulResult deckt ihn automatisch mit ab.
+  KonsoulProposalResultSchema,
 ]);
 export type KonsoulResult = z.infer<typeof KonsoulResultSchema>;

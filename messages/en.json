@@ -2624,7 +2624,31 @@
     "factSynthesis": "Synthesis ready",
     "factNoSynthesis": "no synthesis yet",
     "factPoolSize": "{count, plural, one {# person} other {# people}} in pool",
-    "factNewSince": "{count} new since synthesis"
+    "factNewSince": "{count} new since synthesis",
+    "proposalLabel": "Konsoul suggests",
+    "proposalSummary": "{action} for \"{study}\"?",
+    "proposalAction": {
+      "create_study_draft": "Create study draft",
+      "run_synthesis": "Run synthesis",
+      "run_personas": "Generate personas",
+      "run_guide": "Generate guide"
+    },
+    "proposalCostHint": "This action starts an AI run and incurs cost.",
+    "proposalOverwriteSynthesis": "There's already a synthesis based on {count, plural, one {# interview} other {# interviews}}. Running it again replaces it entirely.",
+    "proposalOverwritePersonas": "There are already personas based on {count, plural, one {# interview} other {# interviews}}. Running it again replaces them entirely.",
+    "proposalOverwriteGuide": "This study already has a guide. Running it again overwrites the existing topics.",
+    "proposalConfirm": "Confirm",
+    "proposalConfirmDestructive": "Replace anyway",
+    "proposalConfirmFinal": "Yes, replace for good",
+    "proposalCancelArm": "Cancel",
+    "proposalDismiss": "Dismiss",
+    "proposalDismissed": "Suggestion dismissed.",
+    "proposalRunning": "Running …",
+    "proposalDone": "{action} done.",
+    "proposalDoneLabel": "Done",
+    "proposalDoneLink": "Open study",
+    "proposalErrInvalid": "This action can't be run right now.",
+    "proposalErrRun": "The action couldn't be completed. Please try again."
   },
   "syntheticTest": {
     "pageTitle": "Test the study — dry run",

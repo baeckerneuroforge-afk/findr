@@ -734,6 +734,66 @@ type ResearchSessionEventUpdate = {
   created_at?: string;
 };
 
+// ── konsoul_action_log ───────────────────────────────────────────────────────
+//
+// Konsoul P3.0 (20260724000000). Additive LEAF audit-log for the action
+// PROPOSALS Konsoul makes + their outcome — NOT an execution store (Konsoul
+// never executes; the Frontend confirm-click hits the existing org-scoped
+// endpoints). FK in (org_id ON DELETE CASCADE, plan_id ON DELETE SET NULL), no
+// inbound FK → org-hard-delete sweeps it via the org_id loop; a deleted plan
+// just nulls plan_id. proposed_at/decided_at = server clock = retention clock.
+//
+// HARD RED LINE (DSGVO / AI-Act): only org-side METADATA — action_type (closed
+// 4-set), plan_id, model/version, a key-whitelisted counts jsonb, status, time.
+// NO free-text/rationale/prose/affect column (export_organization_data dumps
+// every column → PII-leak risk). action_type/status are closed sets.
+export type KonsoulActionType =
+  | "create_study_draft"
+  | "run_synthesis"
+  | "run_personas"
+  | "run_guide";
+
+export type KonsoulActionStatus = "proposed" | "accepted" | "ignored";
+
+export type KonsoulActionLogRow = {
+  id: string;
+  org_id: string;
+  plan_id: string | null;
+  action_type: KonsoulActionType;
+  model: string | null;
+  model_version: string | null;
+  counts: Json;
+  status: KonsoulActionStatus;
+  proposed_at: string;
+  decided_at: string | null;
+};
+
+type KonsoulActionLogInsert = {
+  id?: string;
+  org_id: string;
+  plan_id?: string | null;
+  action_type: KonsoulActionType;
+  model?: string | null;
+  model_version?: string | null;
+  counts?: Json;
+  status?: KonsoulActionStatus;
+  proposed_at?: string;
+  decided_at?: string | null;
+};
+
+type KonsoulActionLogUpdate = {
+  id?: string;
+  org_id?: string;
+  plan_id?: string | null;
+  action_type?: KonsoulActionType;
+  model?: string | null;
+  model_version?: string | null;
+  counts?: Json;
+  status?: KonsoulActionStatus;
+  proposed_at?: string;
+  decided_at?: string | null;
+};
+
 // ── synthesis_shares ─────────────────────────────────────────────────────────
 //
 // Per 20260622000000_synthesis_shares.sql. Public read-only share links for a
@@ -1071,6 +1131,12 @@ export type DatabaseWithResearch = {
         Row: ResearchSessionEventRow;
         Insert: ResearchSessionEventInsert;
         Update: ResearchSessionEventUpdate;
+        Relationships: [];
+      };
+      konsoul_action_log: {
+        Row: KonsoulActionLogRow;
+        Insert: KonsoulActionLogInsert;
+        Update: KonsoulActionLogUpdate;
         Relationships: [];
       };
       synthesis_shares: {

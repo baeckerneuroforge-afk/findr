@@ -6,11 +6,30 @@ import { useTranslations } from "next-intl";
 
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Konsoul, type KonsoulState } from "@/components/dashboard/Konsoul";
+import { KONSOUL_ACTIONS_ENABLED } from "@/lib/konsoul/actions-flag";
 import type {
   KonsoulResult,
+  KonsoulProposalResult,
+  KonsoulProposalActionType,
   PortfolioFacts,
   PortfolioStudyFact,
 } from "@/lib/schemas/konsoul-agent";
+
+/**
+ * P3.1 — der `kind:'proposal'`-Envelope (Design-Doc §4). Konsoul SCHLÄGT VOR — der
+ * Mensch entscheidet per Klick. Das Modell liefert nur Argumente; die ENGINE baut
+ * diesen Block deterministisch (terminal, keine Ausführung). Die Ausführung lebt
+ * AUSSCHLIESSLICH im Confirm-Klick unten, der eine BESTEHENDE org-scoped Route ruft
+ * — NIE /api/konsoul-agent.
+ *
+ * SEAM (erledigt): Der Schema-Owner (`src/lib/schemas/konsoul-agent.ts`) hat den
+ * `kind:'proposal'`-Zweig in die `KonsoulResult`-discriminatedUnion aufgenommen.
+ * Der frühere frontend-lokale Spiegel ist daher durch den Import aus dem Schema
+ * ersetzt (verbindlicher Vertrag): Die Modell-Prosa fürs UI heißt `rationale`
+ * (NIE persistiert — das Audit trägt kein Freitext-Feld); `precondition` trägt
+ * tool-deterministische Zahlen/Flags aus `acc.data` (completedSessions,
+ * hasSynthesis, hasPersonas, basedOnCount), nie modell-erfunden.
+ */
 
 /**
  * Konsoul-Agent — Panel (P2: „ein Gehirn, mehrere Türen"). The AGENTIC sibling of
@@ -44,8 +63,82 @@ import type {
  */
 
 /** The unified result envelope (real type from the engine schema on disk). The
- *  panel renders STRICTLY by `result.kind`. */
+ *  panel renders STRICTLY by `result.kind`. KonsoulResult ALREADY carries the
+ *  additive P3.1 `kind:'proposal'` branch (the schema-owner folded it into the
+ *  discriminatedUnion); the four P2 kinds stay byte-identical. */
 type AgentResult = KonsoulResult;
+
+// ── P3.1 Aktions-Allowlist (Whitelist statt Blacklist, fail-closed) ──────────
+//
+// Die GENAU VIER erlaubten Aktionen → ihr BESTEHENDER org-scoped Ziel-Endpunkt.
+// Der Confirm-Klick ruft AUSSCHLIESSLICH eine dieser Routen — NIE /api/konsoul-
+// agent, NIE das Modell. Jede Route zieht orgId selbst via requireOrgIdOrError()
+// aus der Session; der Body trägt NIE orgId/status. Ein actionType außerhalb
+// dieser Map (halluziniert) findet keinen Endpunkt → kein Request, kein Confirm.
+//
+// VERBOTEN und bewusst NICHT in der Map (existieren als Tool nicht): publish/
+// Prolific, invites, invite-from-pool, open-link, panel/*, screening-questions,
+// quotas, participants, stimuli, share, chat.
+const ACTION_ENDPOINT: Record<
+  KonsoulProposalActionType,
+  (planId?: string) => string | null
+> = {
+  // Reiner INSERT, Status=draft per DB-Default. Kein planId.
+  create_study_draft: () => "/api/research/plans",
+  // upsert onConflict org_id,plan_id → Re-Run ersetzt die Synthese (destructive).
+  run_synthesis: (planId) =>
+    planId ? `/api/research/plans/${encodeURIComponent(planId)}/synthesis` : null,
+  // upsert onConflict → Re-Run ersetzt die Personas (destructive).
+  run_personas: (planId) =>
+    planId ? `/api/research/plans/${encodeURIComponent(planId)}/personas` : null,
+  // Überschreibt topic_script wholesale (destructive wenn befüllt).
+  run_guide: (planId) =>
+    planId ? `/api/research/plans/${encodeURIComponent(planId)}/guide` : null,
+};
+
+/** Lokaler Confirm-Status einer einzelnen Proposal-Karte. */
+type ProposalPhase =
+  | "idle" // zeigt Bestätigen/Verwerfen
+  | "arming" // destructive: nach 1. Klick, wartet auf bewusste 2. Bestätigung
+  | "running" // Ziel-Endpunkt läuft
+  | "done" // erfolgreich ausgeführt
+  | "dismissed" // verworfen (logDecision 'ignored')
+  | "error"; // Ziel-Endpunkt schlug fehl
+
+/**
+ * P3.1 — logDecision: schreibt den Vorschlags-AUSGANG (accepted/ignored) ins
+ * org-scoped Audit (`konsoul_action_log`, Design-Doc §3). FAIL-OPEN gegen den
+ * Hauptpfad: ein fehlendes/fehlerndes Decision-Audit darf einen erfolgreichen
+ * Confirm NIE kippen und keinen Dismiss blockieren — exakt die Posture des
+ * server-seitigen Audit-Writers (action-audit.ts). Der Body trägt NIE orgId
+ * (die Decision-Route zieht sie server-seitig); nur den Aktionstyp + planId als
+ * Metadaten, plus den Status. Schlägt der Beacon fehl, wird still geloggt.
+ *
+ * Die Decision-Route (POST /api/konsoul-agent/decision) zieht orgId server-seitig
+ * (requireOrgIdOrError) und setzt GENAU die proposed-Zeile mit `auditId` auf
+ * accepted/ignored. Der Body trägt NIE orgId — nur die auditId (aus dem Proposal-
+ * Envelope) + den Status. Fehlt die auditId (proposed-Schreibung schlug fail-open
+ * fehl), gibt es nichts zu setzen → No-op. `keepalive`, damit ein Dismiss kurz vor
+ * Navigation noch durchgeht.
+ */
+function logDecision(
+  status: "accepted" | "ignored",
+  auditId: string | null,
+): void {
+  if (!auditId) return; // kein proposed-Datensatz → nichts zu aktualisieren (fail-open).
+  try {
+    void fetch("/api/konsoul-agent/decision", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, auditId }),
+      keepalive: true,
+    }).catch((err) => {
+      console.error("[konsoul] logDecision beacon failed:", err);
+    });
+  } catch (err) {
+    console.error("[konsoul] logDecision threw:", err);
+  }
+}
 
 interface ChatTurn {
   id: number;
@@ -110,13 +203,15 @@ export function CrossStudyAgentPanel({
       : question.trim() !== ""
         ? "listen"
         : lastResult
-          ? lastResult.kind === "guidance"
-            ? "guidance"
-            : lastResult.kind === "refusal"
-              ? "refuse"
-              : lastResult.kind === "interpretation"
-                ? "hedge"
-                : "answer"
+          ? lastResult.kind === "proposal"
+            ? "propose"
+            : lastResult.kind === "guidance"
+              ? "guidance"
+              : lastResult.kind === "refusal"
+                ? "refuse"
+                : lastResult.kind === "interpretation"
+                  ? "hedge"
+                  : "answer"
           : "idle";
 
   // Klickbare Einstiegs-Vorschläge (nur im leeren Verlauf). Bei ≥2 Studien wird
@@ -199,12 +294,16 @@ export function CrossStudyAgentPanel({
         return;
       }
       const result = data.result;
+      // Continuity content = the grounded answer text (refusal text when
+      // answered=false). A proposal carries `rationale` (UI prose) instead of
+      // `answer` — thread that so the multi-turn history stays coherent. The
+      // interpretation is NOT threaded — it is soft.
+      const continuity =
+        result.kind === "proposal" ? result.rationale : result.answer;
       const assistantTurn: ChatTurn = {
         id: nextTurnId(),
         role: "assistant",
-        // Continuity content = the grounded answer text (refusal text when
-        // answered=false). The interpretation is NOT threaded — it is soft.
-        content: (result.answer.trim() === "" ? "—" : result.answer.trim()).slice(
+        content: (continuity.trim() === "" ? "—" : continuity.trim()).slice(
           0,
           HISTORY_CONTENT_CAP,
         ),
@@ -278,7 +377,23 @@ export function CrossStudyAgentPanel({
                   </li>
                 ) : (
                   <li key={turn.id}>
-                    {turn.result?.kind === "guidance" ? (
+                    {turn.result?.kind === "proposal" ? (
+                      // P3.1 — die fünfte Tür. Steht VOR guidance/answered (Order
+                      // load-bearing), damit ein Vorschlag nie als belegt/Hilfe
+                      // gerendert wird. Nur sichtbar, wenn das Flag scharf ist;
+                      // andernfalls liefert die Engine diesen kind nie.
+                      KONSOUL_ACTIONS_ENABLED ? (
+                        <ProposalBlock result={turn.result} titleFor={titleFor} t={t} />
+                      ) : (
+                        // Flag AUS, aber ein proposal kam (sollte nie passieren):
+                        // ehrlich-ruhig wie eine Refusal rendern, NIE ausführbar.
+                        // Ein proposal trägt `rationale` (UI-Prosa), kein `answer`.
+                        <RefusalBlock
+                          answer={turn.result.rationale}
+                          refusalLabel={t("refusalLabel")}
+                        />
+                      )
+                    ) : turn.result?.kind === "guidance" ? (
                       <GuidanceBlock
                         result={turn.result}
                         guidanceLabel={t("guidanceLabel")}
@@ -496,6 +611,272 @@ function RefusalBlock({
 
 /** Translator for the crossStudyAgent catalog — the namespace the panel hangs on. */
 type TFn = ReturnType<typeof useTranslations<"crossStudyAgent">>;
+
+/**
+ * P3.1 — der ProposalBlock (Design-Doc §2 / §4, fünfte Tür). Konsoul SCHLÄGT VOR,
+ * der Mensch ENTSCHEIDET per Klick. Dieser Block ist die EINZIGE Stelle, die eine
+ * echte Aktion auslöst — und nur durch einen bewussten Klick (KEIN Auto-Submit).
+ *
+ * Sicherheits-Eigenschaften (alle im Klick-Handler durchgesetzt):
+ *  - Der Klick ruft AUSSCHLIESSLICH den bestehenden org-scoped Ziel-Endpunkt aus
+ *    ACTION_ENDPOINT (Allowlist, fail-closed) — NIE /api/konsoul-agent, nie das
+ *    Modell. Ein actionType ohne Endpunkt → kein Request.
+ *  - Der Body trägt NIE orgId/status — die Ziel-Route zieht orgId server-seitig
+ *    via requireOrgIdOrError() und prüft Plan-Eigentum (getResearchPlan).
+ *  - destructive (Re-Run Synthese/Personas, oder Guide auf befülltem topic_script)
+ *    bekommt das STARKE, 2-stufige „überschreibt"-Gate (Vorbild deleteResearchPlan):
+ *    erst „arming", dann ein bewusster zweiter Klick.
+ *  - costsModel (Opus-Aktionen guide/synthesis/personas) zeigt einen Kosten-Hinweis.
+ *  - Nach Erfolg: logDecision('accepted'); beim Verwerfen: logDecision('ignored')
+ *    (fail-open Audit-Beacon, kippt den Hauptpfad nie).
+ *
+ * Visuell eigenständig wie Guidance/Interpretation je ein eigenes Gewand: ein
+ * ruhiger, primär gerahmter Vorschlag — NICHT das grüne „belegt"-Gewand (ein
+ * Vorschlag ist nicht belegt, sondern eine Handlungs-Einladung). Erst der
+ * destructive-Pfad färbt warnend (danger), analog zum Lösch-Gate.
+ */
+function ProposalBlock({
+  result,
+  titleFor,
+  t,
+}: {
+  result: KonsoulProposalResult;
+  titleFor: (studyId: string) => string;
+  t: TFn;
+}) {
+  const { proposal } = result;
+  const [phase, setPhase] = useState<ProposalPhase>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const planId = proposal.targetStudyId ?? null;
+  const destructive = proposal.destructive === true;
+  const costsModel = proposal.costsModel === true;
+
+  // Erledigt-Ziel: dieselbe Synthese-Route, auf die auch die Zitate zeigen.
+  const doneHref = planId
+    ? `/dashboard/research-plans/${encodeURIComponent(planId)}/synthesis`
+    : "/dashboard/market-research";
+
+  /** Baut den minimalen, orgId-freien Body für die jeweilige Ziel-Route. */
+  function bodyFor(): Record<string, unknown> {
+    switch (proposal.actionType) {
+      case "create_study_draft":
+        // POST /api/research/plans erwartet title + objective (Pflichtfelder).
+        // Beides kommt aus dem engine-gebauten Vorschlag (targetTitle + die
+        // rationale-Prosa als Objective, server-re-validiert per Zod, min 3).
+        // Status=draft setzt der DB-Default.
+        return {
+          title: proposal.targetTitle ?? "",
+          objective: result.rationale,
+        };
+      case "run_guide":
+        // POST /…/guide erwartet { goal } (min 3). studyId steckt im Pfad, nie
+        // im Body. Der Vorschlag trägt kein separates Ziel-Feld → die rationale-
+        // Prosa dient als Forschungsziel (server-re-validiert).
+        return { goal: result.rationale };
+      case "run_synthesis":
+      case "run_personas":
+        // Leerer Body — die Route arbeitet rein aus (orgId, planId-im-Pfad).
+        return {};
+    }
+  }
+
+  /** Der eine echte Auslöser. Ruft NUR den Allowlist-Endpunkt, loggt den Ausgang. */
+  async function execute() {
+    const endpoint = ACTION_ENDPOINT[proposal.actionType](planId ?? undefined);
+    if (!endpoint) {
+      // Halluzinierter/fehlender Pfad (z. B. Re-Run ohne planId) → fail-closed,
+      // kein Request. Sollte nie eintreten (Engine validiert), aber hart gegated.
+      setErrorMsg(t("proposalErrInvalid"));
+      setPhase("error");
+      return;
+    }
+    setErrorMsg(null);
+    setPhase("running");
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bodyFor()),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setErrorMsg(
+          res.status === 401 || res.status === 403
+            ? t("errNoAccess")
+            : (data.error ?? t("proposalErrRun")),
+        );
+        setPhase("error");
+        console.error("[konsoul] proposal execute failed:", res.status);
+        return;
+      }
+      // Erfolg → Audit 'accepted' (fail-open) und ruhiger Erledigt-Zustand.
+      logDecision("accepted", result.auditId ?? null);
+      setPhase("done");
+    } catch (err) {
+      setErrorMsg(t("errNetwork"));
+      setPhase("error");
+      console.error("[konsoul] proposal execute threw:", err);
+    }
+  }
+
+  /** Bestätigen-Klick. Bei destructive: erst „arming" (2-stufiges Gate), dann run. */
+  function onConfirm() {
+    if (destructive && phase === "idle") {
+      setPhase("arming");
+      return;
+    }
+    void execute();
+  }
+
+  /** Verwerfen → Audit 'ignored' (fail-open), Karte ruht. Kein Endpunkt-Call. */
+  function onDismiss() {
+    logDecision("ignored", result.auditId ?? null);
+    setPhase("dismissed");
+  }
+
+  const actionLabel = t(`proposalAction.${proposal.actionType}`);
+  const targetName = planId
+    ? titleFor(planId)
+    : (proposal.targetTitle ?? t("untitledStudy"));
+
+  // ── Terminale Zustände ─────────────────────────────────────────────────────
+  if (phase === "done") {
+    return (
+      <div className="rounded-md border border-success-500/40 bg-success-50/50 p-3">
+        <div className="mb-1 text-caption font-medium uppercase tracking-wider text-success-700">
+          {t("proposalDoneLabel")}
+        </div>
+        <p className="text-body text-neutral-900">
+          {t("proposalDone", { action: actionLabel })}
+        </p>
+        <Link
+          href={doneHref}
+          className="mt-2 inline-flex items-center gap-1 text-caption font-medium text-primary-700 transition-colors hover:text-primary-800 hover:underline"
+        >
+          {t("proposalDoneLink")}
+          <span aria-hidden="true">→</span>
+        </Link>
+      </div>
+    );
+  }
+
+  if (phase === "dismissed") {
+    return (
+      <div className="rounded-md border border-neutral-200 bg-card p-3">
+        <p className="text-small italic text-neutral-500">
+          {t("proposalDismissed")}
+        </p>
+      </div>
+    );
+  }
+
+  // ── Aktive Karte (idle / arming / running / error) ──────────────────────────
+  const armed = phase === "arming";
+  const running = phase === "running";
+
+  return (
+    <div
+      className={`rounded-md border p-3 ${
+        destructive
+          ? "border-danger-500/40 bg-danger-50/40"
+          : "border-primary-100 bg-primary-50/40"
+      }`}
+    >
+      <div
+        className={`mb-1 flex items-center gap-1.5 text-caption font-medium uppercase tracking-wider ${
+          destructive ? "text-danger-700" : "text-primary-700"
+        }`}
+      >
+        {/* schlichtes Handlungs-Glyph (Pfeil-in-Kreis), monochrom je nach Ton */}
+        <svg
+          className="h-3.5 w-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9 12h6M13 9l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {t("proposalLabel")}
+      </div>
+
+      {/* Modell-Prosa (rationale): warum diese Aktion jetzt sinnvoll ist. */}
+      <p className="whitespace-pre-wrap text-body text-neutral-900">
+        {result.rationale}
+      </p>
+
+      {/* Was genau passiert — Aktion + Zielstudie, deterministisch. */}
+      <p className="mt-2 text-small text-neutral-700">
+        {t("proposalSummary", { action: actionLabel, study: targetName })}
+      </p>
+
+      {/* Kosten-Hinweis für Opus-Aktionen (verhindert versehentliche teure Re-Runs). */}
+      {costsModel && (
+        <p className="mt-2 flex items-start gap-1.5 text-caption text-neutral-500">
+          <span aria-hidden="true">≈</span>
+          {t("proposalCostHint")}
+        </p>
+      )}
+
+      {/* STARKE Überschreib-Warnung (destructive) — Vorbild 2-stufiges Lösch-Gate.
+          Ehrliche Metadaten (Datum/based_on_count) aus precondition, nie Prosa. */}
+      {destructive && (
+        <div className="mt-2 rounded-md border border-danger-500/40 bg-danger-50 p-2.5">
+          <p className="text-small font-medium text-danger-700">
+            {proposal.actionType === "run_guide"
+              ? t("proposalOverwriteGuide")
+              : proposal.actionType === "run_personas"
+                ? t("proposalOverwritePersonas", {
+                    count: proposal.precondition?.basedOnCount ?? 0,
+                  })
+                : t("proposalOverwriteSynthesis", {
+                    count: proposal.precondition?.basedOnCount ?? 0,
+                  })}
+          </p>
+        </div>
+      )}
+
+      {/* Fehler — derselbe danger-700-Kanal wie der Panel-Footer. */}
+      {phase === "error" && errorMsg && (
+        <p className="mt-2 text-caption text-danger-700">{errorMsg}</p>
+      )}
+
+      {/* Aktionen. „Bestätigen" ist der EINZIGE Auslöser; „Verwerfen" unauffällig.
+          Bei destructive verlangt der 1. Klick eine bewusste 2. Bestätigung. */}
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={running}
+          className={`shrink-0 rounded-md px-4 py-2 text-small font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            destructive
+              ? "border border-danger-700 bg-danger-700 hover:opacity-90"
+              : "border border-primary-600 bg-primary-600 hover:border-primary-hover hover:bg-primary-hover"
+          }`}
+        >
+          {running
+            ? t("proposalRunning")
+            : armed
+              ? t("proposalConfirmFinal")
+              : destructive
+                ? t("proposalConfirmDestructive")
+                : t("proposalConfirm")}
+        </button>
+        <button
+          type="button"
+          onClick={onDismiss}
+          disabled={running}
+          className="rounded-md border border-neutral-200 bg-card px-3 py-2 text-small font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
+        >
+          {armed ? t("proposalCancelArm") : t("proposalDismiss")}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /**
  * The GUIDANCE channel (P2) — help/how-to OR portfolio/status. Deliberately the
