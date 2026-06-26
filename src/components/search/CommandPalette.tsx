@@ -121,6 +121,28 @@ function RouteIcon() {
   );
 }
 
+/** Speech-bubble icon for the "Frag Konsoul" door — signals "ask a question"
+ *  rather than "navigate", and uses the primary tint to set it apart from the
+ *  neutral navigation rows. */
+function AskKonsoulIcon() {
+  return (
+    <svg
+      className="h-4 w-4 shrink-0 text-primary-600"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.3A8 8 0 1 1 21 12Z"
+      />
+    </svg>
+  );
+}
+
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
   // Root translator: this component pulls from both command.* (palette chrome)
@@ -129,6 +151,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const [index, setIndex] = useState<SearchIndex | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Controlled search value — needed so the "Frag Konsoul" door can carry the
+  // exact typed query into /dashboard/insights?q=…. cmdk still owns filtering;
+  // we only mirror the value (Command.Input value + onValueChange).
+  const [search, setSearch] = useState("");
   // Portal-Ziel: das ThemeShell-Div (statt document.body), damit die
   // Palette die .dark-Variablen des Dashboards erbt. useSyncExternalStore
   // statt setState-in-Effect: SSR-Snapshot undefined (= cmdk-Default), im
@@ -175,8 +201,19 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
   function go(href: string): void {
     onOpenChange(false);
+    // Clear the mirrored query so the next open starts pristine (cmdk resets its
+    // own internal value on close, but our controlled mirror would otherwise
+    // persist a stale search across opens).
+    setSearch("");
     router.push(href);
   }
+
+  // The global "Frag Konsoul" door: an ADDITIVE synthetic item that appears once
+  // the user has typed something, routing the verbatim query to the insights
+  // page (?q=…) where it is PREFILLED — read-only, never auto-submitted. Gated by
+  // the same ENABLED_MODULES.insights flag as the rest of the insights surface.
+  const trimmedSearch = search.trim();
+  const showAskKonsoul = ENABLED_MODULES.insights && trimmedSearch !== "";
 
   const hasDeals =
     ENABLED_MODULES.salesIntelligence && (index?.deals.length ?? 0) > 0;
@@ -209,6 +246,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       contentClassName="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border border-neutral-200 bg-card shadow-lg"
     >
       <Command.Input
+        value={search}
+        onValueChange={setSearch}
         placeholder={
           routeOnlySearch
             ? t("command.inputPlaceholderPages")
@@ -339,6 +378,29 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               </Command.Item>
             );
           })}
+
+          {/* The global "Frag Konsoul" door — an ADDITIVE item that joins the
+              existing route results (never replaces them). It appears once the
+              user has typed something and routes the verbatim query to the
+              insights page, where it is PREFILLED (read-only, no auto-submit).
+              Shares the "Go to" group so it needs no new heading key. */}
+          {showAskKonsoul && (
+            <Command.Item
+              // The LIVE search (untrimmed) is embedded in the value so
+              // paletteFilter always keeps this row visible — value.includes(search)
+              // holds even when the user has trailing whitespace.
+              value={`konsoul ${search}`}
+              onSelect={() =>
+                go(`/dashboard/insights?q=${encodeURIComponent(trimmedSearch)}`)
+              }
+              className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-body text-neutral-700 data-[selected=true]:bg-primary-50 data-[selected=true]:text-neutral-900"
+            >
+              <AskKonsoulIcon />
+              <span className="min-w-0 flex-1 truncate font-medium text-neutral-900">
+                {t("command.askKonsoul", { query: trimmedSearch })}
+              </span>
+            </Command.Item>
+          )}
         </Command.Group>
       </Command.List>
     </Command.Dialog>

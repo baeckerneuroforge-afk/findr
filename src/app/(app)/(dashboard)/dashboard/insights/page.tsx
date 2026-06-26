@@ -26,7 +26,14 @@ import { CrossStudyAgentPanel } from "@/components/dashboard/CrossStudyAgentPane
  * The panel is session-local (no persistence).
  */
 
-export default async function InsightsPage() {
+export default async function InsightsPage({
+  searchParams,
+}: {
+  // Next 16 async searchParams — the global "Frag Konsoul" lane (Cmd+K) routes
+  // a typed question here as ?q=… so the panel opens with it PREFILLED. Read-only
+  // prefill: the page only seeds the textarea, it never auto-submits.
+  searchParams: Promise<{ q?: string }>;
+}) {
   let orgId: string;
   try {
     orgId = await requireOrgId();
@@ -45,6 +52,12 @@ export default async function InsightsPage() {
     studyTitle: s.studyTitle,
   }));
 
+  // Prefill from the Cmd+K "Frag Konsoul" door. Mirror the market-research page's
+  // q handling: trim, fall back to undefined when empty so the panel keeps its
+  // pristine empty-state when no question was carried in.
+  const { q: rawQ } = await searchParams;
+  const initialQuestion = (rawQ ?? "").trim() || undefined;
+
   const t = await getTranslations("missionControl");
 
   return (
@@ -54,7 +67,7 @@ export default async function InsightsPage() {
         <p className="mt-1 text-body text-neutral-500">{t("pageIntro")}</p>
       </div>
 
-      <CrossStudyAgentPanel studies={studies} />
+      <CrossStudyAgentPanel studies={studies} initialQuestion={initialQuestion} />
     </div>
   );
 }

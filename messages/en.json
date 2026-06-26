@@ -350,6 +350,7 @@
     "loading": "Loading index…",
     "error": "Couldn’t load search index — {error}.",
     "empty": "No matches.",
+    "askKonsoul": "Ask Konsoul: {query}",
     "group": {
       "deals": "Deals",
       "accounts": "Accounts",
@@ -2702,5 +2703,16 @@
     "errNotFound": "Not found.",
     "errEngine": "The dry run is currently unavailable.",
     "errNetwork": "Connection failed. Please try again."
+  },
+  "konsoulCoach": {
+    "sectionTitle": "Konsoul suggests",
+    "tipPersonaGate": "\"{title}\" has only {count, plural, one {# interview} other {# interviews}} — personas need 10.",
+    "tipPersonaQuality": "\"{title}\" is built on {count, plural, one {# interview} other {# interviews}} — personas get sturdier from 15.",
+    "tipRecurringTheme": "The theme \"{theme}\" appears across {count, plural, one {# study} other {# studies}} — a dedicated study could go deeper.",
+    "evidenceInterviews": "Evidence: {count, plural, one {# interview} other {# interviews}}",
+    "evidenceStudies": "Evidence: {count, plural, one {# study} other {# studies}}",
+    "ctaStudy": "Open study",
+    "ctaNewStudy": "Create study",
+    "softLabel": "not directly evidenced"
   }
 }

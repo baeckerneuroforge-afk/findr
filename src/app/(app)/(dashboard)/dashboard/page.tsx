@@ -22,7 +22,12 @@ import {
 } from "@/lib/research/plans-service";
 import { countPoolMembers } from "@/lib/research/participant-pool";
 import { HeuteGreeting } from "@/components/dashboard/HeuteGreeting";
+import { KonsoulSuggestions } from "@/components/dashboard/KonsoulSuggestions";
 import { AutoRefresh } from "@/components/dashboard/AutoRefresh";
+import {
+  computeKonsoulSignals,
+  type KonsoulSignal,
+} from "@/lib/konsoul/signals";
 import { getDealsByOrg } from "@/lib/deals/service";
 import { buildForecastSummary } from "@/lib/forecast/service";
 import { getOnboardingStatus } from "@/lib/onboarding/status";
@@ -300,6 +305,14 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
   }
   const topSteps = nextSteps.slice(0, 3);
 
+  // „Konsoul schlägt vor" — deterministische, org-scoped Portfolio-Signale
+  // (kein LLM, jede Zahl echt gezählt). STRENG FAIL-OPEN: ein Lesefehler im
+  // SignalEngine darf die Startseite nie kippen → leere Liste, Sektion entfällt.
+  // Additiv neben „Nächste Schritte"; verdoppelt die R1/R2/R3-Logik nicht.
+  const konsoulSignals: KonsoulSignal[] = await computeKonsoulSignals(
+    orgId,
+  ).catch(() => []);
+
   const runningPlans = activePlans.slice(0, 4);
   const synthesizedPlans = plansWithSynthesis.slice(0, 5);
 
@@ -381,9 +394,19 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
         </Card>
       )}
 
+      {/* Konsoul schlägt vor — proaktive, geerdete Vorschläge (Plan §4B). Nur
+          wenn der SignalEngine wirklich Signale liefert; additiv neben „Nächste
+          Schritte", gleiche Karten-Grammatik. Reiht sich in die st-rise-Staffel
+          direkt nach „Nächste Schritte" (--st 2) ein. */}
+      {konsoulSignals.length > 0 && (
+        <div className="st-rise" style={{ "--st": 3 } as React.CSSProperties}>
+          <KonsoulSuggestions signals={konsoulSignals} />
+        </div>
+      )}
+
       <div
         className="st-rise grid grid-cols-1 items-start gap-4 lg:grid-cols-5"
-        style={{ "--st": 3 } as React.CSSProperties}
+        style={{ "--st": 4 } as React.CSSProperties}
       >
         {/* Läuft gerade — aktive Studien mit Ziel-Pool-Fortschritt. */}
         <Card className="lg:col-span-3">

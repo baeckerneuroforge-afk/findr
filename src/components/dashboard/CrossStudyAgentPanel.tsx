@@ -61,15 +61,26 @@ interface CrossStudyAgentPanelProps {
   /** All of the org's studies that have a synthesis — the citation universe +
    *  the {studyId → title} source for citation links. Empty → not-ready state. */
   studies: StudyRef[];
+  /** Prefill seed from the global "Frag Konsoul" lane (Cmd+K → ?q=…). Read-only:
+   *  it ONLY seeds the textarea's initial value so the question is ready to send
+   *  and Konsoul reacts (listen/greet). It NEVER auto-submits — the user still
+   *  presses send. Absent → the panel behaves exactly as before (empty field). */
+  initialQuestion?: string;
 }
 
 /** Keep each history turn under the route's 4000-char cap. */
 const HISTORY_CONTENT_CAP = 3900;
 
-export function CrossStudyAgentPanel({ studies }: CrossStudyAgentPanelProps) {
+export function CrossStudyAgentPanel({
+  studies,
+  initialQuestion,
+}: CrossStudyAgentPanelProps) {
   const t = useTranslations("crossStudyAgent");
   const [turns, setTurns] = useState<ChatTurn[]>([]);
-  const [question, setQuestion] = useState("");
+  // Seed once from the prefill at mount. The value flows ONLY into the controlled
+  // <textarea value={question}> below — never into dangerouslySetInnerHTML — so
+  // there is no injection surface. No fetch is triggered on mount; the user sends.
+  const [question, setQuestion] = useState(initialQuestion ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const turnIdRef = useRef(0);

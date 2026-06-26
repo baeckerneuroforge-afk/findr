@@ -350,6 +350,7 @@
     "loading": "Index wird geladen …",
     "error": "Suchindex konnte nicht geladen werden — {error}.",
     "empty": "Keine Treffer.",
+    "askKonsoul": "Konsoul fragen: {query}",
     "group": {
       "deals": "Deals",
       "accounts": "Accounts",
@@ -2702,5 +2703,16 @@
     "errNotFound": "Nicht gefunden.",
     "errEngine": "Der Trockenlauf ist momentan nicht verfügbar.",
     "errNetwork": "Verbindung fehlgeschlagen. Bitte versuche es erneut."
+  },
+  "konsoulCoach": {
+    "sectionTitle": "Konsoul schlägt vor",
+    "tipPersonaGate": "„{title}“ hat erst {count, plural, one {# Interview} other {# Interviews}} — für Personas brauchst du 10.",
+    "tipPersonaQuality": "„{title}“ baut auf {count, plural, one {# Interview} other {# Interviews}} — ab 15 werden die Personas robuster.",
+    "tipRecurringTheme": "Das Thema „{theme}“ taucht in {count, plural, one {# Studie} other {# Studien}} auf — eine eigene Studie könnte tiefer gehen.",
+    "evidenceInterviews": "Beleg: {count, plural, one {# Interview} other {# Interviews}}",
+    "evidenceStudies": "Beleg: {count, plural, one {# Studie} other {# Studien}}",
+    "ctaStudy": "Studie öffnen",
+    "ctaNewStudy": "Studie anlegen",
+    "softLabel": "nicht direkt belegt"
   }
 }
