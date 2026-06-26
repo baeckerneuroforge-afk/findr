@@ -7,6 +7,8 @@ import { useTranslations } from "next-intl";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Konsoul, type KonsoulState } from "@/components/dashboard/Konsoul";
 import { KONSOUL_ACTIONS_ENABLED } from "@/lib/konsoul/actions-flag";
+import { isKonsoulP5Enabled } from "@/lib/konsoul/p5-flag";
+import { hydrateThreadTurns } from "@/lib/konsoul/render-helpers";
 import type {
   KonsoulResult,
   KonsoulProposalResult,
@@ -163,6 +165,14 @@ interface CrossStudyAgentPanelProps {
    *  and Konsoul reacts (listen/greet). It NEVER auto-submits — the user still
    *  presses send. Absent → the panel behaves exactly as before (empty field). */
   initialQuestion?: string;
+  /** P5 (flag-gated): the id of a restored persisted thread, so new turns UPDATE
+   *  it instead of creating a duplicate. Undefined → a fresh thread is created on
+   *  the first persisted turn. */
+  initialThreadId?: string;
+  /** P5 (flag-gated): a restored conversation's {role, content} turns. Hydrated
+   *  into the view; assistant turns render NEUTRALLY (a replayed answer is never
+   *  re-grounded — no green pip, no stale citations — the honesty contract). */
+  initialTurns?: { role: "user" | "assistant"; content: string }[];
 }
 
 /** Keep each history turn under the route's 4000-char cap. */
@@ -171,16 +181,23 @@ const HISTORY_CONTENT_CAP = 3900;
 export function CrossStudyAgentPanel({
   studies,
   initialQuestion,
+  initialThreadId,
+  initialTurns,
 }: CrossStudyAgentPanelProps) {
   const t = useTranslations("crossStudyAgent");
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const p5 = isKonsoulP5Enabled();
+  const [turns, setTurns] = useState<ChatTurn[]>(() =>
+    hydrateThreadTurns(initialTurns),
+  );
+  const threadIdRef = useRef<string | null>(initialThreadId ?? null);
   // Seed once from the prefill at mount. The value flows ONLY into the controlled
   // <textarea value={question}> below — never into dangerouslySetInnerHTML — so
   // there is no injection surface. No fetch is triggered on mount; the user sends.
   const [question, setQuestion] = useState(initialQuestion ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const turnIdRef = useRef(0);
+  // Start after the hydrated turns so new ids never collide with restored keys.
+  const turnIdRef = useRef(initialTurns?.length ?? 0);
   const questionRef = useRef<HTMLTextAreaElement>(null);
 
   const ready = studies.length > 0;
@@ -237,6 +254,38 @@ export function CrossStudyAgentPanel({
   function nextTurnId(): number {
     turnIdRef.current += 1;
     return turnIdRef.current;
+  }
+
+  // P5 (flag-gated): persist the conversation org-side so it survives a reload.
+  // Sends ONLY {role, content} text (no citations/result — re-grounded fresh on
+  // continue). Best-effort + fire-and-forget: a failed save never affects the
+  // answer; orgId is server-authoritative on the route. Captures the returned
+  // threadId so subsequent turns UPDATE the same thread.
+  function persistThread(allTurns: ChatTurn[]): void {
+    if (!p5) return;
+    const payload = allTurns.map((tn) => ({
+      role: tn.role,
+      content: tn.content,
+    }));
+    // NO keepalive: this runs right after the answer renders while the page is
+    // fully alive, so keepalive buys nothing — and its 64 KiB body cap would
+    // SILENTLY drop the save for long (most valuable) conversations.
+    void fetch("/api/konsoul-agent/threads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        threadId: threadIdRef.current ?? undefined,
+        turns: payload,
+      }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { threadId?: string | null } | null) => {
+        if (d && typeof d.threadId === "string") threadIdRef.current = d.threadId;
+      })
+      .catch((err) => {
+        console.error("[konsoul] persistThread failed:", err);
+      });
   }
 
   function titleFor(studyId: string): string {
@@ -310,6 +359,10 @@ export function CrossStudyAgentPanel({
         result,
       };
       setTurns((prev) => [...prev, assistantTurn]);
+      // P5 (flag-gated): persist the full conversation (prior turns + this
+      // exchange). `turns` here is the pre-submit closure, so the complete set is
+      // [...turns, userTurn, assistantTurn].
+      persistThread([...turns, userTurn, assistantTurn]);
     } catch (err) {
       setError(t("errNetwork"));
       console.error("konsoul-agent failed:", err);
@@ -321,6 +374,9 @@ export function CrossStudyAgentPanel({
   function handleReset() {
     if (loading) return;
     setTurns([]);
+    // P5: a fresh conversation = a fresh thread; the next persisted turn creates
+    // a new row instead of overwriting the prior thread.
+    threadIdRef.current = null;
     setError(null);
   }
 

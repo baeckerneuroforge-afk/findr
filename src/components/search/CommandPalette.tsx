@@ -8,6 +8,28 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import type { SearchIndex } from "@/lib/search/types";
 import { PALETTE_ROUTES } from "@/lib/search/nav-routes";
 import { ENABLED_MODULES } from "@/config/modules";
+import { isKonsoulP5Enabled } from "@/lib/konsoul/p5-flag";
+import { KonsoulInlineAnswer } from "@/components/search/KonsoulInlineAnswer";
+import type { KonsoulResult } from "@/lib/schemas/konsoul-agent";
+
+/** Fire-and-forget org-side telemetry (metadata only). Best-effort: a failed
+ *  beacon never affects the palette. */
+function postKonsoulMetric(
+  event: "inline_question_asked" | "inline_answer_shown",
+  counts?: Record<string, number>,
+): void {
+  try {
+    void fetch("/api/konsoul-agent/metrics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      keepalive: true,
+      body: JSON.stringify({ event, counts }),
+    }).catch(() => {});
+  } catch {
+    // best-effort
+  }
+}
 
 /**
  * The cmdk-based palette modal. Lazy-hydrates the org's deals + accounts
@@ -155,6 +177,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   // exact typed query into /dashboard/insights?q=…. cmdk still owns filtering;
   // we only mirror the value (Command.Input value + onValueChange).
   const [search, setSearch] = useState("");
+  // P5 INLINE Q&A: when the flag is on, the "Frag Konsoul" row answers IN the
+  // modal (via /api/konsoul-agent) instead of navigating. Session-local, single-
+  // turn; cleared on close. When the flag is off these stay null and the row
+  // behaves exactly as before (navigates to /insights?q=…).
+  const p5 = isKonsoulP5Enabled();
+  const [askedQuestion, setAskedQuestion] = useState<string | null>(null);
+  const [inlineResult, setInlineResult] = useState<KonsoulResult | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [askError, setAskError] = useState<string | null>(null);
   // Portal-Ziel: das ThemeShell-Div (statt document.body), damit die
   // Palette die .dark-Variablen des Dashboards erbt. useSyncExternalStore
   // statt setState-in-Effect: SSR-Snapshot undefined (= cmdk-Default), im
@@ -205,7 +236,68 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     // own internal value on close, but our controlled mirror would otherwise
     // persist a stale search across opens).
     setSearch("");
+    resetAsk();
     router.push(href);
+  }
+
+  function resetAsk(): void {
+    setAskedQuestion(null);
+    setInlineResult(null);
+    setAskError(null);
+    setAsking(false);
+  }
+
+  // Reset the inline answer whenever the palette closes (the component stays
+  // mounted) so re-opening starts on a clean search — handled in the close paths
+  // (handleOpenChange + go), NOT in an effect.
+  function handleOpenChange(next: boolean): void {
+    if (!next) resetAsk();
+    onOpenChange(next);
+  }
+
+  // P5 inline ask: answer the question IN the modal. Single-turn, no history;
+  // the deeper multi-turn + persisted thread lives in the /insights panel. The
+  // palette deliberately stays open while Konsoul thinks (no onOpenChange).
+  async function ask(question: string): Promise<void> {
+    const q = question.trim();
+    if (q === "" || asking) return;
+    setAskedQuestion(q);
+    setInlineResult(null);
+    setAskError(null);
+    setAsking(true);
+    postKonsoulMetric("inline_question_asked");
+    try {
+      const res = await fetch("/api/konsoul-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ question: q }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        result?: KonsoulResult;
+      };
+      if (res.ok && data.success && data.result) {
+        setInlineResult(data.result);
+        postKonsoulMetric("inline_answer_shown", { [data.result.kind]: 1 });
+      } else {
+        console.error("konsoul-agent inline failed:", res.status);
+        setAskError(t("command.inlineError"));
+      }
+    } catch (err) {
+      console.error("konsoul-agent inline failed:", err);
+      setAskError(t("command.inlineError"));
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  function onAskKonsoulSelect(): void {
+    if (p5) {
+      void ask(search);
+    } else {
+      go(`/dashboard/insights?q=${encodeURIComponent(trimmedSearch)}`);
+    }
   }
 
   // The global "Frag Konsoul" door: an ADDITIVE synthetic item that appears once
@@ -235,7 +327,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   return (
     <Command.Dialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       label={t("command.dialogLabel")}
       filter={paletteFilter}
       // Radix portalt den Dialog standardmäßig an document.body — das läge
@@ -258,6 +350,50 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         className="h-12 w-full border-b border-neutral-200 bg-transparent px-4 text-body text-neutral-900 outline-none placeholder:text-neutral-400"
       />
       <Command.List className="max-h-[60vh] overflow-y-auto p-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-caption [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-neutral-400">
+        {/* P5 inline answer — when a question has been asked, the modal shows
+            Konsoul's answer here (palette stays open) INSTEAD of the search
+            results. A neutral „Im Research-Raum öffnen" hands off to the full,
+            persistable panel; „Zurück zur Suche" returns to the result list. */}
+        {askedQuestion !== null && (
+          <div className="border-b border-neutral-100 px-3 py-3">
+            <p className="mb-2 text-small font-medium text-neutral-500">
+              {t("command.inlineQuestion", { query: askedQuestion })}
+            </p>
+            {asking && (
+              <p className="text-small text-neutral-500">
+                {t("command.inlineThinking")}
+              </p>
+            )}
+            {askError && (
+              <p className="text-small text-danger-700">{askError}</p>
+            )}
+            {inlineResult && <KonsoulInlineAnswer result={inlineResult} />}
+            {!asking && (
+              <div className="mt-3 flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    go(
+                      `/dashboard/insights?q=${encodeURIComponent(askedQuestion)}`,
+                    )
+                  }
+                  className="text-small font-medium text-primary-700 hover:underline"
+                >
+                  {t("command.inlineOpenFull")}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetAsk}
+                  className="text-small text-neutral-500 transition-colors hover:text-neutral-900"
+                >
+                  {t("command.inlineNewSearch")}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {askedQuestion === null && (
+          <>
         {loading && !index && (
           <Command.Loading>
             <div className="px-3 py-4 text-small text-neutral-500">
@@ -390,9 +526,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               // paletteFilter always keeps this row visible — value.includes(search)
               // holds even when the user has trailing whitespace.
               value={`konsoul ${search}`}
-              onSelect={() =>
-                go(`/dashboard/insights?q=${encodeURIComponent(trimmedSearch)}`)
-              }
+              onSelect={onAskKonsoulSelect}
               className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-body text-neutral-700 data-[selected=true]:bg-primary-50 data-[selected=true]:text-neutral-900"
             >
               <AskKonsoulIcon />
@@ -402,6 +536,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             </Command.Item>
           )}
         </Command.Group>
+          </>
+        )}
       </Command.List>
     </Command.Dialog>
   );

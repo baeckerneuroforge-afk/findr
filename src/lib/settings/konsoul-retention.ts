@@ -16,3 +16,20 @@
  * Konstante ist der eine Ort, an dem sie geändert wird.
  */
 export const KONSOUL_ACTION_LOG_RETENTION_DAYS = 365;
+
+/**
+ * Konsoul P5 — persistierte Threads (`konsoul_threads`). Org-seitiger
+ * Konversations-Text, KEINE Teilnehmer-Roh-PII (Antworten sind in der org-seitigen
+ * Synthese geerdet) — eigene Uhr, getrennt von interview_retention_days. Bewusst
+ * KÜRZER als der Audit-Horizont, weil Gesprächstext sonst unbegrenzt wächst; die
+ * Uhr läuft auf `updated_at` (zuletzt aktiv), ein aktiv weitergeführter Thread
+ * altert also nicht weg. FINAL Policy-/Anwalts-Entscheidung (André).
+ */
+export const KONSOUL_THREADS_RETENTION_DAYS = 90;
+
+/**
+ * Konsoul P5 — org-seitige Telemetrie (`konsoul_metrics`). NUR Metadaten-Zähler
+ * (kein Text/PII). Längere Frist als Threads, damit Nutzungs-Trends sichtbar
+ * bleiben, aber dennoch gekappt (Speicherbegrenzung). Uhr auf `occurred_at`.
+ */
+export const KONSOUL_METRICS_RETENTION_DAYS = 180;

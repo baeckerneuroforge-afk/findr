@@ -3,7 +3,11 @@ import { isAuthorizedCron } from "@/lib/auth/cron";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { createResearchSupabase } from "@/lib/research/db";
 import { cronHadAnyError } from "@/lib/cron/status";
-import { KONSOUL_ACTION_LOG_RETENTION_DAYS } from "@/lib/settings/konsoul-retention";
+import {
+  KONSOUL_ACTION_LOG_RETENTION_DAYS,
+  KONSOUL_THREADS_RETENTION_DAYS,
+  KONSOUL_METRICS_RETENTION_DAYS,
+} from "@/lib/settings/konsoul-retention";
 
 /**
  * DSGVO G5 — daily retention sweep. Two scopes:
@@ -21,6 +25,22 @@ import { KONSOUL_ACTION_LOG_RETENTION_DAYS } from "@/lib/settings/konsoul-retent
  * deleting; on Vercel a dry run still requires the token, so the endpoint is
  * never probeable unauthenticated.
  */
+
+/**
+ * A not-yet-created table (42P01 / PostgREST PGRST205) is a BENIGN skip, NOT a
+ * DSGVO failure: the P5 tables are additive and their migration is applied AFTER
+ * the code merges (the documented deferred-migration window). Treating a missing
+ * relation as fatal would flip the whole nightly run to 500 and MASK the
+ * interview-PII sweep's success. So the P5 sweeps tolerate it; once the table
+ * exists they sweep normally.
+ */
+function isMissingRelation(
+  error: { code?: string | null; message?: string | null } | null,
+): boolean {
+  if (!error) return false;
+  if (error.code === "42P01" || error.code === "PGRST205") return true;
+  return /does not exist|could not find the table/i.test(error.message ?? "");
+}
 
 export async function GET(request: Request) {
   const dryRun = new URL(request.url).searchParams.get("dryRun") === "true";
@@ -50,6 +70,8 @@ export async function GET(request: Request) {
     abandoned: 0,
     deleted: 0,
     konsoul_action_log_deleted: 0,
+    konsoul_threads_deleted: 0,
+    konsoul_metrics_deleted: 0,
     errors: [] as string[],
   };
 
@@ -143,6 +165,62 @@ export async function GET(request: Request) {
       } else {
         results.konsoul_action_log_deleted = konsoulDeleted?.length ?? 0;
       }
+    }
+  }
+
+  // Konsoul P5 — konsoul_threads retention sweep. Org-side conversation text (no
+  // participant raw-interview PII), its own fixed deadline (KONSOUL_THREADS_
+  // RETENTION_DAYS). The clock runs on updated_at (LAST ACTIVITY) so an actively
+  // continued thread does not age out. Global (all orgs), best-effort + fail-loud.
+  {
+    const research = createResearchSupabase();
+    const threadsCutoff = new Date(
+      Date.now() - KONSOUL_THREADS_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    if (dryRun) {
+      const { count, error: countError } = await research
+        .from("konsoul_threads")
+        .select("id", { count: "exact", head: true })
+        .lt("updated_at", threadsCutoff);
+      if (countError && !isMissingRelation(countError))
+        results.errors.push(`konsoul-threads: ${countError.message}`);
+      else results.konsoul_threads_deleted = count ?? 0;
+    } else {
+      const { data, error: delError } = await research
+        .from("konsoul_threads")
+        .delete()
+        .lt("updated_at", threadsCutoff)
+        .select("id");
+      if (delError && !isMissingRelation(delError))
+        results.errors.push(`konsoul-threads: ${delError.message}`);
+      else results.konsoul_threads_deleted = data?.length ?? 0;
+    }
+  }
+
+  // Konsoul P5 — konsoul_metrics retention sweep. Metadata-only counters, own
+  // fixed deadline (KONSOUL_METRICS_RETENTION_DAYS), clock on occurred_at.
+  {
+    const research = createResearchSupabase();
+    const metricsCutoff = new Date(
+      Date.now() - KONSOUL_METRICS_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    if (dryRun) {
+      const { count, error: countError } = await research
+        .from("konsoul_metrics")
+        .select("id", { count: "exact", head: true })
+        .lt("occurred_at", metricsCutoff);
+      if (countError && !isMissingRelation(countError))
+        results.errors.push(`konsoul-metrics: ${countError.message}`);
+      else results.konsoul_metrics_deleted = count ?? 0;
+    } else {
+      const { data, error: delError } = await research
+        .from("konsoul_metrics")
+        .delete()
+        .lt("occurred_at", metricsCutoff)
+        .select("id");
+      if (delError && !isMissingRelation(delError))
+        results.errors.push(`konsoul-metrics: ${delError.message}`);
+      else results.konsoul_metrics_deleted = data?.length ?? 0;
     }
   }
 

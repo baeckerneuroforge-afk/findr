@@ -879,6 +879,81 @@ type KonsoulActionLogUpdate = {
   decided_at?: string | null;
 };
 
+// ── konsoul_threads + konsoul_metrics ────────────────────────────────────────
+//
+// Konsoul P5 (20260725000000). Two additive LEAF tables. FK in (org_id ON DELETE
+// CASCADE), no inbound FK → org-hard-delete sweeps both via the org_id loop and
+// org-export auto-includes them. created_at/updated_at/occurred_at = server clock
+// = retention clock (cron sweep, code constants in settings/konsoul-retention.ts).
+//
+// konsoul_threads: ORG-SIDE conversation text (questions + Konsoul answers,
+// grounded in org synthesis — NO raw participant-interview PII). `turns` is a
+// jsonb array of {role, content} only — no citations, no result envelope (numbers
+// re-computed fresh on replay). App layer validates/caps before every write.
+// konsoul_metrics: METADATA-ONLY counters (closed event set + whitelisted counts
+// jsonb), NO text/PII — same hard red line as konsoul_action_log.
+export type KonsoulThreadTurn = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type KonsoulThreadRow = {
+  id: string;
+  org_id: string;
+  title: string | null;
+  turns: Json;
+  created_at: string;
+  updated_at: string;
+};
+
+type KonsoulThreadInsert = {
+  id?: string;
+  org_id: string;
+  title?: string | null;
+  turns?: Json;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type KonsoulThreadUpdate = {
+  id?: string;
+  org_id?: string;
+  title?: string | null;
+  turns?: Json;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type KonsoulMetricEvent =
+  | "inline_question_asked"
+  | "inline_answer_shown"
+  | "thread_saved"
+  | "thread_resumed";
+
+export type KonsoulMetricRow = {
+  id: string;
+  org_id: string;
+  event: KonsoulMetricEvent;
+  counts: Json;
+  occurred_at: string;
+};
+
+type KonsoulMetricInsert = {
+  id?: string;
+  org_id: string;
+  event: KonsoulMetricEvent;
+  counts?: Json;
+  occurred_at?: string;
+};
+
+type KonsoulMetricUpdate = {
+  id?: string;
+  org_id?: string;
+  event?: KonsoulMetricEvent;
+  counts?: Json;
+  occurred_at?: string;
+};
+
 // ── synthesis_shares ─────────────────────────────────────────────────────────
 //
 // Per 20260622000000_synthesis_shares.sql. Public read-only share links for a
@@ -1222,6 +1297,18 @@ export type DatabaseWithResearch = {
         Row: KonsoulActionLogRow;
         Insert: KonsoulActionLogInsert;
         Update: KonsoulActionLogUpdate;
+        Relationships: [];
+      };
+      konsoul_threads: {
+        Row: KonsoulThreadRow;
+        Insert: KonsoulThreadInsert;
+        Update: KonsoulThreadUpdate;
+        Relationships: [];
+      };
+      konsoul_metrics: {
+        Row: KonsoulMetricRow;
+        Insert: KonsoulMetricInsert;
+        Update: KonsoulMetricUpdate;
         Relationships: [];
       };
       scheduler_events: {
