@@ -1065,7 +1065,29 @@
     "emptyTitle": "Nothing planned yet",
     "emptyDesc": "Create a study and plan when it should go live — it then shows up here in the agenda.",
     "emptyCta": "Create a study",
-    "tzNote": "All times in Europe/Berlin"
+    "tzNote": "All times in Europe/Berlin",
+    "todayBtn": "Today",
+    "view": { "month": "Month", "agenda": "Agenda" },
+    "legend": {
+      "scheduled": "Scheduled",
+      "live": "Running",
+      "overdue": "Due",
+      "done": "Completed"
+    },
+    "upcomingTitle": "Up next",
+    "upcomingEmpty": "Nothing scheduled",
+    "moreEvents": "+{count} more",
+    "quick": {
+      "title": "Schedule a study",
+      "on": "Activate on {date}",
+      "pickStudy": "Study",
+      "timeLabel": "Time",
+      "confirm": "Schedule",
+      "noDrafts": "No draft studies — create one first.",
+      "noDraftsCta": "Create a study",
+      "errPick": "Please pick a study."
+    },
+    "a11y": { "prevMonth": "Previous month", "nextMonth": "Next month" }
   },
   "research": {
     "common": {

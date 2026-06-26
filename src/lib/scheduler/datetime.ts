@@ -59,8 +59,9 @@ export function formatActivationDay(iso: string, locale: string): string {
   }).format(d);
 }
 
-/** "YYYY-MM-DD" in the display zone — the stable key for day bucketing. */
-function displayDayKey(ms: number): string {
+/** "YYYY-MM-DD" in the display zone — the stable key for day bucketing and for
+ *  matching a scheduled instant to a calendar cell in the month grid. */
+export function displayDayKey(ms: number): string {
   // en-CA renders ISO-like YYYY-MM-DD; the display zone fixes the day boundary.
   return new Intl.DateTimeFormat("en-CA", {
     year: "numeric",
@@ -82,11 +83,15 @@ export type ActivationBucket =
  * boundaries are evaluated in the display zone (so "today" means today in
  * Berlin), while "this week" uses the 7-day instant window — both stable.
  *
- * The current time is read here (in this plain util, not in a component render
- * body) so callers stay pure for the react-hooks/purity lint.
+ * `nowMs` defaults to the current instant (read here in this plain util, not in
+ * a component render body, so callers stay pure for the react-hooks/purity lint).
+ * Client components pass an explicit nowMs (from a server-provided prop) to keep
+ * SSR and hydration identical.
  */
-export function activationBucket(iso: string): ActivationBucket {
-  const nowMs = Date.now();
+export function activationBucket(
+  iso: string,
+  nowMs: number = Date.now(),
+): ActivationBucket {
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) return "later";
   if (t < nowMs) return "past";
@@ -101,11 +106,16 @@ export function activationBucket(iso: string): ActivationBucket {
 
 /**
  * "in 3 Std" / "in 2 Tagen" / "vor 5 Min". Computed from the instant difference
- * to NOW, so it is timezone-independent. numeric:"auto" yields "morgen"/
- * "tomorrow" etc. Reads the clock here (not in a render body) for lint purity.
+ * to `nowMs` (default: current instant), so it is timezone-independent.
+ * numeric:"auto" yields "morgen"/"tomorrow" etc. Client components pass an
+ * explicit nowMs (server-provided prop) for hydration-stable output.
  */
-export function relativeActivation(iso: string, locale: string): string {
-  const ms = new Date(iso).getTime() - Date.now();
+export function relativeActivation(
+  iso: string,
+  locale: string,
+  nowMs: number = Date.now(),
+): string {
+  const ms = new Date(iso).getTime() - nowMs;
   if (Number.isNaN(ms)) return "";
   const rtf = new Intl.RelativeTimeFormat(toBcp47(locale), { numeric: "auto" });
   const minutes = Math.round(ms / 60_000);
@@ -114,4 +124,11 @@ export function relativeActivation(iso: string, locale: string): string {
   if (Math.abs(hours) < 48) return rtf.format(hours, "hour");
   const days = Math.round(ms / 86_400_000);
   return rtf.format(days, "day");
+}
+
+/** Current instant as an ISO string. A plain util (not a component body) so a
+ *  server component can read "now" once and hand it to a client calendar as a
+ *  prop without tripping the react-hooks/purity lint or causing hydration drift. */
+export function currentIso(): string {
+  return new Date().toISOString();
 }

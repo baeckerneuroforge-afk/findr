@@ -1065,7 +1065,29 @@
     "emptyTitle": "Noch nichts geplant",
     "emptyDesc": "Lege eine Studie an und plane, wann sie live gehen soll — du siehst sie dann hier in der Agenda.",
     "emptyCta": "Studie anlegen",
-    "tzNote": "Alle Zeiten in Europe/Berlin"
+    "tzNote": "Alle Zeiten in Europe/Berlin",
+    "todayBtn": "Heute",
+    "view": { "month": "Monat", "agenda": "Agenda" },
+    "legend": {
+      "scheduled": "Geplant",
+      "live": "Läuft",
+      "overdue": "Fällig",
+      "done": "Abgeschlossen"
+    },
+    "upcomingTitle": "Demnächst",
+    "upcomingEmpty": "Nichts geplant",
+    "moreEvents": "+{count} mehr",
+    "quick": {
+      "title": "Studie terminieren",
+      "on": "Am {date} aktivieren",
+      "pickStudy": "Studie",
+      "timeLabel": "Uhrzeit",
+      "confirm": "Terminieren",
+      "noDrafts": "Keine Entwurfs-Studien — leg zuerst eine an.",
+      "noDraftsCta": "Studie anlegen",
+      "errPick": "Bitte eine Studie wählen."
+    },
+    "a11y": { "prevMonth": "Vorheriger Monat", "nextMonth": "Nächster Monat" }
   },
   "research": {
     "common": {
