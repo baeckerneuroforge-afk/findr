@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { enforceRateLimit } from "@/lib/ratelimit";
 
 /**
  * Defense-in-Depth: erzwinge Login für die eingeloggte App-Oberfläche bereits
@@ -22,8 +23,22 @@ import { auth } from "@/auth";
  * Das ersetzt 1:1 das alte clerkMiddleware()+auth.protect() (Redirect bei
  * fehlender Session), der Matcher bleibt funktional gleich.
  */
-export default auth((req) => {
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
+
+  // Plattformweites Rate-Limiting — NUR für /api/**. Die gesamte Logik
+  // (Klassifizierung, nicht-spoofbare Key-Ableitung, Upstash-Call, 429-Bau)
+  // lebt in src/lib/ratelimit.ts; hier wird ausschließlich der High-Level-
+  // Wrapper aufgerufen. enforceRateLimit gibt eine fertige 429-Response zurück
+  // (= drosseln) oder null (= durchlassen). Ohne UPSTASH_*-Env ist der Limiter
+  // vollständig inert (immer null) → null Verhaltensänderung. exempt-Pfade
+  // (cron/webhook/voice-bridge/health/csp/OAuth) überspringen den Upstash-Call
+  // KOMPLETT (Klassifizierung vor dem Netzwerk-Call). Doppelt gegated: hier per
+  // Präfix + ein Sicherheitsnetz in enforceRateLimit selbst.
+  if (pathname.startsWith("/api/")) {
+    const limited = await enforceRateLimit(req);
+    if (limited) return limited; // 429 — sonst implizit weiter
+  }
 
   // Spiegelt das alte createRouteMatcher(["/dashboard(.*)", "/onboarding(.*)"]):
   // der nackte Pfad UND jeder Unterpfad.
