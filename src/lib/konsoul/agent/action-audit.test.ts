@@ -29,6 +29,13 @@ let lastInsert: Record<string, unknown> | null = null;
 /** Erzwingt einen Insert-Fehler (für den fail-open-Test). */
 let insertShouldError = false;
 
+/** Update-Pfad (logDecision): das gesetzte Objekt + die .eq()-Filter + ob ein
+ *  DB-Wert je den update überhaupt erreicht (für „null auditId → kein Call"). */
+let lastUpdate: Record<string, unknown> | null = null;
+let updateEqFilters: Array<[string, unknown]> = [];
+let updateCalled = false;
+let updateShouldError = false;
+
 vi.mock("@/lib/research/db", () => ({
   createResearchSupabase: () => ({
     from: () => ({
@@ -45,6 +52,22 @@ vi.mock("@/lib/research/db", () => ({
           }),
         };
       },
+      // .update(row).eq("id", …).eq("org_id", …) — eine chainbare, awaitbare
+      // Thenable, die die Filter sammelt und am await {error} liefert.
+      update: (row: Record<string, unknown>) => {
+        updateCalled = true;
+        lastUpdate = row;
+        updateEqFilters = [];
+        const thenable = {
+          eq: (col: string, val: unknown) => {
+            updateEqFilters.push([col, val]);
+            return thenable;
+          },
+          then: (resolve: (v: { error: unknown }) => void) =>
+            resolve({ error: updateShouldError ? { message: "boom" } : null }),
+        };
+        return thenable;
+      },
     }),
   }),
 }));
@@ -52,6 +75,7 @@ vi.mock("@/lib/research/db", () => ({
 import {
   sanitizeCounts,
   logProposed,
+  logDecision,
   COUNTS_KEY_WHITELIST,
   type KonsoulCountsKey,
 } from "./action-audit";
@@ -59,6 +83,10 @@ import {
 beforeEach(() => {
   lastInsert = null;
   insertShouldError = false;
+  lastUpdate = null;
+  updateEqFilters = [];
+  updateCalled = false;
+  updateShouldError = false;
 });
 
 // ── sanitizeCounts (pure) — die counts-Whitelist ─────────────────────────────
@@ -265,5 +293,49 @@ describe("logProposed — INSERT object is metadata-only, never free text", () =
       "affected_studies",
       "pool_size",
     ]);
+  });
+});
+
+// ── logDecision — Audit-Schreibung #2 (accepted/ignored), org-scoped, fail-open ──
+
+describe("logDecision — outcome update is org-scoped, metadata-only, fail-open", () => {
+  it("null auditId → NO-OP: no DB update at all (proposed-Insert had failed)", async () => {
+    await logDecision({ auditId: null, orgId: "org_1", status: "accepted" });
+    // Nichts zu aktualisieren → der Update-Pfad wird nie betreten.
+    expect(updateCalled).toBe(false);
+    expect(lastUpdate).toBeNull();
+  });
+
+  it("accepted → sets status + decided_at, scoped by BOTH id AND org_id (cross-org-safe)", async () => {
+    await logDecision({
+      auditId: "audit_1",
+      orgId: "org_42",
+      status: "accepted",
+    });
+    expect(updateCalled).toBe(true);
+    // Nur Metadaten: status + server-gestempeltes decided_at (kein Freitext).
+    expect(Object.keys(lastUpdate!).sort()).toEqual(["decided_at", "status"]);
+    expect(lastUpdate!.status).toBe("accepted");
+    expect(typeof lastUpdate!.decided_at).toBe("string");
+    // Org-Grenzschutz: der Update trifft NUR die eigene Zeile dieser Org.
+    expect(updateEqFilters).toEqual([
+      ["id", "audit_1"],
+      ["org_id", "org_42"],
+    ]);
+  });
+
+  it("ignored → status:'ignored' (Verwerfen wird ehrlich vom Accept unterschieden)", async () => {
+    await logDecision({ auditId: "audit_1", orgId: "org_1", status: "ignored" });
+    expect(lastUpdate!.status).toBe("ignored");
+  });
+
+  it("fail-open: an update error is logged but never throws (a successful confirm is never kipped)", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    updateShouldError = true;
+    await expect(
+      logDecision({ auditId: "audit_1", orgId: "org_1", status: "accepted" }),
+    ).resolves.toBeUndefined();
+    expect(errSpy).toHaveBeenCalled();
+    errSpy.mockRestore();
   });
 });
