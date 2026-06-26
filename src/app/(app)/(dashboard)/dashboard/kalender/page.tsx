@@ -12,6 +12,8 @@ import {
 } from "@/components/dashboard/KalenderView";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { currentIso } from "@/lib/scheduler/datetime";
+import { isKonsoulCalendarEnabled } from "@/lib/konsoul/calendar-flag";
+import { KonsoulCalendarDrawer } from "@/components/dashboard/KonsoulCalendarDrawer";
 
 /**
  * /dashboard/kalender — the Studien-Zeitplaner (Kalender-Redesign).
@@ -45,7 +47,13 @@ function CalendarIcon() {
   );
 }
 
-export default async function KalenderPage() {
+export default async function KalenderPage({
+  searchParams,
+}: {
+  // ?schedule=<uuid> (z. B. aus einem Konsoul-Termin-Vorschlag) öffnet den
+  // Quick-Schedule-Picker für diesen Entwurf; ?konsoul ist reserviert.
+  searchParams: Promise<{ schedule?: string; konsoul?: string }>;
+}) {
   let orgId: string;
   try {
     orgId = await requireOrgId();
@@ -62,6 +70,19 @@ export default async function KalenderPage() {
   const locale = await getLocale();
 
   const plans = await listResearchPlans(orgId, "market_research");
+
+  // P2: Konsoul-Drawer (flag-gated) + Deep-Link-Prefill für den Termin-Picker.
+  // BEIDES nur bei aktivem Flag — so ist die Seite bei Flag-aus byte-gleich zum
+  // Stand vor dem Feature (der ?schedule-Param ist dann komplett inert).
+  const calendarEnabled = isKonsoulCalendarEnabled();
+  const { schedule: rawSchedule } = await searchParams;
+  const prefillStudyId = calendarEnabled
+    ? (rawSchedule ?? "").trim() || undefined
+    : undefined;
+  const drawerStudies = plans.map((p) => ({
+    studyId: p.id,
+    studyTitle: p.title,
+  }));
 
   // Map each study to its calendar anchor date + visual kind.
   const events: CalendarEvent[] = [];
@@ -103,12 +124,26 @@ export default async function KalenderPage() {
         <p className="mt-1 text-body text-neutral-500">{t("pageSubtitle")}</p>
         <p className="mt-1 text-caption text-neutral-400">{t("tzNote")}</p>
       </div>
-      <Link
-        href="/dashboard/market-research/new"
-        className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
-      >
-        {t("planStudyCta")}
-      </Link>
+      {/* Flag-aus: GENAU der bare Link wie vor dem Feature (byte-gleich). Flag-an:
+          der Drawer-Button + Link im Flex-Wrapper. */}
+      {calendarEnabled ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <KonsoulCalendarDrawer studies={drawerStudies} />
+          <Link
+            href="/dashboard/market-research/new"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
+          >
+            {t("planStudyCta")}
+          </Link>
+        </div>
+      ) : (
+        <Link
+          href="/dashboard/market-research/new"
+          className="inline-flex h-9 items-center justify-center rounded-md bg-primary-600 px-4 text-body-strong font-medium text-white transition-colors hover:bg-primary-hover"
+        >
+          {t("planStudyCta")}
+        </Link>
+      )}
     </div>
   );
 
@@ -138,10 +173,14 @@ export default async function KalenderPage() {
       </div>
       <div className="st-rise" style={{ "--st": 1 } as React.CSSProperties}>
         <KalenderView
+          // key macht einen neuen ?schedule-Deep-Link zu einem sauberen
+          // Re-Mount → der Quick-Schedule-Dialog öffnet vorbefüllt (kein Effect).
+          key={`kal-${prefillStudyId ?? ""}`}
           events={events}
           drafts={drafts}
           nowIso={currentIso()}
           locale={locale}
+          prefillStudyId={prefillStudyId}
         />
       </div>
       <AutoRefresh />

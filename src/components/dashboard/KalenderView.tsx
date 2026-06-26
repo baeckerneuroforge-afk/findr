@@ -52,6 +52,12 @@ interface KalenderViewProps {
   drafts: DraftOption[];
   nowIso: string;
   locale: string;
+  /** Deep-Link (?schedule=<id>, z. B. aus einem Konsoul-Termin-Vorschlag): öffnet
+   *  beim Mount den Quick-Schedule-Dialog für DIESEN Entwurf (Default-Tag morgen).
+   *  Nur wenn die id ein ungeplanter Entwurf ist; sonst ignoriert. Die Seite hängt
+   *  ein `key=<id>` an, sodass ein neuer Deep-Link ein sauberes Re-Mount auslöst
+   *  (kein setState-in-Effect). */
+  prefillStudyId?: string;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -83,6 +89,7 @@ export function KalenderView({
   drafts,
   nowIso,
   locale,
+  prefillStudyId,
 }: KalenderViewProps) {
   const router = useRouter();
   const t = useTranslations("kalender");
@@ -92,15 +99,23 @@ export function KalenderView({
   const nowMs = useMemo(() => new Date(nowIso).getTime(), [nowIso]);
   const todayKey = useMemo(() => displayDayKey(nowMs), [nowMs]);
 
+  // Deep-Link-Vorbefüllung NUR für einen echten ungeplanten Entwurf (sonst null).
+  const prefillDraftId =
+    prefillStudyId && drafts.some((d) => d.id === prefillStudyId)
+      ? prefillStudyId
+      : null;
+
   const [view, setView] = useState<"month" | "agenda">("month");
   const [cursor, setCursor] = useState(() => {
     const [y, m] = todayKey.split("-").map(Number);
     return { year: y, month: m - 1 };
   });
 
-  // Quick-schedule dialog state.
-  const [quickDay, setQuickDay] = useState<string | null>(null);
-  const [pickId, setPickId] = useState("");
+  // Quick-schedule dialog state. Beim Deep-Link gleich offen (Default-Tag morgen).
+  const [quickDay, setQuickDay] = useState<string | null>(() =>
+    prefillDraftId ? displayDayKey(nowMs + 24 * 60 * 60 * 1000) : null,
+  );
+  const [pickId, setPickId] = useState(() => prefillDraftId ?? "");
   const [pickTime, setPickTime] = useState("09:00");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

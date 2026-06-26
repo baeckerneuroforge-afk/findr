@@ -19,6 +19,8 @@ import {
   type PortfolioFacts,
   type PortfolioStudyFact,
   type KonsoulFactSignal,
+  type CalendarFacts,
+  type CalendarStudyFact,
 } from "@/lib/schemas/konsoul-agent";
 import {
   lookupHelpTopic,
@@ -62,6 +64,10 @@ export interface KonsoulReadToolset {
   /** Fakten-Block EINER Studie (Status/Counts/Flags), oder null bei unbekannter
    *  id in dieser Org. scope:'study'. KEINE Synthese-Prosa. */
   getStudyFacts(studyId: string): Promise<PortfolioFacts | null>;
+  /** KALENDER-Fakten: pro Studie Status + Aktivierungs-Zustand + (geplantes)
+   *  Datum, plus deterministische Zähler. scope:'calendar'. KEINE PII, KEIN
+   *  Versand — reiner Lese-Snapshot. */
+  getCalendarFacts(): Promise<CalendarFacts>;
 }
 
 // ── Pure Builder (kein DB — testbar) ─────────────────────────────────────────
@@ -147,6 +153,43 @@ export function pickStudyFacts(
   };
 }
 
+/**
+ * Baut den KALENDER-Fakten-Block aus den geladenen Plänen. PURE: kein DB, kein
+ * Modell. `nowMs` wird hereingereicht (deterministisch/testbar) und treibt NUR
+ * den overdue-Zähler (geplanter Termin in der Vergangenheit, nie aktiviert).
+ * activation_state/scheduled_activation_at stammen verbatim aus den Plänen; ein
+ * fehlender Wert ist 'none'/null (coerceActivationState-Default, pre-migration-safe).
+ */
+export function buildCalendarFacts(
+  plans: ResearchPlanRecord[],
+  nowMs: number,
+): CalendarFacts {
+  const studies: CalendarStudyFact[] = plans.map((p) => ({
+    studyId: p.id,
+    title: p.title,
+    status: p.status,
+    activationState: p.activationState ?? "none",
+    scheduledActivationAt: p.scheduledActivationAt ?? null,
+    activatedAt: p.activatedAt ?? null,
+  }));
+  const unscheduledDrafts = plans.filter(
+    (p) => p.status === "draft" && (p.activationState ?? "none") === "none",
+  ).length;
+  const scheduled = plans.filter((p) => p.activationState === "scheduled");
+  const overdueCount = scheduled.filter((p) => {
+    if (!p.scheduledActivationAt) return false;
+    const t = Date.parse(p.scheduledActivationAt);
+    return Number.isFinite(t) && t < nowMs;
+  }).length;
+  return {
+    scope: "calendar",
+    studies,
+    unscheduledDrafts,
+    scheduledCount: scheduled.length,
+    overdueCount,
+  };
+}
+
 // ── Deterministische Formatter (Tool-Result-Text fürs Modell) ────────────────
 
 function formatNum(n: number | null): string {
@@ -180,6 +223,19 @@ export function formatPortfolioFactsForTool(facts: PortfolioFacts): string {
           .join("; ")}`
       : "";
   return `${head}\n${lines.join("\n")}${sigs}`;
+}
+
+/** Tool-Result-Text des KALENDER-Fakten-Blocks. Reine Zustände/Daten; das Modell
+ *  darf NUR diese Werte wiedergeben und NIE ein Datum erfinden. */
+export function formatCalendarFactsForTool(facts: CalendarFacts): string {
+  const head = `KALENDER: ${facts.studies.length} Studie(n), ${facts.unscheduledDrafts} ungeplante(r) Entwurf/Entwürfe, ${facts.scheduledCount} terminiert, ${facts.overdueCount} überfällig. Gib NUR diese Zustände/Daten wieder, erfinde KEIN Datum. Du terminierst NICHTS selbst und aktivierst NIE — du schlägst höchstens via propose_action(schedule_activation) vor.`;
+  const lines = facts.studies.map((s) => {
+    const parts = [`status=${s.status}`, `aktivierung=${s.activationState}`];
+    if (s.scheduledActivationAt) parts.push(`geplant=${s.scheduledActivationAt}`);
+    if (s.activatedAt) parts.push(`aktiviert=${s.activatedAt}`);
+    return `- id=${s.studyId} "${s.title}" (${parts.join(", ")})`;
+  });
+  return `${head}\n${lines.join("\n")}`;
 }
 
 /** Tool-Result-Text eines Hilfe-Themas. Neutral, du-Form; der Korpus-`key` wird
@@ -227,6 +283,13 @@ export const GET_STUDY_STATUS_TOOL: Anthropic.Tool = {
     },
     required: ["studyId"],
   },
+};
+
+export const GET_CALENDAR_CONTEXT_TOOL: Anthropic.Tool = {
+  name: "get_calendar_context",
+  description:
+    "Liefert den DETERMINISTISCHEN Kalender-Stand dieser Organisation: pro Studie Status + Aktivierungs-Zustand (none/scheduled/activating/activated/failed) + ggf. das geplante Aktivierungs-Datum, plus Zähler (ungeplante Entwürfe, terminiert, überfällig). NUR Zustände/Daten — KEINE Teilnehmerdaten, KEIN 'wer hat terminiert'. Nutze dies für Kalender-Fragen ('was ist diese Woche geplant?', 'welche Entwürfe sind ungeplant?', 'ist etwas überfällig?') UND BEVOR du eine Terminierung (schedule_activation) vorschlägst. Du erfindest NIE ein Datum und aktivierst NIE — du terminierst nur per Vorschlag. Nimmt keine Argumente.",
+  input_schema: { type: "object", properties: {} },
 };
 
 export const GET_HELP_TOOL: Anthropic.Tool = {
@@ -346,10 +409,54 @@ export const PROPOSE_ACTION_TOOL: Anthropic.Tool = {
  * hier), damit diese Datei rein/testbar bleibt und der Aufrufer (Engine) die eine
  * Flag-Quelle besitzt.
  */
-export function konsoulToolDefs(actionsEnabled: boolean): Anthropic.Tool[] {
-  return actionsEnabled
-    ? [...KONSOUL_TOOL_DEFS, PROPOSE_ACTION_TOOL]
-    : KONSOUL_TOOL_DEFS;
+/** Aktionstypen INKL. Kalender-Terminierung — nur angeboten, wenn das Kalender-
+ *  Flag an ist (gestapelt auf das Actions-Flag). schedule_activation öffnet beim
+ *  Confirm den Picker (verschickt nichts); NIE /activate. */
+export const KONSOUL_PROPOSE_ACTION_TYPES_WITH_CALENDAR = [
+  ...KONSOUL_PROPOSE_ACTION_TYPES,
+  "schedule_activation",
+] as const;
+
+/** Das propose_action-Tool MIT der Kalender-Aktion im actionType-Enum. Klon von
+ *  PROPOSE_ACTION_TOOL — der einzige Unterschied ist der erweiterte Enum + ein
+ *  Zusatz in der Beschreibung. Nur via konsoulToolDefs(.., calendarEnabled=true). */
+export function proposeActionToolWithCalendar(): Anthropic.Tool {
+  return {
+    name: PROPOSE_ACTION_TOOL_NAME,
+    description:
+      PROPOSE_ACTION_TOOL.description +
+      " ZUSÄTZLICH erlaubt (Kalender): schedule_activation — schlage vor, einen ENTWURF für ein zukünftiges Aktivierungs-Datum zu terminieren (gib die studyId). Du nennst KEIN Datum; der Confirm öffnet den Termin-Picker, der Mensch wählt die Zeit. Rufe vorher get_calendar_context. NUR Entwürfe sind terminierbar. Aktivieren/Live-Schalten/Versand kannst du NIE.",
+    input_schema: {
+      type: "object",
+      properties: {
+        ...(PROPOSE_ACTION_TOOL.input_schema.properties as Record<
+          string,
+          unknown
+        >),
+        actionType: {
+          type: "string",
+          enum: [...KONSOUL_PROPOSE_ACTION_TYPES_WITH_CALENDAR],
+          description:
+            "Eine der erlaubten Aktionen (inkl. schedule_activation). Jeder andere Wert wird verworfen.",
+        },
+      },
+      required: ["actionType", "rationale"],
+    },
+  };
+}
+
+export function konsoulToolDefs(
+  actionsEnabled: boolean,
+  calendarEnabled = false,
+): Anthropic.Tool[] {
+  const tools: Anthropic.Tool[] = [...KONSOUL_TOOL_DEFS];
+  if (calendarEnabled) tools.push(GET_CALENDAR_CONTEXT_TOOL);
+  if (actionsEnabled) {
+    tools.push(
+      calendarEnabled ? proposeActionToolWithCalendar() : PROPOSE_ACTION_TOOL,
+    );
+  }
+  return tools;
 }
 
 // ── Production-Toolset (org-backed, read-only, orgId per Closure) ─────────────
@@ -368,22 +475,29 @@ export function konsoulToolDefs(actionsEnabled: boolean): Anthropic.Tool[] {
  * Vertrauensgrenze.
  */
 export function makeKonsoulReadTools(orgId: string): KonsoulReadToolset {
+  // Pläne EINMAL pro Request laden (lazy, gecacht): Portfolio- UND Kalender-Tool
+  // teilen sich denselben org-scoped Read statt ihn zu doppeln. Fail-open → [].
+  let plansPromise: Promise<ResearchPlanRecord[]> | null = null;
+  function loadPlans(): Promise<ResearchPlanRecord[]> {
+    if (!plansPromise) {
+      plansPromise = listResearchPlans(orgId, "market_research").catch(
+        () => [] as ResearchPlanRecord[],
+      );
+    }
+    return plansPromise;
+  }
+
   async function loadPortfolioFresh(): Promise<PortfolioFacts> {
     // market_research-Scope (wie P1-Signale): das ist Konsouls Portfolio-Universe.
     // personaPlanIds: Set der plan_ids mit bereits erzeugten Personas (oder null
     // bei Lese-Fehler) — treibt die ehrliche run_personas-Überschreib-Warnung.
-    const [plans, syntheses, signals, poolSize, personaPlanIds] =
-      await Promise.all([
-        listResearchPlans(orgId, "market_research").catch(
-          () => [] as ResearchPlanRecord[],
-        ),
-        loadOrgSyntheses(orgId).catch(
-          () => [] as MissionControlSynthesisInput[],
-        ),
-        computeKonsoulSignals(orgId).catch(() => [] as KonsoulSignal[]),
-        countPoolMembers(orgId).catch(() => 0),
-        loadOrgPersonaPlanIds(orgId).catch(() => null),
-      ]);
+    const plans = await loadPlans();
+    const [syntheses, signals, poolSize, personaPlanIds] = await Promise.all([
+      loadOrgSyntheses(orgId).catch(() => [] as MissionControlSynthesisInput[]),
+      computeKonsoulSignals(orgId).catch(() => [] as KonsoulSignal[]),
+      countPoolMembers(orgId).catch(() => 0),
+      loadOrgPersonaPlanIds(orgId).catch(() => null),
+    ]);
     const completedByPlan =
       plans.length > 0
         ? await countCompletedSessionsForPlans(
@@ -417,10 +531,22 @@ export function makeKonsoulReadTools(orgId: string): KonsoulReadToolset {
     return portfolioPromise;
   }
 
+  // Kalender-Fakten teilen den Plan-Read; nowMs = Server-Zeit (nur für overdue).
+  let calendarPromise: Promise<CalendarFacts> | null = null;
+  function loadCalendar(): Promise<CalendarFacts> {
+    if (!calendarPromise) {
+      calendarPromise = loadPlans().then((plans) =>
+        buildCalendarFacts(plans, Date.now()),
+      );
+    }
+    return calendarPromise;
+  }
+
   return {
     getPortfolioFacts: () => loadPortfolio(),
     getStudyFacts: async (studyId: string) =>
       pickStudyFacts(await loadPortfolio(), studyId),
+    getCalendarFacts: () => loadCalendar(),
   };
 }
 

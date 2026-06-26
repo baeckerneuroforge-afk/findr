@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
+import { formatActivationDateTime } from "@/lib/scheduler/datetime";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Konsoul, type KonsoulState } from "@/components/dashboard/Konsoul";
 import { KONSOUL_ACTIONS_ENABLED } from "@/lib/konsoul/actions-flag";
@@ -13,7 +15,8 @@ import type {
   KonsoulResult,
   KonsoulProposalResult,
   KonsoulProposalActionType,
-  PortfolioFacts,
+  KonsoulFacts,
+  CalendarStudyFact,
   PortfolioStudyFact,
 } from "@/lib/schemas/konsoul-agent";
 
@@ -96,6 +99,11 @@ const ACTION_ENDPOINT: Record<
   // Überschreibt topic_script wholesale (destructive wenn befüllt).
   run_guide: (planId) =>
     planId ? `/api/research/plans/${encodeURIComponent(planId)}/guide` : null,
+  // Kalender-Terminierung: KEIN direkter POST. Der Confirm NAVIGIERT zum Kalender-
+  // Picker (Deep-Link ?schedule=<id>), wo der Mensch die Zeit wählt und die
+  // bestehende /schedule-Route läuft. Endpoint=null → execute() nimmt den
+  // Navigations-Pfad (siehe ProposalBlock), nie diesen Map-Eintrag.
+  schedule_activation: () => null,
 };
 
 /** Lokaler Confirm-Status einer einzelnen Proposal-Karte. */
@@ -173,6 +181,11 @@ interface CrossStudyAgentPanelProps {
    *  into the view; assistant turns render NEUTRALLY (a replayed answer is never
    *  re-grounded — no green pip, no stale citations — the honesty contract). */
   initialTurns?: { role: "user" | "assistant"; content: string }[];
+  /** Kalender-Drawer: wird VOR dem schedule_activation-Confirm-Navigieren
+   *  (router.push zum Picker) gerufen, damit der Drawer sich schließt und der
+   *  Picker nicht hinter zwei Scrims auftaucht. Andere Türen (⌘K/insights) lassen
+   *  es weg. */
+  onScheduleNavigate?: () => void;
 }
 
 /** Keep each history turn under the route's 4000-char cap. */
@@ -183,6 +196,7 @@ export function CrossStudyAgentPanel({
   initialQuestion,
   initialThreadId,
   initialTurns,
+  onScheduleNavigate,
 }: CrossStudyAgentPanelProps) {
   const t = useTranslations("crossStudyAgent");
   const p5 = isKonsoulP5Enabled();
@@ -439,7 +453,12 @@ export function CrossStudyAgentPanel({
                       // gerendert wird. Nur sichtbar, wenn das Flag scharf ist;
                       // andernfalls liefert die Engine diesen kind nie.
                       KONSOUL_ACTIONS_ENABLED ? (
-                        <ProposalBlock result={turn.result} titleFor={titleFor} t={t} />
+                        <ProposalBlock
+                          result={turn.result}
+                          titleFor={titleFor}
+                          t={t}
+                          onScheduleNavigate={onScheduleNavigate}
+                        />
                       ) : (
                         // Flag AUS, aber ein proposal kam (sollte nie passieren):
                         // ehrlich-ruhig wie eine Refusal rendern, NIE ausführbar.
@@ -695,23 +714,32 @@ function ProposalBlock({
   result,
   titleFor,
   t,
+  onScheduleNavigate,
 }: {
   result: KonsoulProposalResult;
   titleFor: (studyId: string) => string;
   t: TFn;
+  onScheduleNavigate?: () => void;
 }) {
   const { proposal } = result;
+  const router = useRouter();
   const [phase, setPhase] = useState<ProposalPhase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const planId = proposal.targetStudyId ?? null;
+  const isSchedule = proposal.actionType === "schedule_activation";
   const destructive = proposal.destructive === true;
   const costsModel = proposal.costsModel === true;
 
-  // Erledigt-Ziel: dieselbe Synthese-Route, auf die auch die Zitate zeigen.
-  const doneHref = planId
-    ? `/dashboard/research-plans/${encodeURIComponent(planId)}/synthesis`
-    : "/dashboard/market-research";
+  // Erledigt-Ziel: bei Terminierung der Kalender (Picker), sonst die Synthese-
+  // Route, auf die auch die Zitate zeigen.
+  const doneHref = isSchedule
+    ? planId
+      ? `/dashboard/kalender?schedule=${encodeURIComponent(planId)}`
+      : "/dashboard/kalender"
+    : planId
+      ? `/dashboard/research-plans/${encodeURIComponent(planId)}/synthesis`
+      : "/dashboard/market-research";
 
   /** Baut den minimalen, orgId-freien Body für die jeweilige Ziel-Route. */
   function bodyFor(): Record<string, unknown> {
@@ -746,11 +774,36 @@ function ProposalBlock({
       case "run_personas":
         // Leerer Body — die Route arbeitet rein aus (orgId, planId-im-Pfad).
         return {};
+      case "schedule_activation":
+        // Unerreichbar: schedule_activation postet nicht, es navigiert zum Picker
+        // (execute() short-circuited davor). Nur für die switch-Vollständigkeit.
+        return {};
     }
   }
 
   /** Der eine echte Auslöser. Ruft NUR den Allowlist-Endpunkt, loggt den Ausgang. */
   async function execute() {
+    // Kalender-Terminierung: KEIN POST. Wir öffnen den BESTEHENDEN Termin-Picker
+    // (Deep-Link), der Mensch wählt die Zeit, die bestehende /schedule-Route läuft.
+    // Der Confirm-Klick ist die „Annahme" des Vorschlags → Audit 'accepted'. Das
+    // tatsächliche Schreiben passiert im Picker, nie hier (kein Versand, kein
+    // /activate). Ohne planId (sollte nie) fail-closed.
+    if (isSchedule) {
+      if (!planId) {
+        setErrorMsg(t("proposalErrInvalid"));
+        setPhase("error");
+        return;
+      }
+      logDecision("accepted", result.auditId ?? null);
+      setPhase("done");
+      // Drawer schließen (falls aus dem Kalender-Drawer), BEVOR wir zum Picker
+      // navigieren — sonst öffnet der Picker hinter dem noch offenen Drawer.
+      onScheduleNavigate?.();
+      router.push(
+        `/dashboard/kalender?schedule=${encodeURIComponent(planId)}`,
+      );
+      return;
+    }
     const endpoint = ACTION_ENDPOINT[proposal.actionType](planId ?? undefined);
     if (!endpoint) {
       // Halluzinierter/fehlender Pfad (z. B. Re-Run ohne planId) → fail-closed,
@@ -804,9 +857,12 @@ function ProposalBlock({
   }
 
   const actionLabel = t(`proposalAction.${proposal.actionType}`);
-  const targetName = planId
-    ? titleFor(planId)
-    : (proposal.targetTitle ?? t("untitledStudy"));
+  // Terminierung/Entwurf tragen den Titel im Proposal (ein Entwurf steht evtl.
+  // nicht im Synthese-Universe von titleFor) — den bevorzugen; run_* nutzen
+  // titleFor(planId) wie bisher (sie setzen kein targetTitle).
+  const targetName =
+    proposal.targetTitle ??
+    (planId ? titleFor(planId) : t("untitledStudy"));
 
   // ── Terminale Zustände ─────────────────────────────────────────────────────
   if (phase === "done") {
@@ -965,16 +1021,21 @@ function GuidanceBlock({
   sourcesLabel,
   t,
 }: {
-  result: { answer: string; sources?: string[]; data?: PortfolioFacts };
+  result: { answer: string; sources?: string[]; data?: KonsoulFacts };
   guidanceLabel: string;
   portfolioLabel: string;
   studyStatusLabel: string;
   sourcesLabel: string;
   t: TFn;
 }) {
+  const locale = useLocale();
   const data = result.data;
-  const factsLabel =
-    data?.scope === "study" ? studyStatusLabel : portfolioLabel;
+  const isCalendar = data?.scope === "calendar";
+  const factsLabel = isCalendar
+    ? t("calendarLabel")
+    : data?.scope === "study"
+      ? studyStatusLabel
+      : portfolioLabel;
 
   return (
     <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3">
@@ -1007,22 +1068,48 @@ function GuidanceBlock({
             {factsLabel}
           </div>
           <ul className="space-y-2">
-            {data.studies.map((study) => (
-              <li
-                key={study.studyId}
-                className="border-l-2 border-neutral-200 pl-3 text-small"
-              >
-                <p className="font-medium text-neutral-800">{study.title}</p>
-                <p className="text-caption text-neutral-500">
-                  {formatStudyFacts(study, t)}
-                </p>
-              </li>
-            ))}
+            {data.scope === "calendar"
+              ? data.studies.map((study) => (
+                  <li
+                    key={study.studyId}
+                    className="border-l-2 border-neutral-200 pl-3 text-small"
+                  >
+                    <p className="font-medium text-neutral-800">
+                      {study.title}
+                    </p>
+                    <p className="text-caption text-neutral-500">
+                      {formatCalendarStudyFacts(study, t, locale)}
+                    </p>
+                  </li>
+                ))
+              : data.studies.map((study) => (
+                  <li
+                    key={study.studyId}
+                    className="border-l-2 border-neutral-200 pl-3 text-small"
+                  >
+                    <p className="font-medium text-neutral-800">
+                      {study.title}
+                    </p>
+                    <p className="text-caption text-neutral-500">
+                      {formatStudyFacts(study, t)}
+                    </p>
+                  </li>
+                ))}
           </ul>
-          {typeof data.poolSize === "number" && (
+          {data.scope === "calendar" ? (
             <p className="text-caption text-neutral-500">
-              {t("factPoolSize", { count: data.poolSize })}
+              {t("factCalCounts", {
+                unscheduled: data.unscheduledDrafts,
+                scheduled: data.scheduledCount,
+                overdue: data.overdueCount,
+              })}
             </p>
+          ) : (
+            typeof data.poolSize === "number" && (
+              <p className="text-caption text-neutral-500">
+                {t("factPoolSize", { count: data.poolSize })}
+              </p>
+            )
           )}
         </div>
       )}
@@ -1057,5 +1144,26 @@ function formatStudyFacts(study: PortfolioStudyFact, t: TFn): string {
     parts.push(t("factNewSince", { count: study.newInterviewsSince }));
   }
 
+  return parts.join(" · ");
+}
+
+/** Localized fact line for one CALENDAR study row: activation state (+ scheduled
+ *  date if any). Each value is verbatim from the tool — never model-invented. The
+ *  date uses the SAME Europe/Berlin display zone (formatActivationDateTime) as the
+ *  calendar grid, the „Demnächst"-Liste and the activation email — so Konsoul never
+ *  shows a different wall-clock time than the product it summarizes. */
+function formatCalendarStudyFacts(
+  study: CalendarStudyFact,
+  t: TFn,
+  locale: string,
+): string {
+  const parts: string[] = [t("factCalState", { state: study.activationState })];
+  if (study.scheduledActivationAt) {
+    parts.push(
+      t("factCalScheduledAt", {
+        date: formatActivationDateTime(study.scheduledActivationAt, locale),
+      }),
+    );
+  }
   return parts.join(" · ");
 }

@@ -362,6 +362,7 @@
     "inlineCiteOpen": "Open study",
     "inlineProposalHint": "Konsoul can suggest an action here — open it in the research room.",
     "inlineFactInterviews": "{count, plural, one {# interview} other {# interviews}}",
+    "inlineFactState": "{state, select, none {unscheduled} scheduled {scheduled} activating {activating} activated {live} failed {failed} other {{state}}}",
     "group": {
       "deals": "Deals",
       "accounts": "Accounts",
@@ -1057,6 +1058,9 @@
     "pageTitle": "Calendar",
     "pageSubtitle": "What's coming up — scheduled activations, running studies and drafts you can plan.",
     "planStudyCta": "Plan a study",
+    "konsoulOpen": "Ask Konsoul",
+    "konsoulTitle": "Konsoul",
+    "konsoulClose": "Close",
     "kpiScheduled": "Scheduled",
     "kpiActive": "Active",
     "kpiDrafts": "Drafts",
@@ -2725,13 +2729,18 @@
     "factNoSynthesis": "no synthesis yet",
     "factPoolSize": "{count, plural, one {# person} other {# people}} in pool",
     "factNewSince": "{count} new since synthesis",
+    "calendarLabel": "Calendar status",
+    "factCalState": "{state, select, none {unscheduled} scheduled {scheduled} activating {activating} activated {live} failed {failed} other {{state}}}",
+    "factCalScheduledAt": "scheduled for {date}",
+    "factCalCounts": "{unscheduled} unscheduled · {scheduled} scheduled · {overdue} overdue",
     "proposalLabel": "Konsoul suggests",
     "proposalSummary": "{action} for \"{study}\"?",
     "proposalAction": {
       "create_study_draft": "Create study draft",
       "run_synthesis": "Run synthesis",
       "run_personas": "Generate personas",
-      "run_guide": "Generate guide"
+      "run_guide": "Generate guide",
+      "schedule_activation": "Plan activation"
     },
     "proposalCostHint": "This action starts an AI run and incurs cost.",
     "proposalOverwriteSynthesis": "There's already a synthesis based on {count, plural, one {# interview} other {# interviews}}. Running it again replaces it entirely.",

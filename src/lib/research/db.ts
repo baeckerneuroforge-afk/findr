@@ -836,7 +836,10 @@ export type KonsoulActionType =
   | "create_study_draft"
   | "run_synthesis"
   | "run_personas"
-  | "run_guide";
+  | "run_guide"
+  // Kalender (propose-confirm): einen Entwurf terminieren. Der Confirm öffnet den
+  // Picker; verschickt nichts. Backstop: CHECK in 20260725000001_konsoul_schedule_action.
+  | "schedule_activation";
 
 export type KonsoulActionStatus = "proposed" | "accepted" | "ignored";
 

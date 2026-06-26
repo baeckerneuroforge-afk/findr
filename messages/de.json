@@ -362,6 +362,7 @@
     "inlineCiteOpen": "Studie öffnen",
     "inlineProposalHint": "Konsoul kann dazu eine Aktion vorschlagen — im Research-Raum öffnen.",
     "inlineFactInterviews": "{count, plural, one {# Interview} other {# Interviews}}",
+    "inlineFactState": "{state, select, none {ungeplant} scheduled {terminiert} activating {wird aktiviert} activated {aktiv} failed {fehlgeschlagen} other {{state}}}",
     "group": {
       "deals": "Deals",
       "accounts": "Accounts",
@@ -1057,6 +1058,9 @@
     "pageTitle": "Kalender",
     "pageSubtitle": "Was ansteht — geplante Aktivierungen, laufende Studien und planbare Entwürfe.",
     "planStudyCta": "Studie planen",
+    "konsoulOpen": "Konsoul fragen",
+    "konsoulTitle": "Konsoul",
+    "konsoulClose": "Schließen",
     "kpiScheduled": "Geplant",
     "kpiActive": "Aktiv",
     "kpiDrafts": "Entwürfe",
@@ -2725,13 +2729,18 @@
     "factNoSynthesis": "noch keine Synthese",
     "factPoolSize": "{count, plural, one {# Person} other {# Personen}} im Pool",
     "factNewSince": "{count} neue seit der Synthese",
+    "calendarLabel": "Kalender-Stand",
+    "factCalState": "{state, select, none {ungeplant} scheduled {terminiert} activating {wird aktiviert} activated {aktiv} failed {fehlgeschlagen} other {{state}}}",
+    "factCalScheduledAt": "geplant für {date}",
+    "factCalCounts": "{unscheduled} ungeplant · {scheduled} terminiert · {overdue} überfällig",
     "proposalLabel": "Konsoul schlägt vor",
     "proposalSummary": "{action} für „{study}“?",
     "proposalAction": {
       "create_study_draft": "Studien-Entwurf anlegen",
       "run_synthesis": "Synthese erstellen",
       "run_personas": "Personas erzeugen",
-      "run_guide": "Leitfaden generieren"
+      "run_guide": "Leitfaden generieren",
+      "schedule_activation": "Termin planen"
     },
     "proposalCostHint": "Diese Aktion startet einen KI-Lauf und verursacht Kosten.",
     "proposalOverwriteSynthesis": "Es gibt schon eine Synthese auf Basis von {count, plural, one {# Interview} other {# Interviews}}. Ein erneuter Lauf ersetzt sie vollständig.",

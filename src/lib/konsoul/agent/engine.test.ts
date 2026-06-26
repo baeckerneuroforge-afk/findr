@@ -79,18 +79,24 @@ import {
 } from "./engine";
 import {
   buildPortfolioFacts,
+  buildCalendarFacts,
+  formatCalendarFactsForTool,
   pickStudyFacts,
   formatPortfolioFactsForTool,
   resolveHelpTopicKey,
   konsoulToolDefs,
   KONSOUL_TOOL_DEFS,
+  GET_CALENDAR_CONTEXT_TOOL,
   PROPOSE_ACTION_TOOL,
   PROPOSE_ACTION_TOOL_NAME,
   KONSOUL_PROPOSE_ACTION_TYPES,
   type KonsoulReadToolset,
 } from "./tools";
 import { COUNTS_KEY_WHITELIST } from "./action-audit";
-import type { PortfolioFacts } from "@/lib/schemas/konsoul-agent";
+import type {
+  PortfolioFacts,
+  CalendarFacts,
+} from "@/lib/schemas/konsoul-agent";
 
 // ── Message-Bausteine (Anthropic.Message-Form) ───────────────────────────────
 
@@ -189,11 +195,22 @@ function makeSynth(
   };
 }
 
-/** Fixed PortfolioFacts → fakes the read-toolset deterministically. */
-function fakeToolset(portfolio: PortfolioFacts): KonsoulReadToolset {
+/** Fixed PortfolioFacts (+ optional CalendarFacts) → fakes the read-toolset
+ *  deterministically. */
+function fakeToolset(
+  portfolio: PortfolioFacts,
+  calendar: CalendarFacts = {
+    scope: "calendar",
+    studies: [],
+    unscheduledDrafts: 0,
+    scheduledCount: 0,
+    overdueCount: 0,
+  },
+): KonsoulReadToolset {
   return {
     getPortfolioFacts: async () => portfolio,
     getStudyFacts: async (studyId) => pickStudyFacts(portfolio, studyId),
+    getCalendarFacts: async () => calendar,
   };
 }
 
@@ -365,7 +382,8 @@ describe("runKonsoulAgentWith — portfolio path: number guard", () => {
     if (result.kind === "guidance") {
       // data is byte-identical to the tool result, regardless of model prose.
       expect(result.data).toEqual(PORTFOLIO);
-      const p1 = result.data!.studies.find((s) => s.studyId === "p1")!;
+      const portfolio = result.data as PortfolioFacts;
+      const p1 = portfolio.studies.find((s) => s.studyId === "p1")!;
       expect(p1.completedSessions).toBe(3); // not 999
     }
   });
@@ -974,5 +992,166 @@ describe("runKonsoulAgentWith — P3 propose_action is terminal (1 turn, no exec
     }
     // Nothing was ever audited (no proposal path with the flag off).
     expect(auditInserts).toHaveLength(0);
+  });
+});
+
+// ── Konsoul im Kalender (get_calendar_context + schedule_activation) ──────────
+
+describe("buildCalendarFacts — deterministic calendar snapshot", () => {
+  const NOW = Date.parse("2026-07-01T12:00:00.000Z");
+
+  it("derives per-study activation + counts (unscheduled/scheduled/overdue)", () => {
+    const plans = [
+      makePlan({ id: "d1", title: "Draft 1", status: "draft", activationState: "none" }),
+      makePlan({
+        id: "s1",
+        title: "Scheduled",
+        status: "draft",
+        activationState: "scheduled",
+        scheduledActivationAt: "2026-07-05T09:00:00.000Z", // future
+      }),
+      makePlan({
+        id: "o1",
+        title: "Overdue",
+        status: "draft",
+        activationState: "scheduled",
+        scheduledActivationAt: "2026-06-20T09:00:00.000Z", // past → overdue
+      }),
+      makePlan({
+        id: "a1",
+        title: "Live",
+        status: "active",
+        activationState: "activated",
+        activatedAt: "2026-06-25T09:00:00.000Z",
+      }),
+    ];
+    const f = buildCalendarFacts(plans, NOW);
+    expect(f.scope).toBe("calendar");
+    expect(f.studies).toHaveLength(4);
+    expect(f.unscheduledDrafts).toBe(1); // d1
+    expect(f.scheduledCount).toBe(2); // s1, o1
+    expect(f.overdueCount).toBe(1); // o1 (scheduled date in the past)
+    const s1 = f.studies.find((s) => s.studyId === "s1")!;
+    expect(s1.activationState).toBe("scheduled");
+    expect(s1.scheduledActivationAt).toBe("2026-07-05T09:00:00.000Z");
+  });
+
+  it("formatCalendarFactsForTool emits states + the no-invent-date guard", () => {
+    const f = buildCalendarFacts([makePlan({ id: "x", title: "X", status: "draft" })], NOW);
+    const text = formatCalendarFactsForTool(f);
+    expect(text).toContain("KALENDER");
+    expect(text).toContain("id=x");
+    expect(text).toMatch(/erfinde KEIN Datum/i);
+  });
+});
+
+describe("konsoulToolDefs — calendar flag gating (inert merge)", () => {
+  function enumOf(tool: { input_schema: { properties?: unknown } }): string[] {
+    const props = tool.input_schema.properties as Record<
+      string,
+      { enum?: string[] }
+    >;
+    return props.actionType.enum ?? [];
+  }
+
+  it("offers get_calendar_context ONLY when the calendar flag is on", () => {
+    expect(konsoulToolDefs(false, false).map((t) => t.name)).not.toContain(
+      GET_CALENDAR_CONTEXT_TOOL.name,
+    );
+    expect(konsoulToolDefs(false, true).map((t) => t.name)).toContain(
+      GET_CALENDAR_CONTEXT_TOOL.name,
+    );
+  });
+
+  it("includes schedule_activation in propose ONLY when BOTH flags on", () => {
+    const aOnly = konsoulToolDefs(true, false).find(
+      (t) => t.name === PROPOSE_ACTION_TOOL_NAME,
+    )!;
+    expect(enumOf(aOnly)).not.toContain("schedule_activation");
+    const both = konsoulToolDefs(true, true).find(
+      (t) => t.name === PROPOSE_ACTION_TOOL_NAME,
+    )!;
+    expect(enumOf(both)).toContain("schedule_activation");
+  });
+});
+
+describe("buildProposalFromArgs — schedule_activation (Kalender)", () => {
+  const calendar = buildCalendarFacts(
+    [
+      makePlan({ id: "draft1", title: "Pricing", status: "draft", activationState: "none" }),
+      makePlan({ id: "active1", title: "Live", status: "active", activationState: "activated" }),
+    ],
+    Date.parse("2026-07-01T12:00:00.000Z"),
+  );
+
+  it("builds a non-destructive, cost-free proposal for a DRAFT (no date)", () => {
+    const out = buildProposalFromArgs(
+      { actionType: "schedule_activation", studyId: "draft1" },
+      calendar,
+    );
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.proposal.actionType).toBe("schedule_activation");
+      expect(out.proposal.targetStudyId).toBe("draft1");
+      expect(out.proposal.targetTitle).toBe("Pricing");
+      expect(out.proposal.destructive).toBe(false);
+      expect(out.proposal.costsModel).toBe(false);
+      expect(out.targetStudy).toBeNull(); // no portfolio counts → audit counts {}
+    }
+  });
+
+  it("nudges (no proposal) for a NON-draft study — never activate", () => {
+    const out = buildProposalFromArgs(
+      { actionType: "schedule_activation", studyId: "active1" },
+      calendar,
+    );
+    expect(out.ok).toBe(false);
+  });
+
+  it("nudges for a foreign/hallucinated studyId", () => {
+    const out = buildProposalFromArgs(
+      { actionType: "schedule_activation", studyId: "ghost" },
+      calendar,
+    );
+    expect(out.ok).toBe(false);
+  });
+
+  it("nudges when data is NOT calendar scope (forces get_calendar_context)", () => {
+    const out = buildProposalFromArgs(
+      { actionType: "schedule_activation", studyId: "draft1" },
+      PORTFOLIO,
+    );
+    expect(out.ok).toBe(false);
+  });
+
+  it("STRUCTURALLY rejects schedule_activation when the calendar flag is off", () => {
+    // Even with valid calendar data + a real draft, calendarEnabled=false → no
+    // proposal (a hallucinated actionType that bypasses the tool enum is refused).
+    const out = buildProposalFromArgs(
+      { actionType: "schedule_activation", studyId: "draft1" },
+      calendar,
+      false,
+    );
+    expect(out.ok).toBe(false);
+  });
+
+  it("nudges for an ALREADY-scheduled draft (only first scheduling)", () => {
+    const cal = buildCalendarFacts(
+      [
+        makePlan({
+          id: "sd",
+          title: "Scheduled draft",
+          status: "draft",
+          activationState: "scheduled",
+          scheduledActivationAt: "2026-08-01T09:00:00.000Z",
+        }),
+      ],
+      Date.parse("2026-07-01T12:00:00.000Z"),
+    );
+    const out = buildProposalFromArgs(
+      { actionType: "schedule_activation", studyId: "sd" },
+      cal,
+    );
+    expect(out.ok).toBe(false);
   });
 });

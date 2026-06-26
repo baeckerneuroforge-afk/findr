@@ -89,6 +89,46 @@ export const PortfolioFactsSchema = z.object({
 });
 export type PortfolioFacts = z.infer<typeof PortfolioFactsSchema>;
 
+// ── CalendarFacts (deterministischer KALENDER-Datenblock, scope:'calendar') ───
+
+/** Eine Studie aus Kalender-Sicht: Status + Aktivierungs-Zustand + (geplantes/
+ *  erfolgtes) Datum. Reine deterministische Felder aus listResearchPlans, nie
+ *  modell-erfunden, KEINE PII (kein „wer hat terminiert"). Das `scheduledActivationAt`
+ *  ist eine ISO-Zeit, die die UI rendert (das Modell darf sie nicht erfinden). */
+export const CalendarStudyFactSchema = z.object({
+  studyId: z.string(),
+  title: z.string(),
+  status: z.string(),
+  /** none | scheduled | activating | activated | failed (orthogonal zu status). */
+  activationState: z.string(),
+  scheduledActivationAt: z.string().nullable(),
+  activatedAt: z.string().nullable(),
+});
+export type CalendarStudyFact = z.infer<typeof CalendarStudyFactSchema>;
+
+/** Der Kalender-Fakten-Block. Parallel zu PortfolioFacts (eigener scope), reine
+ *  Zahlen/Zustände — der Burggraben gilt genauso (Modell nennt nur diese Werte). */
+export const CalendarFactsSchema = z.object({
+  scope: z.literal("calendar"),
+  studies: z.array(CalendarStudyFactSchema),
+  /** Entwürfe ohne Termin (activation_state='none' & status='draft'). */
+  unscheduledDrafts: z.number().int(),
+  /** Terminierte Studien (activation_state='scheduled'). */
+  scheduledCount: z.number().int(),
+  /** Geplante Termine in der Vergangenheit, nie manuell aktiviert. */
+  overdueCount: z.number().int(),
+});
+export type CalendarFacts = z.infer<typeof CalendarFactsSchema>;
+
+/** Der vereinheitlichte Fakten-Block, der an guidance/proposal `data` hängt:
+ *  Portfolio/Study ODER Kalender. Beide tragen `studies[].studyId/title/status`,
+ *  sodass die Engine eine studyId scope-unabhängig validieren kann. */
+export const KonsoulFactsSchema = z.union([
+  PortfolioFactsSchema,
+  CalendarFactsSchema,
+]);
+export type KonsoulFacts = z.infer<typeof KonsoulFactsSchema>;
+
 // ── KonsoulResult — der UNIFIED Typ mit `kind`-Diskriminante ──────────────────
 
 /** Ein Zitat — identisch zur Cross-Study/Mission-Control-Form, damit grounded/
@@ -128,8 +168,9 @@ export const KonsoulGuidanceResultSchema = z.object({
   answer: z.string(),
   /** help-corpus-Keys (z.B. 'synthesis.howto'), KEINE studyIds. */
   sources: z.array(z.string()).optional(),
-  /** Deterministische Zahlen — als Fakten-Block, nie in Modell-Prosa eingebacken. */
-  data: PortfolioFactsSchema.optional(),
+  /** Deterministische Zahlen — als Fakten-Block (Portfolio ODER Kalender), nie in
+   *  Modell-Prosa eingebacken. */
+  data: KonsoulFactsSchema.optional(),
 });
 export type KonsoulGuidanceResult = z.infer<
   typeof KonsoulGuidanceResultSchema
@@ -157,6 +198,11 @@ export const KonsoulActionTypeSchema = z.enum([
   "run_synthesis",
   "run_personas",
   "run_guide",
+  // Kalender: einen ENTWURF für ein zukünftiges Aktivierungs-Datum terminieren.
+  // Der Confirm öffnet den BESTEHENDEN Termin-Picker (Mensch wählt die Zeit) →
+  // bestehende /schedule-Route; verschickt NICHTS (≠ /activate). Nie ein Datum
+  // vom Modell.
+  "schedule_activation",
 ]);
 export type KonsoulProposalActionType = z.infer<typeof KonsoulActionTypeSchema>;
 
@@ -172,6 +218,9 @@ export const KonsoulProposalPreconditionSchema = z.object({
   hasSynthesis: z.boolean().optional(),
   /** Existieren schon Personas? */
   hasPersonas: z.boolean().optional(),
+  /** Kalender: aktueller Aktivierungs-Zustand (none|scheduled|…) für die
+   *  schedule_activation-Confirm-Karte. */
+  activationState: z.string().optional(),
 });
 export type KonsoulProposalPrecondition = z.infer<
   typeof KonsoulProposalPreconditionSchema
@@ -225,8 +274,9 @@ export const KonsoulProposalResultSchema = z.object({
    *  accepted/ignored setzen kann. null/fehlend, wenn die proposed-Schreibung
    *  fail-open schlug → die Decision wird dann zum No-op. Eine UUID, NIE PII. */
   auditId: z.string().nullable().optional(),
-  /** Belegter Kontext für die Confirm-Karte (wie bei guidance). */
-  data: PortfolioFactsSchema.optional(),
+  /** Belegter Kontext für die Confirm-Karte (wie bei guidance; Portfolio ODER
+   *  Kalender). */
+  data: KonsoulFactsSchema.optional(),
 });
 export type KonsoulProposalResult = z.infer<
   typeof KonsoulProposalResultSchema

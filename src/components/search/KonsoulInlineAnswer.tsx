@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
-import type { KonsoulResult, PortfolioFacts } from "@/lib/schemas/konsoul-agent";
+import type { KonsoulResult, KonsoulFacts } from "@/lib/schemas/konsoul-agent";
 import { chipToneForKind } from "@/lib/konsoul/render-helpers";
 
 /**
@@ -84,24 +84,36 @@ function Citations({
  *  full panel renders next to guidance/proposal prose. Numbers come from a tool
  *  read; the model can neither invent nor rewrite them. completedSessions===null
  *  (a read error) renders „—", NEVER 0. Capped for the compact surface. */
-function DataFacts({ data }: { data: PortfolioFacts }) {
+function DataFacts({ data }: { data: KonsoulFacts }) {
   const t = useTranslations("command");
   if (data.studies.length === 0) return null;
   return (
     <ul className="mt-2 space-y-0.5 border-t border-neutral-100 pt-2">
-      {data.studies.slice(0, 6).map((s) => (
-        <li
-          key={s.studyId}
-          className="flex items-center justify-between gap-3 text-small text-neutral-600"
-        >
-          <span className="min-w-0 truncate">{s.title}</span>
-          <span className="shrink-0 font-mono text-neutral-700">
-            {s.completedSessions === null
-              ? "—"
-              : t("inlineFactInterviews", { count: s.completedSessions })}
-          </span>
-        </li>
-      ))}
+      {data.scope === "calendar"
+        ? data.studies.slice(0, 6).map((s) => (
+            <li
+              key={s.studyId}
+              className="flex items-center justify-between gap-3 text-small text-neutral-600"
+            >
+              <span className="min-w-0 truncate">{s.title}</span>
+              <span className="shrink-0 font-mono text-neutral-700">
+                {t("inlineFactState", { state: s.activationState })}
+              </span>
+            </li>
+          ))
+        : data.studies.slice(0, 6).map((s) => (
+            <li
+              key={s.studyId}
+              className="flex items-center justify-between gap-3 text-small text-neutral-600"
+            >
+              <span className="min-w-0 truncate">{s.title}</span>
+              <span className="shrink-0 font-mono text-neutral-700">
+                {s.completedSessions === null
+                  ? "—"
+                  : t("inlineFactInterviews", { count: s.completedSessions })}
+              </span>
+            </li>
+          ))}
     </ul>
   );
 }

@@ -14,18 +14,20 @@ import {
   type KonsoulProposal,
   type KonsoulProposalActionType,
   type KonsoulProposalPrecondition,
-  type PortfolioFacts,
   type PortfolioStudyFact,
+  type KonsoulFacts,
 } from "@/lib/schemas/konsoul-agent";
 import {
   GET_PORTFOLIO_OVERVIEW_TOOL,
   GET_STUDY_STATUS_TOOL,
+  GET_CALENDAR_CONTEXT_TOOL,
   GET_HELP_TOOL,
   DELEGATE_CROSS_STUDY_TOOL,
   PROPOSE_ACTION_TOOL_NAME,
   konsoulToolDefs,
   makeKonsoulReadTools,
   formatPortfolioFactsForTool,
+  formatCalendarFactsForTool,
   formatHelpTopicForTool,
   formatHelpIndexForTool,
   lookupHelpTopic,
@@ -35,6 +37,7 @@ import {
 } from "./tools";
 import { KONSOUL_AGENT_SYSTEM_PROMPT } from "./prompts";
 import { isKonsoulActionsEnabled } from "@/lib/konsoul/actions-flag";
+import { isKonsoulCalendarEnabled } from "@/lib/konsoul/calendar-flag";
 import {
   logProposed,
   type KonsoulCountsKey,
@@ -174,7 +177,7 @@ export function mapCrossStudyToKonsoul(
  *  Anhängen (data aus Portfolio-Reads, sources aus Help-Keys). */
 function buildGuidance(
   answer: string,
-  attach: { data?: PortfolioFacts; sources?: string[] },
+  attach: { data?: KonsoulFacts; sources?: string[] },
 ): KonsoulResult {
   return assertKonsoulResult({
     kind: "guidance",
@@ -224,7 +227,12 @@ type BuildProposalOutcome =
  */
 export function buildProposalFromArgs(
   input: unknown,
-  data: PortfolioFacts | undefined,
+  data: KonsoulFacts | undefined,
+  // Strukturell: ohne Kalender-Flag wird schedule_activation hart abgelehnt —
+  // selbst ein halluzinierter actionType (der den Tool-Enum umgeht) baut dann nie
+  // einen Termin-Vorschlag. Default true, weil der Produktions-Aufrufer das echte
+  // Flag durchreicht; portfolio-/create-Tests berührt es nicht.
+  calendarEnabled = true,
 ): BuildProposalOutcome {
   // actionType deterministisch gegen die 4er-Allowlist validieren (Backstop zum
   // Tool-Enum; ein halluzinierter Wert wird hier hart abgewiesen).
@@ -251,9 +259,79 @@ export function buildProposalFromArgs(
     return { ok: true, proposal, targetStudy: null };
   }
 
+  // schedule_activation (Kalender): einen ENTWURF terminieren. Braucht den
+  // KALENDER-Fakten-Block (scope:'calendar') — nur darin steht der draft-Status
+  // + activationState. Der Confirm öffnet den Picker (kein Datum vom Modell);
+  // verschickt NICHTS. Nur Entwürfe sind terminierbar.
+  if (actionType === "schedule_activation") {
+    if (!calendarEnabled) {
+      // Kalender-Flag aus → es gibt keine Terminierungs-Aktion. Ehrliche Ablehnung
+      // (defense-in-depth zum nicht-angebotenen Tool + dem gegateten Read-Handler).
+      return {
+        ok: false,
+        nudge:
+          "Für eine Terminierung hast du gerade kein Tool — lehne sie über emit_guidance ehrlich ab.",
+      };
+    }
+    if (!data || data.scope !== "calendar") {
+      return {
+        ok: false,
+        nudge:
+          "Für eine Terminierung brauche ich zuerst den Kalender-Stand. Rufe get_calendar_context und übergib eine echte studyId eines Entwurfs.",
+      };
+    }
+    const studyId = readStringArg(input, "studyId");
+    if (!studyId) {
+      return {
+        ok: false,
+        nudge:
+          "schedule_activation braucht die studyId eines ENTWURFS aus get_calendar_context.",
+      };
+    }
+    const study = data.studies.find((s) => s.studyId === studyId);
+    if (!study) {
+      return {
+        ok: false,
+        nudge: `Studie id='${studyId}' steht nicht im Kalender dieser Organisation. Nutze ausschließlich ids aus get_calendar_context — erfinde keine.`,
+      };
+    }
+    if (study.status !== "draft") {
+      return {
+        ok: false,
+        nudge: `Nur ENTWÜRFE sind terminierbar — Studie "${study.title}" ist '${study.status}'. Aktivieren/Live-Schalten kannst du nicht; verweise ehrlich auf den manuellen Kalender.`,
+      };
+    }
+    if (study.activationState !== "none") {
+      // Schon terminiert (oder im Aktivierungs-/Fehler-Zustand). Konsoul schlägt
+      // NUR die ERSTE Terminierung ungeplanter Entwürfe vor — so trifft jeder
+      // Vorschlag genau den Picker-Pool der Kalender-Seite (sonst öffnet der
+      // Confirm einen Dialog, der den schon-terminierten Entwurf nicht führt).
+      return {
+        ok: false,
+        nudge: `Studie "${study.title}" ist bereits terminiert ('${study.activationState}'). Zum Umterminieren öffne den Kalender manuell — ich schlage nur die erste Terminierung ungeplanter Entwürfe vor.`,
+      };
+    }
+    const proposal: KonsoulProposal = {
+      actionType,
+      targetStudyId: studyId,
+      targetTitle: study.title,
+      destructive: false,
+      costsModel: false,
+      precondition: { activationState: study.activationState },
+    };
+    return { ok: true, proposal, targetStudy: null };
+  }
+
   // run_*: braucht eine BESTEHENDE Studie. studyId deterministisch gegen den
-  // org-gefilterten PortfolioFacts validieren.
+  // org-gefilterten PortfolioFacts validieren. (Kalender-Fakten taugen hier nicht
+  // — sie tragen keine completedSessions/Synthese-Flags.)
   if (STUDY_TARGET_ACTIONS.has(actionType)) {
+    if (data && data.scope === "calendar") {
+      return {
+        ok: false,
+        nudge: `${actionType} braucht den Portfolio-Stand (abgeschlossene Interviews, Synthese-Flags). Rufe zuerst get_portfolio_overview und übergib eine echte studyId.`,
+      };
+    }
     const studyId = readStringArg(input, "studyId");
     if (!studyId) {
       return {
@@ -359,9 +437,9 @@ const EMIT_GUIDANCE_TOOL: Anthropic.Tool = {
 // ── Tool-Result-Akkumulator (sammelt data/sources über den Loop) ─────────────
 
 interface Accumulator {
-  /** Letzter geladener Fakten-Block (portfolio oder study) — wird an guidance
-   *  gehängt. */
-  data?: PortfolioFacts;
+  /** Letzter geladener Fakten-Block (portfolio / study / calendar) — wird an
+   *  guidance bzw. proposal gehängt. */
+  data?: KonsoulFacts;
   /** Help-Korpus-Keys, deren Text dem Modell geliefert wurde. */
   sources: string[];
 }
@@ -395,12 +473,20 @@ export async function runKonsoulAgentWith(
   // Modell NICHT angeboten → Konsoul bleibt exakt das P2-read-only-Verhalten
   // (byte-gleich). Der Test injiziert true/false explizit.
   actionsEnabled: boolean = isKonsoulActionsEnabled(),
+  // Kalender-Flag (default aus der Env-Quelle). Ist es aus, wird weder
+  // get_calendar_context noch die schedule_activation-Aktion angeboten → Konsoul
+  // bleibt byte-gleich. Stapelt auf actionsEnabled (Termin-Vorschlag braucht beide).
+  calendarEnabled: boolean = isKonsoulCalendarEnabled(),
 ): Promise<KonsoulResult> {
   const client = getAnthropicClient();
 
   // Bei aktivem Flag bietet der Loop zusätzlich propose_action an; sonst exakt das
-  // heutige P2-Toolset. Das Emit-Tool wird wie bisher separat dazugemischt.
-  const offeredTools = [...konsoulToolDefs(actionsEnabled), EMIT_GUIDANCE_TOOL];
+  // heutige P2-Toolset. Bei aktivem Kalender-Flag zusätzlich get_calendar_context
+  // (+ schedule_activation im propose-Enum). Das Emit-Tool mischt die Engine separat.
+  const offeredTools = [
+    ...konsoulToolDefs(actionsEnabled, calendarEnabled),
+    EMIT_GUIDANCE_TOOL,
+  ];
 
   const messages: Anthropic.MessageParam[] = [
     ...(request.history ?? []).map((h) => ({
@@ -488,7 +574,11 @@ export async function runKonsoulAgentWith(
       ? toolUses.find((tu) => tu.name === PROPOSE_ACTION_TOOL_NAME)
       : undefined;
     if (proposeUse) {
-      const outcome = buildProposalFromArgs(proposeUse.input, acc.data);
+      const outcome = buildProposalFromArgs(
+        proposeUse.input,
+        acc.data,
+        calendarEnabled,
+      );
       if (!outcome.ok) {
         // Fremde/halluzinierte studyId, fehlende studyId oder unbekannter
         // actionType → is_error + Nudge, NIE ein Vorschlag. Weiterlaufen lassen
@@ -597,6 +687,18 @@ export async function runKonsoulAgentWith(
             is_error: true,
           });
         }
+      } else if (tu.name === GET_CALENDAR_CONTEXT_TOOL.name && calendarEnabled) {
+        // STRUKTURELL flag-gated: ohne Kalender-Flag wird das Tool gar nicht
+        // angeboten — ein HALLUZINIERTER get_calendar_context-Aufruf fällt dann
+        // in den 'Unbekanntes Tool'-Pfad unten und schreibt NIE scope:'calendar'
+        // in acc.data (kein Daten-Leck, kein schedule_activation-Schlupfloch).
+        const facts = await toolset.getCalendarFacts();
+        acc.data = facts;
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: tu.id,
+          content: formatCalendarFactsForTool(facts),
+        });
       } else if (tu.name === GET_HELP_TOOL.name) {
         const rawKey = readStringArg(tu.input, "topicKey");
         // Deterministisch: exakter Key, sonst Alias/Stichwort (kein Modell).
