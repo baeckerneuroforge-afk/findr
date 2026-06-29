@@ -1,0 +1,231 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Klymeo public site — design system (ported 1:1 from the Lovable template's
+   styles.css). This is a STANDALONE Tailwind v4 entry: it is imported ONLY by
+   the (site) root layout, never alongside globals.css. The (app)/(participant)
+   trees have their own root layouts + globals.css, so the colliding semantic
+   token names here (--color-background/-accent/-card/…) never mix with the
+   dashboard's obsidian palette — each page loads exactly one stylesheet.
+
+   Fonts are self-hosted via next/font (see (site)/layout.tsx) and wired in
+   through the --font-site-* variables — no Google Fonts <link>, no DSGVO
+   regression. tw-animate-css was dropped (0 usages in the ported pages). */
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-line: var(--line);
+  --color-soul: var(--soul);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --font-display: var(--font-site-serif), ui-serif, Georgia, serif;
+  --font-italic: var(--font-site-italic), ui-serif, Georgia, serif;
+  --font-sans: var(--font-site-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-site-mono), ui-monospace, monospace;
+}
+
+:root {
+  --radius: 0.875rem;
+  /* Klymeo palette — paper white, deep ink, one warm soul accent */
+  --paper: oklch(0.985 0.003 90);
+  --ink: oklch(0.16 0.01 260);
+  --soul: oklch(0.72 0.16 55);          /* warm amber — the Konsoul accent */
+  --line: oklch(0.91 0.005 260);
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: oklch(0.96 0.004 260);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.96 0.004 260);
+  --muted-foreground: oklch(0.48 0.01 260);
+  --accent: var(--soul);
+  --accent-foreground: var(--ink);
+  --border: var(--line);
+  --ring: var(--soul);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2 { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.025em; }
+  h3, h4 { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.015em; }
+  .serif { font-family: var(--font-italic); font-weight: 400; font-style: italic; letter-spacing: -0.01em; }
+}
+
+@utility blink {
+  animation: blink 4.2s ease-in-out infinite;
+  transform-origin: center;
+}
+@utility floaty {
+  animation: floaty 7s ease-in-out infinite;
+}
+@utility drift {
+  animation: drift 9s ease-in-out infinite;
+}
+@utility marquee {
+  animation: marquee 38s linear infinite;
+}
+@utility kenburns {
+  animation: kenburns 18s ease-in-out infinite alternate;
+  transform-origin: 50% 40%;
+}
+@utility blob-a {
+  animation: blob-a 18s ease-in-out infinite;
+}
+@utility blob-b {
+  animation: blob-b 22s ease-in-out infinite;
+}
+@utility soul-pulse {
+  animation: soul-pulse 2.6s ease-in-out infinite;
+}
+@utility gradient-pan {
+  background-size: 220% 220%;
+  animation: gradient-pan 12s ease-in-out infinite;
+}
+@utility tilt-hover {
+  transition: transform .5s cubic-bezier(.2,.7,.2,1), box-shadow .5s ease;
+  &:hover {
+    transform: translateY(-4px) rotate(-.4deg);
+  }
+}
+@utility mark {
+  font-style: normal !important;
+  display: inline;
+  background-image: linear-gradient(104deg, transparent 0.5%, var(--mc, oklch(0.86 0.17 75 / 0.55)) 2.4%, var(--mc, oklch(0.86 0.17 75 / 0.55)) 97.6%, transparent 99.5%);
+  background-repeat: no-repeat;
+  background-size: 100% 72%;
+  background-position: 0 82%;
+  padding: 0.02em 0.18em;
+  border-radius: 0.45em 0.7em 0.5em 0.8em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+@utility mark-amber { --mc: oklch(0.88 0.17 80 / 0.55); }
+@utility mark-pink  { --mc: oklch(0.84 0.14 15 / 0.50); }
+@utility mark-mint  { --mc: oklch(0.86 0.13 165 / 0.50); }
+@utility mark-sky   { --mc: oklch(0.84 0.10 230 / 0.50); }
+@utility mark-lilac { --mc: oklch(0.82 0.12 305 / 0.50); }
+
+
+
+
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  94%, 98% { transform: scaleY(0.1); }
+}
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(6px, -6px); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes kenburns {
+  from { transform: scale(1) translate(0, 0); }
+  to   { transform: scale(1.06) translate(-1%, -1.5%); }
+}
+@keyframes blob-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-30px, 40px) scale(1.1); }
+}
+@keyframes blob-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(40px, -30px) scale(1.08); }
+}
+@keyframes soul-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.72 0.16 55 / 0.45); }
+  50%      { box-shadow: 0 0 0 14px oklch(0.72 0.16 55 / 0); }
+}
+@keyframes gradient-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); filter: drop-shadow(0 4px 12px rgba(124,107,255,0.25)); }
+  50%      { transform: translateY(-3px) rotate(-4deg); filter: drop-shadow(0 8px 18px rgba(124,107,255,0.4)); }
+}
+
+/* Subtle staggered entrance for lists */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stagger-item { opacity: 0; will-change: transform, opacity; }
+.stagger-item.is-in { animation: rise-in 720ms cubic-bezier(.2,.7,.2,1) both; }
+
+/* Gentle interactive lift used across cards */
+@utility lift {
+  transition: transform .45s cubic-bezier(.2,.7,.2,1), box-shadow .45s ease, border-color .3s ease;
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 40px -22px oklch(0.16 0.01 260 / 0.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee, .floaty, .drift, .blink, .kenburns, .blob-a, .blob-b, .soul-pulse, .gradient-pan { animation: none !important; }
+  .stagger-item, .stagger-item.is-in { animation: none !important; opacity: 1 !important; transform: none !important; }
+}
+
+/* Dotted grid background used for the hero canvas */
+.dotgrid {
+  background-image: radial-gradient(oklch(0.85 0.005 260) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: 0 0;
+}
+
+/* Article typography used by long-form pages like /blog/* */
+.prose-klymeo { color: var(--color-foreground); }
+.prose-klymeo h2 { font-family: var(--font-display); font-size: 1.85rem; line-height: 1.15; letter-spacing: -0.02em; margin: 2.5rem 0 1rem; }
+.prose-klymeo h3 { font-family: var(--font-display); font-size: 1.35rem; line-height: 1.2; margin: 2rem 0 .75rem; }
+.prose-klymeo p { margin: 1rem 0; line-height: 1.75; color: oklch(from var(--color-foreground) l c h / 0.85); }
+.prose-klymeo ul, .prose-klymeo ol { margin: 1rem 0 1.25rem; padding-left: 1.4rem; line-height: 1.7; }
+.prose-klymeo ul { list-style: disc; }
+.prose-klymeo ol { list-style: decimal; }
+.prose-klymeo li { margin: .35rem 0; }
+.prose-klymeo li::marker { color: oklch(0.72 0.16 55); }
+.prose-klymeo strong { color: var(--color-foreground); font-weight: 600; }
+.prose-klymeo em { font-style: italic; }
+.prose-klymeo a { text-decoration: underline; text-underline-offset: 3px; }
+.prose-klymeo section + section { margin-top: 1rem; }

@@ -13,7 +13,11 @@ import { describe, expect, it } from "vitest";
  * fails fast if any such call sneaks into a marketing source file, so we don't
  * have to catch it by eyeballing a `next build` route table.
  */
-const ROOTS = ["src/app/(marketing)", "src/components/marketing"];
+// The public marketing routes moved to the flat (site) tree; the legacy
+// (marketing)/[lang] route tree was removed. The shared marketing components
+// survive (still used by the (app)/(participant) not-found pages), so the
+// "no request-time dynamic state" invariant is still guarded here.
+const ROOTS = ["src/components/marketing"];
 
 function walk(dir: string): string[] {
   const out: string[] = [];

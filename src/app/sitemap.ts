@@ -1,90 +1,42 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/marketing/seo";
-import { getInsightSlugs } from "@/lib/insights/articles";
-import { SITEMAP_ROUTES } from "@/components/marketing/nav-data";
-import {
-  localizePath,
-  MARKETING_DEFAULT_LOCALE,
-  MARKETING_LOCALES,
-  toBcp47,
-  type Locale,
-} from "@/i18n/marketing-locale";
 
 /**
- * Sitemap — the indexable marketing routes come from the single nav registry
- * (nav-data.ts: SITEMAP_ROUTES), so the menu, the footer and this file can't
- * drift. Article slugs are appended from the SAME source as generateStaticParams
- * (getInsightSlugs) so prebuilt routes and the sitemap stay in lockstep.
- *
- * DE/EN: every route is emitted ONCE PER LOCALE (/de/… and /en/…), and each
- * entry carries reciprocal hreflang `alternates.languages` (de-DE, en-US,
- * x-default → German) so crawlers see both language variants of every page.
- * Insight slugs are taken PER LOCALE — a slug is only advertised for the
- * locales that actually have an article for it (today DE + EN share all three;
- * written generically so an asymmetric set never advertises a 404).
- *
- * Legal pages: /impressum (binding) plus /datenschutz + /agb are all listed in
- * SITEMAP_ROUTES (low priority). The latter two are still detailed drafts
- * (ENTWURF) but are advertised on André's decision so the legal pages are
- * findable; revisit once the final text lands.
+ * Sitemap for the public Klymeo marketing site — the flat, single-locale (German)
+ * (site) route group (replaced the old (marketing)/[lang] DE/EN tree). One entry
+ * per indexable page, absolute URLs from SITE_URL. Set NEXT_PUBLIC_SITE_URL to the
+ * production domain before go-live; the findr.de fallback would otherwise poison
+ * every absolute URL.
  */
-
-/** Absolute reciprocal-hreflang map for a canonical (locale-less) path, listing
- *  only the locales that actually have the path + x-default → German. */
-function languagesFor(
-  path: string,
-  locales: readonly Locale[],
-): Record<string, string> {
-  const languages: Record<string, string> = {};
-  for (const loc of locales) {
-    languages[toBcp47(loc)] = `${SITE_URL}${localizePath(loc, path)}`;
-  }
-  languages["x-default"] = `${SITE_URL}${localizePath(
-    MARKETING_DEFAULT_LOCALE,
-    path,
-  )}`;
-  return languages;
-}
+const ROUTES: { path: string; priority: number }[] = [
+  { path: "/", priority: 1.0 },
+  { path: "/konsoul", priority: 0.9 },
+  { path: "/plattform", priority: 0.9 },
+  { path: "/methoden", priority: 0.8 },
+  { path: "/preise", priority: 0.8 },
+  { path: "/loesungen", priority: 0.8 },
+  { path: "/loesungen/user-research", priority: 0.7 },
+  { path: "/loesungen/konzept-test", priority: 0.7 },
+  { path: "/loesungen/markenwahrnehmung", priority: 0.7 },
+  { path: "/loesungen/bedarf-verhalten", priority: 0.7 },
+  { path: "/personas", priority: 0.7 },
+  { path: "/branchen", priority: 0.7 },
+  { path: "/kontakt", priority: 0.6 },
+  { path: "/blog/system-usability-scale-guide", priority: 0.6 },
+  { path: "/blog/ai-market-research-tools-comparison", priority: 0.6 },
+  { path: "/blog/ki-marktforschung-einsatz", priority: 0.6 },
+  { path: "/impressum", priority: 0.3 },
+  { path: "/datenschutz", priority: 0.3 },
+  { path: "/agb", priority: 0.3 },
+  { path: "/cookies", priority: 0.3 },
+];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const entries: MetadataRoute.Sitemap = [];
-
-  // Static marketing routes exist in every locale.
-  for (const r of SITEMAP_ROUTES) {
-    const languages = languagesFor(r.path, MARKETING_LOCALES);
-    for (const loc of MARKETING_LOCALES) {
-      entries.push({
-        url: `${SITE_URL}${localizePath(loc, r.path)}`,
-        lastModified: now,
-        changeFrequency: "monthly",
-        priority: r.priority,
-        alternates: { languages },
-      });
-    }
-  }
-
-  // Insight articles: only the locales that actually have a given slug get an
-  // entry + only those locales appear in its hreflang map (no 404 advertised).
-  const slugLocales = new Map<string, Locale[]>();
-  for (const loc of MARKETING_LOCALES) {
-    for (const slug of getInsightSlugs(loc)) {
-      slugLocales.set(slug, [...(slugLocales.get(slug) ?? []), loc]);
-    }
-  }
-  for (const [slug, locales] of slugLocales) {
-    const path = `/insights/${slug}`;
-    const languages = languagesFor(path, locales);
-    for (const loc of locales) {
-      entries.push({
-        url: `${SITE_URL}${localizePath(loc, path)}`,
-        lastModified: now,
-        changeFrequency: "monthly",
-        priority: 0.6,
-        alternates: { languages },
-      });
-    }
-  }
-
-  return entries;
+  return ROUTES.map((r) => ({
+    url: r.path === "/" ? SITE_URL : `${SITE_URL}${r.path}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: r.priority,
+  }));
 }

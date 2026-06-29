@@ -32,48 +32,62 @@ const nextConfig: NextConfig = {
     // für genau diesen Fall (not-found.md §global-not-found).
     globalNotFound: true,
   },
-  // Marketing lives under /[lang] (/de, /en) since the DE/EN i18n work (Paket 2).
+  // The public marketing site is now the flat, single-locale (German) (site)
+  // route group (replaces the old (marketing)/[lang] DE/EN tree). These 301s
+  // forward every old locale-prefixed marketing URL — and the legacy
+  // locale-less aliases — onto the matching new flat route so existing links,
+  // bookmarks and crawler equity survive the cutover. Sources are ONLY marketing
+  // paths or the de/en locale prefixes; /api, /dashboard, /sign-in, /sign-up,
+  // /interview, /onboarding, /shared never start with de|en and are untouched.
   async redirects() {
     return [
-      // Locale-less marketing URLs 30x onto the German variant so existing
-      // links + bookmarks keep working. Sources are DELIBERATELY only the
-      // marketing paths — no collision with /api, /dashboard, /sign-in,
-      // /interview, /onboarding, /shared. The homepage uses a TEMPORARY redirect
-      // (the default-locale choice may later become Accept-Language-based);
-      // the moved content paths are permanent (308).
-      { source: "/", destination: "/de", permanent: false },
-      { source: "/produkt", destination: "/de/produkt", permanent: true },
-      { source: "/preise", destination: "/de/preise", permanent: true },
-      { source: "/demo", destination: "/de/demo", permanent: true },
-      { source: "/impressum", destination: "/de/impressum", permanent: true },
-      {
-        source: "/datenschutz",
-        destination: "/de/datenschutz",
-        permanent: true,
-      },
-      { source: "/agb", destination: "/de/agb", permanent: true },
-      {
-        source: "/mensch-und-ki",
-        destination: "/de/mensch-und-ki",
-        permanent: true,
-      },
-      {
-        source: "/insights/:path*",
-        destination: "/de/insights/:path*",
-        permanent: true,
-      },
-      {
-        source: "/branchen/:slug",
-        destination: "/de/branchen/:slug",
-        permanent: true,
-      },
-      {
-        source: "/methoden/:slug",
-        destination: "/de/methoden/:slug",
-        permanent: true,
-      },
-      // /pricing was the old EN static-HTML pricing route; now → German /de/preise.
-      { source: "/pricing", destination: "/de/preise", permanent: true },
+      // ── old DE/EN locale roots → new homepage ──
+      { source: "/:locale(de|en)", destination: "/", statusCode: 301 },
+
+      // ── content pages that keep an equivalent flat route ──
+      { source: "/:locale(de|en)/produkt", destination: "/plattform", statusCode: 301 },
+      { source: "/:locale(de|en)/plattform", destination: "/plattform", statusCode: 301 },
+      { source: "/:locale(de|en)/konsoul", destination: "/konsoul", statusCode: 301 },
+      { source: "/:locale(de|en)/preise", destination: "/preise", statusCode: 301 },
+      { source: "/:locale(de|en)/personas", destination: "/personas", statusCode: 301 },
+      { source: "/:locale(de|en)/kontakt", destination: "/kontakt", statusCode: 301 },
+      { source: "/:locale(de|en)/demo", destination: "/kontakt", statusCode: 301 },
+      { source: "/:locale(de|en)/mensch-und-ki", destination: "/", statusCode: 301 },
+
+      // ── legal ──
+      { source: "/:locale(de|en)/impressum", destination: "/impressum", statusCode: 301 },
+      { source: "/:locale(de|en)/datenschutz", destination: "/datenschutz", statusCode: 301 },
+      { source: "/:locale(de|en)/agb", destination: "/agb", statusCode: 301 },
+      { source: "/:locale(de|en)/cookies", destination: "/cookies", statusCode: 301 },
+
+      // ── Lösungen (specific before the overview) ──
+      { source: "/:locale(de|en)/loesungen/personas", destination: "/personas", statusCode: 301 },
+      { source: "/:locale(de|en)/loesungen/ux-research", destination: "/loesungen/user-research", statusCode: 301 },
+      { source: "/:locale(de|en)/loesungen/user-research", destination: "/loesungen/user-research", statusCode: 301 },
+      { source: "/:locale(de|en)/loesungen/marktforschung", destination: "/loesungen", statusCode: 301 },
+      { source: "/:locale(de|en)/loesungen", destination: "/loesungen", statusCode: 301 },
+
+      // ── Methoden (old subpages now live under /loesungen) ──
+      { source: "/:locale(de|en)/methoden/konzept-test", destination: "/loesungen/konzept-test", statusCode: 301 },
+      { source: "/:locale(de|en)/methoden/creative-test", destination: "/loesungen/konzept-test", statusCode: 301 },
+      { source: "/:locale(de|en)/methoden/markenwahrnehmung", destination: "/loesungen/markenwahrnehmung", statusCode: 301 },
+      { source: "/:locale(de|en)/methoden/bedarf-verhalten", destination: "/loesungen/bedarf-verhalten", statusCode: 301 },
+      { source: "/:locale(de|en)/methoden", destination: "/methoden", statusCode: 301 },
+
+      // ── Branchen (now a single page) + Insights (no new equivalent → home) ──
+      { source: "/:locale(de|en)/branchen/:slug*", destination: "/branchen", statusCode: 301 },
+      { source: "/:locale(de|en)/insights/:path*", destination: "/", statusCode: 301 },
+
+      // ── legacy locale-less aliases that have no flat route of their own ──
+      { source: "/produkt", destination: "/plattform", statusCode: 301 },
+      { source: "/pricing", destination: "/preise", statusCode: 301 },
+      { source: "/demo", destination: "/kontakt", statusCode: 301 },
+      { source: "/mensch-und-ki", destination: "/", statusCode: 301 },
+      { source: "/insights/:path*", destination: "/", statusCode: 301 },
+
+      // ── catch-all: any remaining old /de|/en URL → homepage (never 404) ──
+      { source: "/:locale(de|en)/:path*", destination: "/", statusCode: 301 },
+
       // TODO D1: www → apex canonical redirect. The production domain isn't
       // final yet (placeholder findr.de), so this is PREPARED but inactive — a
       // guessed host would be wrong. Uncomment and confirm the host once the
