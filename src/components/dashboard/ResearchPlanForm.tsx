@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { isKonsoulInterviewerPersonaEnabled } from "@/lib/voice-agent/konsoul-interviewer-persona";
 import { Button } from "@/components/ui/Button";
 import {
   Field,
@@ -2525,12 +2526,20 @@ export function ResearchPlanForm({
                       KI
                     </span>
                     <span className="text-small font-medium text-neutral-700">
-                      {t("previewAiSender")}
+                      {t(
+                        isKonsoulInterviewerPersonaEnabled()
+                          ? "previewAiSenderKonsoul"
+                          : "previewAiSender",
+                      )}
                     </span>
                   </div>
                   <div className="space-y-2.5 px-3 py-4">
                     <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-neutral-200 bg-card px-3 py-2 text-small text-neutral-700">
-                      {t("previewGreeting")}
+                      {t(
+                        isKonsoulInterviewerPersonaEnabled()
+                          ? "previewGreetingKonsoul"
+                          : "previewGreeting",
+                      )}
                     </div>
                     {lastGuide.topics[0]?.mainQuestion && (
                       <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-neutral-200 bg-card px-3 py-2 text-small text-neutral-800">

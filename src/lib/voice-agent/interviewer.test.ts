@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildResearchContext,
@@ -10,6 +10,8 @@ import {
   formatDepthDirective,
   formatRoundCeiling,
   formatStimulusSet,
+  RESEARCH_INTERVIEWER_CORE,
+  researchCore,
   stimulusSetCeiling,
   stripTurnInternals,
   type InterviewTurn,
@@ -32,6 +34,44 @@ const BASE_INPUT: ResearchInput = {
   },
   brand: null,
 };
+
+const PERSONA_FLAG = "NEXT_PUBLIC_KONSOUL_INTERVIEWER_PERSONA";
+
+describe("Konsoul interviewer persona — flag gate", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("flag OFF (unset/empty): researchCore() is byte-identical to the base CORE", () => {
+    vi.stubEnv(PERSONA_FLAG, "");
+    expect(researchCore()).toBe(RESEARCH_INTERVIEWER_CORE);
+    expect(researchCore()).not.toContain("Konsoul");
+  });
+
+  it("flag OFF (\"false\"): the voice-bridge prompt carries no Konsoul persona", () => {
+    vi.stubEnv(PERSONA_FLAG, "false");
+    expect(buildResearchSystemPrompt("concept_test", false)).not.toContain(
+      "Konsoul",
+    );
+  });
+
+  it("flag ON: persona adds the Konsoul name AND keeps the AI disclosure intact", () => {
+    vi.stubEnv(PERSONA_FLAG, "true");
+    const core = researchCore();
+    expect(core).toContain("Konsoul");
+    // The non-negotiable disclosure lines stay verbatim (Art. 50 EU AI Act).
+    expect(core).toContain("AI research interviewer");
+    expect(core).toContain("Never imply or pretend to be a human");
+    expect(core).toContain("TRANSPARENCY (required, non-negotiable)");
+    // The persona must DEFER to the CORE rules, never override them.
+    expect(core).toContain("ABSOLUTE precedence");
+  });
+
+  it("flag ON: the persona reaches the voice-bridge JSON prompt too", () => {
+    vi.stubEnv(PERSONA_FLAG, "true");
+    expect(buildResearchSystemPrompt("concept_test", false)).toContain(
+      "Konsoul",
+    );
+  });
+});
 
 describe("research stimulus prompt wiring", () => {
   it("adds a user-prompt stimulus block from description/type without the URL", () => {

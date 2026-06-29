@@ -10,7 +10,7 @@ import { recordScreeningResponse } from "@/lib/research/screening-responses";
 import { evaluateScreening } from "@/lib/screening/evaluate";
 import { ScreeningAnswersSchema } from "@/lib/schemas/screening";
 import {
-  CONSENT_TEXT_VERSION,
+  consentTextVersion,
   loadByToken,
   markSessionConsentByToken,
 } from "@/lib/voice-agent/session-service";
@@ -111,7 +111,7 @@ export async function POST(
     // der Consent-Stempel läuft daher über den Request-Token. Best-effort +
     // idempotent (nur erster Accept schreibt); niemals pfad-blockierend.
     if (parsed.data.consentAccepted === true) {
-      await markSessionConsentByToken(tokenParsed.data, CONSENT_TEXT_VERSION);
+      await markSessionConsentByToken(tokenParsed.data, consentTextVersion());
     }
     // Exactly one qualified row — written only when WE created the session.
     await recordScreeningResponse(invite.org_id, invite.plan_id, "qualified");
@@ -125,7 +125,7 @@ export async function POST(
     // E0: auch der Race-/Re-Submit-Gewinner kam durchs Consent-Gate — stempeln,
     // falls noch nicht geschehen (idempotent, best-effort).
     if (parsed.data.consentAccepted === true) {
-      await markSessionConsentByToken(tokenParsed.data, CONSENT_TEXT_VERSION);
+      await markSessionConsentByToken(tokenParsed.data, consentTextVersion());
     }
     return NextResponse.json({ qualified: true });
   }

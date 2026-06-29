@@ -470,7 +470,7 @@ export async function getResearchPlan(
 
 /**
  * View of a plan as the agent consumes it — strip DB-side fields, keep
- * exactly what RESEARCH_INTERVIEWER_SYSTEM_PROMPT + buildResearchPrompt need.
+ * exactly what buildResearchSystemPrompt + buildResearchPrompt need.
  * Pure derivation, no DB call.
  */
 export function planToAgentContext(

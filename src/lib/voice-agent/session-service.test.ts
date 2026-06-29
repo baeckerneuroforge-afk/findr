@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createResearchSupabase } from "@/lib/research/db";
-import { markSessionConsentByToken } from "./session-service";
+import {
+  CONSENT_TEXT_VERSION,
+  consentTextVersion,
+  markSessionConsentByToken,
+} from "./session-service";
 
 vi.mock("@/lib/research/db", () => ({ createResearchSupabase: vi.fn() }));
 
@@ -16,6 +20,21 @@ function makeSupabase(isError: unknown = null) {
   const from = vi.fn(() => ({ update }));
   return { client: { from } as never, from, update, eq, is };
 }
+
+describe("consentTextVersion (Konsoul-aware DSGVO Art. 7(1) stamp)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("flag OFF (unset/empty): returns the unchanged base CONSENT_TEXT_VERSION", () => {
+    vi.stubEnv("NEXT_PUBLIC_KONSOUL_INTERVIEWER_PERSONA", "");
+    expect(consentTextVersion()).toBe(CONSENT_TEXT_VERSION);
+  });
+
+  it("flag ON: stamps a DISTINCT Konsoul version (so the proof matches the shown wording)", () => {
+    vi.stubEnv("NEXT_PUBLIC_KONSOUL_INTERVIEWER_PERSONA", "true");
+    expect(consentTextVersion()).not.toBe(CONSENT_TEXT_VERSION);
+    expect(consentTextVersion()).toMatch(/konsoul/);
+  });
+});
 
 describe("markSessionConsentByToken (Phase 2a tier stamps, L4)", () => {
   beforeEach(() => vi.clearAllMocks());

@@ -37,6 +37,7 @@ import {
   type TurnDelta,
   stripTurnInternals,
 } from "./interviewer";
+import { isKonsoulInterviewerPersonaEnabled } from "./konsoul-interviewer-persona";
 import { expectedQuestionCount } from "@/lib/research/interview-duration";
 import {
   CAPTURE_TIER_COLUMN,
@@ -873,6 +874,20 @@ export async function markInterviewInvited(
  * MITZIEHEN (neues Datum).
  */
 export const CONSENT_TEXT_VERSION = "2026-06-23";
+
+/**
+ * E0/Konsoul — flag-bewusste Consent-Textversion. Ist die Konsoul-Interviewer-
+ * Persona aktiv (NEXT_PUBLIC_KONSOUL_INTERVIEWER_PERSONA="true"), sehen
+ * Teilnehmer die „Konsoul"-Varianten der Consent-/Offenlegungstexte — also wird
+ * eine EIGENE Version gestempelt, damit der DSGVO-Art.-7(1)-Nachweis exakt auf
+ * den TATSÄCHLICH gezeigten Wortlaut zeigt. Flag AUS ⇒ unveränderter Wert
+ * (byte-identischer Stempel). Laufzeit-Lesung (nicht die Konstante einfrieren),
+ * damit Build/SSR den Wert nicht fixieren und Tests die Env patchen können. */
+export function consentTextVersion(): string {
+  return isKonsoulInterviewerPersonaEnabled()
+    ? "2026-06-29-konsoul"
+    : CONSENT_TEXT_VERSION;
+}
 
 /**
  * E0 — stamp the participant's consent on a session (DSGVO Art. 7(1)

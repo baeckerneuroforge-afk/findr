@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import {
-  CONSENT_TEXT_VERSION,
+  consentTextVersion,
   loadByToken,
   markSessionConsentByToken,
 } from "@/lib/voice-agent/session-service";
@@ -78,13 +78,13 @@ export async function POST(
     // otherwise), so a first-contact accept-with-purposes records both.
     await markSessionConsentByToken(
       tokenParsed.data,
-      CONSENT_TEXT_VERSION,
+      consentTextVersion(),
       purposes,
     );
   } else if (session.status === "open" && session.consentAcceptedAt === null) {
     // Base path — byte-identical to before: only open, not-yet-stamped sessions
     // write; everything else is an idempotent no-op (same 204, no state oracle).
-    await markSessionConsentByToken(tokenParsed.data, CONSENT_TEXT_VERSION);
+    await markSessionConsentByToken(tokenParsed.data, consentTextVersion());
   }
 
   return new NextResponse(null, { status: 204 });

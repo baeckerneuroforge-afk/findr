@@ -9,7 +9,8 @@
       "titleResearch": "Research interview",
       "title": "A short conversation",
       "titleWithCompany": "A short conversation about {company}",
-      "subtitle": "This conversation is led by an AI interviewer. Your honest answers help us learn — there are no wrong answers."
+      "subtitle": "This conversation is led by an AI interviewer. Your honest answers help us learn — there are no wrong answers.",
+      "subtitleKonsoul": "This conversation is led by Konsoul, an AI interviewer. Your honest answers help us learn — there are no wrong answers."
     },
     "progress": {
       "label": "Progress",
@@ -33,7 +34,9 @@
     },
     "footer": {
       "brandless": "Confidential research interview · conducted by an AI interviewer.",
-      "default": "Powered by Klymeo · AI interview, your response is confidential."
+      "brandlessKonsoul": "Confidential research interview · conducted by Konsoul, an AI interviewer.",
+      "default": "Powered by Klymeo · AI interview, your response is confidential.",
+      "defaultKonsoul": "Powered by Klymeo · AI interview with Konsoul, your response is confidential."
     },
     "visualCapture": {
       "title": "Optional screen recording",
@@ -79,6 +82,7 @@
     },
     "voice": {
       "aiNotice": "You're speaking with an AI interviewer. Your speech is automatically converted to text. You can type instead at any time.",
+      "aiNoticeKonsoul": "You're speaking with Konsoul, an AI interviewer. Your speech is automatically converted to text. You can type instead at any time.",
       "start": "Speak your answer",
       "startHint": "Click the mic or press Space",
       "stop": "Stop & send",
@@ -94,6 +98,7 @@
       "intro": {
         "title": "This is a voice interview",
         "body": "You take this interview as a conversation with an AI interviewer — the artificial intelligence asks questions, you simply answer out loud. For that we need access to your microphone.",
+        "bodyKonsoul": "You take this interview as a conversation with Konsoul, an AI interviewer — the artificial intelligence asks questions, you simply answer out loud. For that we need access to your microphone.",
         "micNote": "When you start, your browser will ask for microphone permission.",
         "start": "Start interview",
         "fallback": "I'd rather answer in writing"
@@ -191,6 +196,7 @@
     "inviteConsent": {
       "title": "Before you begin",
       "intro": "This conversation is conducted by an AI interviewer — you're talking to an artificial intelligence, not a human. Your participation is voluntary.",
+      "introKonsoul": "This conversation is conducted by Konsoul, an AI interviewer — you're talking to an artificial intelligence, not a human. Your participation is voluntary.",
       "privacyTitle": "Privacy",
       "privacyBody": "The conversation is handled confidentially and analyzed based on its content. This can include an automated assessment of sentiment and of how questions were answered — based solely on the text of your answers, never on your voice. For task-based studies, this also includes an automated assessment of whether you completed the task. Please share only what you're comfortable disclosing, and don't enter sensitive personal data. Your answers are never used for advertising.",
       "agree": "I've read this notice and am taking part voluntarily.",
@@ -200,6 +206,7 @@
       "consent": {
         "title": "Before you begin",
         "intro": "You're taking part anonymously in a short study. The interview is conducted by an AI interviewer — you're talking to an artificial intelligence, not a human. No sign-in is required, and we don't ask for any personal details up front.",
+        "introKonsoul": "You're taking part anonymously in a short study. The interview is conducted by Konsoul, an AI interviewer — you're talking to an artificial intelligence, not a human. No sign-in is required, and we don't ask for any personal details up front.",
         "privacyTitle": "Privacy",
         "privacyBody": "This conversation is handled confidentially and used only for research. Responses are analyzed automatically based on their content; this can include an assessment of sentiment and of how questions were answered — based solely on the text of your answers, never on your voice. For task-based studies, this also includes an automated assessment of whether you completed the task. Please share only what you're comfortable disclosing — don't enter sensitive personal data. Your answers are never used for advertising.",
         "agree": "I've read the privacy notice and am taking part voluntarily.",
@@ -1450,7 +1457,9 @@
       "qualMetaMinutes": "min",
       "previewParticipantTitle": "Participant preview",
       "previewAiSender": "AI interviewer",
+      "previewAiSenderKonsoul": "Konsoul · AI interviewer",
       "previewGreeting": "Hi! I'm an AI research assistant and I'll guide you through a short, confidential interview. There are no right or wrong answers — just share openly.",
+      "previewGreetingKonsoul": "Hi! I'm Konsoul, an AI research assistant, and I'll guide you through a short, confidential interview. There are no right or wrong answers — just share openly.",
       "previewExampleBadge": "Example",
       "previewExampleProbe": "Could you give me a concrete example of that?",
       "previewAnswerPlaceholder": "Your answer …",

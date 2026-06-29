@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { isKonsoulInterviewerPersonaEnabled } from "@/lib/voice-agent/konsoul-interviewer-persona";
 import type { ScreeningQuestion } from "@/lib/schemas/screening";
 import type { PanelInbound } from "@/lib/research/panel";
 import { ParticipantShell } from "./ParticipantShell";
@@ -209,7 +210,11 @@ function ConsentStep({
         {planTitle || t("open.consent.title")}
       </h1>
       <p className="mt-2 text-[14px] leading-relaxed text-[#6B6678]">
-        {t("open.consent.intro")}
+        {t(
+          isKonsoulInterviewerPersonaEnabled()
+            ? "open.consent.introKonsoul"
+            : "open.consent.intro",
+        )}
       </p>
 
       <div className="mt-6 rounded-2xl border border-[#DCDEEF] bg-[#FAFAFE] px-5 py-5">

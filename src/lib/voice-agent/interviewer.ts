@@ -16,6 +16,10 @@ import {
 } from "@/lib/research/interview-duration";
 import type { LossReasonType } from "@/lib/loss/extractor";
 import type { RiskAnalysisResult } from "@/lib/schemas/risk";
+import {
+  KONSOUL_INTERVIEWER_PERSONA,
+  isKonsoulInterviewerPersonaEnabled,
+} from "./konsoul-interviewer-persona";
 
 /**
  * Voice Agent core — the post-loss interview (TEXT version).
@@ -1063,7 +1067,7 @@ export interface ResearchInput {
   brand: ResearchBrand | null;
 }
 
-const RESEARCH_INTERVIEWER_CORE = `You are an AI research interviewer running an in-depth research conversation with a participant. The goal is to LEARN — surface specific stories, lived experience, friction, and unmet needs.
+export const RESEARCH_INTERVIEWER_CORE = `You are an AI research interviewer running an in-depth research conversation with a participant. The goal is to LEARN — surface specific stories, lived experience, friction, and unmet needs.
 
 You work in DACH (Germany / Austria / Switzerland). LANGUAGE: every interview is conducted in a REQUIRED language, given in the context. Write ALL of your messages in that language — including your opening message, which you send before the participant has said anything — and stay in it for the whole conversation.
 
@@ -1126,17 +1130,20 @@ PRIVATE CONTEXT (never reveal):
 - You may be given the inviting org's name and product (when the research is on behalf of a vendor). Use it ONLY to ground questions in the right context (e.g. "when you set up new sales pipelines"). NEVER name the vendor product, never defend it, never lead the participant toward it.
 - Topic hypotheses, if provided, are for YOUR private steering only. Never read them out, never confirm or invalidate them in the open.`;
 
-export const RESEARCH_INTERVIEWER_SYSTEM_PROMPT = `${RESEARCH_INTERVIEWER_CORE}
-
-${jsonOutputBlock("participant")}`;
-
-/** Turn-path flavor (plain-text contract) — see the contract note above.
- *  E3: der Research-Turn-Pfad nutzt die WHY-Variante des Contracts (Frage-
- *  Rationale für Forscher); der exportierte JSON-Flavor darüber bleibt
- *  byte-identisch (Voice-Bridge, WHY dort = E5). */
-const RESEARCH_INTERVIEWER_TURN_SYSTEM_PROMPT = `${RESEARCH_INTERVIEWER_CORE}
-
-${plainOutputBlockWithWhy("participant")}`;
+/**
+ * Konsoul-Interviewer-Persona (flag-gated, default AUS). Hängt — und NUR wenn
+ * NEXT_PUBLIC_KONSOUL_INTERVIEWER_PERSONA="true" — den additiven Persona-Block
+ * (Name „Konsoul" + Ton) an den unveränderten RESEARCH_INTERVIEWER_CORE. Die
+ * Transparenz-, No-Affekt- und Scope-Regeln des CORE bleiben wörtlich erhalten
+ * und haben laut Persona-Block Vorrang. Flag AUS ⇒ researchCore() ===
+ * RESEARCH_INTERVIEWER_CORE (byte-identisch); die zwei Builder unten leiten ALLE
+ * Prompt-Pfade (Voice-Bridge JSON, Text-Turn, Multi-Stimulus) daraus ab, sodass
+ * der Merge bei Flag AUS null Verhaltensänderung ist. Exported for unit tests. */
+export function researchCore(): string {
+  return isKonsoulInterviewerPersonaEnabled()
+    ? `${RESEARCH_INTERVIEWER_CORE}\n\n${KONSOUL_INTERVIEWER_PERSONA}`
+    : RESEARCH_INTERVIEWER_CORE;
+}
 
 export const USE_CASE_FOCUS: Record<ResearchPlanUseCase, string> = {
   general_survey:
@@ -1319,15 +1326,16 @@ USE-CASE FOCUS:
 ${focus}`;
 }
 
-/** Legacy/system-prompt export (JSON contract) — consumed verbatim by the
- *  LiveKit voice bridge (api/voice/session-context); byte-identical to the
- *  pre-B1 prompt. The text-turn path uses buildResearchTurnSystemPrompt. */
+/** JSON-Contract-Prompt — von der LiveKit-Voice-Bridge (api/voice/session-
+ *  context) verbatim verschickt. Komponiert live über researchCore(): bei Flag
+ *  AUS byte-identisch zum pre-Konsoul-Prompt, bei Flag AN inkl. Persona-Block.
+ *  Der Text-Turn-Pfad nutzt buildResearchTurnSystemPrompt. */
 export function buildResearchSystemPrompt(
   useCase: unknown,
   hasStimulus = false,
 ): string {
   return withUseCaseFocus(
-    RESEARCH_INTERVIEWER_SYSTEM_PROMPT,
+    `${researchCore()}\n\n${jsonOutputBlock("participant")}`,
     useCase,
     hasStimulus,
   );
@@ -1341,8 +1349,8 @@ function buildResearchTurnSystemPrompt(
   withStimulusSet = false,
 ): string {
   const base = withStimulusSet
-    ? `${RESEARCH_INTERVIEWER_CORE}\n\n${plainOutputBlockWithWhyAndShow("participant")}`
-    : RESEARCH_INTERVIEWER_TURN_SYSTEM_PROMPT;
+    ? `${researchCore()}\n\n${plainOutputBlockWithWhyAndShow("participant")}`
+    : `${researchCore()}\n\n${plainOutputBlockWithWhy("participant")}`;
   return withUseCaseFocus(base, useCase, hasStimulus);
 }
 

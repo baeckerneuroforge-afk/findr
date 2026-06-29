@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { isKonsoulInterviewerPersonaEnabled } from "@/lib/voice-agent/konsoul-interviewer-persona";
 import { InterviewProgress } from "./InterviewProgress";
 import { InterviewTimer } from "./InterviewTimer";
 import { InterviewCompletedScreen } from "./InterviewCompletedScreen";
@@ -1217,7 +1218,11 @@ export function VoiceInterviewView({
           {t("voiceLive.intro.title")}
         </h2>
         <p className="mt-2 text-[13px] leading-relaxed text-[#6B6680]">
-          {t("voiceLive.intro.body")}
+          {t(
+            isKonsoulInterviewerPersonaEnabled()
+              ? "voiceLive.intro.bodyKonsoul"
+              : "voiceLive.intro.body",
+          )}
         </p>
         <p className="mt-2 text-[12px] leading-relaxed text-[#8A85A0]">
           {t("voiceLive.intro.micNote")}
@@ -1390,7 +1395,11 @@ export function VoiceInterviewView({
         </div>
 
         <p className="mt-6 pb-6 text-center text-[11px] text-[#9B9BA3]">
-          {t("footer.brandless")}
+          {t(
+            isKonsoulInterviewerPersonaEnabled()
+              ? "footer.brandlessKonsoul"
+              : "footer.brandless",
+          )}
         </p>
       </>
     );
@@ -1497,7 +1506,11 @@ export function VoiceInterviewView({
             <div className="mb-6">
               <h1 className="text-[18px] font-semibold">{heading}</h1>
               <p className="mt-1 text-[14px] leading-relaxed text-[#6B6680]">
-                {t("header.subtitle")}
+                {t(
+                  isKonsoulInterviewerPersonaEnabled()
+                    ? "header.subtitleKonsoul"
+                    : "header.subtitle",
+                )}
               </p>
             </div>
             {taskCard}
@@ -1509,7 +1522,11 @@ export function VoiceInterviewView({
           <div className="mb-6">
             <h1 className="text-[18px] font-semibold">{heading}</h1>
             <p className="mt-1 text-[14px] leading-relaxed text-[#6B6680]">
-              {t("header.subtitle")}
+              {t(
+                isKonsoulInterviewerPersonaEnabled()
+                  ? "header.subtitleKonsoul"
+                  : "header.subtitle",
+              )}
             </p>
           </div>
           {taskCard}

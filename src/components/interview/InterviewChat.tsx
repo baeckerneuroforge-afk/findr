@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { isKonsoulInterviewerPersonaEnabled } from "@/lib/voice-agent/konsoul-interviewer-persona";
 import { InterviewProgress } from "./InterviewProgress";
 import { InterviewTimer } from "./InterviewTimer";
 import { InterviewCompletedScreen } from "./InterviewCompletedScreen";
@@ -788,7 +789,11 @@ function VoiceControls({
   return (
     <div className="mb-3 rounded-lg border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-3">
       <p className="text-[12px] leading-relaxed text-[#6B6680]">
-        {t("voice.aiNotice")}
+        {t(
+          isKonsoulInterviewerPersonaEnabled()
+            ? "voice.aiNoticeKonsoul"
+            : "voice.aiNotice",
+        )}
       </p>
       <div className="mt-3">
         {state === "recording" ? (
@@ -2050,7 +2055,11 @@ export function InterviewChat({
                 : t("header.title")}
         </h1>
         <p className="mt-1 text-[14px] leading-relaxed text-[#6B6680]">
-          {t("header.subtitle")}
+          {t(
+            isKonsoulInterviewerPersonaEnabled()
+              ? "header.subtitleKonsoul"
+              : "header.subtitle",
+          )}
         </p>
       </div>
 
@@ -2251,7 +2260,17 @@ export function InterviewChat({
             </p>
           )}
           <p className="mt-3 text-center text-[11px] text-[#9B9BA3]">
-            {brandless ? t("footer.brandless") : t("footer.default")}
+            {brandless
+              ? t(
+                  isKonsoulInterviewerPersonaEnabled()
+                    ? "footer.brandlessKonsoul"
+                    : "footer.brandless",
+                )
+              : t(
+                  isKonsoulInterviewerPersonaEnabled()
+                    ? "footer.defaultKonsoul"
+                    : "footer.default",
+                )}
           </p>
         </div>
       ) : (

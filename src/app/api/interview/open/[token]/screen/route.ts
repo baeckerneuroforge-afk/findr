@@ -17,7 +17,7 @@ import { coercePanelInbound, type PanelContext } from "@/lib/research/panel";
 import { evaluateScreening } from "@/lib/screening/evaluate";
 import { ScreeningAnswersSchema } from "@/lib/schemas/screening";
 import {
-  CONSENT_TEXT_VERSION,
+  consentTextVersion,
   markSessionConsentByToken,
 } from "@/lib/voice-agent/session-service";
 import type { Json } from "@/types/database";
@@ -175,7 +175,7 @@ export async function POST(
       if (parsed.data.consentAccepted === true) {
         await markSessionConsentByToken(
           existing.accessToken,
-          CONSENT_TEXT_VERSION,
+          consentTextVersion(),
         );
       }
       return NextResponse.json({
@@ -253,7 +253,7 @@ export async function POST(
     // best-effort, niemals pfad-blockierend). Der mandatory ConsentStep lag
     // strukturell vor diesem Submit.
     if (parsed.data.consentAccepted === true) {
-      await markSessionConsentByToken(result.accessToken, CONSENT_TEXT_VERSION);
+      await markSessionConsentByToken(result.accessToken, consentTextVersion());
     }
     // Exactly one qualified row — written only when WE created the session.
     await recordScreeningResponse(link.org_id, link.plan_id, "qualified");
@@ -289,7 +289,7 @@ export async function POST(
       if (parsed.data.consentAccepted === true) {
         await markSessionConsentByToken(
           raced.accessToken,
-          CONSENT_TEXT_VERSION,
+          consentTextVersion(),
         );
       }
       return NextResponse.json({

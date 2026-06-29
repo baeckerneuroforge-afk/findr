@@ -8,6 +8,7 @@ import { POST } from "./route";
 
 vi.mock("@/lib/voice-agent/session-service", () => ({
   CONSENT_TEXT_VERSION: "test-version",
+  consentTextVersion: () => "test-version",
   loadByToken: vi.fn(),
   markSessionConsentByToken: vi.fn(async () => {}),
 }));
