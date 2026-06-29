@@ -1,18 +1,22 @@
-// ENTWURF, KEINE RECHTSBERATUNG. Vor dem Launch über den eRecht24-
-// Datenschutz-Generator bzw. einen Anwalt finalisieren. Alle mit {{ }}
-// markierten Platzhalter müssen ersetzt und juristisch geprüft werden.
+// Allgemeine Geschäftsbedingungen (B2B-SaaS). Die kaufmännischen Eckwerte
+// (Zahlungsziel, Kündigungsfrist, AGB-Änderungsfrist) sind als marktübliche
+// Standardwerte gesetzt; konkrete Preise, Laufzeiten und ein etwaiges SLA
+// ergeben sich aus der jeweiligen Bestellung. AGB-Klauseln unterliegen der
+// Inhaltskontrolle nach §§ 305 ff. BGB und sollten einmal anwaltlich
+// gegengelesen werden (insbesondere die Haftungsklausel in § 10). Für die
+// weisungsgebundene Verarbeitung von Studiendaten ist zusätzlich ein
+// Auftragsverarbeitungsvertrag (AVV) nach Art. 28 DSGVO nötig (siehe § 12).
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
   LegalProse,
   LegalSection,
   LegalStand,
-  LegalTodo,
 } from "@/components/site/LegalProse";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ogDefaults } from "@/lib/marketing/seo";
 
-const STAND = "Juni 2026 (Entwurf)";
+const STAND = "Juni 2026";
 
 export const metadata: Metadata = {
   title: { absolute: "AGB — Klymeo" },
@@ -29,19 +33,20 @@ export const metadata: Metadata = {
 const CONTACT_LINK =
   "text-ink underline underline-offset-2 transition-colors hover:text-ink/70";
 
-/* AGB-Entwurf für ein B2B-SaaS. Die Klauseln sind in marktüblicher Standardform
-   ausformuliert; AGB-Klauseln unterliegen jedoch der Inhaltskontrolle nach
-   §§ 305 ff. BGB und müssen vor dem Live-Gang anwaltlich geprüft werden. Mit
-   {{ }} markiert sind ausschließlich die geschäftsspezifischen Eingaben (Preise,
-   Laufzeiten, Fristen, SLA), die André festlegt. Für die weisungsgebundene
-   Verarbeitung von Studiendaten ist zusätzlich ein Auftragsverarbeitungsvertrag
-   (AVV) nach Art. 28 DSGVO nötig — separat von diesen AGB (siehe § 12). */
+/* AGB für ein B2B-SaaS in marktüblicher Standardform. Die kaufmännischen
+   Eckwerte sind gesetzt (Zahlungsziel 14 Tage, Kündigungsfrist 30 Tage zum
+   Laufzeitende, AGB-Änderungsankündigung 6 Wochen); konkrete Preise und
+   Laufzeiten ergeben sich aus der jeweiligen Bestellung. Für die
+   weisungsgebundene Verarbeitung von Studiendaten ist zusätzlich ein
+   Auftragsverarbeitungsvertrag (AVV) nach Art. 28 DSGVO nötig — separat von
+   diesen AGB (siehe § 12). */
 export default function AgbPage() {
   return (
     <SiteShell>
       <LegalProse
         title="Allgemeine Geschäftsbedingungen"
         intro="Bedingungen für die Nutzung von Klymeo und der zugehörigen Produkte."
+        notice={false}
         closing={<LegalStand>{STAND}</LegalStand>}
       >
         <LegalSection heading="1. Geltungsbereich und Vertragsgegenstand">
@@ -135,18 +140,12 @@ export default function AgbPage() {
               zeitlich begrenzten Pilotmodell oder einem laufenden Lizenzmodell —
               und ergibt sich aus der jeweiligen Bestellung bzw. dem Angebot. Alle
               Preise verstehen sich zuzüglich der gesetzlichen Umsatzsteuer, soweit
-              diese anfällt. Die Zahlungsabwicklung erfolgt über den
-              Zahlungsdienstleister Stripe.
+              diese anfällt. Die Abrechnung erfolgt per Rechnung.
             </p>
             <p>
-              Rechnungen sind innerhalb von{" "}
-              <LegalTodo>Zahlungsziel, z. B. 14 Tage, festlegen</LegalTodo> ohne
-              Abzug fällig. Bei Zahlungsverzug gelten die gesetzlichen Regelungen
-              (§§ 286, 288 BGB).{" "}
-              <LegalTodo>
-                konkrete Preise, Abrechnungszeitraum und Konditionen des Pilot- und
-                Lizenzmodells eintragen
-              </LegalTodo>
+              Rechnungen sind innerhalb von 14 Tagen ab Rechnungsdatum ohne Abzug
+              fällig. Bei Zahlungsverzug gelten die gesetzlichen Regelungen
+              (§§ 286, 288 BGB).
             </p>
           </div>
         </LegalSection>
@@ -156,9 +155,9 @@ export default function AgbPage() {
             <p>
               Die Vertragslaufzeit ergibt sich aus der jeweiligen Bestellung. Sofern
               nicht abweichend vereinbart, verlängert sich der Vertrag jeweils um
-              den ursprünglichen Laufzeitzeitraum, wenn er nicht mit einer Frist von{" "}
-              <LegalTodo>Kündigungsfrist, z. B. 30 Tage zum Laufzeitende, festlegen</LegalTodo>{" "}
-              in Textform gekündigt wird. Das Recht zur außerordentlichen Kündigung
+              den ursprünglichen Laufzeitzeitraum, wenn er nicht mit einer Frist von
+              30 Tagen zum jeweiligen Laufzeitende in Textform gekündigt wird. Das
+              Recht zur außerordentlichen Kündigung
               aus wichtigem Grund bleibt für beide Parteien unberührt. Kündigungen
               bedürfen der Textform.
             </p>
@@ -180,10 +179,7 @@ export default function AgbPage() {
               Auftrag des Kunden erhobenen Studiendaten und Auswertungen verbleiben
               beim Kunden. Der Anbieter ist berechtigt, anonymisierte oder
               aggregierte Daten, die keinen Personen- oder Kundenbezug mehr
-              zulassen, zur Verbesserung und zum Betrieb der Leistungen zu nutzen.{" "}
-              <LegalTodo>
-                Umfang der Nutzung anonymisierter/aggregierter Daten prüfen
-              </LegalTodo>
+              zulassen, zur Verbesserung und zum Betrieb der Leistungen zu nutzen.
             </p>
           </div>
         </LegalSection>
@@ -203,10 +199,9 @@ export default function AgbPage() {
               angeboten.
             </p>
             <p>
-              <LegalTodo>
-                falls eine Verfügbarkeit (SLA) bzw. Support-Reaktionszeit zugesagt
-                werden soll: konkrete Werte festlegen und prüfen
-              </LegalTodo>
+              Eine bestimmte Verfügbarkeit (Service Level) oder eine bestimmte
+              Support-Reaktionszeit wird nicht zugesichert, sofern sie nicht in der
+              jeweiligen Bestellung ausdrücklich in Textform vereinbart wird.
             </p>
           </div>
         </LegalSection>
@@ -241,11 +236,11 @@ export default function AgbPage() {
               Vertreter und Erfüllungsgehilfen des Anbieters.
             </p>
             <p>
-              <LegalTodo>
-                Haftungsklausel (insbesondere etwaige betragsmäßige Haftungshöchst-
-                grenze und Regelung zum Datenverlust) anwaltlich prüfen und an das
-                Geschäftsmodell anpassen
-              </LegalTodo>
+              Für den Verlust von Daten haftet der Anbieter nur in dem Umfang, der
+              auch bei einer ordnungsgemäßen und regelmäßigen Datensicherung durch
+              den Kunden entstanden wäre. Der Kunde bleibt für die Sicherung der von
+              ihm in die Plattform eingestellten Inhalte selbst verantwortlich,
+              soweit nicht ausdrücklich etwas anderes vereinbart ist.
             </p>
           </div>
         </LegalSection>
@@ -287,11 +282,9 @@ export default function AgbPage() {
               ändern, soweit dies aus triftigem Grund (z. B. geänderte Rechtslage
               oder Rechtsprechung, Erweiterung des Leistungsangebots) erforderlich
               ist und der Kunde dadurch nicht unangemessen benachteiligt wird.
-              Änderungen werden dem Kunden mindestens{" "}
-              <LegalTodo>
-                Ankündigungsfrist, z. B. 6 Wochen, vor Wirksamwerden, festlegen
-              </LegalTodo>{" "}
-              in Textform mitgeteilt. Widerspricht der Kunde nicht innerhalb der in
+              Änderungen werden dem Kunden mindestens 6 Wochen vor ihrem
+              Wirksamwerden in Textform mitgeteilt. Widerspricht der Kunde nicht
+              innerhalb der in
               der Mitteilung genannten Frist, gelten die Änderungen als angenommen;
               auf diese Folge wird in der Mitteilung gesondert hingewiesen. Im Falle
               des Widerspruchs steht beiden Parteien ein Sonderkündigungsrecht zu.

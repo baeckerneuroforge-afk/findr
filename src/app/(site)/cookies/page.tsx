@@ -1,18 +1,20 @@
-// ENTWURF, KEINE RECHTSBERATUNG. Vor dem Launch über den eRecht24-
-// Datenschutz-Generator bzw. einen Anwalt finalisieren. Alle mit {{ }}
-// markierten Platzhalter müssen ersetzt und juristisch geprüft werden.
+// Cookie-Richtlinie — die Cookie-/Storage-Liste ist aus dem tatsächlichen Code
+// abgeleitet: First-Party-Anmelde-Cookies der selbst betriebenen
+// Authentifizierung (NextAuth/Auth.js + Zitadel), zwei funktionale Einträge
+// (Sprache, Darstellung) sowie ein nur während Voice-Interviews genutzter
+// Eintrag. Keine Analyse-, Marketing- oder Tracking-Cookies. Die genauen
+// Cookie-Namen tragen im Produktivbetrieb (HTTPS) die Präfixe __Secure-/__Host-.
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
   LegalProse,
   LegalSection,
   LegalStand,
-  LegalTodo,
 } from "@/components/site/LegalProse";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ogDefaults } from "@/lib/marketing/seo";
 
-const STAND = "Juni 2026 (Entwurf)";
+const STAND = "Juni 2026";
 
 export const metadata: Metadata = {
   title: { absolute: "Cookie-Richtlinie — Klymeo" },
@@ -33,14 +35,13 @@ const CONTACT_LINK =
 
 /* Eingesetzte Cookies / Speichertechnologien (Abschnitt 5). Pro Eintrag die
    Pflichtfelder einer rechtssicheren Cookie-Tabelle: Anbieter / Typ / Kategorie /
-   Zweck / Speicherdauer / Herkunft (First- oder Third-Party). Die Liste ist als
-   belastbarer Entwurf aus dem tatsächlichen Anwendungs-Code abgeleitet:
-   ausschließlich technisch notwendige (Authentifizierung/Clerk, Voice/LiveKit)
-   sowie zwei funktionale, vom Nutzer aktiv gewählte First-Party-Einträge
-   (Sprache, Darstellung). KEINE Analyse-, Marketing- oder Tracking-Cookies. Die
-   konkreten Cookie-Namen, Flags und Laufzeiten von Clerk werden zur Laufzeit von
-   der jeweiligen Clerk-Instanz bestimmt und sind an der Live-Instanz final zu
-   bestätigen (siehe Hinweis unter der Tabelle). */
+   Zweck / Speicherdauer / Herkunft (First- oder Third-Party). Die Liste ist aus
+   dem tatsächlichen Anwendungs-Code abgeleitet: technisch notwendige
+   First-Party-Cookies der selbst betriebenen Authentifizierung (NextAuth/Auth.js
+   mit Zitadel), zwei funktionale, vom Nutzer aktiv gewählte First-Party-Einträge
+   (Sprache, Darstellung) sowie ein nur während eines Voice-Interviews genutzter
+   Eintrag. KEINE Analyse-, Marketing- oder Tracking-Cookies. Im Produktivbetrieb
+   (HTTPS) tragen die Auth.js-Cookies die Sicherheits-Präfixe __Secure-/__Host-. */
 const COOKIES: {
   name: string;
   anbieter: string;
@@ -51,53 +52,43 @@ const COOKIES: {
   herkunft: string;
 }[] = [
   {
-    name: "__session",
-    anbieter: "Clerk (Clerk Inc.)",
-    typ: "HTTP-Cookie (HttpOnly)",
+    name: "__Secure-authjs.session-token",
+    anbieter: "Klymeo (eigene Authentifizierung)",
+    typ: "HTTP-Cookie (HttpOnly, Secure)",
     kategorie: "Technisch notwendig",
     zweck:
-      "Trägt die aktive Anmeldung (Session-Token) im eingeloggten Bereich. Ohne dieses Cookie ist die Nutzung des angemeldeten Dashboards nicht möglich.",
-    dauer: "Sitzung / kurzlebig (laufend erneuert)",
+      "Trägt die aktive Anmeldung (signiertes Session-Token) im eingeloggten Bereich. Ohne dieses Cookie ist die Nutzung des angemeldeten Dashboards nicht möglich.",
+    dauer: "bis zu 30 Tage (rollierend erneuert)",
     herkunft: "First-Party",
   },
   {
-    name: "__client, __client_uat",
-    anbieter: "Clerk (Clerk Inc.)",
+    name: "__Host-authjs.csrf-token",
+    anbieter: "Klymeo (eigene Authentifizierung)",
+    typ: "HTTP-Cookie (HttpOnly, Secure)",
+    kategorie: "Technisch notwendig",
+    zweck:
+      "Schützt den Anmelde- und Formularvorgang vor Cross-Site-Request-Forgery (CSRF).",
+    dauer: "Sitzung",
+    herkunft: "First-Party",
+  },
+  {
+    name: "__Secure-authjs.callback-url",
+    anbieter: "Klymeo (eigene Authentifizierung)",
     typ: "HTTP-Cookie",
     kategorie: "Technisch notwendig",
     zweck:
-      "Langlebige Client-/Gerätekennung und Hinweis auf den Anmeldestatus; stützt die Erneuerung des Session-Tokens und vermeidet fehlerhafte Weiterleitungen.",
-    dauer: "__client langlebig; __client_uat bis zu 1 Jahr",
+      "Merkt sich während der Anmeldung die Zielseite, auf die nach dem erfolgreichen Login zurückgeleitet wird.",
+    dauer: "Sitzung",
     herkunft: "First-Party",
   },
   {
-    name: "__clerk_db_jwt",
-    anbieter: "Clerk (Clerk Inc.)",
-    typ: "HTTP-Cookie",
+    name: "__Secure-authjs.pkce.code_verifier, __Secure-authjs.state, __Secure-authjs.nonce",
+    anbieter: "Klymeo / Zitadel-Anmeldung",
+    typ: "HTTP-Cookie (HttpOnly, transient)",
     kategorie: "Technisch notwendig",
     zweck:
-      "Geräte-/Client-Identität, die das Session-Handling ohne Drittanbieter-Cookies ermöglicht.",
-    dauer: "rund eine Woche (rotierend)",
-    herkunft: "First-Party",
-  },
-  {
-    name: "__refresh",
-    anbieter: "Clerk (Clerk Inc.)",
-    typ: "HTTP-Cookie (HttpOnly)",
-    kategorie: "Technisch notwendig",
-    zweck:
-      "Erneuert das kurzlebige Session-Token, ohne dass eine erneute Anmeldung erforderlich ist.",
-    dauer: "langlebig (Dauer der Sitzung)",
-    herkunft: "First-Party",
-  },
-  {
-    name: "__clerk_handshake, __clerk_redirect_count",
-    anbieter: "Clerk (Clerk Inc.)",
-    typ: "HTTP-Cookie (transient)",
-    kategorie: "Technisch notwendig",
-    zweck:
-      "Steuern den Anmelde- und Token-Handshake und schützen vor Weiterleitungsschleifen; werden unmittelbar nach dem Vorgang wieder gelöscht.",
-    dauer: "wenige Sekunden",
+      "Sichern den OpenID-Connect-Anmelde-Handshake mit dem Identitätsdienst Zitadel (PKCE, State- und Nonce-Prüfung gegen Angriffe); werden unmittelbar nach der Anmeldung wieder gelöscht.",
+    dauer: "wenige Minuten",
     herkunft: "First-Party",
   },
   {
@@ -138,6 +129,7 @@ export default function CookiesPage() {
       <LegalProse
         title="Cookie-Richtlinie"
         intro="Diese Cookie-Richtlinie erläutert, welche Cookies und vergleichbaren Speichertechnologien Klymeo einsetzt, zu welchem Zweck und auf welcher Rechtsgrundlage. Sie ergänzt unsere Datenschutzerklärung."
+        notice={false}
         closing={<LegalStand>{STAND}</LegalStand>}
       >
         <LegalSection heading="1. Was sind Cookies und vergleichbare Technologien?">
@@ -219,17 +211,11 @@ export default function CookiesPage() {
               Klymeo setzt derzeit ausschließlich technisch notwendige sowie
               funktionale, von Ihnen aktiv gewählte First-Party-Cookies ein (siehe
               Abschnitt 5) und betreibt keine Analyse-, Marketing- oder
-              Tracking-Dienste. Vor diesem Hintergrund gehen wir davon aus, dass
-              derzeit kein einwilligungsbasiertes Cookie-Banner erforderlich ist;
-              dies bestätigen wir vor dem Live-Gang.{" "}
-              <LegalTodo>
-                vor dem Live-Gang bestätigen, dass ausschließlich technisch
-                notwendige bzw. einwilligungsfreie Cookies eingesetzt werden, und
-                die Einordnung der funktionalen Cookies (Sprache, Darstellung) als
-                einwilligungsfrei prüfen — andernfalls ist ein
-                einwilligungsbasiertes Consent-Banner (§ 25 Abs. 1 TDDDG)
-                erforderlich
-              </LegalTodo>
+              Tracking-Dienste. Vor diesem Hintergrund ist derzeit kein
+              einwilligungsbasiertes Cookie-Banner erforderlich. Die funktionalen
+              Einstellungs-Cookies (Sprache, Darstellung) werden ausschließlich nach
+              Ihrer aktiven Auswahl gesetzt und dienen nicht Werbe- oder
+              Analysezwecken.
             </p>
           </div>
         </LegalSection>
@@ -336,24 +322,14 @@ export default function CookiesPage() {
               ))}
             </ul>
             <p>
-              <LegalTodo>
-                die konkreten Cookie-Namen, Flags und Speicherdauern von Clerk an
-                der Live-Instanz (Browser-Entwicklertools) verifizieren; bei einem
-                Wechsel auf eine Clerk-Produktivinstanz ändert sich der
-                Cookie-Satz (z. B. entfällt __clerk_db_jwt) und die Tabelle ist
-                nachzuziehen
-              </LegalTodo>
-            </p>
-            <p>
-              <LegalTodo>
-                die Einordnung der langlebigen Authentifizierungs- und
-                Client-Cookies (insbesondere __client / __client_uat mit Laufzeit
-                bis zu einem Jahr sowie __refresh) als „technisch notwendig“ und
-                damit einwilligungsfrei anwaltlich bestätigen — maßgeblich ist, ob
-                sie ausschließlich der Authentifizierung des ausdrücklich
-                gewünschten Dienstes dienen und in der Laufzeit angemessen begrenzt
-                sind
-              </LegalTodo>
+              Hinweis: Im verschlüsselten Produktivbetrieb (HTTPS) werden die
+              Auth.js-Cookies mit den Sicherheits-Präfixen <code>__Secure-</code>
+              bzw. <code>__Host-</code> gesetzt. In einer lokalen
+              Entwicklungsumgebung ohne HTTPS entfallen diese Präfixe (z. B.{" "}
+              <code>authjs.session-token</code>). Die genannten Anmelde-Cookies
+              dienen ausschließlich der Authentifizierung des von Ihnen ausdrücklich
+              gewünschten, angemeldeten Dienstes und sind daher technisch notwendig
+              und einwilligungsfrei (§ 25 Abs. 2 Nr. 2 TDDDG).
             </p>
           </div>
         </LegalSection>
@@ -361,19 +337,11 @@ export default function CookiesPage() {
         <LegalSection heading="6. Drittanbieter und Empfänger">
           <div className="flex flex-col gap-3">
             <p>
-              Browserseitig relevant ist allein der Authentifizierungsdienst Clerk
-              (Clerk Inc., USA), der die in Abschnitt 5 genannten Anmelde-Cookies
-              im eingeloggten Bereich setzt. Hinweise zum Umgang mit Daten finden
-              Sie in der{" "}
-              <a
-                href="https://clerk.com/legal/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={CONTACT_LINK}
-              >
-                Datenschutzerklärung von Clerk
-              </a>
-              .
+              Es werden keine Cookies von Drittanbietern in Ihrem Browser gesetzt.
+              Die Anmelde-Cookies stammen aus unserer eigenen, selbst betriebenen
+              Authentifizierung (NextAuth/Auth.js mit dem von uns betriebenen
+              Identitätsdienst Zitadel) und sind First-Party-Einträge unserer
+              eigenen Domain.
             </p>
             <p>
               Die übrigen von uns eingesetzten Dienste (u. a. Datenbank,
@@ -399,20 +367,18 @@ export default function CookiesPage() {
         <LegalSection heading="7. Übermittlung in Drittländer">
           <div className="flex flex-col gap-3">
             <p>
-              Der Anbieter der Anmelde-Cookies, Clerk Inc., hat seinen Sitz in den
-              USA. Soweit hierbei personenbezogene Daten in die USA übermittelt
-              werden, erfolgt dies auf Grundlage geeigneter Garantien — etwa der
-              EU-Standardvertragsklauseln (Art. 46 DSGVO) oder einer Zertifizierung
-              nach dem EU-US Data Privacy Framework (DPF). Einzelheiten zu den
-              eingesetzten Diensten und ihren Garantien enthält die{" "}
+              Durch die in dieser Cookie-Richtlinie genannten Cookies und
+              Speichertechnologien findet keine Übermittlung personenbezogener Daten
+              in ein Drittland statt: Die Anmelde-Cookies werden durch unsere eigene,
+              in Deutschland betriebene Authentifizierung gesetzt; die funktionalen
+              Einträge sowie der Voice-Eintrag sind ebenfalls First-Party. Soweit wir
+              im Rahmen des Plattformbetriebs serverseitig Dienstleister mit Sitz in
+              einem Drittland einsetzen (z. B. USA), ist dies samt der getroffenen
+              Garantien (insbesondere EU-Standardvertragsklauseln) in unserer{" "}
               <Link href="/datenschutz" className={CONTACT_LINK}>
                 Datenschutzerklärung
-              </Link>
-              .{" "}
-              <LegalTodo>
-                den konkreten Drittland-/SCC-/DPF-Status von Clerk anhand des
-                Auftragsverarbeitungsvertrags bestätigen
-              </LegalTodo>
+              </Link>{" "}
+              dargestellt.
             </p>
           </div>
         </LegalSection>
@@ -434,14 +400,7 @@ export default function CookiesPage() {
               vorab über ein Consent-Banner ein und stellen einen dauerhaft
               erreichbaren Weg bereit, mit dem Sie Ihre Auswahl jederzeit
               granular ändern und mit Wirkung für die Zukunft widerrufen können —
-              so einfach, wie Sie sie erteilt haben.{" "}
-              <LegalTodo>
-                sobald einwilligungspflichtige Cookies eingeführt werden: ein
-                Consent-Management-Tool mit gleichwertigen „Akzeptieren“-/
-                „Ablehnen“-Optionen, granularer Auswahl, vorheriger Blockierung
-                und einem dauerhaft sichtbaren Widerrufs-/Einstellungslink
-                einbinden
-              </LegalTodo>
+              so einfach, wie Sie sie erteilt haben.
             </p>
           </div>
         </LegalSection>

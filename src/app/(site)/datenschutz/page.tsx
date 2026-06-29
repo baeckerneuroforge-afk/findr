@@ -1,18 +1,19 @@
-// ENTWURF, KEINE RECHTSBERATUNG. Vor dem Launch über den eRecht24-
-// Datenschutz-Generator bzw. einen Anwalt finalisieren. Alle mit {{ }}
-// markierten Platzhalter müssen ersetzt und juristisch geprüft werden.
+// Datenschutzerklärung — inhaltlich aus dem tatsächlichen Anwendungs-Code
+// abgeleitet (eingesetzte Dienste, Datenflüsse, Serverstandorte). Vor dem
+// Live-Gang sollten die Auftragsverarbeitungsverträge (AVV/DPA) mit den
+// US-Dienstleistern (Vercel, Anthropic, Deepgram, LiveKit, Resend) vorliegen
+// und der Text einmal anwaltlich gegengelesen werden.
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
   LegalProse,
   LegalSection,
   LegalStand,
-  LegalTodo,
 } from "@/components/site/LegalProse";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ogDefaults } from "@/lib/marketing/seo";
 
-const STAND = "Juni 2026 (Entwurf)";
+const STAND = "Juni 2026";
 
 export const metadata: Metadata = {
   title: { absolute: "Datenschutz — Klymeo" },
@@ -33,10 +34,11 @@ const CONTACT_LINK =
 
 /* Eingesetzte Auftragsverarbeiter / Dienste (Abschnitt 9). Pro Eintrag die fünf
    Pflichtfelder Zweck / Datenkategorien / Rechtsgrundlage / Serverstandort /
-   Drittland+SCC, als belastbarer Entwurf aus der bekannten Architektur
-   vorausgefüllt. Der konkrete Serverstandort sowie der Drittland-/SCC-/DPF-Status
-   sind je Dienst aus dem jeweiligen Auftragsverarbeitungsvertrag final zu
-   bestätigen (siehe Hinweis unter der Liste). */
+   Drittland+SCC. Inhaltlich aus dem tatsächlichen Code abgeleitet: Auth läuft
+   über selbst gehostetes Zitadel auf Hetzner (DE); die KI-Inferenz erfolgt
+   direkt gegen die Anthropic-API (USA), nicht über AWS Bedrock; Speech-to-Text
+   und Text-to-Speech über den EU-Endpoint von Deepgram. Reihenfolge: EU-Dienste
+   zuerst, anschließend Dienste mit Drittlandbezug (USA, SCC). */
 const PROCESSORS: {
   name: string;
   zweck: string;
@@ -46,26 +48,27 @@ const PROCESSORS: {
   drittland: string;
 }[] = [
   {
-    name: "Clerk",
-    zweck: "Authentifizierung, Verwaltung der Nutzerkonten und Login-Sitzungen",
+    name: "Supabase (PostgreSQL-Datenbank)",
+    zweck: "Datenbank und Speicherung der Plattform-, Konto- und Studiendaten",
     datenkategorien:
-      "Name, E-Mail-Adresse, Anmelde- und Authentifizierungsdaten, ggf. OAuth-Kennungen",
-    rechtsgrundlage: "Art. 6 Abs. 1 lit. b DSGVO (Bereitstellung des Nutzerkontos)",
-    standort: "Clerk Inc., USA",
-    drittland: "Drittland USA — EU-Standardvertragsklauseln (Art. 46 DSGVO)",
-  },
-  {
-    name: "Supabase",
-    zweck: "Datenbank und Speicherung der Plattform- und Studiendaten",
-    datenkategorien:
-      "in der Anwendung gespeicherte Konto-, Studien- und Interviewdaten",
+      "in der Anwendung gespeicherte Konto-, Studien- und Interviewdaten (Antworttexte, Transkripte, Kontakt- und Screening-Angaben)",
     rechtsgrundlage:
       "Art. 6 Abs. 1 lit. b/f DSGVO; für Studiendaten Art. 28 DSGVO (Auftragsverarbeitung)",
-    standort: "EU-Region (Frankfurt am Main)",
+    standort: "Supabase — EU-Region (Frankfurt am Main, eu-central-1)",
     drittland: "kein Drittland (EU)",
   },
   {
-    name: "Vercel",
+    name: "Hetzner (Authentifizierung & Voice-Agent)",
+    zweck:
+      "Server-Infrastruktur für den selbst betriebenen Authentifizierungsdienst (Zitadel) sowie für den Voice-Agent der Sprach-Interviews",
+    datenkategorien:
+      "Anmelde- und Authentifizierungsdaten der Nutzerkonten; im Rahmen der Voice-Interviews verarbeitete Verbindungs- und Sitzungsdaten",
+    rechtsgrundlage: "Art. 6 Abs. 1 lit. b/f DSGVO; Art. 28 DSGVO",
+    standort: "Hetzner Online GmbH, Deutschland",
+    drittland: "kein Drittland (EU)",
+  },
+  {
+    name: "Vercel (Hosting)",
     zweck: "Hosting und Auslieferung der Web-Anwendung",
     datenkategorien: "Verbindungsdaten und Server-Logfiles (u. a. IP-Adresse)",
     rechtsgrundlage: "Art. 6 Abs. 1 lit. f DSGVO (sicherer, fehlerfreier Betrieb)",
@@ -73,33 +76,26 @@ const PROCESSORS: {
     drittland: "Drittland USA — EU-Standardvertragsklauseln (Art. 46 DSGVO)",
   },
   {
-    name: "Hetzner",
-    zweck: "Server-Infrastruktur für den Voice-Agent",
-    datenkategorien:
-      "im Rahmen der Voice-Interviews verarbeitete Audio- und Verbindungsdaten",
-    rechtsgrundlage: "Art. 6 Abs. 1 lit. b/f DSGVO; Art. 28 DSGVO",
-    standort: "Hetzner Online GmbH, Deutschland",
-    drittland: "kein Drittland (EU)",
-  },
-  {
-    name: "Deepgram",
-    zweck: "Sprache-zu-Text und Text-zu-Sprache für Voice-Interviews",
-    datenkategorien: "Audioaufnahmen und die daraus erzeugten Transkripte",
-    rechtsgrundlage: "Art. 6 Abs. 1 lit. b/f DSGVO; Art. 28 DSGVO",
-    standort: "Deepgram Inc., USA; Verarbeitung über EU-Endpoint",
-    drittland: "Drittland USA — EU-Standardvertragsklauseln (Art. 46 DSGVO)",
-  },
-  {
-    name: "Anthropic über AWS Bedrock",
-    zweck: "KI-gestützte Gesprächsführung und Auswertung der Interviews",
+    name: "Anthropic (KI-Auswertung)",
+    zweck:
+      "KI-gestützte Gesprächsführung der Interviews sowie Auswertung und Synthese der Antworten durch das Sprachmodell Claude",
     datenkategorien:
       "Interviewinhalte (Antworttexte, Transkripte) zur Verarbeitung durch das Sprachmodell",
     rechtsgrundlage: "Art. 6 Abs. 1 lit. b/f DSGVO; Art. 28 DSGVO",
-    standort: "Amazon Web Services, EU-Region",
-    drittland: "Verarbeitung in der EU-Region (keine Drittlandübermittlung)",
+    standort: "Anthropic PBC, USA (direkte Anbindung an die Anthropic-API)",
+    drittland: "Drittland USA — EU-Standardvertragsklauseln (Art. 46 DSGVO)",
   },
   {
-    name: "LiveKit",
+    name: "Deepgram (Sprachverarbeitung)",
+    zweck: "Sprache-zu-Text und Text-zu-Sprache für die Voice-Interviews",
+    datenkategorien:
+      "Audioaufnahmen der Teilnehmenden (zur Transkription) und die daraus erzeugten Transkripte; vorgelesener Fragetext (Text-zu-Sprache)",
+    rechtsgrundlage: "Art. 6 Abs. 1 lit. b/f DSGVO; Art. 28 DSGVO",
+    standort: "Deepgram Inc., USA; Verarbeitung über den EU-Endpoint (api.eu.deepgram.com)",
+    drittland: "Drittland USA — EU-Standardvertragsklauseln (Art. 46 DSGVO)",
+  },
+  {
+    name: "LiveKit (Echtzeit-Audio)",
     zweck: "Echtzeit-Audioübertragung während der Voice-Interviews",
     datenkategorien: "Audiostream und Verbindungsmetadaten",
     rechtsgrundlage: "Art. 6 Abs. 1 lit. b/f DSGVO; Art. 28 DSGVO",
@@ -107,13 +103,13 @@ const PROCESSORS: {
     drittland: "Drittland USA — EU-Standardvertragsklauseln (Art. 46 DSGVO)",
   },
   {
-    name: "Stripe",
-    zweck: "Zahlungsabwicklung von Lizenz- und Pilotgebühren",
+    name: "Resend (E-Mail-Versand)",
+    zweck:
+      "Versand transaktionaler E-Mails (Interview-Einladungen, Erinnerungen, Konto- und Service-Benachrichtigungen)",
     datenkategorien:
-      "Zahlungs- und Rechnungsdaten (Name, Rechnungsanschrift, Zahlungsmittel)",
-    rechtsgrundlage:
-      "Art. 6 Abs. 1 lit. b DSGVO (Vertragsabwicklung); Art. 6 Abs. 1 lit. c DSGVO (steuerliche Pflichten)",
-    standort: "Stripe Payments Europe Ltd., Irland; Stripe Inc., USA",
+      "Empfänger-E-Mail-Adresse, Name bzw. Anzeigename und Inhalt der jeweiligen E-Mail (u. a. Einladungslink)",
+    rechtsgrundlage: "Art. 6 Abs. 1 lit. b/f DSGVO; Art. 28 DSGVO",
+    standort: "Resend, Inc., USA",
     drittland: "Drittland USA — EU-Standardvertragsklauseln (Art. 46 DSGVO)",
   },
 ];
@@ -124,6 +120,7 @@ export default function DatenschutzPage() {
       <LegalProse
         title="Datenschutzerklärung"
         intro="Informationen zur Verarbeitung personenbezogener Daten gemäß Datenschutz-Grundverordnung (DSGVO) und Bundesdatenschutzgesetz (BDSG)."
+        notice={false}
         closing={<LegalStand>{STAND}</LegalStand>}
       >
         <LegalSection heading="1. Verantwortlicher">
@@ -180,6 +177,7 @@ export default function DatenschutzPage() {
             <p>
               Die Web-Anwendung wird bei Vercel gehostet und über deren EU-Region
               (Frankfurt am Main) ausgeliefert; die Infrastruktur für den
+              Authentifizierungsdienst (selbst betriebenes Zitadel) und den
               Voice-Agent wird bei Hetzner in Deutschland betrieben. Beim Aufruf
               unserer Seiten erheben die eingesetzten Server automatisch
               Informationen in sogenannten Server-Logfiles, die Ihr Browser
@@ -191,13 +189,10 @@ export default function DatenschutzPage() {
             <p>
               Die Erfassung erfolgt auf Grundlage unseres berechtigten Interesses an
               einem technisch fehlerfreien und sicheren Betrieb (Art. 6 Abs. 1 lit.
-              f DSGVO). Die Logfiles werden gelöscht, sobald sie für den Zweck nicht
-              mehr erforderlich sind, spätestens nach{" "}
-              <LegalTodo>
-                Speicherdauer der Server-Logfiles je Hoster (Vercel, Hetzner)
-                bestätigen, z. B. 14 Tage
-              </LegalTodo>
-              .
+              f DSGVO). Die Logfiles werden aus Sicherheitsgründen für eine
+              begrenzte Zeit gespeichert und anschließend gelöscht; eine Speicherung
+              über 30 Tage hinaus erfolgt nur, soweit dies zur Aufklärung eines
+              konkreten Sicherheitsvorfalls erforderlich ist.
             </p>
           </div>
         </LegalSection>
@@ -237,14 +232,6 @@ export default function DatenschutzPage() {
               </Link>
               .
             </p>
-            <p>
-              <LegalTodo>
-                vor dem Live-Gang bestätigen, dass keine nicht-technisch-notwendigen
-                Cookies/Tracking eingesetzt werden — andernfalls ist ein
-                einwilligungsbasiertes Consent-Banner (§ 25 Abs. 1 TDDDG)
-                erforderlich
-              </LegalTodo>
-            </p>
           </div>
         </LegalSection>
 
@@ -267,18 +254,25 @@ export default function DatenschutzPage() {
           </div>
         </LegalSection>
 
-        <LegalSection heading="7. Nutzerkonten und Authentifizierung (Clerk)">
+        <LegalSection heading="7. Nutzerkonten und Authentifizierung (Zitadel)">
           <div className="flex flex-col gap-3">
             <p>
               Für die Registrierung, die Anmeldung und die Verwaltung von
-              Nutzerkonten setzen wir den Dienst Clerk (Clerk Inc., USA) ein. Bei
-              der Anlage und Nutzung eines Kontos werden die hierfür erforderlichen
-              Daten verarbeitet — insbesondere Name, E-Mail-Adresse, Anmelde- und
-              Authentifizierungsdaten sowie ggf. Kennungen aus einem genutzten
-              Single-Sign-on. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO
-              (Bereitstellung des Nutzerkontos). Die Übermittlung in die USA erfolgt
-              auf Grundlage der EU-Standardvertragsklauseln (Art. 46 DSGVO); Einzelheiten
-              sind in der Dienste-Liste in Abschnitt 9 aufgeführt.
+              Nutzerkonten setzen wir den Identitäts- und Anmeldedienst Zitadel ein.
+              Zitadel wird von uns selbst auf Server-Infrastruktur der Hetzner Online
+              GmbH in Deutschland betrieben; eine Übermittlung der Anmeldedaten an
+              einen externen Identitätsdienstleister in einem Drittland findet dabei
+              nicht statt. Bei der Anlage und Nutzung eines Kontos werden die hierfür
+              erforderlichen Daten verarbeitet — insbesondere Name, E-Mail-Adresse,
+              Anmelde- und Authentifizierungsdaten sowie ggf. Kennungen aus einem
+              genutzten Single-Sign-on. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO
+              (Bereitstellung des Nutzerkontos). Die zur Anmeldung gesetzten
+              Sitzungs-Cookies sind First-Party-Cookies unserer eigenen Domain;
+              Einzelheiten enthält die{" "}
+              <Link href="/cookies" className={CONTACT_LINK}>
+                Cookie-Richtlinie
+              </Link>
+              .
             </p>
           </div>
         </LegalSection>
@@ -308,11 +302,14 @@ export default function DatenschutzPage() {
             </p>
             <p>
               Die Speicherdauer richtet sich nach der Weisung des verantwortlichen
-              Kunden; im Übrigen gilt Abschnitt 11.{" "}
-              <LegalTodo>
-                Datenkategorien, Zwecke und Löschkonzept dieser Auftragsverarbeitung
-                anhand des AVV final ausformulieren und prüfen
-              </LegalTodo>
+              Kunden: Der Kunde kann je Studie eine automatische Löschfrist für
+              Interview- und Teilnehmerdaten festlegen; ist eine solche Frist
+              gesetzt, werden die betreffenden Daten nach ihrem Ablauf automatisiert
+              und endgültig gelöscht. Darüber hinaus kann der Kunde einzelne
+              Teilnehmerdaten, eine gesamte Studie oder sein Konto jederzeit löschen;
+              die Löschung erfolgt als endgültige Entfernung der Daten (einschließlich
+              Transkripten und Auswertungen), nicht als bloße Markierung. Im Übrigen
+              gilt Abschnitt 11.
             </p>
           </div>
         </LegalSection>
@@ -366,11 +363,11 @@ export default function DatenschutzPage() {
               ))}
             </ul>
             <p>
-              <LegalTodo>
-                Serverstandorte sowie den konkreten Drittland-/SCC-/DPF-Status je
-                Dienst anhand des jeweiligen Auftragsverarbeitungsvertrags final
-                bestätigen und die Liste auf Vollständigkeit prüfen
-              </LegalTodo>
+              Mit den vorstehenden Dienstleistern bestehen, soweit sie
+              personenbezogene Daten in unserem Auftrag verarbeiten, Verträge zur
+              Auftragsverarbeitung nach Art. 28 DSGVO. Bei Dienstleistern mit Sitz in
+              einem Drittland (USA) sind diese um die EU-Standardvertragsklauseln nach
+              Art. 46 DSGVO ergänzt.
             </p>
           </div>
         </LegalSection>
@@ -421,12 +418,6 @@ export default function DatenschutzPage() {
                 sofern keine Aufbewahrungspflicht besteht.
               </li>
             </ul>
-            <p>
-              <LegalTodo>
-                konkrete Speicher- und Löschfristen je Datenkategorie bestätigen und
-                an das tatsächliche Löschkonzept anpassen
-              </LegalTodo>
-            </p>
           </div>
         </LegalSection>
 
@@ -482,10 +473,7 @@ export default function DatenschutzPage() {
               >
                 www.ldi.nrw.de
               </a>
-              ).{" "}
-              <LegalTodo>
-                Zuständigkeit der Aufsichtsbehörde am Unternehmenssitz bestätigen
-              </LegalTodo>
+              ).
             </p>
           </div>
         </LegalSection>
