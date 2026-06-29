@@ -47,3 +47,22 @@ export const KONSOUL_INTERVIEWER_PERSONA_ENABLED: boolean =
 export function isKonsoulInterviewerPersonaEnabled(): boolean {
   return process.env.NEXT_PUBLIC_KONSOUL_INTERVIEWER_PERSONA === "true";
 }
+
+/**
+ * Konsoul-INTERVIEWER-GESICHT — separates Visual-Flag (default AUS). Schaltet im
+ * VOICE-Interview den abstrakten Orb auf Konsouls reagierendes Gesicht (Mimik:
+ * sprechen/hören/denken + ruhige Warte-Präsenz). BEWUSST getrennt vom Persona-
+ * Flag, damit Name und Gesicht unabhängig scharfgeschaltet werden können. AUS ⇒
+ * der Orb rendert byte-identisch wie heute (leerer Kern). NEXT_PUBLIC_* → wird
+ * zur Build-Zeit eingebacken, Flag-Flip braucht Redeploy.
+ *
+ * COMPLIANCE: Die Mimik reagiert AUSSCHLIESSLICH auf Konsouls EIGENEN Zustand
+ * (lk.agent.state / eigene Sprech-Aktivität) — NIE auf das Ablesen/Spiegeln des
+ * Teilnehmer-Affekts (No-Affekt-Linie; sonst Emotionserkennung = Hochrisiko).
+ * Nur Voice (der Text-Pfad hat keinen sprechenden Agenten). */
+export const KONSOUL_INTERVIEWER_FACE_ENABLED: boolean =
+  process.env.NEXT_PUBLIC_KONSOUL_INTERVIEWER_FACE === "true";
+
+export function isKonsoulInterviewerFaceEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_KONSOUL_INTERVIEWER_FACE === "true";
+}

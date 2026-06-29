@@ -105,7 +105,8 @@
       },
       "connecting": {
         "label": "Verbindung wird aufgebaut …",
-        "agentWait": "Ihr Gesprächspartner kommt gleich dazu."
+        "agentWait": "Ihr Gesprächspartner kommt gleich dazu.",
+        "konsoulWait": "Konsoul ist gleich für Sie da …"
       },
       "live": {
         "speaking": "Spricht …",

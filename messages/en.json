@@ -105,7 +105,8 @@
       },
       "connecting": {
         "label": "Connecting …",
-        "agentWait": "Your interviewer is joining in a moment."
+        "agentWait": "Your interviewer is joining in a moment.",
+        "konsoulWait": "Konsoul will be right with you …"
       },
       "live": {
         "speaking": "Speaking …",

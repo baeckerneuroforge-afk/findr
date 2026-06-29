@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { isKonsoulInterviewerPersonaEnabled } from "@/lib/voice-agent/konsoul-interviewer-persona";
+import {
+  isKonsoulInterviewerFaceEnabled,
+  isKonsoulInterviewerPersonaEnabled,
+} from "@/lib/voice-agent/konsoul-interviewer-persona";
 import { InterviewProgress } from "./InterviewProgress";
 import { InterviewTimer } from "./InterviewTimer";
 import { InterviewCompletedScreen } from "./InterviewCompletedScreen";
@@ -133,6 +136,28 @@ function parseAgentState(value: string | undefined): AgentState | null {
 
 const DEFAULT_ACCENT = "#4A51A8";
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
+
+/** WCAG-Relativ-Luminanz eines #rrggbb-Hex (0 = schwarz … 1 = weiß). */
+function relLuminance(hex: string): number {
+  const m = hex.replace("#", "");
+  const conv = (i: number): number => {
+    const c = parseInt(m.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * conv(0) + 0.7152 * conv(2) + 0.0722 * conv(4);
+}
+
+/** Kontrast-robuste Gesichtsfarbe für Konsouls Orb-Kern: Weiß ODER ein dunkles
+ *  Ink — je nachdem, was STÄRKER gegen die Akzent-Kernfarbe kontrastiert. So
+ *  bleibt das Gesicht auch bei hellen White-Label-Akzenten lesbar; bei dunklen
+ *  Akzenten (Default #4A51A8) ist das Ergebnis weiß, also unverändert. */
+function orbFaceColorFor(accent: string): string {
+  const INK = "#16182e";
+  const accentL = relLuminance(accent);
+  const contrastWhite = 1.05 / (accentL + 0.05);
+  const contrastInk = (accentL + 0.05) / (relLuminance(INK) + 0.05);
+  return contrastWhite >= contrastInk ? "#ffffff" : INK;
+}
 const FONT = "var(--font-inter), Inter, system-ui, -apple-system, sans-serif";
 
 /** How long we wait for the agent to join the room before failing honestly —
@@ -518,21 +543,137 @@ const ORB_CSS = `
 .voice-orb[data-state="initializing"] .voice-orb__core {
   animation: voice-orb-core-think 2.2s ease-in-out infinite;
 }
+.voice-orb[data-face="on"] .voice-orb__core {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.voice-orb__face {
+  width: 66%;
+  height: 66%;
+  overflow: visible;
+  color: var(--orb-face-color, #ffffff);
+}
+.voice-orb__eyes-blink,
+.voice-orb__eyes-scan,
+.voice-orb__mouth-talk {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.voice-orb__eyes-blink { animation: voice-orb-blink 4.8s infinite; }
+.voice-orb__eyes-scan { animation: voice-orb-scan 3.2s ease-in-out infinite; }
+.voice-orb__mouth-talk { animation: voice-orb-talk 0.4s ease-in-out infinite; }
+@keyframes voice-orb-blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.12); }
+}
+@keyframes voice-orb-scan {
+  0%, 100% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+}
+@keyframes voice-orb-talk {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1.15); }
+}
 @media (prefers-reduced-motion: reduce) {
   .voice-orb__halo,
   .voice-orb__ring,
-  .voice-orb__core {
+  .voice-orb__core,
+  .voice-orb__eyes-blink,
+  .voice-orb__eyes-scan,
+  .voice-orb__mouth-talk {
     animation: none !important;
   }
 }
 `;
 
-function VoiceOrb({ state }: { state: AgentState }) {
+/** Stroke-Defaults für Konsouls Gesichts-Linien (Augen-Bögen / Münder). */
+const FACE_STROKE = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 3.4,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
+/**
+ * Konsouls reagierendes Gesicht im Orb-Kern (Visual-Flag). Die Mimik leitet sich
+ * AUSSCHLIESSLICH aus Konsouls eigenem `lk.agent.state` ab — sprechen = Lächeln
+ * + sprechender Mund, listening = wache, scannende Augen, thinking = nach oben,
+ * initializing = ruhige Warte-/Begrüßungs-Präsenz (Augen blinzeln, sanftes
+ * Lächeln). Niemals eine Reaktion auf den Teilnehmer (No-Affekt-Linie). Rein
+ * dekorativ (aria-hidden über den Orb-Wrapper); reduced-motion friert die
+ * Mimik ein, das Statuslabel trägt dann den Zustand.
+ */
+function KonsoulOrbFace({ state }: { state: AgentState }) {
+  const EL = 34;
+  const ER = 66;
+  const arc = (cx: number) => `M${cx - 7} 28 Q${cx} 20 ${cx + 7} 28`;
+
+  if (state === "speaking") {
+    return (
+      <svg className="voice-orb__face" viewBox="0 0 100 60">
+        <path d={arc(EL)} {...FACE_STROKE} />
+        <path d={arc(ER)} {...FACE_STROKE} />
+        <ellipse
+          className="voice-orb__mouth-talk"
+          cx={50}
+          cy={43}
+          rx={7}
+          ry={5}
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
+  if (state === "listening") {
+    return (
+      <svg className="voice-orb__face" viewBox="0 0 100 60">
+        <g className="voice-orb__eyes-scan">
+          <circle cx={EL} cy={26} r={3.8} fill="currentColor" />
+          <circle cx={ER} cy={26} r={3.8} fill="currentColor" />
+        </g>
+        <path d="M42 42 Q50 46 58 42" {...FACE_STROKE} />
+      </svg>
+    );
+  }
+  if (state === "thinking") {
+    return (
+      <svg className="voice-orb__face" viewBox="0 0 100 60">
+        <circle cx={EL} cy={23} r={3.8} fill="currentColor" />
+        <circle cx={ER} cy={23} r={3.8} fill="currentColor" />
+        <path d="M43 43 H57" {...FACE_STROKE} />
+      </svg>
+    );
+  }
+  // initializing — ruhige Warte-/Begrüßungs-Präsenz.
   return (
-    <div className="voice-orb" data-state={state} aria-hidden="true">
+    <svg className="voice-orb__face" viewBox="0 0 100 60">
+      <g className="voice-orb__eyes-blink">
+        <circle cx={EL} cy={26} r={3.8} fill="currentColor" />
+        <circle cx={ER} cy={26} r={3.8} fill="currentColor" />
+      </g>
+      <path d="M41 41 Q50 49 59 41" {...FACE_STROKE} />
+    </svg>
+  );
+}
+
+function VoiceOrb({ state }: { state: AgentState }) {
+  // Flag-gated: bei aktivem Visual-Flag trägt der Orb-Kern Konsouls Gesicht.
+  // AUS ⇒ leerer Kern, byte-identisch zum bisherigen abstrakten Orb.
+  const face = isKonsoulInterviewerFaceEnabled();
+  return (
+    <div
+      className="voice-orb"
+      data-state={state}
+      data-face={face ? "on" : undefined}
+      aria-hidden="true"
+    >
       <span className="voice-orb__halo" />
       <span className="voice-orb__ring" />
-      <span className="voice-orb__core" />
+      <span className="voice-orb__core">
+        {face ? <KonsoulOrbFace state={state} /> : null}
+      </span>
     </div>
   );
 }
@@ -560,6 +701,8 @@ export function VoiceInterviewView({
 
   const accent =
     accentColor && HEX_COLOR.test(accentColor) ? accentColor : DEFAULT_ACCENT;
+  // Kontrast-robuste Gesichtsfarbe (nur relevant bei aktivem Gesicht-Flag).
+  const orbFaceColor = orbFaceColorFor(accent);
   const hasBrand = Boolean(logoUrl || brandName);
 
   // InterviewChat's narrowing + "video" (E4, voice-only); unknown → null.
@@ -1245,6 +1388,25 @@ export function VoiceInterviewView({
         </div>
       </div>
     );
+  } else if (phase === "connecting" && isKonsoulInterviewerFaceEnabled()) {
+    // Warte-Präsenz (Visual-Flag): statt eines neutralen Spinners ist Konsoul
+    // schon „da" — der Orb mit ruhigem Gesicht, sodass es sich anfühlt, als
+    // wartete man auf IHN. Das 20-s-Join-Timeout → error bleibt unberührt (nur
+    // das Visual ändert sich); ended/closing behalten bewusst die Spinner-Zeile.
+    content = (
+      <>
+        <style>{ORB_CSS}</style>
+        <div className="flex min-h-[320px] flex-1 flex-col items-center justify-center py-8">
+          <VoiceOrb state="initializing" />
+          <p
+            role="status"
+            className="mt-8 text-[13px] font-medium text-[#6B6680]"
+          >
+            {t("voiceLive.connecting.konsoulWait")}
+          </p>
+        </div>
+      </>
+    );
   } else if (
     phase === "connecting" ||
     phase === "ended" ||
@@ -1408,7 +1570,13 @@ export function VoiceInterviewView({
   return (
     <div
       lang={locale}
-      style={{ fontFamily: FONT, "--brand-accent": accent } as React.CSSProperties}
+      style={
+        {
+          fontFamily: FONT,
+          "--brand-accent": accent,
+          "--orb-face-color": orbFaceColor,
+        } as React.CSSProperties
+      }
       className="flex min-h-screen w-full flex-col bg-white text-[#0E0A1F]"
     >
       <header className="border-b border-[#E8E4F2] px-5 py-4">
