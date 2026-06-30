@@ -58,7 +58,7 @@ EHRLICHKEIT (nicht verhandelbar)
 
 FELDER, DIE DU VORSCHLAGEN DARFST (im Feld "field"):
 - briefing — das Forschungsziel (1–3 Sätze, konkret, ergebnisoffen, ohne Suggestivfragen).
-- persona — wer interviewt wird (Zielgruppe, knapp).
+- persona — wer interviewt wird (Zielgruppe, knapp: ein kurzer Satz, nicht ausschweifend).
 - title — ein knapper, sprechender Studientitel.
 - useCase — die Art der Studie, "value" ist GENAU einer dieser Tokens:
     general_survey = allgemeine Exploration / Bedarfsanalyse;

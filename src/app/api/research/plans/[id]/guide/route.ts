@@ -23,7 +23,7 @@ import {
  *
  * Body shape (Zod-validated):
  *   { goal: string (3-2000 chars, mandatory),
- *     audienceType?: "b2b" | "b2c", who?: string (≤200),
+ *     audienceType?: "b2b" | "b2c", who?: string (≤1000),
  *     language?: string (≤16), topicCount?: int (3-10),
  *     useCase?: 5-Enum (Art der Studie → Themen-Fokus),
  *     interviewDepth?: "flach" | "mittel" | "tief" (→ Probe-Anzahl/Thema) }
@@ -41,7 +41,12 @@ const BodySchema = z.object({
   // 2 KB cap per the brief; min 3 to allow short-but-meaningful goals.
   goal: z.string().min(3).max(2000),
   audienceType: z.enum(["b2b", "b2c"]).optional(),
-  who: z.string().max(200).optional(),
+  // who-Cap = 1000, konsistent mit dem persona-Cap der Plan-Route
+  // (src/app/api/research/plans/route.ts). War 200 → eine in der DB gültige
+  // (bis 1000) bzw. von Konsoul vorgeschlagene (bis 240) Persona legte den
+  // Entwurf an, kippte aber HIER die Generierung mit 400. Jetzt eine Zahl
+  // end-to-end → keine lange Persona bricht den Leitfaden mehr.
+  who: z.string().max(1000).optional(),
   language: z.string().max(16).optional(),
   topicCount: z.number().int().min(3).max(10).optional(),
   // Art der Studie + Tiefe steuern den Themen-Fokus bzw. die Probe-Anzahl des
@@ -82,7 +87,7 @@ export async function POST(
 
   // Body validation. The generator runs an Anthropic call per request, so
   // a hostile client without these caps could burn tokens — 2 KB on goal +
-  // 200 on segment/role is plenty for a real research brief.
+  // 1 KB on segment/role is plenty for a real research brief.
   let rawBody: unknown;
   try {
     rawBody = await request.json();
