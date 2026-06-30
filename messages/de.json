@@ -54,7 +54,8 @@
       "body": "Mit Ihrer Zustimmung misst Klymeo während des Gesprächs, wie Sie sich bewegen — Klicks, Scrollen und Zeit pro Aufgabe —, um zu verstehen, wo die Bedienung flüssig lief und wo es hakte. Keine Kamera, kein Ton, keine Emotionsanalyse; Ihr eingegebener Text wird dafür nicht gespeichert. Die Teilnahme ist freiwillig — das Gespräch läuft auch ohne Aufzeichnung normal weiter.",
       "privacyLink": "Mehr dazu in der Datenschutzerklärung",
       "accept": "Einverstanden",
-      "decline": "Ohne Aufzeichnung fortfahren"
+      "decline": "Ohne Aufzeichnung fortfahren",
+      "stampError": "Die Zustimmung konnte gerade nicht gespeichert werden. Bitte erneut versuchen — oder ohne Aufzeichnung fortfahren."
     },
     "task": {
       "label": "Ihre Aufgabe",
@@ -1270,6 +1271,7 @@
       "eventTrackingHint": "Wenn aktiviert, misst Klymeo nicht-biometrisches Interaktionsverhalten während des Interviews — Klicks, Scrollen und Zeit pro Aufgabe — um sichtbar zu machen, wo es flüssig lief und wo es hakte. Keine Audio-, Video- oder Emotionsanalyse; rohe Eingabetexte werden nie gespeichert. Der Teilnehmer wird zu Beginn um Einwilligung gebeten. Standard: aus.",
       "eventTrackingOn": "An",
       "eventTrackingOff": "Aus",
+      "eventTrackingVoiceWarning": "Achtung: Interaktions-Signale (Klicks, Scrollen, Aufgaben-Erfolg) werden nur in Text-Interviews erfasst. Dieses Interview läuft als Voice — es liefert dafür keine Daten, und die Usability-Auswertung bleibt leer. Für Klick- und Erfolgsmessung auf ein Text-Interview umstellen.",
       "fldSignals": "Antwort-Signale – Stimmung & Direktheit",
       "signalsHint": "Wenn aktiviert, ordnet Klymeo nach Abschluss jedes Interviews automatisch ein, wie Antworten formuliert waren (z. B. begeistert, zögerlich) und ob Fragen direkt beantwortet wurden — ausschließlich aus dem Text der Antworten, nie aus der Stimme. Die Einordnung ist ein Hinweis mit Beleg-Zitat, kein Urteil über die Person, nur für Ihr Team sichtbar und läuft nur bei dokumentierter Einwilligung der Teilnehmenden. Standard: aus.",
       "signalsOn": "An",
@@ -2267,6 +2269,7 @@
       "togVisualDesc": "Zeichnet die Interaktion am Material auf (nicht-biometrisch)",
       "togEvents": "Verhaltens-Events",
       "togEventsDesc": "Klicks, Scrollen, Verweildauer als Ereignisse",
+      "togEventsVoiceWarning": "Nur in Text-Interviews erfasst. Dieses Interview ist Voice — keine Klick- oder Erfolgsdaten.",
       "togSignals": "Gesprächs-Signale",
       "togSignalsDesc": "Stimmungs-Analyse des Transkripts am Sitzungsende",
       "togTts": "Vorlesen (Text-to-Speech)",

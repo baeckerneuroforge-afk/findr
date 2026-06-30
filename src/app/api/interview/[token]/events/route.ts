@@ -49,6 +49,24 @@ const FORBIDDEN_PAYLOAD_KEYS = [
   "email",
 ];
 
+// Server-side data-minimisation for target_selector. The legitimate client
+// (useEventCollector.shortSelector) only ever sends a tag plus a single
+// "#id" or ".class", e.g. "button#submit". We do NOT trust that: a hostile or
+// buggy client could smuggle PII via an element id such as
+// id="email-max@firma.de" -> "input#email-max@firma.de", bypassing the
+// payload-key block. So we strip the value to whitelisted STRUCTURAL
+// CSS-identifier characters and cap the length (integration plan §9). Never
+// throws — PII is neutralised in place, so one odd id never kills a batch.
+const MAX_SELECTOR_LEN = 120;
+function sanitizeTargetSelector(raw: string): string | undefined {
+  const cleaned = raw
+    .replace(/[^A-Za-z0-9_.#\- ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_SELECTOR_LEN);
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
 const EventSchema = z.object({
   event_type: z.enum([
     "click",
@@ -62,7 +80,7 @@ const EventSchema = z.object({
     "task_abandon",
   ]),
   ts_ms: z.number().int().min(0).max(MAX_TS_MS),
-  target_selector: z.string().max(512).optional(),
+  target_selector: z.string().max(512).transform(sanitizeTargetSelector).optional(),
   payload: z.record(z.string(), z.unknown()).optional(),
 });
 

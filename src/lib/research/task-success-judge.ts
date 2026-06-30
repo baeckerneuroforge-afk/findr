@@ -240,8 +240,17 @@ export async function runTaskSuccessJudgeSidecar(
 
     if (data.kind !== "research" || !data.plan_id) return;
 
-    // Idempotency pre-check (saves the LLM call on a double-complete); the
-    // UPDATE below carries the at-most-once guarantee (… IS NULL).
+    // Idempotency PRE-CHECK — a best-effort read that saves the Haiku call on
+    // the common double-complete. It is NOT the safety boundary: two sidecars
+    // racing the same session can both read null here and both call the LLM.
+    // The at-most-once DATA guarantee lives entirely in the conditional UPDATE
+    // below (.is("task_success_judgment", null)): only the first writer's row
+    // matches, the loser's UPDATE affects zero rows and is discarded. So the
+    // worst a race costs is one extra bounded Haiku verdict — a deliberately
+    // accepted cost trade-off, never a data error or a second verdict
+    // overwriting the first. A true mutex would need a started_at lock column =
+    // a migration, intentionally out of scope (interview_sessions.started_at is
+    // the interview-start timestamp, NOT a judge lock — do not repurpose it).
     const existing =
       (data as { task_success_judgment?: unknown }).task_success_judgment ??
       null;
@@ -296,6 +305,9 @@ export async function runTaskSuccessJudgeSidecar(
       .from("interview_sessions")
       .update({ task_success_judgment: record as unknown as Json })
       .eq("id", sessionId)
+      // THE authoritative at-most-once guard (see the pre-check note above):
+      // first writer wins; a racing second writer matches zero rows and is
+      // silently dropped, so a session can never hold two verdicts.
       .is("task_success_judgment", null);
     if (writeError) {
       console.error(

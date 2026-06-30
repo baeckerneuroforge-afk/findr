@@ -99,14 +99,14 @@ const RAGE_CLICK_MIN_RUN = 3;
  *   task_abandon → false). null = still in progress / no terminal event.
  * - time_on_task_seconds: first task_start (or first event) → terminal event
  *   (or last event). ts_ms is client-supplied, so a negative span clamps to 0.
- * - click_count: number of 'click' events.
- * - friction_events: rage-click runs — a click with >= RAGE_CLICK_MIN_RUN clicks
- *   (including itself) inside the preceding RAGE_CLICK_WINDOW_MS. NOT an affect
- *   label; a behavioural pattern only (L8).
+ * - click_count: 'click' events within the task window (up to the terminal event).
+ * - friction_events: ONE entry per rage-click RUN — a maximal chain of
+ *   consecutive clicks each < RAGE_CLICK_WINDOW_MS apart that reaches
+ *   RAGE_CLICK_MIN_RUN clicks. ts_ms = the run's first click. So the array
+ *   LENGTH is the count of rage bursts. NOT an affect label; behaviour only (L8).
  */
 export function computeTaskResult(events: ComputeEventInput[]): TaskResult {
   const sorted = [...events].sort((a, b) => a.ts_ms - b.ts_ms);
-  const clicks = sorted.filter((e) => e.event_type === "click");
 
   let success: boolean | null = null;
   for (const e of sorted) {
@@ -116,27 +116,54 @@ export function computeTaskResult(events: ComputeEventInput[]): TaskResult {
 
   const start =
     sorted.find((e) => e.event_type === "task_start") ?? sorted[0] ?? null;
+  // The LAST terminal event is authoritative; if none, the task is still in
+  // progress and the whole (sorted) history is in scope.
+  const terminalIdx = (() => {
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      if (
+        sorted[i].event_type === "task_complete" ||
+        sorted[i].event_type === "task_abandon"
+      )
+        return i;
+    }
+    return -1;
+  })();
   const terminal =
-    [...sorted]
-      .reverse()
-      .find(
-        (e) =>
-          e.event_type === "task_complete" || e.event_type === "task_abandon",
-      ) ??
-    sorted[sorted.length - 1] ??
-    null;
+    terminalIdx >= 0 ? sorted[terminalIdx] : (sorted[sorted.length - 1] ?? null);
   const time_on_task_seconds =
     start && terminal
       ? Math.max(0, Math.round((terminal.ts_ms - start.ts_ms) / 1000))
       : null;
 
+  // ONE measurement window: every derived metric (clicks + friction) is scoped
+  // to the task window — up to and including the authoritative terminal event.
+  // Clicks AFTER "done"/"abandon" (the control fires while listeners are still
+  // attached) are not part of THIS task's behaviour. With no terminal, the task
+  // is in progress and all clicks count (unchanged).
+  const inScope = terminalIdx >= 0 ? sorted.slice(0, terminalIdx + 1) : sorted;
+  const clicks = inScope.filter((e) => e.event_type === "click");
+
+  // ONE friction_event per rage-click RUN, not per click that closes a run.
+  // A run = a maximal chain of consecutive clicks whose every gap is
+  // < RAGE_CLICK_WINDOW_MS; it is flagged once when it reaches
+  // RAGE_CLICK_MIN_RUN clicks. ts_ms = the run's FIRST click (when the friction
+  // began). So friction_events.length is the count of rage-click bursts the
+  // participant produced — what the judge prompt and the card mean.
   const friction_events: TaskResultFrictionEvent[] = [];
+  let runStart = 0;
+  let runLen = 0;
   for (let i = 0; i < clicks.length; i++) {
-    const windowStart = clicks[i].ts_ms - RAGE_CLICK_WINDOW_MS;
-    let run = 0;
-    for (let j = i; j >= 0 && clicks[j].ts_ms >= windowStart; j--) run++;
-    if (run >= RAGE_CLICK_MIN_RUN) {
-      friction_events.push({ type: "rage_click", ts_ms: clicks[i].ts_ms });
+    if (i > 0 && clicks[i].ts_ms - clicks[i - 1].ts_ms < RAGE_CLICK_WINDOW_MS) {
+      runLen++;
+    } else {
+      runStart = i;
+      runLen = 1;
+    }
+    if (runLen === RAGE_CLICK_MIN_RUN) {
+      friction_events.push({
+        type: "rage_click",
+        ts_ms: clicks[runStart].ts_ms,
+      });
     }
   }
 

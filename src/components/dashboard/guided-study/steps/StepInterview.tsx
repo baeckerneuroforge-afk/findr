@@ -161,6 +161,15 @@ export function StepInterview({
               desc={tw("togTtsDesc")}
             />
           </div>
+          {/* Behavioural events are only captured in TEXT interviews — voice has
+              no DOM event collector, so a voice usability study yields no data. */}
+          {state.eventTrackingEnabled &&
+            state.voiceEnabled &&
+            state.useCase === "usability_test" && (
+              <p className="px-1 pt-3 text-caption text-warning-700">
+                {tw("togEventsVoiceWarning")}
+              </p>
+            )}
         </Collapsible>
       </div>
 

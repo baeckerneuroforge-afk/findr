@@ -89,7 +89,7 @@ describe("computeTaskResult (pure, server-computed metrics — no affect, L8)", 
     expect(r.success).toBe(true);
   });
 
-  it("rage-click run (>=3 clicks within 1s) is flagged — behaviour, not emotion", () => {
+  it("a rage-click RUN is flagged ONCE, dated to its first click — not per click", () => {
     const r = computeTaskResult([
       { event_type: "click", ts_ms: 0 },
       { event_type: "click", ts_ms: 100 },
@@ -97,11 +97,41 @@ describe("computeTaskResult (pure, server-computed metrics — no affect, L8)", 
       { event_type: "click", ts_ms: 300 },
     ]);
     expect(r.click_count).toBe(4);
-    // The 3rd and 4th click each close a >=3 run inside the trailing 1s window.
-    expect(r.friction_events).toEqual([
-      { type: "rage_click", ts_ms: 200 },
-      { type: "rage_click", ts_ms: 300 },
+    // One contiguous burst → exactly one friction_event, ts = run's first click.
+    expect(r.friction_events).toEqual([{ type: "rage_click", ts_ms: 0 }]);
+  });
+
+  it("two separate bursts → two friction_events, each at its run's first click", () => {
+    const r = computeTaskResult([
+      { event_type: "click", ts_ms: 0 },
+      { event_type: "click", ts_ms: 100 },
+      { event_type: "click", ts_ms: 200 }, // run 1 reaches 3 here → flag@0
+      { event_type: "click", ts_ms: 5000 }, // gap >1s → new run
+      { event_type: "click", ts_ms: 5100 },
+      { event_type: "click", ts_ms: 5200 }, // run 2 reaches 3 here → flag@5000
     ]);
+    expect(r.friction_events).toEqual([
+      { type: "rage_click", ts_ms: 0 },
+      { type: "rage_click", ts_ms: 5000 },
+    ]);
+  });
+
+  it("exactly 2 fast clicks is NOT a run (needs >= 3)", () => {
+    const r = computeTaskResult([
+      { event_type: "click", ts_ms: 0 },
+      { event_type: "click", ts_ms: 100 },
+    ]);
+    expect(r.friction_events).toEqual([]);
+  });
+
+  it("a long unbroken chain (each gap < 1s) is ONE run even if it spans > 1s", () => {
+    const r = computeTaskResult([
+      { event_type: "click", ts_ms: 0 },
+      { event_type: "click", ts_ms: 600 },
+      { event_type: "click", ts_ms: 1200 }, // reaches 3 → flag@0
+      { event_type: "click", ts_ms: 1800 }, // same run, NO second event
+    ]);
+    expect(r.friction_events).toEqual([{ type: "rage_click", ts_ms: 0 }]);
   });
 
   it("clicks spread beyond 1s are NOT rage clicks", () => {
@@ -111,6 +141,22 @@ describe("computeTaskResult (pure, server-computed metrics — no affect, L8)", 
       { event_type: "click", ts_ms: 4000 },
     ]);
     expect(r.friction_events).toEqual([]);
+  });
+
+  it("clicks AFTER the terminal event are out of scope (one window for clicks + time)", () => {
+    const r = computeTaskResult([
+      { event_type: "task_start", ts_ms: 0 },
+      { event_type: "click", ts_ms: 1000 },
+      { event_type: "click", ts_ms: 2000 },
+      { event_type: "task_complete", ts_ms: 3000 },
+      { event_type: "click", ts_ms: 4000 }, // after "done" → ignored
+      { event_type: "click", ts_ms: 4100 },
+      { event_type: "click", ts_ms: 4200 }, // would be a rage run, but out of scope
+    ]);
+    expect(r.success).toBe(true);
+    expect(r.time_on_task_seconds).toBe(3); // 0 → 3000
+    expect(r.click_count).toBe(2); // only the 2 within the window
+    expect(r.friction_events).toEqual([]); // post-terminal burst not counted
   });
 
   it("is order-independent (sorts internally by ts_ms)", () => {

@@ -1583,6 +1583,17 @@ export function ResearchPlanForm({
           </div>
         </div>
 
+        {/* Interaction signals are only captured in TEXT interviews — the voice
+            path has no DOM event collector. Warn the researcher so the choice is
+            visible (the usability summary would otherwise silently stay empty). */}
+        {form.eventTrackingEnabled && form.voiceEnabled && needsTask && (
+          <div className="rounded-lg border border-warning-500/40 bg-warning-50 p-3">
+            <p className="text-caption text-warning-700">
+              {t("eventTrackingVoiceWarning")}
+            </p>
+          </div>
+        )}
+
         {/* E2 Turn-Signale opt-in (default OFF) — exakt das Visual-Capture-
             Kartenmuster. Für BEIDE study types sichtbar: die Analyse hängt am
             research-Completion-Pfad, nicht am Studientyp. Schreibt

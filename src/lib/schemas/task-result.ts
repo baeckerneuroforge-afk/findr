@@ -24,7 +24,11 @@ export type TaskResultFrictionEvent = z.infer<
 export const TaskResultSchema = z.object({
   version: z.literal(1),
   success: z.boolean().nullable(),
-  time_on_task_seconds: z.number().nullable(),
+  // Producer (computeTaskResult) clamps to >= 0 via Math.max(0, …); match it
+  // here so the read-mapper is no laxer than its only writer (mirrors
+  // synthesis-interaction.ts avgTimeSeconds). A negative legacy value coerces
+  // to null ("no result"), never a negative number.
+  time_on_task_seconds: z.number().min(0).nullable(),
   click_count: z.number().int().min(0),
   friction_events: z.array(TaskResultFrictionEventSchema),
 });

@@ -30,6 +30,7 @@
     "eval:research-agent": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-research-agent/run.ts",
     "eval:mission-control": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-mission-control/run.ts",
     "eval:cross-study-agent": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-cross-study-agent/run.ts",
+    "eval:usability-success": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-usability-success/run.ts",
     "voice:token": "tsx --conditions=react-server scripts/create-voice-token.ts",
     "voice:smoke": "tsx scripts/voice-ingest-smoke.ts",
     "openlink:smoke": "tsx --conditions=react-server scripts/open-link-smoke.ts",

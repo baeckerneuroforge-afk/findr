@@ -54,7 +54,8 @@
       "body": "With your consent, Klymeo measures how you move during the conversation — clicks, scrolling and time per task — to understand where the product flowed smoothly and where it stalled. No camera, no audio, no emotion analysis; your typed text is not stored for this. Taking part is voluntary — the conversation continues normally without recording.",
       "privacyLink": "More in the privacy policy",
       "accept": "I agree",
-      "decline": "Continue without recording"
+      "decline": "Continue without recording",
+      "stampError": "We couldn’t save your consent just now. Please try again — or continue without recording."
     },
     "task": {
       "label": "Your task",
@@ -1270,6 +1271,7 @@
       "eventTrackingHint": "When enabled, Klymeo measures non-biometric interaction behaviour during the interview — clicks, scrolling and time per task — to surface where it flowed and where it stalled. No audio, video or emotion analysis; raw input text is never stored. The participant is asked for consent at the start. Default: off.",
       "eventTrackingOn": "On",
       "eventTrackingOff": "Off",
+      "eventTrackingVoiceWarning": "Heads up: interaction signals (clicks, scrolling, task success) are only captured in text interviews. This interview runs as voice — it won't produce any, and the usability summary will stay empty. Switch to a text interview to measure clicks and success.",
       "fldSignals": "Response signals – sentiment & directness",
       "signalsHint": "When enabled, Klymeo automatically annotates each completed interview with how answers were worded (e.g. enthusiastic, hesitant) and whether questions were answered directly — based solely on the text of the answers, never on the voice. The annotation is a hint with a verbatim quote, not a judgment about the person, visible to your team only, and runs only for sessions with documented participant consent. Default: off.",
       "signalsOn": "On",
@@ -2267,6 +2269,7 @@
       "togVisualDesc": "Records interaction with the material (non-biometric)",
       "togEvents": "Behavioural events",
       "togEventsDesc": "Clicks, scrolling, dwell time as events",
+      "togEventsVoiceWarning": "Only captured in text interviews. This one is voice — no click or success data.",
       "togSignals": "Conversation signals",
       "togSignalsDesc": "Sentiment analysis of the transcript at session end",
       "togTts": "Read aloud (text-to-speech)",

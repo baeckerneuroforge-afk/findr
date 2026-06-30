@@ -94,7 +94,15 @@ export function useEventCollector({
 
   const push = useCallback(
     (event_type: CollectedEventType, target_selector?: string) => {
-      if (bufferRef.current.length >= MAX_BUFFER) return;
+      // Terminal events carry the AUTHORITATIVE task outcome (computeTaskResult
+      // decides success from the LAST task_complete/task_abandon). Dropping one
+      // under buffer pressure would silently lose the outcome and leave
+      // success=null. So MAX_BUFFER backpressure sheds only noise events;
+      // terminals are always enqueued. completedSentRef still guarantees AT MOST
+      // ONE terminal is ever pushed, so this adds at most a row or two past the cap.
+      const isTerminal =
+        event_type === "task_complete" || event_type === "task_abandon";
+      if (!isTerminal && bufferRef.current.length >= MAX_BUFFER) return;
       const ts_ms = startEpochRef.current
         ? Math.max(0, Math.round(Date.now() - startEpochRef.current))
         : 0;

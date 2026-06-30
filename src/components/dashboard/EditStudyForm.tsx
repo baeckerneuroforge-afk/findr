@@ -858,6 +858,16 @@ export function EditStudyForm({
           </span>
         </label>
 
+        {/* Interaction signals are only captured in TEXT interviews — the voice
+            path has no DOM event collector. Warn so the choice is visible. */}
+        {form.eventTrackingEnabled && form.voiceEnabled && needsTask && (
+          <div className="rounded-lg border border-warning-500/40 bg-warning-50 p-3">
+            <p className="text-caption text-warning-700">
+              {t("eventTrackingVoiceWarning")}
+            </p>
+          </div>
+        )}
+
         {/* Turn-Signale */}
         <label className="flex items-start gap-3 rounded-lg border border-neutral-200 bg-card p-4">
           <input
