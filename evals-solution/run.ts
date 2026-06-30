@@ -23,7 +23,7 @@
  *
  * (`env -u ANTHROPIC_API_KEY` clears an empty/shadowing shell var so dotenv can
  * inject the real key from .env.local; harmless if unset. Prefix with
- * `SOLUTION_MODEL=claude-sonnet-4-6` to test the cheaper model.)
+ * `SOLUTION_MODEL=claude-sonnet-5` to test the cheaper model.)
  */
 
 import { config } from "dotenv";

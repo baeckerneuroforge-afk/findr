@@ -59,7 +59,7 @@ async function analyzeDeal(
   const userPrompt = buildRiskClassifierPrompt(deal, calls);
 
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
+    model: "claude-sonnet-5",
     max_tokens: 2048,
     system: RISK_CLASSIFIER_SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],

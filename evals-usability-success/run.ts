@@ -26,7 +26,7 @@
  *
  * Default-Modell = PROD-Default (Haiku, DEFAULT_TASK_SUCCESS_MODEL) — wir messen,
  * was ausgeliefert wird. Override:
- *   EVAL_MODEL=claude-sonnet-4-6 pnpm eval:usability-success
+ *   EVAL_MODEL=claude-sonnet-5 pnpm eval:usability-success
  *
  * Invoke (Repo-Root), im Vordergrund (server-only Modul → react-server-Condition,
  * spiegelt turn-signals/churn-severity):

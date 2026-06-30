@@ -46,7 +46,7 @@ const visualCapture = {
     "## Visuelle Beobachtungen",
     "VISUAL_CAPTURE_START",
     "Source: manual_file (sample.mp4)",
-    "Model: claude-sonnet-4-6",
+    "Model: claude-sonnet-5",
     "Sampling: 1 frame every 8s, 1 frame(s) total",
     visualLine,
     "VISUAL_CAPTURE_END",

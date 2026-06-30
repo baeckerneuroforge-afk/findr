@@ -27,7 +27,7 @@
  *
  * Default-Modell = PROD-Default (Haiku, resolveSignalsModel) — wir messen, was
  * ausgeliefert wird. Override:
- *   EVAL_MODEL=claude-sonnet-4-6 pnpm eval:turn-signals
+ *   EVAL_MODEL=claude-sonnet-5 pnpm eval:turn-signals
  *
  * Invoke (Repo-Root):
  *   env -u ANTHROPIC_API_KEY pnpm exec tsx --conditions=react-server \

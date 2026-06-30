@@ -42,8 +42,8 @@ import type { ResearchInput } from "@/lib/voice-agent/interviewer";
  * a note (the in-memory proof already shows the mechanic).
  *
  * Models default to the production tiers; for a cheap/fast verification run with
- *   VOICE_MODEL=claude-sonnet-4-6 PRODUCT_DISCOVERY_MODEL=claude-sonnet-4-6 \
- *   SYNTHESIS_MODEL=claude-sonnet-4-6
+ *   VOICE_MODEL=claude-sonnet-5 PRODUCT_DISCOVERY_MODEL=claude-sonnet-5 \
+ *   SYNTHESIS_MODEL=claude-sonnet-5
  * (the synthetic persona is Sonnet by default already).
  */
 

@@ -519,7 +519,7 @@ async function main(): Promise<void> {
   // Default to Sonnet for cost; override with EVAL_MODEL for an Opus
   // acceptance run. NOTE: do NOT use VOICE_MODEL — that's the prod default
   // for the interview path, and we want the eval to be insulated from it.
-  const model = process.env.EVAL_MODEL ?? "claude-sonnet-4-6";
+  const model = process.env.EVAL_MODEL ?? "claude-sonnet-5";
 
   console.log(`\nResearch-Saturation Eval — model: ${model}`);
   console.log(

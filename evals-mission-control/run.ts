@@ -24,7 +24,7 @@ import {
  *     evals-mission-control/run.ts
  *
  * Default model = Opus (chat-with-data parity, trust-critical). Override with
- * MISSION_CONTROL_MODEL=claude-sonnet-4-6 to probe the cheaper tier.
+ * MISSION_CONTROL_MODEL=claude-sonnet-5 to probe the cheaper tier.
  */
 
 config({ path: ".env.local" });

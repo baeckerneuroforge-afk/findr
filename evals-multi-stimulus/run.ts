@@ -377,7 +377,7 @@ async function main(): Promise<void> {
     );
   }
 
-  const model = process.env.EVAL_MODEL ?? "claude-sonnet-4-6";
+  const model = process.env.EVAL_MODEL ?? "claude-sonnet-5";
   const rounds = Number.parseInt(process.env.EVAL_ROUNDS ?? "1", 10) || 1;
 
   console.log(`\nMulti-Stimulus Eval — model: ${model}, rounds: ${rounds}`);

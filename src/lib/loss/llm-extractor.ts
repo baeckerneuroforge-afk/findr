@@ -22,7 +22,7 @@ import {
  * justified the switch: regex scored 33% (4/12), the LLM 100% (12/12) — see
  * `evals-loss/llm-comparison.md`.
  *
- * MODEL — Sonnet by default (claude-sonnet-4-6). At the 12 eval cases Opus had
+ * MODEL — Sonnet by default (claude-sonnet-5). At the 12 eval cases Opus had
  * NO measurable advantage over Sonnet (both 100%), so we run the ~5x cheaper
  * Sonnet: loss analysis tolerates lower stakes than risk analysis. Overridable
  * via `LOSS_MODEL` (analogous to `EVAL_MODEL` in the risk eval).
