@@ -1,8 +1,10 @@
 /**
- * Guide-Generator Eval Dataset — 8 cases.
+ * Guide-Generator Eval Dataset — 10 cases.
  * ----------------------------------------------
  * 4 B2B klar/normal · 1 B2B vage · 1 B2B Edge-Case (sehr unspezifisches Ziel)
- * · 2 B2C (Endkund:innen, du-Anrede).
+ * · 2 B2C (Endkund:innen, du-Anrede) · 2 mit Art-der-Studie + Tiefe (neuer
+ * Signalpfad useCase/interviewDepth: brand_research/flach B2C, concept_test/
+ * tief B2B).
  *
  * Anti-Hallu-Posture: bei sparse/incoherent input darf der Generator
  * keinen "vollständigen" Leitfaden auf Phantasie-Spezifika aufblähen.
@@ -183,5 +185,41 @@ export const GUIDE_EVAL_CASES: GuideEvalCase[] = [
       topicCount: 4,
     },
     expected: { minTopics: 3, maxTopics: 6, minMinutes: 20, maxMinutes: 45 },
+  },
+
+  // ── 9/10 ART DER STUDIE — brand_research + flache Tiefe (B2C) ─────────────
+  {
+    id: "guide_09_brand_b2c_flach",
+    description: "B2C Markenwahrnehmung mit flacher Tiefe",
+    rationale:
+      "Neuer Signalpfad useCase='brand_research' + interviewDepth='flach'. Der Fokus-Block soll Topics zu spontanen Assoziationen, Bildern, Gefühlen und Vergleichen erzeugen (KEINE 'letztes-Mal'-Vergangenheitsrekonstruktion), durchgängig DU-Form, FLACH gehalten (≈2 Probes/Topic). Prüft, dass die neuen Prompt-Zeilen die offene, nicht-leitende Posture und die du-Anrede nicht brechen.",
+    input: {
+      goal: "Wir wollen verstehen, welches Bild und welche Gefühle unsere Marke bei jungen Konsument:innen spontan auslöst und wie sie uns gegenüber Alternativen wahrnehmen.",
+      audienceType: "b2c",
+      who: "Konsument:innen 18–30, die die Produktkategorie kennen",
+      language: "de",
+      useCase: "brand_research",
+      interviewDepth: "flach",
+      topicCount: 4,
+    },
+    expected: { minTopics: 3, maxTopics: 5, minMinutes: 15, maxMinutes: 40 },
+  },
+
+  // ── 10/10 ART DER STUDIE — concept_test + tiefe Tiefe (B2B) ───────────────
+  {
+    id: "guide_10_concept_b2b_tief",
+    description: "B2B Konzepttest mit tiefer Tiefe",
+    rationale:
+      "Neuer Signalpfad useCase='concept_test' + interviewDepth='tief'. Erwartung: zuerst Verständnis-Topics, dann Relevanz/Nutzen; TIEF (mehr Probes pro Thema, laddering), Sie-Form. Keine hypothetischen Kaufzusagen erzwingen, keine Leading-Trigger. Prüft, dass Fokus + Tiefe zusammen die Posture halten.",
+    input: {
+      goal: "Wir wollen ein neues Konzept für ein Self-Service-Reporting-Modul testen — ob Fachanwender:innen es verstehen, als relevant empfinden und welchen Nutzen sie darin sehen.",
+      audienceType: "b2b",
+      who: "Fachanwender:innen (Business Analysts) in Mid-Market-Unternehmen",
+      language: "de",
+      useCase: "concept_test",
+      interviewDepth: "tief",
+      topicCount: 5,
+    },
+    expected: { minTopics: 4, maxTopics: 7, minMinutes: 30, maxMinutes: 70 },
   },
 ];

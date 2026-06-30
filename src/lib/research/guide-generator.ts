@@ -8,6 +8,8 @@ import {
   StructuredOutputError,
 } from "@/lib/anthropic/structured";
 import type { ResearchTopic } from "@/lib/voice-agent/interviewer";
+import type { ResearchPlanUseCase } from "@/lib/research/db";
+import type { InterviewDepth } from "@/lib/research/interview-duration";
 import {
   getResearchPlan,
   updateResearchPlan,
@@ -119,6 +121,18 @@ export interface GuideGenInput {
   /** How many topics the LLM should aim for. Soft target — Zod enforces
    *  3-10. Default 5 (deckt typische 30-45-min Research-Interviews ab). */
   topicCount?: number;
+  /** Art der Studie (use_case) — steuert den Themen-FOKUS des Leitfadens
+   *  (Markenwahrnehmung vs. Konzepttest vs. Usability …). Optional: ohne
+   *  useCase bleibt der Prompt byte-identisch zum bisherigen Verhalten.
+   *  Spiegelt den Live-Fokus (USE_CASE_FOCUS in interviewer.ts), damit der
+   *  generierte Leitfaden zum geführten Interview passt. */
+  useCase?: ResearchPlanUseCase;
+  /** Interviewtiefe (Laddering) — steuert, wie viele Probes der Generator pro
+   *  Thema vorschlägt (flach ≈ 2, mittel ≈ 2–3, tief ≈ 4–5). Die tatsächliche
+   *  Tiefe-DURCHSETZUNG bleibt beim Live-Agent (formatDepthDirective); hier
+   *  geht es nur um den Vorrat an Nachhak-Material im Leitfaden. Optional →
+   *  ohne Tiefe Prompt byte-identisch. */
+  interviewDepth?: InterviewDepth;
 }
 
 export interface GenerateInterviewGuideInput extends GuideGenInput {
@@ -197,9 +211,51 @@ OUTPUT — return ONLY this JSON object, no markdown, no preamble:
   "screeningQuestions": ["<optional, open OR closed>"]
 }`;
 
+// ── Use-Case-Fokus (Generierung) ───────────────────────────────────────────
+
+/**
+ * Pro Studientyp ein FOKUS-Block, der den GENERIERTEN Leitfaden zuschneidet —
+ * worauf die Themen + Fragen abzielen sollen. Bewusst eine EIGENE, generierungs-
+ * fokussierte Quelle (nicht der Live-Block USE_CASE_FOCUS in interviewer.ts):
+ * die Live-Texte tragen prozedurale Lauf-Regeln („keine dritte Nachfrage",
+ * „Stop-Ceiling gewinnt"), die für den BAU eines Leitfadens irrelevant wären.
+ * Inhaltlich gespiegelt, damit Leitfaden und Live-Interview denselben Fokus
+ * haben. Ohne useCase wird dieser Block nicht in den Prompt gehängt → byte-
+ * identisch zum Vor-Verhalten.
+ */
+const USE_CASE_GUIDE_FOCUS: Record<ResearchPlanUseCase, string> = {
+  general_survey:
+    "Allgemeine Exploration / Bedarfsanalyse. Die Themen sollen Bedarf und Pain Points über reales, beobachtbares Verhalten erschließen — konkrete Vergangenheit ('Erzähl vom letzten Mal, als …'), aktuelle Lösungen/Workarounds und Aufwand (Zeit/Geld/Frust), nicht hypothetische Meinungen.",
+  brand_research:
+    "Markenwahrnehmung. Die Themen zielen auf spontane Assoziationen, Bilder, Gefühle und Worte zur Marke, auf Vergleiche mit Alternativen und Differenzierung. Halte sie schlank — Markenassoziationen sind schnell erschöpft; keine 'letztes-Mal'-Vergangenheitsrekonstruktion erzwingen.",
+  concept_test:
+    "Konzepttest. Erst das Verständnis des Konzepts prüfen, dann Relevanz und wahrgenommenen Nutzen. Bei Kaufabsicht nach realem Verhalten / Commitment statt hypothetischer Zusage fragen; bei Varianten Präferenz plus Begründung.",
+  creative_test:
+    "Creative-/Werbemitteltest. Die Themen drehen sich um den ersten Eindruck, die emotionale Reaktion, die Klarheit der Botschaft und den Markenfit der Gestaltung — welche Gestaltungselemente welche Wirkung erzeugen.",
+  usability_test:
+    "Usability-Test (task-basiert). Die Person bearbeitet eine konkrete Aufgabe; die Themen drehen sich um Vorgehen, Hänger, Fehlklicks, nicht Gefundenes und das Verständnis der Oberfläche. Beschreibe beobachtbare Reibung — KEINE Affekt-/Emotions-Labels.",
+};
+
+/**
+ * Pro Tiefe eine Vorgabe, wie viele Probes der Generator je Thema anlegt. Die
+ * Zahl korrespondiert mit den Laddering-Schichten (DEPTH_LAYERS: 1/2/4), bleibt
+ * aber innerhalb der Schema-Grenze (probes 2–8). „mittel" = der bisherige
+ * Default. Die echte Tiefe-Durchsetzung im Gespräch macht der Live-Agent.
+ */
+const DEPTH_GUIDE_GUIDANCE: Record<InterviewDepth, string> = {
+  flach:
+    "INTERVIEWTIEFE: flach — pro Thema die Einstiegsfrage und genau 2 knappe Probes; keine tief verschachtelten Nachhak-Ketten.",
+  mittel:
+    "INTERVIEWTIEFE: mittel — pro Thema 2–3 Probes für eine Vertiefungsebene.",
+  tief:
+    "INTERVIEWTIEFE: tief — pro Thema 4–5 Probes, die laddering-artig von der Oberfläche über ein konkretes Beispiel zu Bedeutung/Motiven führen.",
+};
+
 // ── User prompt builder ────────────────────────────────────────────────────
 
-function buildGuideUserPrompt(input: GuideGenInput): string {
+/** Exported for unit tests — verifiziert deterministisch, dass die Setup-
+ *  Signale (useCase, interviewDepth, who, audienceType) im User-Prompt landen. */
+export function buildGuideUserPrompt(input: GuideGenInput): string {
   const language = (input.language ?? "de").toLowerCase();
   const langLabel =
     language.startsWith("de") || language === "deutsch"
@@ -222,6 +278,16 @@ function buildGuideUserPrompt(input: GuideGenInput): string {
   ];
   if (input.who && input.who.trim() !== "") {
     lines.push(`ZIELGRUPPE (wen wir interviewen): ${input.who.trim()}`);
+  }
+  // Art der Studie (use_case): schneidet den Themen-Fokus zu. Nur gehängt,
+  // wenn gesetzt → ohne useCase Prompt byte-identisch zum Vor-Verhalten.
+  if (input.useCase) {
+    lines.push(`ART DER STUDIE: ${USE_CASE_GUIDE_FOCUS[input.useCase]}`);
+  }
+  // Interviewtiefe: steuert die Probe-Anzahl pro Thema. Nur gehängt, wenn
+  // gesetzt → ohne Tiefe byte-identisch.
+  if (input.interviewDepth) {
+    lines.push(DEPTH_GUIDE_GUIDANCE[input.interviewDepth]);
   }
   // topicCount is a soft target — the LLM picks within the schema's [3,10]
   // bounds. We expose it so a study that needs a tighter scope can ask for
@@ -360,6 +426,8 @@ export async function generateInterviewGuide(
       who: input.who,
       language: input.language,
       topicCount: input.topicCount,
+      useCase: input.useCase,
+      interviewDepth: input.interviewDepth,
     },
     model,
   );

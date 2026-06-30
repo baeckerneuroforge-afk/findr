@@ -95,19 +95,18 @@ export default async function StudyLaunchPage({
   const archived = plan.status === "archived";
 
   const stepLabels = [
-    tw("stepBriefing"),
-    tw("stepProposal"),
-    tw("stepInterview"),
+    tw("stepSetup"),
+    tw("stepGuide"),
     tw("stepStart"),
     tw("stepDistribution"),
   ];
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      {/* Derselbe Wizard-Fortschritt — Schritt 5 (Verteilung) aktiv: die Seite
+      {/* Derselbe Wizard-Fortschritt — Schritt 4 (Verteilung) aktiv: die Seite
           liest sich als letzter Schritt des gefuehrten Flows, nicht als
-          fremde Seite. */}
-      <WizardSteps labels={stepLabels} current={4} />
+          fremde Seite. (4 Knoten: Setup·Leitfaden·Start·Verteilung.) */}
+      <WizardSteps labels={stepLabels} current={3} />
 
       <div className="st-rise" style={{ "--st": 0 } as React.CSSProperties}>
         <h1 className="text-display text-neutral-900">{tw("launchTitle")}</h1>

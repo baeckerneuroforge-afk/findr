@@ -16,9 +16,8 @@ import {
 } from "./types";
 import { WizardSteps } from "./wizard-ui";
 import { type StimulusItem } from "./StimulusUploader";
-import { StepBriefing } from "./steps/StepBriefing";
-import { StepProposal } from "./steps/StepProposal";
-import { StepInterview } from "./steps/StepInterview";
+import { StepSetup } from "./steps/StepSetup";
+import { StepGuide } from "./steps/StepGuide";
 import { StepReview } from "./steps/StepReview";
 
 /**
@@ -152,6 +151,11 @@ export function GuidedStudyWizard({
             audienceType: state.audienceType,
             who: state.persona.trim() === "" ? undefined : state.persona.trim(),
             language: state.language,
+            // Art der Studie + Tiefe fließen jetzt in die Generierung — sie
+            // werden im Setup (Schritt 1) VOR diesem Aufruf gewählt, nicht
+            // mehr erst danach. Das ist der Kern des Umbaus.
+            useCase: state.useCase,
+            interviewDepth: state.interviewDepth,
           }),
         },
       );
@@ -326,12 +330,11 @@ export function GuidedStudyWizard({
   }
 
   const stepLabels = [
-    tw("stepBriefing"),
-    tw("stepProposal"),
-    tw("stepInterview"),
+    tw("stepSetup"),
+    tw("stepGuide"),
     tw("stepStart"),
-    // Schritt 5 = Verteilung. Im Wizard nie „aktiv" (nach „Studie starten"
-    // übernimmt die Launch-Seite mit demselben Balken bei current=4), aber hier
+    // Schritt 4 = Verteilung. Im Wizard nie „aktiv" (nach „Studie starten"
+    // übernimmt die Launch-Seite mit demselben Balken bei current=3), aber hier
     // sichtbar als angekündigter nächster Schritt.
     tw("stepDistribution"),
   ];
@@ -341,16 +344,17 @@ export function GuidedStudyWizard({
       <WizardSteps labels={stepLabels} current={step} />
 
       {step === 0 ? (
-        <StepBriefing
-          briefing={state.briefing}
-          setBriefing={(briefing) => patch({ briefing })}
+        <StepSetup
+          state={state}
+          patch={patch}
+          voiceAvailable={voiceAvailable}
           generating={generating}
           genError={genError}
           onGenerate={generate}
           onManual={manualContinue}
         />
       ) : step === 1 ? (
-        <StepProposal
+        <StepGuide
           state={state}
           patch={patch}
           planId={planId}
@@ -358,23 +362,17 @@ export function GuidedStudyWizard({
           stimuli={stimuli}
           setStimuli={setStimuli}
           genError={genError}
+          generating={generating}
           onBack={() => setStep(0)}
-          onNext={() => setStep(2)}
-        />
-      ) : step === 2 ? (
-        <StepInterview
-          state={state}
-          patch={patch}
-          voiceAvailable={voiceAvailable}
-          onBack={() => setStep(1)}
-          onNext={() => setStep(3)}
+          onRegenerate={generate}
+          onApprove={() => setStep(2)}
         />
       ) : (
         <StepReview
           state={state}
           finalizing={finalizing}
           formError={formError}
-          onBack={() => setStep(2)}
+          onBack={() => setStep(1)}
           onEdit={(s) => setStep(s)}
           onStart={finalize}
         />

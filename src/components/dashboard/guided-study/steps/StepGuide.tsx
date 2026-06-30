@@ -2,27 +2,29 @@
 
 import { useTranslations } from "next-intl";
 import { emptyTopicDraft, type TopicDraft } from "@/components/dashboard/TopicEditor";
-import { USE_CASES, getUseCaseMeta, type WizardState } from "../types";
+import { getUseCaseMeta, type WizardState } from "../types";
 import { StimulusUploader, type StimulusItem } from "../StimulusUploader";
 import {
   ArrowRightIcon,
   Card,
-  Chip,
   ErrorNote,
   GhostButton,
   PrimaryButton,
   SparkleIcon,
   TextArea,
   TextInput,
+  ThinkingState,
 } from "../wizard-ui";
 
 /**
- * Schritt 2 — „Dein Studienvorschlag". Verschmilzt Zielgruppe + Leitfaden zu
- * einem Screen. Titel + Themen sind KI-vorbefüllt; Zielgruppe/Art bestätigt der
- * Nutzer. Bedingtes Material (echter Upload + KI-Analyse via StimulusUploader
- * bzw. Usability-Aufgabe) erscheint nur inline, wenn der Use-Case es braucht.
+ * Schritt 2 — Leitfaden. Zeigt den KI-generierten Leitfaden, der jetzt MIT den
+ * Setup-Signalen (Zielgruppe, Art der Studie, Tiefe) gebaut wurde. Titel +
+ * Themen sind editierbar; bedingtes Material (Concept-/Creative-Test) bzw. die
+ * Usability-Aufgabe erscheinen hier, weil sie studientyp-abhängig sind und der
+ * Draft-Plan zu diesem Zeitpunkt bereits existiert. Der Weiter-Button ist das
+ * Absegnungs-Gate: erst wenn mindestens ein Thema steht, geht es zu „Start".
  */
-export function StepProposal({
+export function StepGuide({
   state,
   patch,
   planId,
@@ -30,8 +32,10 @@ export function StepProposal({
   stimuli,
   setStimuli,
   genError,
+  generating,
   onBack,
-  onNext,
+  onRegenerate,
+  onApprove,
 }: {
   state: WizardState;
   patch: (p: Partial<WizardState>) => void;
@@ -40,135 +44,92 @@ export function StepProposal({
   stimuli: StimulusItem[];
   setStimuli: React.Dispatch<React.SetStateAction<StimulusItem[]>>;
   genError: string | null;
+  generating: boolean;
   onBack: () => void;
-  onNext: () => void;
+  onRegenerate: () => void;
+  onApprove: () => void;
 }) {
   const tw = useTranslations("research.wizard");
   const meta = getUseCaseMeta(state.useCase);
 
   function patchTopic(i: number, t: Partial<TopicDraft>) {
-    patch({ topics: state.topics.map((x, idx) => (idx === i ? { ...x, ...t } : x)) });
+    patch({
+      topics: state.topics.map((x, idx) => (idx === i ? { ...x, ...t } : x)),
+    });
+  }
+
+  const hasTopic = state.topics.some((t) => t.topic.trim() !== "");
+
+  if (generating) {
+    return <ThinkingState label={tw("s1Thinking")} />;
   }
 
   return (
     <div className="st-rise" style={{ "--st": 0 } as React.CSSProperties}>
       <p className="inline-flex items-center gap-1.5 text-caption font-medium uppercase tracking-wide text-primary-600">
-        <SparkleIcon className="h-3.5 w-3.5" /> {tw("stepCounter", { n: 2 })} · {tw("s2Badge")}
+        <SparkleIcon className="h-3.5 w-3.5" /> {tw("stepCounter", { n: 2 })} ·{" "}
+        {tw("s2Badge")}
       </p>
-      <h1 className="mt-1 text-display text-neutral-900">{tw("s2Title")}</h1>
-      <p className="mt-2 max-w-[54ch] text-body text-neutral-500">{tw("s2Desc")}</p>
+      <h1 className="mt-1 text-display text-neutral-900">{tw("guideTitle")}</h1>
+      <p className="mt-2 max-w-[54ch] text-body text-neutral-500">
+        {tw("guideDesc")}
+      </p>
 
       {genError ? <ErrorNote>{genError}</ErrorNote> : null}
 
-      {/* Titel */}
+      {/* Titel (KI-vorbefüllt, editierbar) */}
       <div className="mt-7">
         <label className="mb-1.5 block text-small font-medium text-neutral-700">
           {tw("s2TitleLabel")}
         </label>
-        <TextInput value={state.title} onChange={(e) => patch({ title: e.target.value })} />
+        <TextInput
+          value={state.title}
+          onChange={(e) => patch({ title: e.target.value })}
+        />
       </div>
 
-      {/* Zielgruppe */}
-      <section className="mt-7">
-        <h2 className="text-h3 text-neutral-900">{tw("s2AudienceHeading")}</h2>
-        <Card className="mt-2.5">
+      {/* Bedingtes Material / Usability-Aufgabe (studientyp-abhängig) */}
+      {meta.needsStimulus ? (
+        <div className="mt-6 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+          <p className="text-small font-medium text-neutral-700">
+            {tw("s2MaterialTitle", { kind: tw(meta.labelKey) })}
+          </p>
+          <p className="mt-0.5 text-caption text-neutral-400">
+            {tw("s2MaterialDesc")}
+          </p>
+          <StimulusUploader
+            planId={planId}
+            ensureDraftPlanId={ensureDraftPlanId}
+            stimuli={stimuli}
+            setStimuli={setStimuli}
+          />
+        </div>
+      ) : null}
+      {meta.needsTask ? (
+        <div className="mt-6 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
           <label className="mb-1.5 block text-small font-medium text-neutral-700">
-            {tw("s2PersonaLabel")}
+            {tw("s2TaskLabel")}
           </label>
           <TextArea
             rows={2}
-            value={state.persona}
-            onChange={(e) => patch({ persona: e.target.value })}
+            placeholder={tw("s2TaskPh")}
+            value={state.taskInstruction}
+            onChange={(e) => patch({ taskInstruction: e.target.value })}
           />
+          <label className="mb-1.5 mt-3 block text-small font-medium text-neutral-700">
+            {tw("s2TaskUrlLabel")}
+          </label>
+          <TextInput
+            type="url"
+            inputMode="url"
+            placeholder="https://"
+            value={state.taskTargetUrl}
+            onChange={(e) => patch({ taskTargetUrl: e.target.value })}
+          />
+        </div>
+      ) : null}
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-small font-medium text-neutral-700">
-                {tw("s2SampleLabel")}
-              </label>
-              <TextInput
-                type="number"
-                min={1}
-                max={1000}
-                inputMode="numeric"
-                value={state.sampleTarget}
-                onChange={(e) => patch({ sampleTarget: e.target.value })}
-                className="max-w-[8rem]"
-              />
-            </div>
-            <div>
-              <span className="mb-1.5 block text-small font-medium text-neutral-700">
-                {tw("s2ToneLabel")}
-              </span>
-              <div className="flex gap-2">
-                <Chip selected={state.audienceType === "b2c"} onSelect={() => patch({ audienceType: "b2c" })}>
-                  {tw("toneB2c")}
-                </Chip>
-                <Chip selected={state.audienceType === "b2b"} onSelect={() => patch({ audienceType: "b2b" })}>
-                  {tw("toneB2b")}
-                </Chip>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <span className="mb-1.5 block text-small font-medium text-neutral-700">
-              {tw("s2KindLabel")}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {USE_CASES.map((u) => (
-                <Chip key={u.id} selected={state.useCase === u.id} onSelect={() => patch({ useCase: u.id })}>
-                  {tw(u.labelKey)}
-                </Chip>
-              ))}
-            </div>
-            <p className="mt-1.5 text-caption text-neutral-400">{tw(meta.hintKey)}</p>
-          </div>
-
-          {/* Bedingtes Material — echter Upload (Bild/Video/Link) + KI-Analyse;
-              das analysierte Asset hängt am Draft-Plan, der Agent bezieht es im
-              Interview ein. */}
-          {meta.needsStimulus ? (
-            <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-              <p className="text-small font-medium text-neutral-700">
-                {tw("s2MaterialTitle", { kind: tw(meta.labelKey) })}
-              </p>
-              <p className="mt-0.5 text-caption text-neutral-400">{tw("s2MaterialDesc")}</p>
-              <StimulusUploader
-                planId={planId}
-                ensureDraftPlanId={ensureDraftPlanId}
-                stimuli={stimuli}
-                setStimuli={setStimuli}
-              />
-            </div>
-          ) : null}
-          {meta.needsTask ? (
-            <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-              <label className="mb-1.5 block text-small font-medium text-neutral-700">
-                {tw("s2TaskLabel")}
-              </label>
-              <TextArea
-                rows={2}
-                placeholder={tw("s2TaskPh")}
-                value={state.taskInstruction}
-                onChange={(e) => patch({ taskInstruction: e.target.value })}
-              />
-              <label className="mb-1.5 mt-3 block text-small font-medium text-neutral-700">
-                {tw("s2TaskUrlLabel")}
-              </label>
-              <TextInput
-                type="url"
-                inputMode="url"
-                placeholder="https://"
-                value={state.taskTargetUrl}
-                onChange={(e) => patch({ taskTargetUrl: e.target.value })}
-              />
-            </div>
-          ) : null}
-        </Card>
-      </section>
-
-      {/* Leitfaden */}
+      {/* Leitfaden — editierbare Themen */}
       <section className="mt-7">
         <div className="flex items-baseline justify-between">
           <h2 className="text-h3 text-neutral-900">{tw("s2GuideHeading")}</h2>
@@ -214,7 +175,13 @@ export function StepProposal({
                           <button
                             type="button"
                             aria-label={tw("s2RemoveTopic")}
-                            onClick={() => patchTopic(i, { hypotheses: t.hypotheses.filter((_, x) => x !== hi) })}
+                            onClick={() =>
+                              patchTopic(i, {
+                                hypotheses: t.hypotheses.filter(
+                                  (_, x) => x !== hi,
+                                ),
+                              })
+                            }
                             className="text-neutral-300 transition-colors hover:text-neutral-600"
                           >
                             ×
@@ -226,14 +193,20 @@ export function StepProposal({
                   <div className="mt-2 flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => patchTopic(i, { hypotheses: [...t.hypotheses, ""] })}
+                      onClick={() =>
+                        patchTopic(i, { hypotheses: [...t.hypotheses, ""] })
+                      }
                       className="text-caption font-medium text-primary-600 hover:text-primary-700"
                     >
                       {tw("s2AddProbe")}
                     </button>
                     <button
                       type="button"
-                      onClick={() => patch({ topics: state.topics.filter((_, x) => x !== i) })}
+                      onClick={() =>
+                        patch({
+                          topics: state.topics.filter((_, x) => x !== i),
+                        })
+                      }
                       className="text-caption text-neutral-400 hover:text-neutral-700"
                     >
                       {tw("s2RemoveTopic")}
@@ -256,9 +229,12 @@ export function StepProposal({
 
       <div className="mt-8 flex items-center justify-between gap-4">
         <GhostButton onClick={onBack}>{tw("back")}</GhostButton>
-        <PrimaryButton onClick={onNext}>
-          {tw("next")} <ArrowRightIcon className="h-4 w-4" />
-        </PrimaryButton>
+        <div className="flex items-center gap-3">
+          <GhostButton onClick={onRegenerate}>{tw("guideRegenerate")}</GhostButton>
+          <PrimaryButton onClick={onApprove} disabled={!hasTopic}>
+            {tw("guideConfirmCta")} <ArrowRightIcon className="h-4 w-4" />
+          </PrimaryButton>
+        </div>
       </div>
     </div>
   );
