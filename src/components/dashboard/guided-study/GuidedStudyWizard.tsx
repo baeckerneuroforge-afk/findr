@@ -19,6 +19,8 @@ import { type StimulusItem } from "./StimulusUploader";
 import { StepSetup } from "./steps/StepSetup";
 import { StepGuide } from "./steps/StepGuide";
 import { StepReview } from "./steps/StepReview";
+import { KONSOUL_WIZARD_ENABLED } from "@/lib/konsoul/wizard-flag";
+import { KonsoulWizardCompanion } from "./KonsoulWizardCompanion";
 
 /**
  * GuidedStudyWizard — der echte, gefuehrte 4-Schritt-Anlege-Flow für
@@ -341,6 +343,11 @@ export function GuidedStudyWizard({
 
   return (
     <div className="mx-auto max-w-2xl">
+      {/* Konsoul-Begleiter (flag-gated, additiv): bei Flag AUS rendert dies
+          nichts → Wizard byte-gleich zu vorher. */}
+      {KONSOUL_WIZARD_ENABLED && (
+        <KonsoulWizardCompanion state={state} patch={patch} step={step} />
+      )}
       <WizardSteps labels={stepLabels} current={step} />
 
       {step === 0 ? (
