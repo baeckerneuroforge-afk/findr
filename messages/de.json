@@ -1,5 +1,15 @@
 {
   "interview": {
+    "unavailable": {
+      "notYetActive": {
+        "title": "Diese Studie ist noch nicht gestartet",
+        "body": "Der Link funktioniert, aber die Studie wurde noch nicht freigeschaltet. Bitte versuchen Sie es etwas später noch einmal. Vielen Dank für Ihr Interesse."
+      },
+      "ended": {
+        "title": "Diese Studie ist nicht mehr aktiv",
+        "body": "Die Studie nimmt aktuell keine weiteren Teilnehmer an. Vielen Dank für Ihr Interesse."
+      }
+    },
     "completed": {
       "title": "Vielen Dank für Ihre Zeit.",
       "body": "Ihre Rückmeldung ist wirklich wertvoll — danke, dass Sie sich ein paar Minuten genommen haben. Einen schönen Tag noch."

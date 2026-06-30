@@ -3,6 +3,11 @@ import "server-only";
 import { createResearchSupabase, type ResearchOpenLinkRow } from "./db";
 import { getResearchPlan } from "./plans-service";
 import { coercePanelCompletion, type PanelCompletion } from "./panel";
+import {
+  planParticipationGate,
+  effectivePlanStatus,
+  type ParticipationClosedReason,
+} from "./participation-gate";
 import type { NeedsScreeningView } from "@/lib/voice-agent/session-service";
 import type { InterviewLanguage } from "@/lib/voice-agent/interviewer";
 
@@ -139,7 +144,15 @@ export interface OpenLinkReady {
 
 export type PublicOpenEntry =
   | { mode: "needs_screening"; screening: NeedsScreeningView }
-  | { mode: "ready"; ready: OpenLinkReady };
+  | { mode: "ready"; ready: OpenLinkReady }
+  | {
+      /** Aktiver Link, aber die Studie ist nicht teilnahmebereit (noch nicht
+       *  aktiv oder beendet/geschlossen). Die Seite rendert InterviewUnavailable
+       *  statt Screening/Start. Sprache = Studien-Sprache (open links erben sie). */
+      mode: "not_available";
+      reason: ParticipationClosedReason;
+      language: InterviewLanguage;
+    };
 
 // F2 — open links have no own language column; the walk-in chrome + the
 // lazily-created session inherit the STUDY's language (plan.language), which the
@@ -176,6 +189,22 @@ export async function resolvePublicOpenEntry(
   //    echten Plan-Owner — löst zu null auf → fail-closed, kein Entry.
   const plan = await getResearchPlan(link.org_id, link.plan_id);
   if (!plan) return null;
+
+  // ②b Studien-Status-Gate: ein AKTIVER offener Link auf einer noch-nicht-aktiven
+  //     oder geschlossenen Studie darf NICHT zum Screening führen (der Link-Status
+  //     ist vom Plan-Status entkoppelt — das war die schärfste Lücke). effective-
+  //     PlanStatus ist seiteneffektfrei (eine fällige geplante Studie zählt als
+  //     'active'); der echte Flip passiert beim Mint in der screen-Route.
+  const statusGate = planParticipationGate({
+    status: effectivePlanStatus(plan, Date.now()),
+  });
+  if (!statusGate.open) {
+    return {
+      mode: "not_available",
+      reason: statusGate.reason,
+      language: plan.language,
+    };
+  }
 
   // ③ Screening konfiguriert? → needs_screening (keine Session, kein Opus-Turn,
   //    bis der Walk-in qualifiziert — spiegelt resolvePublicEntry). Reuse der

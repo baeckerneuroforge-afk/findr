@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { OpenLinkEntry } from "@/components/interview/OpenLinkEntry";
 import { OpenLinkUnavailable } from "@/components/interview/OpenLinkUnavailable";
+import { InterviewUnavailable } from "@/components/interview/InterviewUnavailable";
 import {
   findOpenLinkByAccessToken,
   resolvePublicOpenEntry,
@@ -50,6 +51,9 @@ function metaBits(
       planTitle: entry.screening.planTitle,
       language: entry.screening.language,
     };
+  }
+  if (entry.mode === "not_available") {
+    return { planTitle: null, language: entry.language };
   }
   return { planTitle: entry.ready.planTitle, language: entry.ready.language };
 }
@@ -113,6 +117,26 @@ export default async function OpenInterviewPage({
   //    server-side in POST /api/interview/open/[token]/screen.
   const entry = await getCachedEntry(token);
   if (!entry) notFound();
+
+  // not_available — der Link ist aktiv, aber die Studie ist (noch) nicht aktiv
+  // oder bereits beendet. Render-only White-Label-Endbildschirm; KEINE Session.
+  // VOR der entry.ready-Verzweigung unten, da not_available kein `ready` trägt.
+  if (entry.mode === "not_available") {
+    const branding = await getOrgBranding(link.org_id);
+    return (
+      <NextIntlClientProvider
+        locale={entry.language}
+        messages={{ interview: MESSAGES[entry.language].interview }}
+      >
+        <InterviewUnavailable
+          reason={entry.reason}
+          brandName={branding.brandName}
+          accentColor={branding.accentColor}
+          logoUrl={branding.logoUrl}
+        />
+      </NextIntlClientProvider>
+    );
+  }
 
   // White-label branding via the link row's SERVER-BOUND org_id. The participant
   // is unauthenticated; org_id is used only to fetch branding and never reaches

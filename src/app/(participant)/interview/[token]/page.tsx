@@ -7,6 +7,7 @@ import { InterviewChat } from "@/components/interview/InterviewChat";
 import { InviteConsentGate } from "@/components/interview/InviteConsentGate";
 import { ScreeningGate } from "@/components/interview/ScreeningGate";
 import { VoiceInterviewView } from "@/components/interview/VoiceInterviewView";
+import { InterviewUnavailable } from "@/components/interview/InterviewUnavailable";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { resolvePublicEntry } from "@/lib/voice-agent/session-service";
 import { reapStaleVoiceSessionIfOverdue } from "@/lib/voice-interview/bridge-service";
@@ -40,6 +41,9 @@ function metaBits(
       planTitle: entry.screening.planTitle,
       language: entry.screening.language,
     };
+  }
+  if (entry.mode === "not_available") {
+    return { isResearch: true, planTitle: null, language: entry.language };
   }
   return {
     isResearch: entry.session.kind === "research",
@@ -94,6 +98,27 @@ export default async function InterviewPage({
   const search = await searchParams;
   const entry = await getCachedEntry(token);
   if (!entry) notFound();
+
+  // ── not_available — gültiger Token, aber die Studie ist (noch) nicht aktiv oder
+  // bereits beendet. Render-only White-Label-Endbildschirm; KEINE Session wird
+  // erzeugt (die autoritative Sperre sitzt im Resolver + am Mint). Laufende
+  // Sessions erreichen diesen Zweig nie (loadByToken kürzt im Resolver vorher ab).
+  if (entry.mode === "not_available") {
+    const branding = await getOrgBranding(entry.orgId);
+    return (
+      <NextIntlClientProvider
+        locale={entry.language}
+        messages={{ interview: MESSAGES[entry.language].interview }}
+      >
+        <InterviewUnavailable
+          reason={entry.reason}
+          brandName={branding?.brandName ?? null}
+          accentColor={branding?.accentColor ?? null}
+          logoUrl={branding?.logoUrl ?? null}
+        />
+      </NextIntlClientProvider>
+    );
+  }
 
   // ── needs_screening — research invite whose plan has screening questions and
   // no session yet. The session was DEFERRED server-side (no Opus turn, no row);

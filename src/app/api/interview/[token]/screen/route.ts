@@ -130,6 +130,20 @@ export async function POST(
     return NextResponse.json({ qualified: true });
   }
 
+  // Studie war nie aktiv / wurde zwischen Seitenaufruf und Submit geschlossen
+  // (Race — der Resolver zeigt sonst schon die "nicht verfügbar"-Seite, und der
+  // existing-Session-Fall ist oben via loadByToken abgefangen → 2A). Sauberer 403
+  // statt 500: kein Error-Monitoring-Rauschen, und der Mint hat ohnehin nichts angelegt.
+  if (result.status === "plan_not_open") {
+    return NextResponse.json(
+      {
+        error: t("notFound.interview"),
+        code: result.gateReason ?? "plan_not_open",
+      },
+      { status: 403 },
+    );
+  }
+
   console.error(
     `[screen] createResearchInterview failed: status=${result.status} ${result.message ?? ""}`,
   );

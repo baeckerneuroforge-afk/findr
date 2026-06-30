@@ -10,6 +10,7 @@ import {
 import { getResearchPlan, type ResearchPlanRecord } from "./plans-service";
 import { listInvitesForPlan } from "./scheduling";
 import { sendResearchInvite } from "./invite-orchestration";
+import { isDueForActivation } from "./participation-gate";
 
 /**
  * Deferred Activation service — Phase 1 of the Kalender/Scheduler feature
@@ -292,4 +293,33 @@ export async function activatePlanNow(
     plan: await getResearchPlan(orgId, planId),
     invites,
   };
+}
+
+/**
+ * On-Demand-Aktivierung (Deferred Activation Phase 1, OHNE Cron): Löst ein
+ * Teilnehmer-Mint eine GEPLANTE Studie aus, deren geplanter Zeitpunkt bereits
+ * erreicht ist, schalten wir sie HIER real scharf — derselbe CAS wie "Jetzt
+ * aktivieren" (idempotent, at-most-once, inkl. releasePreparedInvites). So geht
+ * der Link exakt ab dem geplanten Zeitpunkt live, ohne dass ein Cron läuft.
+ *
+ * Nur am MINT aufrufen (createResearchInterview) — die reine Lese-/Render-Sicht
+ * nutzt effectivePlanStatus (seiteneffektfrei). Nicht fällig / nicht geplant →
+ * unverändert zurück, KEIN DB-Schreibzugriff.
+ *
+ * Verliert der CAS (ein paralleler Mint/Klick hat zwischenzeitlich aktiviert,
+ * oder die Studie ist nicht mehr draft), lesen wir den frischen Zustand, damit
+ * das nachgelagerte Participation-Gate auf der WAHREN Lage entscheidet statt auf
+ * dem veralteten draft-Snapshot.
+ */
+export async function ensureDueActivation(
+  orgId: string,
+  planId: string,
+  plan: ResearchPlanRecord,
+  now: number,
+): Promise<ResearchPlanRecord> {
+  if (!isDueForActivation(plan, now)) return plan;
+  const result = await activatePlanNow(orgId, planId);
+  if (result.ok && result.plan) return result.plan;
+  const fresh = await getResearchPlan(orgId, planId);
+  return fresh ?? plan;
 }

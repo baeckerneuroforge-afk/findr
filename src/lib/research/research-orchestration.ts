@@ -17,6 +17,10 @@ import {
   listPlanStimuli,
   planToAgentContext,
 } from "./plans-service";
+import {
+  planParticipationGate,
+  type ParticipationClosedReason,
+} from "./participation-gate";
 import { getResearchInvite } from "./scheduling";
 
 /**
@@ -39,12 +43,16 @@ import { getResearchInvite } from "./scheduling";
 export type CreateResearchInterviewStatus =
   | "created"
   | "plan_not_found"
+  | "plan_not_open"
   | "invite_not_found"
   | "invite_missing_token"
   | "error";
 
 export interface CreateResearchInterviewResult {
   status: CreateResearchInterviewStatus;
+  /** Why the gate denied participation — set ONLY when status === 'plan_not_open'
+   *  (not_yet_active vs ended), so the route layer can map a precise response. */
+  gateReason?: ParticipationClosedReason;
   /** Public capability token for /interview/[token]. */
   accessToken: string | null;
   sessionId: string | null;
@@ -126,12 +134,42 @@ export async function createResearchInterview(params: {
     message: null,
   };
 
-  const plan = await getResearchPlan(params.orgId, params.planId);
-  if (!plan) {
+  const planInitial = await getResearchPlan(params.orgId, params.planId);
+  if (!planInitial) {
     return {
       ...base,
       status: "plan_not_found",
       message: "Research plan not found in this organization.",
+    };
+  }
+
+  // Deferred Activation (On-Demand): eine fällige geplante Studie wird beim ERSTEN
+  // echten Start real scharf geschaltet (CAS in scheduler.ts, idempotent, inkl.
+  // Invite-Release). Danach entscheidet das Gate auf dem WAHREN Status. Dynamischer
+  // Import, weil research-orchestration den scheduler nicht statisch zieht (Zyklus-
+  // Hygiene, gleiches Muster wie der getResearchPlan-Import in session-service).
+  const { ensureDueActivation } = await import("./scheduler");
+  const plan = await ensureDueActivation(
+    params.orgId,
+    params.planId,
+    planInitial,
+    Date.now(),
+  );
+
+  // Studien-Status-Gate: KEIN Session-Mint (kein Opus-Opening, kein LiveKit-
+  // Dispatch) für eine Studie, die noch nicht aktiv (draft / scheduled-nicht-
+  // fällig) oder bereits beendet (completed/archived) ist. EINZIGER Mint-
+  // Chokepoint — beide screen-Routen und alle Lazy-Create-Pfade laufen hier durch.
+  const gate = planParticipationGate(plan);
+  if (!gate.open) {
+    return {
+      ...base,
+      status: "plan_not_open",
+      gateReason: gate.reason,
+      message:
+        gate.reason === "not_yet_active"
+          ? "Research plan is not active yet."
+          : "Research plan is no longer accepting participants.",
     };
   }
 

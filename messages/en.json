@@ -1,5 +1,15 @@
 {
   "interview": {
+    "unavailable": {
+      "notYetActive": {
+        "title": "This study hasn't started yet",
+        "body": "The link works, but the study hasn't been opened for participation yet. Please try again a little later. Thank you for your interest."
+      },
+      "ended": {
+        "title": "This study is no longer active",
+        "body": "The study isn't accepting further participants right now. Thank you for your interest."
+      }
+    },
     "completed": {
       "title": "Thank you for your time.",
       "body": "Your input is genuinely valuable — thanks for taking a few minutes. Have a great day."

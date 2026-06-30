@@ -304,6 +304,14 @@ export async function POST(
   // token, so it must never be matched against interview_sessions. With distinct
   // fresh tokens and no participant-id index on this path, a non-'created' status
   // is a genuine failure.
+  // Studie war nie aktiv / wurde zwischen Eintritt und Submit geschlossen (Race —
+  // der Resolver zeigt sonst schon die "nicht verfügbar"-Seite). Sauberer 403
+  // {available:false} wie bei expired/full/no-screening — kein 500-Rauschen, und
+  // der Mint hat nichts angelegt.
+  if (result.status === "plan_not_open") {
+    return NextResponse.json({ available: false }, { status: 403 });
+  }
+
   console.error(
     `[open-screen] createResearchInterview failed: status=${result.status} ${result.message ?? ""}`,
   );

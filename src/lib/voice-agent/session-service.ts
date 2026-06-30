@@ -43,6 +43,11 @@ import {
   CAPTURE_TIER_COLUMN,
   type CaptureTier,
 } from "@/lib/research/capture-consent";
+import {
+  planParticipationGate,
+  effectivePlanStatus,
+  type ParticipationClosedReason,
+} from "@/lib/research/participation-gate";
 
 /**
  * Persistence + orchestration for async post-loss interviews.
@@ -718,7 +723,17 @@ export interface NeedsScreeningView {
 
 export type PublicEntry =
   | { mode: "session"; session: PublicInterviewView }
-  | { mode: "needs_screening"; screening: NeedsScreeningView };
+  | { mode: "needs_screening"; screening: NeedsScreeningView }
+  | {
+      /** Valid token, but the study is not open for participation (not yet
+       *  active, or already ended/closed). The page renders InterviewUnavailable
+       *  instead of the screening gate / chat. orgId is server-only (white-label
+       *  branding); it never reaches the client. */
+      mode: "not_available";
+      reason: ParticipationClosedReason;
+      orgId: string;
+      language: InterviewLanguage;
+    };
 
 export async function resolvePublicEntry(
   token: string,
@@ -733,6 +748,26 @@ export async function resolvePublicEntry(
   if (!invite || !invite.org_id) return null;
   const { getResearchPlan } = await import("@/lib/research/plans-service");
   const plan = await getResearchPlan(invite.org_id, invite.plan_id);
+
+  // Studien-Status-Gate. Laufende Sessions sind oben via loadByToken bereits raus
+  // (2A: weiterlaufen). effectivePlanStatus ist seiteneffektfrei — eine fällige
+  // geplante Studie zählt als 'active'; der echte scheduled→active-Flip passiert
+  // erst beim Mint (createResearchInterview → ensureDueActivation). plan === null
+  // (fremde org / Denorm-Drift) bleibt unverändert fail-closed via getPublicSession.
+  if (plan) {
+    const gate = planParticipationGate({
+      status: effectivePlanStatus(plan, Date.now()),
+    });
+    if (!gate.open) {
+      return {
+        mode: "not_available",
+        reason: gate.reason,
+        orgId: invite.org_id,
+        language: invite.language,
+      };
+    }
+  }
+
   const questions = plan?.screeningQuestions ?? [];
   if (questions.length > 0) {
     return {
