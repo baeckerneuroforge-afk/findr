@@ -24,7 +24,9 @@ import {
  * Body shape (Zod-validated):
  *   { goal: string (3-2000 chars, mandatory),
  *     audienceType?: "b2b" | "b2c", who?: string (≤200),
- *     language?: string (≤16), topicCount?: int (3-10) }
+ *     language?: string (≤16), topicCount?: int (3-10),
+ *     useCase?: 5-Enum (Art der Studie → Themen-Fokus),
+ *     interviewDepth?: "flach" | "mittel" | "tief" (→ Probe-Anzahl/Thema) }
  *
  * Surface:
  *   400  — invalid body shape
@@ -42,6 +44,19 @@ const BodySchema = z.object({
   who: z.string().max(200).optional(),
   language: z.string().max(16).optional(),
   topicCount: z.number().int().min(3).max(10).optional(),
+  // Art der Studie + Tiefe steuern den Themen-Fokus bzw. die Probe-Anzahl des
+  // generierten Leitfadens. Werte spiegeln das Plan-Schema (use_case ohne
+  // DB-CHECK, hier zod-validiert; interview_depth = flach|mittel|tief).
+  useCase: z
+    .enum([
+      "general_survey",
+      "brand_research",
+      "creative_test",
+      "concept_test",
+      "usability_test",
+    ])
+    .optional(),
+  interviewDepth: z.enum(["flach", "mittel", "tief"]).optional(),
 });
 
 export async function POST(
@@ -97,6 +112,8 @@ export async function POST(
       who: parsed.data.who,
       language: parsed.data.language,
       topicCount: parsed.data.topicCount,
+      useCase: parsed.data.useCase,
+      interviewDepth: parsed.data.interviewDepth,
     });
     return NextResponse.json({ success: true, guide });
   } catch (err) {

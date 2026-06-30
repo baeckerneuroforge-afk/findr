@@ -11,8 +11,10 @@ import {
 } from "../wizard-ui";
 
 /**
- * Schritt 4 — ruhige Zusammenfassung + „Studie starten". Die Analyse-Schalter
- * leben im Interview-Schritt; hier werden sie nur gespiegelt.
+ * Schritt 3 — ruhige Zusammenfassung + „Studie starten". Im 3-Schritt-Flow
+ * leben alle Eingaben (Ziel, Zielgruppe, Art, Interview-Form) im Setup-Schritt
+ * (0) und der Leitfaden im Leitfaden-Schritt (1); hier werden sie nur
+ * gespiegelt. Die „Ändern"-Links springen entsprechend zurück.
  */
 export function StepReview({
   state,
@@ -52,25 +54,21 @@ export function StepReview({
   return (
     <div className="st-rise" style={{ "--st": 0 } as React.CSSProperties}>
       <p className="text-caption font-medium uppercase tracking-wide text-primary-600">
-        {tw("stepCounter", { n: 4 })}
+        {tw("stepCounter", { n: 3 })}
       </p>
       <h1 className="mt-1 text-display text-neutral-900">{tw("s4Title")}</h1>
       <p className="mt-2 max-w-[52ch] text-body text-neutral-500">{tw("s4Desc")}</p>
 
       <Card className="mt-7 p-0">
-        <Group title={tw("grpGoal")} onEdit={() => onEdit(0)}>
+        {/* Setup-Schritt (0): Ziel, Zielgruppe, Art der Studie und die
+            Interview-Form — alles, was den Leitfaden formt. */}
+        <Group title={tw("grpSetup")} onEdit={() => onEdit(0)}>
           <Row label={tw("rowBriefing")} value={state.briefing} />
-        </Group>
-        <Group title={tw("grpProposal")} onEdit={() => onEdit(1)}>
-          <Row label={tw("rowTitle")} value={state.title} />
           <Row label={tw("rowKind")} value={kindLabel} />
           {state.persona.trim() !== "" ? (
             <Row label={tw("rowAudience")} value={state.persona} />
           ) : null}
           <Row label={tw("rowSample")} value={sampleValue} />
-          <Row label={tw("rowGuide")} value={tw("topicsValue", { n: state.topics.length })} />
-        </Group>
-        <Group title={tw("grpInterview")} onEdit={() => onEdit(2)} last>
           <Row label={tw("rowMode")} value={modeLabel} />
           <Row label={tw("rowDepth")} value={depthLabel} />
           <Row label={tw("rowLanguage")} value={langLabel} />
@@ -81,6 +79,11 @@ export function StepReview({
             label={tw("rowAnalysis")}
             value={activeAnalytics.length ? activeAnalytics.join(", ") : tw("analysisNone")}
           />
+        </Group>
+        {/* Leitfaden-Schritt (1): Titel + generierte Themen. */}
+        <Group title={tw("grpGuide")} onEdit={() => onEdit(1)} last>
+          <Row label={tw("rowTitle")} value={state.title} />
+          <Row label={tw("rowGuide")} value={tw("topicsValue", { n: state.topics.length })} />
         </Group>
       </Card>
 
