@@ -11,6 +11,7 @@ import { InterviewProgress } from "./InterviewProgress";
 import { InterviewTimer } from "./InterviewTimer";
 import { InterviewCompletedScreen } from "./InterviewCompletedScreen";
 import { WithdrawDataLink } from "./WithdrawDataLink";
+import { endedPollOutcome } from "./voice-end-outcome";
 import type { Room } from "livekit-client";
 import type { InterviewTurn } from "@/lib/voice-agent/interviewer";
 import type { StimulusSetItem } from "./InterviewChat";
@@ -165,8 +166,13 @@ const FONT = "var(--font-inter), Inter, system-ui, -apple-system, sans-serif";
  *  is a real, expected state that must never look like an endless spinner. */
 const AGENT_JOIN_TIMEOUT_MS = 20_000;
 
-/** Status re-checks after the room ended (router.refresh → status prop). */
-const ENDED_CHECK_ATTEMPTS = 4;
+/** Status re-checks after the room ended (router.refresh → status prop). 8×1.5s
+ *  ≈ 12s gives the agent's complete round-trip (leave room → flush transcript →
+ *  /api/voice/complete → DB flip) a fair chance to land before we resolve, so a
+ *  normal end is a VERIFIED "done" rather than a raced-out error. War 4 (~6s),
+ *  zu kurz gegen die Agent-Laufzeit — die Race-Ursache des „Verbindung
+ *  unterbrochen" beim Beenden. */
+const ENDED_CHECK_ATTEMPTS = 8;
 const ENDED_CHECK_INTERVAL_MS = 1_500;
 
 /** E4: if the agent never sends the {"type":"stimulus","action":"show"}
@@ -826,17 +832,24 @@ export function VoiceInterviewView({
 
   // Ended → bounded status re-checks. router.refresh() re-renders the server
   // component; client state survives, only the props update. The status-flip
-  // adjustment below resolves to "done". Running out of attempts is an honest
-  // "connection lost" ONLY if the agent never signalled the end — if it did
-  // (interview_done_signal), the close is in flight server-side and we resolve
-  // to the thank-you screen instead of a scary error. All setState lives in the
-  // timer callback (external-system event), never in the effect body — repo
-  // lint forbids set-state-in-effect.
+  // adjustment below resolves to "done" the moment the agent completes. Running
+  // out of attempts resolves via endedPollOutcome(): an INTENTIONAL end (the
+  // participant ended, or the agent left the room) OR a seen done-signal → the
+  // thank-you screen — the close is in flight server-side and the agent flips
+  // the status (empirically reliable, just sometimes after this window). Only an
+  // UNINTENTIONAL mid-interview drop (intentionalClose=false, no done-signal)
+  // becomes the honest "connection lost" error, where resuming makes sense. All
+  // setState lives in the timer callback (external-system event), never in the
+  // effect body — repo lint forbids set-state-in-effect.
   useEffect(() => {
     if (phase !== "ended") return;
     const id = setTimeout(() => {
       if (endedTick >= ENDED_CHECK_ATTEMPTS) {
-        if (sawDoneSignalRef.current) {
+        const outcome = endedPollOutcome({
+          sawDoneSignal: sawDoneSignalRef.current,
+          intentionalClose: intentionalCloseRef.current,
+        });
+        if (outcome === "done") {
           setPhase("done");
         } else {
           setErrorKind("lost");
