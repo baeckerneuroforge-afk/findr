@@ -1424,7 +1424,7 @@ function formatTask(task: ResearchPlanContext["task"]): string | null {
   if (!instruction) return null;
   const criterion = task?.successCriterion?.trim();
   return `AUFGABE (Usability):
-Der Teilnehmer bearbeitet gerade diese Aufgabe: ${instruction}${criterion ? `\nErfolgskriterium: ${criterion}` : ""}
+Der Teilnehmer bearbeitet gerade diese Aufgabe: ${instruction}${criterion ? `\nErfolgskriterium (NUR für dich — nenne oder paraphrasiere es der Person NIEMALS, das würde das Ergebnis verzerren): ${criterion}` : ""}
 Lass die Person die Aufgabe zuerst bearbeiten bzw. laut denken. Frage gezielt nach, wo sie zögert, etwas nicht findet oder anders erwartet hatte, und wie sie die Oberfläche versteht. Beschreibe beobachtbare Reibung (Zögern, Umwege, Missverständnisse) in den Worten der Person — VERWENDE KEINE Emotions-/Affekt-Labels („frustriert", „verärgert"). Dieses Material ergänzt die TOPICS, es ersetzt sie nicht.`;
 }
 

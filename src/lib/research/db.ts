@@ -776,7 +776,9 @@ type ResearchScreeningResponseUpdate = {
 // time-on-task); created_at = server clock (authoritative retention/sort). NO
 // affect/emotion column — behavioural only (L8). event_type is a closed set.
 // B6 (2026-07-02): "dwell"/"nav" entfernt — kein Client hat sie je gesendet
-// (Geister-Vertragsteil). Bestandsdaten sind unberührt (Spalte ist text).
+// (Geister-Vertragsteil). Bestandsdaten unberührt; der DB-CHECK der Migration
+// 20260723000003 lässt die beiden weiterhin zu (Superset, bewusst ohne
+// Migration — der Route-Zod ist das enge Gate).
 export type ResearchSessionEventType =
   | "click"
   | "scroll"

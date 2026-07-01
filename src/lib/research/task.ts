@@ -124,5 +124,8 @@ export const TaskDefinitionSchema = z.object({
     .refine((v) => v === null || isHttpUrl(v), {
       message: "targetUrl must be a valid http(s) URL or empty.",
     }),
-  prototypeHosting: z.enum(PROTOTYPE_HOSTING).default("first_party_iframe"),
+  // Default konsistent über alle Schichten (Wizard/Form/API — Lehre aus dem
+  // Wizard-Berater-Cap-Bug): external_url ist der ehrliche Default; iframe-
+  // Embedding ist ein explizites Opt-in für einbettbare Seiten.
+  prototypeHosting: z.enum(PROTOTYPE_HOSTING).default("external_url"),
 });

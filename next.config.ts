@@ -121,19 +121,24 @@ const nextConfig: NextConfig = {
   // Policy-Report-Only rollout first (it cannot be runtime-verified here). What
   // IS safe to set globally:
   //   • HSTS / X-Content-Type-Options / Referrer-Policy — never break anything.
-  //   • CSP `frame-ancestors 'none'` — a single-directive CSP imposes NO
+  //   • CSP `frame-ancestors 'self'` — a single-directive CSP imposes NO
   //     script/style/connect/img restriction (CSP is per-directive: directives
-  //     left unspecified are unrestricted), so it can't break Clerk, next-intl
-  //     or inline styles. It only blocks clickjacking — the modern replacement
-  //     for the legacy `X-Frame-Options` (§6/§8).
+  //     left unspecified are unrestricted), so it can't break next-intl or
+  //     inline styles. It blocks clickjacking — the modern replacement for the
+  //     legacy `X-Frame-Options` (§6/§8). 'self' statt 'none' seit dem
+  //     first-party-Prototyp-Panel (UX-Engine B1, 2026-07-02): das Usability-
+  //     iframe auf /interview/[token] darf EIGENE Seiten einbetten — mit
+  //     'none' verweigerte sich jede same-origin-Seite selbst und der messbare
+  //     Embed-Modus war strukturell tot. Klickjacking-Schutz bleibt voll:
+  //     ein Angreifer kann nie von UNSEREM Origin aus servieren, cross-origin
+  //     Framing bleibt verboten.
   //     ⚠ If the /interview open-link is ever meant to be iframe-EMBEDDED by a
-  //     white-label customer, this would block that embed → scope it to exclude
-  //     /interview (confirm with André). The interview is link-accessed today,
-  //     so 'none' is safe.
+  //     white-label customer (fremder Origin), braucht das eine eigene,
+  //     route-gescopte Ausnahme (confirm with André).
   //   • Permissions-Policy with (self) allowlists — same-origin getUserMedia
   //     (voice interview) and getDisplayMedia (visual capture) keep working;
-  //     only cross-origin iframes lose access to camera/mic/screen, which
-  //     nothing embeds today (frame-ancestors 'none' anyway).
+  //     only cross-origin iframes lose access to camera/mic/screen (the
+  //     first-party prototype iframe is same-origin → unaffected).
   //   • Content-Security-Policy-Report-Only — the rollout step the block above
   //     calls for: enforces NOTHING, only reports would-be violations to
   //     /api/csp-report (visible in Vercel logs). Once the report stream is
@@ -186,7 +191,10 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-DNS-Prefetch-Control", value: "on" },
-          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          // 'self' statt 'none' (B1, 2026-07-02): das first-party-Prototyp-
+          // iframe auf /interview/[token] muss eigene Seiten laden dürfen;
+          // cross-origin Framing (= Klickjacking-Vektor) bleibt verboten.
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
           {
             key: "Permissions-Policy",
             value:

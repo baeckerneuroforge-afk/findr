@@ -1381,7 +1381,11 @@ export function VoiceInterviewView({
         show={
           eventTrackingEnabled &&
           eventsConsent === "pending" &&
-          initialStatus === "open"
+          initialStatus === "open" &&
+          // Live-Phase statt nur Server-Prop: nach dem Auflegen (phase "done")
+          // wäre eine Einwilligung sinnlos — der Text-Chat blendet über
+          // isOpen genauso sofort aus.
+          phase !== "done"
         }
         onDecision={setEventsConsent}
       />

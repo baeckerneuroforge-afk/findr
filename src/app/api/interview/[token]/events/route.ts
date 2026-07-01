@@ -14,7 +14,7 @@ import {
  *
  * Public participant route, scoped by the same unguessable interview token as
  * /api/interview/[token] and /visual-capture. It accepts a small batch of
- * behavioural usability events (clicks/scroll/dwell/nav/task lifecycle) and
+ * behavioural usability events (clicks/scroll/form-focus/task lifecycle) and
  * returns the server-computed task result. NO org secret is ever required from
  * the browser — org_id is read from the token-owned session row.
  *

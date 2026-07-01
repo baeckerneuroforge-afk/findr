@@ -75,24 +75,46 @@ const MAX_BUFFER = 2000;
 const SCROLL_THROTTLE_MS = 1000;
 const MAX_SELECTOR_LEN = 120;
 
+/** Element-Erkennung ohne `instanceof Element`: Events aus dem first-party
+ *  iframe (B1, mode="embed") tragen Elemente aus einem ANDEREN Realm — deren
+ *  Prototyp-Kette matcht den Element-Konstruktor des Parent-Fensters nicht,
+ *  `instanceof` wäre dort immer false (Review-Fund 2026-07-02: im embed-Modus
+ *  kamen sonst Klicks ohne Selector und nie input_focus/blur an). Duck-Typing
+ *  auf tagName ist realm-agnostisch und liest weiterhin nur Struktur. */
+function asElementLike(
+  target: EventTarget | null,
+): { tagName: string; id?: unknown; className?: unknown } | null {
+  if (
+    target &&
+    typeof (target as { tagName?: unknown }).tagName === "string"
+  ) {
+    return target as unknown as {
+      tagName: string;
+      id?: unknown;
+      className?: unknown;
+    };
+  }
+  return null;
+}
+
 /** A short, NON-PII structural selector: tag + (#id | .first-class), capped.
  *  Never element text or attribute values. */
 function shortSelector(target: EventTarget | null): string | undefined {
-  if (!(target instanceof Element)) return undefined;
-  const tag = target.tagName.toLowerCase();
-  const id = typeof target.id === "string" && target.id ? `#${target.id}` : "";
+  const el = asElementLike(target);
+  if (!el) return undefined;
+  const tag = el.tagName.toLowerCase();
+  const id = typeof el.id === "string" && el.id ? `#${el.id}` : "";
   const cls =
-    !id &&
-    typeof target.className === "string" &&
-    target.className.trim() !== ""
-      ? `.${target.className.trim().split(/\s+/)[0]}`
+    !id && typeof el.className === "string" && el.className.trim() !== ""
+      ? `.${el.className.trim().split(/\s+/)[0]}`
       : "";
   return `${tag}${id}${cls}`.slice(0, MAX_SELECTOR_LEN);
 }
 
 function isFormField(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false;
-  const tag = target.tagName.toLowerCase();
+  const el = asElementLike(target);
+  if (!el) return false;
+  const tag = el.tagName.toLowerCase();
   return tag === "input" || tag === "textarea" || tag === "select";
 }
 
@@ -118,6 +140,13 @@ export function useEventCollector({
   const bufferRef = useRef<CollectedEvent[]>([]);
   const startedRef = useRef(false);
   const completedSentRef = useRef(false);
+  // Review-Fund 2026-07-02: Klickt der Teilnehmer den Prototyp-Link BEVOR er
+  // den Events-Consent bestätigt, darf kein Event gesendet werden — aber der
+  // Zeitpunkt ist die ehrliche Task-Start-Marke. Er wird deshalb NUR lokal
+  // gemerkt (kein Netzwerk, keine Persistenz = kein Consent-Konflikt) und
+  // beim Aktivwerden bzw. Outcome-Backfill als ts des task_start verwendet —
+  // sonst entstünde time_on_task = 0 s als falsches „echtes" Datum.
+  const pendingStartTsRef = useRef<number | null>(null);
 
   const flush = useCallback(
     (keepalive = false) => {
@@ -137,7 +166,11 @@ export function useEventCollector({
   );
 
   const push = useCallback(
-    (event_type: CollectedEventType, target_selector?: string) => {
+    (
+      event_type: CollectedEventType,
+      target_selector?: string,
+      tsOverride?: number,
+    ) => {
       // Terminal events carry the AUTHORITATIVE task outcome (computeTaskResult
       // decides success from the LAST task_complete/task_abandon). Dropping one
       // under buffer pressure would silently lose the outcome and leave
@@ -151,7 +184,7 @@ export function useEventCollector({
         event_type,
         // B4 — Epoch-ms: reload-stabile globale Ordnung; der Server rechnet
         // nur Differenzen und toleriert Epoch per MAX_TS_MS ausdrücklich.
-        ts_ms: Date.now(),
+        ts_ms: tsOverride ?? Date.now(),
         ...(target_selector ? { target_selector } : {}),
       });
       if (bufferRef.current.length >= FLUSH_AT_COUNT) flush();
@@ -160,9 +193,15 @@ export function useEventCollector({
   );
 
   const markTaskStarted = useCallback(() => {
-    if (!active || startedRef.current) return;
+    if (startedRef.current) return;
+    if (!active) {
+      // Vor Consent: Zeitpunkt nur lokal merken (siehe pendingStartTsRef-Doku).
+      pendingStartTsRef.current ??= Date.now();
+      return;
+    }
     startedRef.current = true;
-    push("task_start");
+    push("task_start", undefined, pendingStartTsRef.current ?? undefined);
+    pendingStartTsRef.current = null;
     flush();
   }, [active, push, flush]);
 
@@ -172,6 +211,14 @@ export function useEventCollector({
   // explizite Erklärung bleibt der Ausgang „offen".
   useEffect(() => {
     if (!active) return;
+
+    // Nachgeholter Start: der Prototyp-Link wurde VOR dem Consent geklickt —
+    // jetzt (aktiv) wird der gemerkte Zeitpunkt als task_start gesendet.
+    if (!startedRef.current && pendingStartTsRef.current !== null) {
+      startedRef.current = true;
+      push("task_start", undefined, pendingStartTsRef.current);
+      pendingStartTsRef.current = null;
+    }
 
     // mode="page": die Interview-Seite IST die Aufgabenfläche → Task beginnt
     // mit der Erfassung (Alt-Verhalten, korrekt für Aufgaben ohne Prototyp).
@@ -258,7 +305,10 @@ export function useEventCollector({
       if (!active || completedSentRef.current) return;
       if (!startedRef.current) {
         startedRef.current = true;
-        push("task_start");
+        // Backfill mit dem gemerkten Link-Klick-Zeitpunkt, falls vorhanden —
+        // sonst wäre time_on_task hier fälschlich 0 s.
+        push("task_start", undefined, pendingStartTsRef.current ?? undefined);
+        pendingStartTsRef.current = null;
       }
       completedSentRef.current = true;
       push(outcome === "complete" ? "task_complete" : "task_abandon");
