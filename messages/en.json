@@ -1818,6 +1818,8 @@
       "emptyDescWithInsights": "{count, plural, one {# interview is} other {# interviews are}} ready for the first synthesis. Click \"Create synthesis\" at the top right to start Stage 2.",
       "emptyDescNoInsights": "Once interviews for this plan have been analyzed, the cross-call synthesis can be created here.",
       "overviewTitle": "Overview",
+      "chartThemeTitle": "Themes by frequency",
+      "chartUnitInterviews": "interviews",
       "emergentThemesTitle": "Emergent themes ({count})",
       "emergentThemesDesc": "Themes that appeared across multiple interviews. Click a theme to see quotes and source interviews.",
       "noEmergentThemes": "Stage 2 extracted no cross-call themes — the interviews seem to overlap little in content.",
@@ -2862,7 +2864,10 @@
     "exportPdf": "PDF",
     "exportPptx": "PPTX",
     "openStudyHint": "Go to this study's synthesis",
-    "groundingNote": "Every theme and divergence is anchored with verbatim quotes from the named study's synthesis. Observations that cannot be evidenced appear separately as interpretation."
+    "groundingNote": "Every theme and divergence is anchored with verbatim quotes from the named study's synthesis. Observations that cannot be evidenced appear separately as interpretation.",
+    "chartConvergentTitle": "Themes by number of studies",
+    "chartInterviewsTitle": "Interviews per study",
+    "unitStudies": "studies"
   },
   "syntheticTest": {
     "pageTitle": "Test the study — dry run",

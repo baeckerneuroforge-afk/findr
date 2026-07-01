@@ -1818,6 +1818,8 @@
       "emptyDescWithInsights": "{count, plural, one {# Interview steht} other {# Interviews stehen}} für die erste Synthese bereit. Klick „Synthese erstellen\" oben rechts, um Stage 2 zu starten.",
       "emptyDescNoInsights": "Sobald Interviews zu diesem Plan ausgewertet sind, kann hier die Cross-Call-Synthese erstellt werden.",
       "overviewTitle": "Überblick",
+      "chartThemeTitle": "Themen nach Häufigkeit",
+      "chartUnitInterviews": "Interviews",
       "emergentThemesTitle": "Emergente Themen ({count})",
       "emergentThemesDesc": "Themen, die in mehreren Interviews aufgetaucht sind. Klick ein Thema, um Zitate und Quell-Interviews zu sehen.",
       "noEmergentThemes": "Stage 2 hat keine cross-call-Themen extrahiert — die Interviews scheinen sich inhaltlich wenig zu überlappen.",
@@ -2862,7 +2864,10 @@
     "exportPdf": "PDF",
     "exportPptx": "PPTX",
     "openStudyHint": "Zur Synthese dieser Studie",
-    "groundingNote": "Jedes Thema und jede Divergenz ist mit wörtlichen Zitaten aus der jeweils genannten Synthese verankert. Nicht belegbare Beobachtungen erscheinen separat als Interpretation."
+    "groundingNote": "Jedes Thema und jede Divergenz ist mit wörtlichen Zitaten aus der jeweils genannten Synthese verankert. Nicht belegbare Beobachtungen erscheinen separat als Interpretation.",
+    "chartConvergentTitle": "Themen nach Studienzahl",
+    "chartInterviewsTitle": "Interviews je Studie",
+    "unitStudies": "Studien"
   },
   "syntheticTest": {
     "pageTitle": "Studie testen — Trockenlauf",

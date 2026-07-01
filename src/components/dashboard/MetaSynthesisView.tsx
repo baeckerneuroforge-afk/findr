@@ -3,6 +3,11 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { FrequencyBarChart } from "@/components/dashboard/FrequencyBarChart";
+import {
+  buildConvergentFrequencyChart,
+  buildInterviewsPerStudyChart,
+} from "@/lib/meta-synthesis/charts";
 import type { MetaSynthesisCitation } from "@/lib/schemas/meta-synthesis";
 import type { MetaSynthesisRecord } from "@/lib/meta-synthesis/service";
 
@@ -45,6 +50,14 @@ export async function MetaSynthesisView({
 
   const { result } = record;
   const openStudyHint = t("openStudyHint");
+
+  // Honest charts — built purely from stored server counts (study_frequency,
+  // basedOnCount). Each returns null when there's too little to compare.
+  const convergentChart = buildConvergentFrequencyChart(
+    result.convergent_themes,
+    totalStudies,
+  );
+  const interviewsChart = buildInterviewsPerStudyChart(record.basedOn);
 
   return (
     <div className="space-y-6">
@@ -123,6 +136,25 @@ export async function MetaSynthesisView({
           )}
         </CardBody>
       </Card>
+
+      {/* Auf einen Blick — honest charts from stored server counts. */}
+      {(convergentChart || interviewsChart) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {convergentChart && (
+            <FrequencyBarChart
+              chart={convergentChart}
+              title={t("chartConvergentTitle")}
+              unit={t("unitStudies")}
+            />
+          )}
+          {interviewsChart && (
+            <FrequencyBarChart
+              chart={interviewsChart}
+              title={t("chartInterviewsTitle")}
+            />
+          )}
+        </div>
+      )}
 
       {/* Convergent themes */}
       <section className="space-y-3">

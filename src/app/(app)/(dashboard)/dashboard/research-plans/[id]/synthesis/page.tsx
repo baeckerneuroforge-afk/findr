@@ -22,6 +22,8 @@ import { ExportSynthesisPdfButton } from "@/components/dashboard/ExportSynthesis
 import { ExportSynthesisPptxButton } from "@/components/dashboard/ExportSynthesisPptxButton";
 import { HighlightReelPanel } from "@/components/dashboard/HighlightReelPanel";
 import { SynthesisThemeCard } from "@/components/dashboard/SynthesisThemeCard";
+import { FrequencyBarChart } from "@/components/dashboard/FrequencyBarChart";
+import { buildThemeFrequencyChart } from "@/lib/synthesis/charts";
 import { UpdateSynthesisButton } from "@/components/dashboard/UpdateSynthesisButton";
 import { SynthesisShareManager } from "@/components/dashboard/SynthesisShareManager";
 import { ENABLED_MODULES } from "@/config/modules";
@@ -148,6 +150,16 @@ export default async function ResearchPlanSynthesisPage({
   const t = await getTranslations("research.synthesis");
   const locale = await getLocale();
 
+  // Honest theme-prevalence chart — built purely from the engine-overridden
+  // `frequency` per theme (unique respondents), never an LLM number. Null when
+  // there are fewer than two themes to compare, or no synthesis yet.
+  const themeChart = synthesis
+    ? buildThemeFrequencyChart(
+        synthesis.emergent_themes,
+        synthesis.based_on_count,
+      )
+    : null;
+
   return (
     <div className="space-y-8">
       {/* Breadcrumb */}
@@ -262,6 +274,15 @@ export default async function ResearchPlanSynthesisPage({
                 </p>
               </CardBody>
             </Card>
+          )}
+
+          {/* Themen-Häufigkeit auf einen Blick — nur aus Server-Zahlen. */}
+          {themeChart && (
+            <FrequencyBarChart
+              chart={themeChart}
+              title={t("chartThemeTitle")}
+              unit={t("chartUnitInterviews")}
+            />
           )}
 
           {/* Emergent themes */}
