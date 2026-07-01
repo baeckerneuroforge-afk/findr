@@ -295,6 +295,39 @@ export default async function ResearchPlanSynthesisPage({
             </Card>
           )}
 
+          {/* Beratung (nicht belegt) — interpretative Implikationen (Hypothesen
+              aus Befunden), eval-abgesichert (basis = echter Befund, GATE). Klar
+              als „nicht belegt" gekennzeichnet, nie als Fakt. */}
+          {synthesis.implications.length > 0 && (
+            <Card>
+              <CardHeader>
+                <h2 className="text-h3 text-neutral-900">
+                  {t("advisoryTitle")}
+                </h2>
+                <p className="mt-1 text-small text-neutral-500">
+                  {t("advisorySubtitle")}
+                </p>
+              </CardHeader>
+              <CardBody>
+                <ul className="space-y-3">
+                  {synthesis.implications.map((imp, i) => (
+                    <li
+                      key={`impl-${i}`}
+                      className="rounded-md border border-dashed border-warning-500/40 bg-warning-50 p-3"
+                    >
+                      <div className="text-caption font-medium uppercase tracking-wider text-warning-700">
+                        {imp.basis}
+                      </div>
+                      <p className="mt-1 whitespace-pre-wrap text-body leading-relaxed text-neutral-800">
+                        {imp.hypothesis}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </CardBody>
+            </Card>
+          )}
+
           {/* Themen-Häufigkeit auf einen Blick — nur aus Server-Zahlen. */}
           {themeChart && (
             <FrequencyBarChart

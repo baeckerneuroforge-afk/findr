@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { expandSynthesisNarrative } from "@/lib/synthesis/narrative";
+import { generateSynthesisImplications } from "@/lib/synthesis/advisory";
 
 /**
  * POST /api/research/plans/[id]/synthesis/expand — the post-hoc "Ausführlicher
@@ -46,6 +47,17 @@ export async function POST(
       return NextResponse.json(
         { error: t("research.noSynthesisYet") },
         { status: 409 },
+      );
+    }
+    // Advisory is part of „ausführlich" — best-effort, so a failure here never
+    // undoes the narrative that already succeeded.
+    try {
+      await generateSynthesisImplications(orgId, planId);
+    } catch (advErr) {
+      console.warn(
+        `[research/synthesis/expand] advisory stage failed: ${
+          advErr instanceof Error ? advErr.message : advErr
+        }`,
       );
     }
     return NextResponse.json({

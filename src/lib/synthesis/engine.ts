@@ -160,6 +160,9 @@ type StudySynthesisRow = {
   // detail_level defaultet DB-seitig auf 'standard'.
   detail_level: string | null;
   executive_narrative: string | null;
+  // Beratungs-Stufe (20260728000000) — additive; geschrieben NUR von der
+  // Advisory-Stufe (src/lib/synthesis/advisory.ts). Default '[]'.
+  implications: Json;
 };
 
 type StudySynthesisInsert = {
@@ -185,6 +188,7 @@ type StudySynthesisInsert = {
   personas_generated_at?: string | null;
   detail_level?: string | null;
   executive_narrative?: string | null;
+  implications?: Json;
 };
 
 type StudySynthesisUpdate = Partial<StudySynthesisInsert>;

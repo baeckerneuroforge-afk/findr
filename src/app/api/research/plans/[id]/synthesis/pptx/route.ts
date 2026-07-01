@@ -74,6 +74,7 @@ export async function GET(
         synthesized_at: synthesis.synthesized_at as string,
         model: synthesis.model,
         executive_narrative: synthesis.executive_narrative,
+        implications: synthesis.implications,
       },
       orgName,
       locale,

@@ -258,6 +258,9 @@ export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buff
   for (const tension of synthesis.tensions) {
     addTensionSlide(pptx, tension, locale, brandName, accentNoHash);
   }
+  if (synthesis.implications && synthesis.implications.length > 0) {
+    addAdvisorySlide(pptx, input, brandName, accentNoHash);
+  }
   addClosingSlide(pptx, input, brandName, accentNoHash);
 
   // pptxgenjs returns a Node Buffer for outputType "nodebuffer" (its public
@@ -682,6 +685,64 @@ function addNarrativeSlide(
     align: "left",
     valign: "top",
     lineSpacingMultiple: 1.25,
+  });
+}
+
+/** Beratung (nicht belegt) — die Implikationen als eigene Folie. */
+function addAdvisorySlide(
+  pptx: PptxGenJS,
+  input: SynthesisPdfInput,
+  brandName: string,
+  accentNoHash: string,
+): void {
+  const { synthesis, locale } = input;
+  const heading = translate(locale, "export.synthesis.advisoryHeading");
+  const slide = pptx.addSlide();
+  const top = chrome(slide, heading, locale, brandName, accentNoHash);
+  slide.addText(heading, {
+    x: MARGIN,
+    y: top,
+    w: CONTENT_W,
+    h: 0.6,
+    fontFace: FONT,
+    fontSize: 26,
+    bold: true,
+    color: COLORS.ink,
+    align: "left",
+  });
+  slide.addShape("rect", {
+    x: MARGIN,
+    y: top + 0.62,
+    w: 0.7,
+    h: 0.04,
+    fill: { color: accentNoHash },
+  });
+  const runs: PptxGenJS.TextProps[] = [];
+  for (const imp of synthesis.implications ?? []) {
+    runs.push({
+      text: truncate(imp.basis, 120),
+      options: {
+        color: COLORS.violet,
+        bold: true,
+        fontSize: 13,
+        breakLine: true,
+        paraSpaceBefore: 10,
+      },
+    });
+    runs.push({
+      text: truncate(imp.hypothesis, 400),
+      options: { color: COLORS.body, fontSize: 12, breakLine: true },
+    });
+  }
+  slide.addText(runs, {
+    x: MARGIN,
+    y: top + 1.0,
+    w: CONTENT_W,
+    h: PAGE_H - top - 1.6,
+    fontFace: FONT,
+    align: "left",
+    valign: "top",
+    lineSpacingMultiple: 1.1,
   });
 }
 

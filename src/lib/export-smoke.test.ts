@@ -57,6 +57,13 @@ const SYNTHESIS_INPUT: SynthesisPdfInput = {
     model: "claude-opus-4-8",
     executive_narrative:
       "Die Reibung kumuliert über den gesamten Einrichtungspfad und der erste sichtbare Nutzen kommt zu spät.",
+    implications: [
+      {
+        basis: "Setup-Komplexität blockiert den ersten Erfolg",
+        hypothesis:
+          "Ein früher sichtbarer Nutzen könnte die frühe Abbruchquote senken; als Hypothese zu prüfen.",
+      },
+    ],
   },
   orgName: "Test-Org",
   locale: "de",

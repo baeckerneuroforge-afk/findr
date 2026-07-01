@@ -24,6 +24,10 @@ import {
   coerceInteractionSummary,
   type InteractionSummary,
 } from "@/lib/schemas/synthesis-interaction";
+import {
+  normalizeImplications,
+  type SynthesisImplication,
+} from "@/lib/schemas/synthesis-advisory";
 
 /**
  * Read-side service for the study-synthesis UI. Two functions:
@@ -89,6 +93,9 @@ export interface StudySynthesisRecord {
    *  defaultet 'standard'; executive_narrative null bis „ausführlich" gewählt. */
   detail_level: string;
   executive_narrative: string | null;
+  /** Beratungs-Stufe (20260728000000) — interpretative Implikationen (Hypothesen
+   *  aus Befunden), „Beratung, nicht belegt". Leer bis „ausführlich" gewählt. */
+  implications: SynthesisImplication[];
 }
 
 export type { EmergentTheme, Tension, TensionSide };
@@ -118,6 +125,7 @@ export async function getStudySynthesis(
     interaction_summary?: unknown;
     detail_level?: unknown;
     executive_narrative?: unknown;
+    implications?: unknown;
   };
   return {
     id: data.id,
@@ -153,6 +161,7 @@ export async function getStudySynthesis(
       row.executive_narrative.trim() !== ""
         ? row.executive_narrative
         : null,
+    implications: normalizeImplications(row.implications),
   };
 }
 

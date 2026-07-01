@@ -13,6 +13,10 @@ import {
   expandSynthesisNarrative,
   resetSynthesisNarrative,
 } from "@/lib/synthesis/narrative";
+import {
+  generateSynthesisImplications,
+  resetSynthesisImplications,
+} from "@/lib/synthesis/advisory";
 
 /**
  * POST /api/research/plans/[id]/synthesis — re-run / create Stage-2 synthesis.
@@ -76,6 +80,9 @@ export async function POST(
     let executiveNarrative: string | null = null;
     if (synthesis.status === "synthesized") {
       if (detailLevel === "ausführlich") {
+        // Two additive, BEST-EFFORT stages over the fresh synthesis: the
+        // narrative and the eval-calibrated advisory. Either failing leaves the
+        // base synthesis intact (mirrors the E4 extras posture).
         try {
           const expanded = await expandSynthesisNarrative(orgId, planId);
           executiveNarrative = expanded.executiveNarrative;
@@ -86,14 +93,24 @@ export async function POST(
             }`,
           );
         }
+        try {
+          await generateSynthesisImplications(orgId, planId);
+        } catch (advErr) {
+          console.warn(
+            `[research/synthesis] advisory stage failed (base synthesis kept): ${
+              advErr instanceof Error ? advErr.message : advErr
+            }`,
+          );
+        }
       } else {
-        // Standard re-run → clear any stale narrative from a prior ausführlich
-        // run so it can't outlive the refreshed synthesis (best-effort).
+        // Standard re-run → clear any stale narrative + advisory from a prior
+        // ausführlich run so they can't outlive the refreshed synthesis.
         try {
           await resetSynthesisNarrative(orgId, planId);
+          await resetSynthesisImplications(orgId, planId);
         } catch (resetErr) {
           console.warn(
-            `[research/synthesis] narrative reset failed: ${
+            `[research/synthesis] ausführlich reset failed: ${
               resetErr instanceof Error ? resetErr.message : resetErr
             }`,
           );

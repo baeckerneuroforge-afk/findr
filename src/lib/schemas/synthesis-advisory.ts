@@ -36,3 +36,18 @@ export const SynthesisImplicationsResultSchema = z.object({
 export type SynthesisImplicationsResult = z.infer<
   typeof SynthesisImplicationsResultSchema
 >;
+
+/** Normalize persisted `implications` JSONB into honest SynthesisImplication[].
+ *  Defensive map (never throws) — mirrors normalizeEmergentThemes: legacy/partial
+ *  rows drop to [] rather than crashing a read. */
+export function normalizeImplications(value: unknown): SynthesisImplication[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const e = entry as Record<string, unknown>;
+    if (typeof e.basis !== "string" || typeof e.hypothesis !== "string") {
+      return [];
+    }
+    return [{ basis: e.basis, hypothesis: e.hypothesis }];
+  });
+}

@@ -10,6 +10,7 @@ import type {
   TensionSide,
 } from "@/lib/schemas/synthesis";
 import type { ExportBranding } from "@/lib/settings/branding-assets";
+import type { SynthesisImplication } from "@/lib/schemas/synthesis-advisory";
 import type { FrequencyChartData } from "@/lib/charts";
 import { buildThemeFrequencyChart } from "@/lib/synthesis/charts";
 import { translate } from "@/i18n/messages";
@@ -68,6 +69,9 @@ export interface SynthesisPdfInput {
     /** Ausführlich-Stufe — optionale längere Erzählung (verankert). Null im
      *  Standard-Modus; dann wird die Sektion weggelassen. */
     executive_narrative?: string | null;
+    /** Beratungs-Stufe — interpretative Implikationen („nicht belegt"). Leer im
+     *  Standard-Modus. */
+    implications?: SynthesisImplication[];
   };
   orgName: string;
   /** Resolved UI locale (from the request cookie, via the route handler).
@@ -532,6 +536,30 @@ export async function buildSynthesisPdf(
     for (const tension of synthesis.tensions) {
       renderTension(doc, tension, fonts, locale);
     }
+  }
+
+  // ── Beratung (nicht belegt) — interpretative Implikationen ──
+  if (synthesis.implications && synthesis.implications.length > 0) {
+    sectionHeading(
+      doc,
+      translate(locale, "export.synthesis.advisoryHeading"),
+      fonts.bold,
+    );
+    for (const imp of synthesis.implications) {
+      ensureSpace(doc, 40);
+      doc
+        .font(fonts.bold)
+        .fontSize(9)
+        .fillColor(COLORS.violet)
+        .text(cleanText(imp.basis), left, doc.y, { width });
+      doc
+        .font(fonts.regular)
+        .fontSize(10)
+        .fillColor(COLORS.body)
+        .text(cleanText(imp.hypothesis), left, doc.y, { width, lineGap: 1 });
+      doc.moveDown(0.4);
+    }
+    doc.moveDown(0.2);
   }
 
   // Optional: model footnote, dezent, am Ende des Content-Streams.

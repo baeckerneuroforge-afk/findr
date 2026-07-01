@@ -5,12 +5,20 @@ import {
   StructuredOutputError,
 } from "@/lib/anthropic/structured";
 import { CLAUDE_MODELS } from "@/lib/anthropic/client";
+import {
+  createSynthSupabase,
+  StudySynthesisUnavailableError,
+} from "@/lib/synthesis/engine";
+import { getStudySynthesis } from "@/lib/synthesis/service";
+import { filterAnchoredImplications } from "@/lib/synthesis/advisory-checks";
+import { getResearchPlan } from "@/lib/research/plans-service";
 import type { EmergentTheme, Tension } from "@/lib/schemas/synthesis";
 import {
   SynthesisImplicationsResultSchema,
   type SynthesisImplication,
   type SynthesisImplicationsResult,
 } from "@/lib/schemas/synthesis-advisory";
+import type { Json } from "@/types/database";
 
 /**
  * Advisory generation (Runde 2) — the „Beratung"-Schicht. A SEPARATE stage over a
@@ -212,4 +220,74 @@ export async function generateImplications(
 ): Promise<SynthesisImplicationsResult> {
   const draft = await generateImplicationsFromInputs(input, model);
   return refineImplications(input, draft.implications, model);
+}
+
+// ── DB-driven stage (prod) — generate → refine → GATE → persist ──────────────
+
+export interface GenerateSynthesisImplicationsResult {
+  status: "generated" | "no_synthesis";
+  implications: SynthesisImplication[];
+}
+
+/**
+ * Full prod advisory stage over a plan's FINISHED synthesis: generate → refine →
+ * deterministic GATE (drop implications whose basis names no real finding) →
+ * persist into the additive `implications` column. Never touches the core
+ * synthesis; writes ONLY the kept, anchored implications.
+ *
+ * AUTH: the caller MUST have verified the plan belongs to `orgId`.
+ */
+export async function generateSynthesisImplications(
+  orgId: string,
+  planId: string,
+  model?: string,
+): Promise<GenerateSynthesisImplicationsResult> {
+  const record = await getStudySynthesis(orgId, planId);
+  if (!record || record.synthesized_at === null) {
+    return { status: "no_synthesis", implications: [] };
+  }
+  const plan = await getResearchPlan(orgId, planId);
+  const input: AdvisoryInput = {
+    plan: { title: plan?.title ?? "Studie", objective: plan?.objective ?? "" },
+    overview: record.overview,
+    emergent_themes: record.emergent_themes,
+    tensions: record.tensions,
+  };
+
+  const result = await generateImplications(input, model);
+  // Deterministic GATE — only implications grounded in a real finding survive.
+  const { kept } = filterAnchoredImplications(result.implications, input);
+
+  const supabase = createSynthSupabase();
+  const { error } = await supabase
+    .from("study_synthesis")
+    .update({ implications: kept as unknown as Json })
+    .eq("org_id", orgId)
+    .eq("plan_id", planId);
+  if (error) {
+    throw new StudySynthesisUnavailableError(
+      `Failed to persist implications (migration 20260728000000 applied?): ${error.message}`,
+    );
+  }
+  return { status: "generated", implications: kept };
+}
+
+/** Clear any persisted implications — run on a plain (standard) re-synthesis so a
+ *  „Beratung" from a prior ausführlich run can't outlive the synthesis it advised.
+ *  Best-effort; touches only the additive column. */
+export async function resetSynthesisImplications(
+  orgId: string,
+  planId: string,
+): Promise<void> {
+  const supabase = createSynthSupabase();
+  const { error } = await supabase
+    .from("study_synthesis")
+    .update({ implications: [] as unknown as Json })
+    .eq("org_id", orgId)
+    .eq("plan_id", planId);
+  if (error) {
+    console.warn(
+      `[advisory] implications reset failed (migration 20260728000000 applied?): ${error.message}`,
+    );
+  }
 }
