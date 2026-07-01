@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import { Konsoul } from "@/components/site/Konsoul";
 import { SiteShell, PageHero, DEMO_URL, SUPPORT_EMAIL } from "@/components/site/SiteShell";
-import { ogDefaults, jsonLdHtml, SITE_URL } from "@/lib/marketing/seo";
+import { buildAlternates, jsonLdHtml, ogDefaultsFor, SITE_URL } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "Kontakt & Demo buchen — Klymeo" },
   description:
     "Buch eine 30-Minuten-Demo mit Konsoul oder schreib uns direkt.",
-  alternates: { canonical: "/kontakt" },
+  alternates: buildAlternates("de", "/kontakt"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Kontakt & Demo buchen — Klymeo",
     description:
       "30-Minuten-Demo mit echtem Use Case oder Mail an support@klymeo.com.",

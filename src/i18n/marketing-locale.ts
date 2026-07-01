@@ -131,4 +131,52 @@ export function localizeHref(locale: Locale, href: string): string {
   return isCrossRoot ? href : localizePath(locale, href);
 }
 
+/**
+ * ── Asymmetric site-locale helpers (src/app/(site) + src/app/en) ──
+ *
+ * The functions above (`localizePath`/`stripLocalePrefix`/`localeOfPath`)
+ * implement a SYMMETRIC scheme — both `de` and `en` prefixed — built for the
+ * now-deleted `(marketing)/[lang]` tree. `src/components/marketing/*` still
+ * uses them (kept alive only for the (app)/(participant) not-found pages), so
+ * they are left untouched rather than repurposed.
+ *
+ * The LIVE public site is asymmetric instead: German kept its existing flat,
+ * unprefixed URLs (already indexed since the Lovable relaunch — re-prefixing
+ * them now would be a pure regression), and only English sits under `/en`.
+ * German pages and English pages are genuinely separate files/routes (e.g.
+ * `src/app/(site)/preise/page.tsx` vs `src/app/en/preise/page.tsx`), each with
+ * its own hand-translated content — these helpers exist only for the small
+ * amount of locale-aware CHROME (the language switcher, shared nav/footer)
+ * that both trees import.
+ */
+
+/** German is always unprefixed (canonical, unchanged); English sits under
+ *  `/en`. `path` must be a canonical (German) site path, e.g. "/preise" or
+ *  "/" — never already locale-prefixed.
+ *    siteLocalizePath("de", "/preise") -> "/preise"
+ *    siteLocalizePath("en", "/preise") -> "/en/preise"
+ *    siteLocalizePath("en", "/")       -> "/en" */
+export function siteLocalizePath(locale: Locale, path: string): string {
+  if (locale === "de") return path;
+  return path === "/" ? "/en" : `/en${path}`;
+}
+
+/** Strip a leading `/en` segment to recover the canonical (German) path —
+ *  the inverse of `siteLocalizePath`. A path with no `/en` prefix is already
+ *  canonical (defensive — also handles German's own unprefixed paths).
+ *    stripSiteLocalePrefix("/en/preise") -> "/preise"
+ *    stripSiteLocalePrefix("/en")        -> "/"
+ *    stripSiteLocalePrefix("/preise")    -> "/preise" */
+export function stripSiteLocalePrefix(pathname: string): string {
+  if (pathname === "/en") return "/";
+  if (pathname.startsWith("/en/")) return pathname.slice(3);
+  return pathname;
+}
+
+/** Which locale a site pathname is rendered in (path-derived, no cookie) —
+ *  `/en` or any `/en/...` path is English, everything else is German. */
+export function siteLocaleOfPath(pathname: string): Locale {
+  return pathname === "/en" || pathname.startsWith("/en/") ? "en" : "de";
+}
+
 export { isLocale, toBcp47, type Locale };

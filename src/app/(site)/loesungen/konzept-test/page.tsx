@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { SolutionPage } from "@/components/site/SolutionPage";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "Konzept- & Kreativ-Test mit KI · Klymeo" },
   description:
     "Verpackung, Claims, Spots, Landing Pages — eingebettet in echte Gespräche. Konsoul fragt zum richtigen Moment nach.",
-  alternates: { canonical: "/loesungen/konzept-test" },
+  alternates: buildAlternates("de", "/loesungen/konzept-test"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Konzept- & Kreativ-Test mit KI · Klymeo",
     description: "Verpackung, Claim, Spot oder Landing Page eingebettet im Live-Gespräch testen.",
     url: "/loesungen/konzept-test",

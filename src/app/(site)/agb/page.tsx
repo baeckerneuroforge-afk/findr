@@ -14,16 +14,16 @@ import {
   LegalStand,
 } from "@/components/site/LegalProse";
 import { SiteShell } from "@/components/site/SiteShell";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 const STAND = "Juni 2026";
 
 export const metadata: Metadata = {
   title: { absolute: "AGB — Klymeo" },
   description: "Allgemeine Geschäftsbedingungen für die Nutzung von Klymeo.",
-  alternates: { canonical: "/agb" },
+  alternates: buildAlternates("de", "/agb"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "AGB — Klymeo",
     description: "Allgemeine Geschäftsbedingungen für die Nutzung von Klymeo.",
     url: "/agb",

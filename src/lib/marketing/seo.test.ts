@@ -22,17 +22,20 @@ describe("ogDefaultsFor", () => {
 });
 
 describe("buildAlternates", () => {
-  it("self-references the locale-prefixed canonical for the rendered locale", () => {
-    expect(buildAlternates("de", "/produkt").canonical).toBe("/de/produkt");
+  // Asymmetric scheme: German is unprefixed/canonical (unchanged since the
+  // Lovable relaunch), only English sits under /en — NOT the symmetric
+  // /de+/en scheme the dead (marketing)/[lang] tree used.
+  it("self-references the canonical for the rendered locale (DE unprefixed, EN under /en)", () => {
+    expect(buildAlternates("de", "/produkt").canonical).toBe("/produkt");
     expect(buildAlternates("en", "/produkt").canonical).toBe("/en/produkt");
   });
 
   it("emits the identical reciprocal hreflang map on both locale variants", () => {
     // x-default points at the German (default-locale) URL.
     const expected = {
-      "de-DE": "/de/produkt",
+      "de-DE": "/produkt",
       "en-US": "/en/produkt",
-      "x-default": "/de/produkt",
+      "x-default": "/produkt",
     };
     expect(buildAlternates("de", "/produkt").languages).toEqual(expected);
     expect(buildAlternates("en", "/produkt").languages).toEqual(expected);
@@ -40,9 +43,9 @@ describe("buildAlternates", () => {
 
   it("handles the homepage root path", () => {
     expect(buildAlternates("en", "/").languages).toEqual({
-      "de-DE": "/de",
+      "de-DE": "/",
       "en-US": "/en",
-      "x-default": "/de",
+      "x-default": "/",
     });
   });
 });
