@@ -9,7 +9,10 @@ import { getResearchPlan } from "@/lib/research/plans-service";
 // StudySynthesisRecord) bleiben über den Merge stabil — wenn nicht, fällt
 // es hier am Type-Check sofort auf.
 import { synthesizeStudy } from "@/lib/synthesis/engine";
-import { expandSynthesisNarrative } from "@/lib/synthesis/narrative";
+import {
+  expandSynthesisNarrative,
+  resetSynthesisNarrative,
+} from "@/lib/synthesis/narrative";
 
 /**
  * POST /api/research/plans/[id]/synthesis — re-run / create Stage-2 synthesis.
@@ -71,16 +74,30 @@ export async function POST(
     // is the hard path; if the narrative stage fails, the base synthesis still
     // stands and we just return without it (mirrors the E4 extras posture).
     let executiveNarrative: string | null = null;
-    if (detailLevel === "ausführlich" && synthesis.status === "synthesized") {
-      try {
-        const expanded = await expandSynthesisNarrative(orgId, planId);
-        executiveNarrative = expanded.executiveNarrative;
-      } catch (narrErr) {
-        console.warn(
-          `[research/synthesis] narrative stage failed (base synthesis kept): ${
-            narrErr instanceof Error ? narrErr.message : narrErr
-          }`,
-        );
+    if (synthesis.status === "synthesized") {
+      if (detailLevel === "ausführlich") {
+        try {
+          const expanded = await expandSynthesisNarrative(orgId, planId);
+          executiveNarrative = expanded.executiveNarrative;
+        } catch (narrErr) {
+          console.warn(
+            `[research/synthesis] narrative stage failed (base synthesis kept): ${
+              narrErr instanceof Error ? narrErr.message : narrErr
+            }`,
+          );
+        }
+      } else {
+        // Standard re-run → clear any stale narrative from a prior ausführlich
+        // run so it can't outlive the refreshed synthesis (best-effort).
+        try {
+          await resetSynthesisNarrative(orgId, planId);
+        } catch (resetErr) {
+          console.warn(
+            `[research/synthesis] narrative reset failed: ${
+              resetErr instanceof Error ? resetErr.message : resetErr
+            }`,
+          );
+        }
       }
     }
     return NextResponse.json({ success: true, synthesis, executiveNarrative });

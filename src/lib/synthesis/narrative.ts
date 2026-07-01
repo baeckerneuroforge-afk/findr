@@ -142,3 +142,27 @@ export async function expandSynthesisNarrative(
 
   return { status: "expanded", executiveNarrative: narrative };
 }
+
+/**
+ * Reset to standard — clears any prior executive narrative + detail level. Run on
+ * a plain (standard) re-synthesis so a narrative from a PREVIOUS „ausführlich" run
+ * can never outlive the synthesis it described (the core upsert refreshes
+ * overview/themes/tensions but leaves these additive columns as-is). Best-effort:
+ * touches only the two additive columns, never the base synthesis.
+ */
+export async function resetSynthesisNarrative(
+  orgId: string,
+  planId: string,
+): Promise<void> {
+  const supabase = createSynthSupabase();
+  const { error } = await supabase
+    .from("study_synthesis")
+    .update({ detail_level: "standard", executive_narrative: null })
+    .eq("org_id", orgId)
+    .eq("plan_id", planId);
+  if (error) {
+    console.warn(
+      `[synthesis] narrative reset failed (migration 20260727000000 applied?): ${error.message}`,
+    );
+  }
+}
