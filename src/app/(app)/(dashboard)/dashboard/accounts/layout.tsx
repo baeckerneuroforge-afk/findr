@@ -10,5 +10,5 @@ export default function AccountsMessagesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <ScopedMessages namespaces={["health", "research"]}>{children}</ScopedMessages>;
+  return <ScopedMessages namespaces={["health", "research", "sales"]}>{children}</ScopedMessages>;
 }
