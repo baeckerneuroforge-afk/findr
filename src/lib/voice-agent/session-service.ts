@@ -629,10 +629,27 @@ export async function createInterviewSession(params: {
 export async function getPublicSession(
   token: string,
 ): Promise<PublicInterviewView | null> {
+  const session = await resolveInterviewSessionByToken(token);
+  return session ? toPublicView(session) : null;
+}
+
+/**
+ * Interner Resolver hinter getPublicSession — GLEICHE Auflösung (existierende
+ * Session / lazy-create über Research-Invite / Racer-Backstop / Screening-
+ * Defer), aber er gibt die INTERNE InterviewSession zurück. Turn-Routen nutzen
+ * ihn, um die Session EINMAL zu laden und per `preloaded` an advanceInterview
+ * durchzureichen — vorher zog jeder Turn die volle Row (inkl. wachsendem
+ * conversation-JSONB) ZWEIMAL: einmal für Locale/Existenz, einmal im Advance.
+ * Achtung: das Ergebnis enthält server-only-Felder (orgId, dealContext) — nie
+ * direkt an den Client geben, dafür ist toPublicView/getPublicSession da.
+ */
+export async function resolveInterviewSessionByToken(
+  token: string,
+): Promise<InterviewSession | null> {
   // Path (1) — existing session. Covers everything post_loss + checkin
   // ever asks for, plus any previously-lazy-created research session.
   const existing = await loadByToken(token);
-  if (existing) return toPublicView(existing);
+  if (existing) return existing;
 
   // Path (2) — no session yet. Maybe it's a research invite whose session
   // hasn't been created yet?
@@ -700,11 +717,10 @@ export async function getPublicSession(
     language: invite.language,
   });
   if (result.status === "created" && result.session) {
-    return toPublicView(result.session);
+    return result.session;
   }
 
-  const created = await loadByToken(token);
-  return created ? toPublicView(created) : null;
+  return loadByToken(token);
 }
 
 /** Screening-aware entry resolution for the participant page +
@@ -1195,8 +1211,14 @@ export async function advanceInterview(
   onDelta?: TurnDelta,
   // E4 — frühes Reveal-Event (Multi-Stimulus); nur der Research-Pfad nutzt es.
   onShow?: (position: number) => void,
+  // Perf: Turn-Routen laden die Session bereits via
+  // resolveInterviewSessionByToken (Locale/Existenz-Check) und reichen sie
+  // hier durch — spart den zweiten Voll-Row-Read (inkl. conversation-JSONB)
+  // pro Nachricht auf dem heißesten Public-Pfad. Nur innerhalb desselben
+  // Requests verwenden (keine Staleness über Request-Grenzen).
+  preloaded?: InterviewSession | null,
 ): Promise<PublicInterviewView | null> {
-  const session = await loadByToken(token);
+  const session = preloaded ?? (await loadByToken(token));
   if (!session) return null;
 
   // Already finished, or missing the context needed to continue — no-op.

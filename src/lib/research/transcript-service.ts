@@ -142,7 +142,10 @@ export interface VisualCaptureSessionRow {
 
 export type ResolveVisualCaptureSessionResult =
   | { ok: true; session: VisualCaptureSessionRow }
-  | { ok: false; reason: "not_found" | "wrong_kind" | "not_completed" };
+  | {
+      ok: false;
+      reason: "not_found" | "wrong_kind" | "not_completed" | "already_captured";
+    };
 
 /**
  * Resolve the token-owned session and run the cheap eligibility checks.
@@ -174,6 +177,16 @@ export async function resolveVisualCaptureSession(
   }
   if (session.status !== "completed") {
     return { ok: false, reason: "not_completed" };
+  }
+  // Idempotenz-Gate (Security-Sweep 2026-07-01, MITTEL): visual_capture wird
+  // pro Session genau EINMAL verarbeitet. Ohne dieses Gate konnte jeder
+  // Inhaber eines gültigen Tokens (inkl. Open-Link-Walk-ins) die Route
+  // beliebig oft aufrufen und pro Call bis zu DEFAULT_MAX_VISUAL_FRAMES
+  // Frames durch das Vision-LLM + einen Product-Discovery-Rerun jagen —
+  // reiner Kosten-DoS. Ein bereits gefülltes visual_capture → 409 in der
+  // Route, kein LLM-Spend.
+  if (session.visual_capture !== null) {
+    return { ok: false, reason: "already_captured" };
   }
   return { ok: true, session: session as VisualCaptureSessionRow };
 }

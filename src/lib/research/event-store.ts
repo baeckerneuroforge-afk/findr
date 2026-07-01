@@ -58,7 +58,15 @@ export async function resolveResearchEventSession(
   const supabase = createResearchSupabase();
   const { data, error } = await supabase
     .from("interview_sessions")
-    .select("*")
+    // Perf: explizite Spaltenliste statt select("*") — Events streamen alle
+    // paar Sekunden WÄHREND des Interviews, und `*` zog dabei jedes Mal das
+    // wachsende conversation-JSONB (zig KB pro Batch) mit, obwohl hier nur
+    // die 8 kleinen Gate-Felder gebraucht werden. Alle Spalten existieren
+    // seit den angewandten UX-Research-Migrationen (000–004) — das
+    // Pre-Migration-Argument für `*` greift hier nicht mehr.
+    .select(
+      "id, org_id, kind, status, plan_id, events_consent_at, replay_consent_at, screen_consent_at",
+    )
     .eq("access_token", accessToken)
     .maybeSingle();
 
@@ -188,7 +196,21 @@ export interface IngestEventInput {
 export interface IngestSessionEventsResult {
   eventCount: number;
   taskResult: TaskResult;
+  /** true = Session-Gesamtcap erreicht; der Batch wurde NICHT persistiert. */
+  capped?: boolean;
 }
+
+/**
+ * Session-Gesamtcap (Perf/DoS): pro Batch sind es max. 500 Events, aber die
+ * Anzahl der Batches pro Session war unbegrenzt — und der Recompute unten
+ * liest nach JEDEM Batch die komplette Event-Historie (O(k·E), über die
+ * Session quadratisch). Ab diesem Cap werden weitere Batches freundlich
+ * ignoriert (kein Fehler beim Teilnehmer, kein Persist, kein Recompute);
+ * das gespeicherte task_result bleibt der letzte autoritative Stand. 10k
+ * Events decken auch klickintensive Usability-Sessions großzügig ab
+ * (ein Insert kann den Cap um max. eine Batch-Größe überschreiten).
+ */
+const MAX_EVENTS_PER_SESSION = 10_000;
 
 /**
  * Persist a batch of events for a session, then recompute and store the
@@ -202,6 +224,29 @@ export async function ingestSessionEvents(params: {
 }): Promise<IngestSessionEventsResult> {
   const { session, events } = params;
   const supabase = createResearchSupabase();
+
+  // Gesamtcap-Gate VOR dem Insert (billiger head-count über den
+  // (session_id, ts_ms)-Index). Fail-open bei count=null: ein Zählfehler
+  // darf legitime Batches nicht verwerfen.
+  const { count: existingCount } = await supabase
+    .from("research_session_events")
+    .select("id", { count: "exact", head: true })
+    .eq("session_id", session.id)
+    .eq("org_id", session.org_id);
+  if (existingCount !== null && existingCount >= MAX_EVENTS_PER_SESSION) {
+    const { data: sessionRow } = await supabase
+      .from("interview_sessions")
+      .select("task_result")
+      .eq("id", session.id)
+      .eq("org_id", session.org_id)
+      .maybeSingle();
+    const stored = (sessionRow?.task_result ?? null) as TaskResult | null;
+    return {
+      eventCount: 0,
+      taskResult: stored ?? computeTaskResult([]),
+      capped: true,
+    };
+  }
 
   const rows = events.map((e) => ({
     session_id: session.id,

@@ -57,10 +57,21 @@ export default auth(async (req) => {
 });
 
 export const config = {
+  // Perf: Der Matcher deckt nur noch die Pfade, auf denen dieser Proxy
+  // tatsächlich etwas TUT — Login-Erzwingung (/dashboard, /onboarding) und
+  // API-Rate-Limiting (/api). Vorher lief er (inkl. Session-JWT-Decode) auf
+  // JEDEM Marketing-, Interview- und Shared-Request, ohne dort je etwas zu
+  // entscheiden: Marketing ist öffentlich-statisch, /interview + /shared/**
+  // authentifizieren sich selbst per Token, /sign-in|/sign-up sind öffentlich.
+  // Session-Rotation (rotateZitadelToken im jwt-Callback) läuft weiterhin bei
+  // jeder Dashboard-Navigation und jedem serverseitigen auth()-Read — dafür
+  // braucht es keinen Middleware-Lauf auf öffentlichen Seiten. (trpc gab es
+  // nie — Alt-Matcher-Relikt.)
   matcher: [
-    // Skip Next.js internals and static files
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
+    "/dashboard/:path*",
+    "/onboarding/:path*",
+    // Always run for API routes (Rate-Limiting; die exempt-Klassifizierung
+    // cron/webhook/voice/health/csp/OAuth liegt in enforceRateLimit selbst).
+    "/api/:path*",
   ],
 };
