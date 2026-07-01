@@ -40,7 +40,7 @@ import {
  */
 
 /**
- * Default analysis model: Sonnet 4.6 — see the MODEL / RE-TEST TRIGGER note
+ * Default analysis model: Sonnet 5 — see the MODEL / RE-TEST TRIGGER note
  * above. Sonnet because Opus showed no measurable gain at 12 eval cases and is
  * ~5x cheaper; revisit at 50-100 real cases via LOSS_MODEL=claude-opus-4-7.
  */

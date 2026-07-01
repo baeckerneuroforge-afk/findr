@@ -89,7 +89,7 @@ config({ path: ".env" });
 // For cheap iteration, override: SYNTHESIS_MODEL=claude-sonnet-5.
 const MODEL = process.env.SYNTHESIS_MODEL ?? DEFAULT_SYNTHESIS_MODEL;
 
-// Tier-2a A3 — günstiger Grounding-Judge (Sonnet 4.6 Default; Override via
+// Tier-2a A3 — günstiger Grounding-Judge (Sonnet 5 Default; Override via
 // SYNTHESIS_JUDGE_MODEL). NUR im echten Eval-Lauf live; seine Befunde sind
 // immer WARN.
 const JUDGE_MODEL = process.env.SYNTHESIS_JUDGE_MODEL ?? DEFAULT_JUDGE_MODEL;
