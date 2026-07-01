@@ -14,7 +14,7 @@ import {
  *
  * Public participant route, scoped by the same unguessable interview token as
  * /api/interview/[token] and /visual-capture. It accepts a small batch of
- * behavioural usability events (clicks/scroll/dwell/nav/task lifecycle) and
+ * behavioural usability events (clicks/scroll/form-focus/task lifecycle) and
  * returns the server-computed task result. NO org secret is ever required from
  * the browser — org_id is read from the token-owned session row.
  *
@@ -68,13 +68,14 @@ function sanitizeTargetSelector(raw: string): string | undefined {
 }
 
 const EventSchema = z.object({
+  // B6 (UX-Engine-Fixes 2026-07-02): exakt die Typen, die der Collector
+  // tatsächlich sendet — "dwell"/"nav" waren Geister-Einträge, die kein Client
+  // je erzeugte (toter Vertragsteil, der Auswertungs-Erwartungen weckte).
   event_type: z.enum([
     "click",
     "scroll",
-    "dwell",
     "input_focus",
     "input_blur",
-    "nav",
     "task_start",
     "task_complete",
     "task_abandon",

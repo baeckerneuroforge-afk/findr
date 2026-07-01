@@ -300,7 +300,9 @@ const USE_CASE_META: Record<UseCase, UseCaseMeta> = {
   },
   // Usability test (Phase 1). needsStimulus:false — the prototype/task lives in
   // the separate Task block (needsTask), not the stimulus block. voiceEnabled:
-  // false — usability is text-only in v1 (instrumentation is visual). Small N.
+  // false als Default — Klick-/Scroll-Instrumentierung gibt es nur im Text-
+  // Pfad; seit B5 (2026-07-02) erfasst Voice immerhin Lifecycle-/Erfolgsdaten.
+  // Small N.
   usability_test: {
     voiceEnabled: false,
     sampleTarget: "8",

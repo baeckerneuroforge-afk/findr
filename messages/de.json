@@ -1097,7 +1097,10 @@
     "emptyCta": "Studie anlegen",
     "tzNote": "Alle Zeiten in Europe/Berlin",
     "todayBtn": "Heute",
-    "view": { "month": "Monat", "agenda": "Agenda" },
+    "view": {
+      "month": "Monat",
+      "agenda": "Agenda"
+    },
     "legend": {
       "scheduled": "Geplant",
       "live": "Läuft",
@@ -1117,7 +1120,10 @@
       "noDraftsCta": "Studie anlegen",
       "errPick": "Bitte eine Studie wählen."
     },
-    "a11y": { "prevMonth": "Vorheriger Monat", "nextMonth": "Nächster Monat" }
+    "a11y": {
+      "prevMonth": "Vorheriger Monat",
+      "nextMonth": "Nächster Monat"
+    }
   },
   "research": {
     "common": {
@@ -1370,8 +1376,8 @@
       "phTaskUrl": "https://figma.com/proto/… oder https://…",
       "taskUrlHint": "Öffentlich erreichbarer http(s)-Link zum Prototyp oder zur Seite, an der die Aufgabe bearbeitet wird.",
       "fldPrototypeHosting": "Wie wird der Prototyp gezeigt?",
-      "prototypeHosting_first_party_iframe": "In Klymeo eingebettet (empfohlen)",
-      "prototypeHosting_external_url": "Externe Seite/Link",
+      "prototypeHosting_first_party_iframe": "Im Interview eingebettet (Klicks messbar; nur einbettbare Seiten)",
+      "prototypeHosting_external_url": "Eigene Seite im neuen Tab (empfohlen)",
       "prototypeHosting_screen_share": "Bildschirmfreigabe durch Teilnehmer",
       "errTaskInstruction": "Bitte eine Aufgabenstellung für den Usability-Test angeben.",
       "fldTts": "Vorlesefunktion",
@@ -2283,6 +2289,10 @@
       "s2TaskLabel": "Aufgabe für die Teilnehmer:innen",
       "s2TaskPh": "z. B. Finde im Prototyp ein Rezept und leg es auf deine Merkliste.",
       "s2TaskUrlLabel": "Prototyp-Link",
+      "s2TaskCriterionLabel": "Erfolgskriterium (nur für dich sichtbar)",
+      "s2TaskCriterionPh": "z. B. Das Rezept liegt am Ende auf der Merkliste.",
+      "s2TaskCriterionHint": "Grundlage für das KI-Erfolgs-Urteil nach jeder Session. Teilnehmer:innen sehen es nie. Ohne Kriterium entfällt das Urteil.",
+      "s2TaskHostingLabel": "Wo bearbeiten Teilnehmer:innen die Aufgabe?",
       "s2GuideHeading": "Leitfaden",
       "s2GuideMeta": "{n} Themen · editierbar",
       "s2TopicMainPh": "Leitfrage …",
@@ -2321,7 +2331,7 @@
       "togVisualDesc": "Zeichnet die Interaktion am Material auf (nicht-biometrisch)",
       "togEvents": "Verhaltens-Events",
       "togEventsDesc": "Klicks, Scrollen, Verweildauer als Ereignisse",
-      "togEventsVoiceWarning": "Nur in Text-Interviews erfasst. Dieses Interview ist Voice — keine Klick- oder Erfolgsdaten.",
+      "togEventsVoiceWarning": "Klick-/Scroll-Daten entstehen nur im Text-Interview (bzw. im eingebetteten Prototyp). In Voice werden Aufgaben-Start und Geschafft/Nicht-geschafft trotzdem erfasst.",
       "togSignals": "Gesprächs-Signale",
       "togSignalsDesc": "Stimmungs-Analyse des Transkripts am Sitzungsende",
       "togTts": "Vorlesen (Text-to-Speech)",

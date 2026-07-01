@@ -54,16 +54,40 @@ export interface TaskDefinition {
 
 /**
  * Phase 1b — the PARTICIPANT-SAFE slice of a task: ONLY the fields a participant
- * may see. successCriterion and prototypeHosting are deliberately absent — they
- * are researcher-only (the criterion is the measurement target; showing it would
- * bias the participant, same demand-effect discipline as stimulus_description /
- * the agent `why` rationale). Encoding the boundary as a TYPE means the
- * participant payload structurally cannot carry those fields. The participant
- * page builds this from the live plan's taskDefinition (instruction + targetUrl).
+ * may see. successCriterion is deliberately absent — it is researcher-only (the
+ * criterion is the measurement target; showing it would bias the participant,
+ * same demand-effect discipline as stimulus_description / the agent `why`
+ * rationale). Encoding the boundary as a TYPE means the participant payload
+ * structurally cannot carry it. The participant page builds this from the live
+ * plan's taskDefinition (instruction + targetUrl + embed).
+ *
+ * `embed` (B1, UX-Engine-Fixes 2026-07-02) ist die einzige Ableitung aus dem
+ * researcher-seitigen prototypeHosting, die der Teilnehmer braucht: true ⇔
+ * hosting === 'first_party_iframe' UND targetUrl gesetzt → die Interview-Seite
+ * rendert den Prototyp als iframe-Panel (nur dort sind Klicks messbar); false
+ * → „Prototyp öffnen"-Link im neuen Tab. Kein Bias-Risiko — es steuert nur die
+ * Darstellungsform, nie den Messmaßstab.
  */
 export interface ParticipantTask {
   instruction: string;
   targetUrl: string | null;
+  embed: boolean;
+}
+
+/**
+ * Kanonische Ableitung des participant-safe Task-Slices aus der vollen
+ * TaskDefinition (Server-seitig auf der Teilnehmer-Seite aufzurufen).
+ * null-Definition → null (kein Task, nichts gerendert).
+ */
+export function toParticipantTask(
+  task: TaskDefinition | null | undefined,
+): ParticipantTask | null {
+  if (!task || task.instruction.trim() === "") return null;
+  return {
+    instruction: task.instruction,
+    targetUrl: task.targetUrl,
+    embed: task.prototypeHosting === "first_party_iframe" && !!task.targetUrl,
+  };
 }
 
 function isHttpUrl(value: string): boolean {
@@ -100,5 +124,8 @@ export const TaskDefinitionSchema = z.object({
     .refine((v) => v === null || isHttpUrl(v), {
       message: "targetUrl must be a valid http(s) URL or empty.",
     }),
-  prototypeHosting: z.enum(PROTOTYPE_HOSTING).default("first_party_iframe"),
+  // Default konsistent über alle Schichten (Wizard/Form/API — Lehre aus dem
+  // Wizard-Berater-Cap-Bug): external_url ist der ehrliche Default; iframe-
+  // Embedding ist ein explizites Opt-in für einbettbare Seiten.
+  prototypeHosting: z.enum(PROTOTYPE_HOSTING).default("external_url"),
 });

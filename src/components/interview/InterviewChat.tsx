@@ -1046,12 +1046,25 @@ export function InterviewChat({
   const [eventsConsent, setEventsConsent] = useState<
     "pending" | "granted" | "declined"
   >("pending");
+  // B1 — same-origin Dokument des first-party-iframe-Prototyps (aus onLoad);
+  // cross-origin/nicht-embedded → null → keine Interaktions-Listener dort.
+  const [taskSurfaceDoc, setTaskSurfaceDoc] = useState<Document | null>(null);
   // Phase 2c — the behavioural event collector. Inert unless the events tier is
   // granted; the /events route additionally fail-closes server-side.
-  const { declareOutcome } = useEventCollector({
+  // B1/B3: Listener hängen an der TASK-Surface (page/embed/external, siehe
+  // useEventCollector-Doku); Terminals kommen NUR noch von declareOutcome.
+  const taskSurfaceMode = task
+    ? task.embed
+      ? "embed"
+      : task.targetUrl
+        ? "external"
+        : "page"
+    : "page";
+  const { declareOutcome, markTaskStarted } = useEventCollector({
     token,
     active: eventTrackingEnabled && eventsConsent === "granted",
-    completed: status === "completed",
+    mode: taskSurfaceMode,
+    surfaceDoc: taskSurfaceDoc,
   });
   // Phase 1b — the participant's explicit task outcome ("geschafft" / "nicht
   // geschafft"). null until declared; once set, the buttons collapse into a
@@ -2064,11 +2077,13 @@ export function InterviewChat({
       </div>
 
       {/* Phase 1b — persistente Aufgabenkarte (Usability). Zeigt NUR die
-          Instruktion (+ optional den Prototyp-Link); successCriterion erreicht
-          den Teilnehmer nie. Die Abschluss-Buttons (Phase B) erscheinen nur,
-          wenn die Verhaltens-Erfassung aktiv ist (Events-Consent erteilt) — sie
-          senden das autoritative task_complete/task_abandon-Event. Kein task →
-          nichts gerendert, byte-identisch zu vorher. */}
+          Instruktion (+ Prototyp als first-party iframe ODER Link);
+          successCriterion erreicht den Teilnehmer nie. Die Abschluss-Buttons
+          (Phase B) erscheinen nur, wenn die Verhaltens-Erfassung aktiv ist
+          (Events-Consent erteilt) — sie senden das EINZIGE autoritative
+          task_complete/task_abandon-Event (B3: kein Auto-Stempel mehr beim
+          Interview-Ende) und bleiben deshalb auch direkt nach dem Abschluss
+          des Interviews bedienbar. Kein task → nichts gerendert. */}
       {task && (
         <div className="mb-5 rounded-lg border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-4">
           <p className="text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
@@ -2077,11 +2092,38 @@ export function InterviewChat({
           <p className="mt-2 text-[14px] leading-relaxed text-[#0E0A1F]">
             {task.instruction}
           </p>
+          {task.embed && task.targetUrl && (
+            /* B1 — first-party iframe: NUR hier sind Klicks/Scrolls im
+               Prototyp messbar (same-origin → contentDocument; cross-origin
+               wirft → surfaceDoc bleibt null → Lifecycle-only, nie erfundene
+               Zahlen). sandbox erlaubt Skripte/Formulare/Same-Origin — das
+               Minimum für einen klickbaren Prototyp. Der Neuer-Tab-Link
+               darunter bleibt als Fallback, falls die Ziel-Seite Framing
+               blockiert (X-Frame-Options/CSP → leerer Rahmen). */
+            <div className="mt-3 overflow-hidden rounded-lg border border-[#E8E4F2] bg-white">
+              <iframe
+                src={task.targetUrl}
+                title={t("task.label")}
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                className="h-[420px] w-full"
+                onLoad={(e) => {
+                  try {
+                    setTaskSurfaceDoc(e.currentTarget.contentDocument);
+                  } catch {
+                    setTaskSurfaceDoc(null);
+                  }
+                }}
+              />
+            </div>
+          )}
           {task.targetUrl && (
             <a
               href={task.targetUrl}
               target="_blank"
               rel="noopener noreferrer"
+              // B1 — der Link-Klick ist der explizite Task-Beginn (Anker der
+              // Zeitmessung) statt des früheren Consent-Zeitpunkts.
+              onClick={markTaskStarted}
               className="mt-3 inline-flex h-[34px] items-center rounded-lg border border-[#E8E4F2] bg-white px-3 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:border-[#CFC9E0]"
             >
               {t("task.openPrototype")}
@@ -2095,7 +2137,7 @@ export function InterviewChat({
                   ? t("task.recordedDone")
                   : t("task.recordedFailed")}
               </p>
-            ) : isOpen ? (
+            ) : isOpen || status === "completed" ? (
               <div className="mt-4 border-t border-[#E8E4F2] pt-3">
                 <p className="text-[12px] text-[#6B6680]">
                   {t("task.outcomePrompt")}

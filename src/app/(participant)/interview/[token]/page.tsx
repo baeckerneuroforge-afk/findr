@@ -9,6 +9,7 @@ import { ScreeningGate } from "@/components/interview/ScreeningGate";
 import { VoiceInterviewView } from "@/components/interview/VoiceInterviewView";
 import { InterviewUnavailable } from "@/components/interview/InterviewUnavailable";
 import { getResearchPlan } from "@/lib/research/plans-service";
+import { toParticipantTask } from "@/lib/research/task";
 import { resolvePublicEntry } from "@/lib/voice-agent/session-service";
 import { reapStaleVoiceSessionIfOverdue } from "@/lib/voice-interview/bridge-service";
 import { getOrgBranding } from "@/lib/settings/org-settings";
@@ -210,18 +211,16 @@ export default async function InterviewPage({
     isResearch && stimulusSet.length === 0 ? (plan?.stimulusType ?? null) : null;
   const ttsProps = { ttsEnabled };
   const useCaseProps = { useCase };
-  // Phase 1b — the usability task shown to the PARTICIPANT. instruction +
-  // targetUrl ONLY; successCriterion + prototypeHosting stay researcher-only
-  // (never sent to the participant client — same demand-effect discipline as
-  // stimulus_description / the agent `why`). Built from the live plan (already
-  // loaded above); null for non-usability studies / studies without a task →
-  // both views render byte-identically.
+  // Phase 1b — the usability task shown to the PARTICIPANT: instruction +
+  // targetUrl + embed (kanonische Ableitung via toParticipantTask). Das
+  // successCriterion bleibt researcher-only (never sent to the participant
+  // client — same demand-effect discipline as stimulus_description / the
+  // agent `why`). Built from the live plan (already loaded above); null for
+  // non-usability studies / studies without a task → both views render
+  // byte-identically.
   const task =
-    isResearch && plan?.useCase === "usability_test" && plan.taskDefinition
-      ? {
-          instruction: plan.taskDefinition.instruction,
-          targetUrl: plan.taskDefinition.targetUrl ?? null,
-        }
+    isResearch && plan?.useCase === "usability_test"
+      ? toParticipantTask(plan.taskDefinition ?? null)
       : null;
 
   // Voice Phase 2 (E1, O1): voice-enabled studies render the LiveKit voice
@@ -289,8 +288,14 @@ export default async function InterviewPage({
         panelCompleteRedirect={session.panelCompleteRedirect}
         stimulusUrl={stimulusUrl}
         stimulusType={stimulusType}
-        // Phase 1b — die Usability-Aufgabe (nur instruction + targetUrl).
+        // Phase 1b — die Usability-Aufgabe (instruction + targetUrl + embed).
         task={task}
+        // B5 (UX-Engine-Fixes 2026-07-02) — Voice-Parität: Events-Consent +
+        // Collector + „Geschafft/Nicht"-Abschluss auch im Voice-Pfad (die
+        // Teilnehmer-Seite ist eine normale Web-Seite; DOM-Events sind
+        // transport-agnostisch). Screen-Capture bleibt im Voice-Pfad bewusst
+        // AUS (Compliance Stufe 2).
+        eventTrackingEnabled={eventTrackingEnabled}
         // E6 Multi-Stimulus — Set-Panel mit Agent-Reveal per DataPacket;
         // leer → exakt der bisherige Single-/No-Stimulus-Pfad.
         stimuli={stimulusSet}

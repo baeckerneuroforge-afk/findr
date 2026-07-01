@@ -165,7 +165,7 @@ function initialFormState(plan: EditStudyInitial): FormState {
     taskSuccessCriterion: plan.taskDefinition?.successCriterion ?? "",
     taskTargetUrl: plan.taskDefinition?.targetUrl ?? "",
     taskPrototypeHosting:
-      plan.taskDefinition?.prototypeHosting ?? "first_party_iframe",
+      plan.taskDefinition?.prototypeHosting ?? "external_url",
     topics,
   };
 }

@@ -99,6 +99,15 @@ export interface ComputeEventInput {
 const RAGE_CLICK_WINDOW_MS = 1000;
 const RAGE_CLICK_MIN_RUN = 3;
 
+/** Plausibilitäts-Deckel für time_on_task (Review-Fund 2026-07-02): ts_ms ist
+ *  client-geliefert und darf laut Route BEIDE Konventionen tragen (relativ
+ *  ODER Epoch). Eine Session, die über den Deploy des Epoch-Umstiegs (B4)
+ *  lief, mischt beide → Spanne ≈ Jahrzehnte, die sonst ungekappt als „echte"
+ *  Sekunden ins JSONB und die Studien-Durchschnitte liefe. Keine Usability-
+ *  Aufgabe dauert länger als 24 h → darüber ist die Spanne ein Mess-Artefakt
+ *  und time_on_task ehrlicherweise null (nicht messbar). */
+const MAX_PLAUSIBLE_TASK_SPAN_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Derive the task result from the full behavioural event set of one session.
  * Pure and deterministic — no I/O, no clock, no model. Behavioural only.
@@ -106,7 +115,9 @@ const RAGE_CLICK_MIN_RUN = 3;
  * - success: decided by the LAST terminal event (task_complete → true,
  *   task_abandon → false). null = still in progress / no terminal event.
  * - time_on_task_seconds: first task_start (or first event) → terminal event
- *   (or last event). ts_ms is client-supplied, so a negative span clamps to 0.
+ *   (or last event). ts_ms is client-supplied, so a negative span clamps to 0
+ *   and spans over MAX_PLAUSIBLE_TASK_SPAN_MS (24 h) read as measurement
+ *   artefacts → null (see const doc).
  * - click_count: 'click' events within the task window (up to the terminal event).
  * - friction_events: ONE entry per rage-click RUN — a maximal chain of
  *   consecutive clicks each < RAGE_CLICK_WINDOW_MS apart that reaches
@@ -138,9 +149,10 @@ export function computeTaskResult(events: ComputeEventInput[]): TaskResult {
   })();
   const terminal =
     terminalIdx >= 0 ? sorted[terminalIdx] : (sorted[sorted.length - 1] ?? null);
+  const span = start && terminal ? terminal.ts_ms - start.ts_ms : null;
   const time_on_task_seconds =
-    start && terminal
-      ? Math.max(0, Math.round((terminal.ts_ms - start.ts_ms) / 1000))
+    span !== null && span <= MAX_PLAUSIBLE_TASK_SPAN_MS
+      ? Math.max(0, Math.round(span / 1000))
       : null;
 
   // ONE measurement window: every derived metric (clicks + friction) is scoped

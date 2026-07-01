@@ -1097,7 +1097,10 @@
     "emptyCta": "Create a study",
     "tzNote": "All times in Europe/Berlin",
     "todayBtn": "Today",
-    "view": { "month": "Month", "agenda": "Agenda" },
+    "view": {
+      "month": "Month",
+      "agenda": "Agenda"
+    },
     "legend": {
       "scheduled": "Scheduled",
       "live": "Running",
@@ -1117,7 +1120,10 @@
       "noDraftsCta": "Create a study",
       "errPick": "Please pick a study."
     },
-    "a11y": { "prevMonth": "Previous month", "nextMonth": "Next month" }
+    "a11y": {
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month"
+    }
   },
   "research": {
     "common": {
@@ -1370,8 +1376,8 @@
       "phTaskUrl": "https://figma.com/proto/… or https://…",
       "taskUrlHint": "Publicly reachable http(s) link to the prototype or page where the task is performed.",
       "fldPrototypeHosting": "How is the prototype shown?",
-      "prototypeHosting_first_party_iframe": "Embedded in Klymeo (recommended)",
-      "prototypeHosting_external_url": "External page/link",
+      "prototypeHosting_first_party_iframe": "Embedded in the interview (clicks measurable; embeddable pages only)",
+      "prototypeHosting_external_url": "Own page in a new tab (recommended)",
       "prototypeHosting_screen_share": "Screen share by participant",
       "errTaskInstruction": "Please provide a task instruction for the usability test.",
       "fldTts": "Read-aloud",
@@ -2283,6 +2289,10 @@
       "s2TaskLabel": "Task for participants",
       "s2TaskPh": "e.g. Find a recipe in the prototype and add it to your shortlist.",
       "s2TaskUrlLabel": "Prototype link",
+      "s2TaskCriterionLabel": "Success criterion (visible only to you)",
+      "s2TaskCriterionPh": "e.g. The recipe ends up on the shortlist.",
+      "s2TaskCriterionHint": "Basis for the AI success verdict after each session. Participants never see it. Without a criterion, no verdict is produced.",
+      "s2TaskHostingLabel": "Where do participants work on the task?",
       "s2GuideHeading": "Interview guide",
       "s2GuideMeta": "{n} topics · editable",
       "s2TopicMainPh": "Lead question …",
@@ -2321,7 +2331,7 @@
       "togVisualDesc": "Records interaction with the material (non-biometric)",
       "togEvents": "Behavioural events",
       "togEventsDesc": "Clicks, scrolling, dwell time as events",
-      "togEventsVoiceWarning": "Only captured in text interviews. This one is voice — no click or success data.",
+      "togEventsVoiceWarning": "Click/scroll data only exists in text interviews (or the embedded prototype). Voice still records task start and done/not-done outcomes.",
       "togSignals": "Conversation signals",
       "togSignalsDesc": "Sentiment analysis of the transcript at session end",
       "togTts": "Read aloud (text-to-speech)",

@@ -258,17 +258,25 @@ export function GuidedStudyWizard({
 
     const topics = topicDraftsToResearchTopics(state.topics);
 
+    // B2 (2026-07-02): successCriterion + prototypeHosting kommen jetzt aus
+    // dem Formular (StepGuide) statt hartkodiert — ohne Kriterium skippte der
+    // Task-Success-Judge (Phase C) JEDE Wizard-Studie still, und
+    // "first_party_iframe" war als Default irreführend (Framing fremder
+    // Prototypen scheitert i. d. R. an X-Frame-Options/CSP).
     const taskPayload =
       meta.needsTask && state.taskInstruction.trim() !== ""
         ? {
             taskDefinition: {
               instruction: state.taskInstruction.trim(),
-              successCriterion: null,
+              successCriterion:
+                state.taskSuccessCriterion.trim() === ""
+                  ? null
+                  : state.taskSuccessCriterion.trim(),
               targetUrl:
                 state.taskTargetUrl.trim() === ""
                   ? null
                   : state.taskTargetUrl.trim(),
-              prototypeHosting: "first_party_iframe" as const,
+              prototypeHosting: state.taskPrototypeHosting,
             },
           }
         : {};
