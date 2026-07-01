@@ -132,7 +132,12 @@ export async function getDealsByOrg(orgId: string): Promise<Deal[]> {
       .from("deals")
       .select("*")
       .eq("org_id", orgId)
-      .order("last_activity_at", { ascending: false });
+      .order("last_activity_at", { ascending: false })
+      // Defensives Sicherheitsventil (Hygiene-Audit 2026-07-01): Dashboard/
+      // Forecast/Accounts konsumieren die Liste komplett inkl. aller
+      // HubSpot-Felder. 1000 aktivste Deals sind großzügig; greift der
+      // Deckel je, braucht die Pipeline-Tabelle Server-Filter/Pagination.
+      .limit(1000);
 
   let { data, error } = await fetchAll();
   if (error || !data) {

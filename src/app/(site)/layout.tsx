@@ -19,11 +19,14 @@ import "./site.css";
  * faces the template used, but with no external Google Fonts request.
  */
 const inter = Inter({ variable: "--font-site-sans", subsets: ["latin"] });
+// Only 400 (site.css sets all headings to font-weight:400) and 500 (blog h3
+// `font-medium`) are actually used; 600 + italics were never referenced with
+// the serif family — italics on the site render in Instrument Serif below.
 const serif = IBM_Plex_Serif({
   variable: "--font-site-serif",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
+  weight: ["400", "500"],
+  style: ["normal"],
 });
 const italic = Instrument_Serif({
   variable: "--font-site-italic",

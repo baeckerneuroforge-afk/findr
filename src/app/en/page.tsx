@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Konsoul } from "@/components/site/Konsoul";
 import { SiteShell, CtaBlock, DEMO_URL } from "@/components/site/SiteShell";
@@ -85,12 +86,16 @@ export default function Landing() {
             {/* Hero visual: photo + product chip */}
             <div className="relative">
               <div className="relative aspect-[4/5] overflow-hidden rounded-3xl border border-border bg-secondary">
-                <img
+                {/* Homepage LCP → preload + high fetch priority (Next 16:
+                    `preload` replaces the deprecated `priority` prop). */}
+                <Image
                   src="/site/photo-interview.jpg"
                   alt="Participant wearing headphones during an interview"
-                  className="h-full w-full object-cover kenburns"
-                  width={1280}
-                  height={1280}
+                  fill
+                  preload
+                  fetchPriority="high"
+                  sizes="(max-width: 1024px) 100vw, 45vw"
+                  className="object-cover kenburns"
                 />
                 <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-border bg-card/95 p-4 backdrop-blur">
                   <div className="flex items-center justify-between">
@@ -155,13 +160,12 @@ export default function Landing() {
         <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 lg:grid-cols-[1.1fr_1fr]">
           <div className="relative">
             <div className="relative aspect-[4/5] overflow-hidden rounded-3xl border border-border bg-secondary">
-              <img
+              <Image
                 src="/site/photo-team.jpg"
                 alt="Insights team during analysis"
-                loading="lazy"
-                className="h-full w-full object-cover"
-                width={1600}
-                height={1024}
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover"
               />
             </div>
             <div className="absolute -bottom-6 -right-4 hidden w-56 rotate-[3deg] rounded-2xl border border-border bg-card p-4 shadow-sm sm:block">
@@ -442,12 +446,13 @@ export default function Landing() {
                 className="group overflow-hidden rounded-2xl border border-border bg-card opacity-0 [animation:fade-in_.7s_ease-out_forwards]"
                 style={{ animationDelay: `${i * 120}ms` }}
               >
-                <div className="aspect-[5/4] overflow-hidden bg-secondary">
-                  <img
+                <div className="relative aspect-[5/4] overflow-hidden bg-secondary">
+                  <Image
                     src={s.img}
                     alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
                   />
                 </div>
                 <div className="p-7">

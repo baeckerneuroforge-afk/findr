@@ -43,6 +43,12 @@ import { CrossStudyAgentRequestSchema } from "@/lib/schemas/cross-study-agent";
 // Body = the canonical request WITHOUT orgId (which is server-authoritative).
 const BodySchema = CrossStudyAgentRequestSchema.omit({ orgId: true });
 
+// Vercel-Funktionslimit anheben: die inneren LLM-Budgets (Agent-Loop (bis 10 Opus-Steps à 120s Innenbudget))
+// übersteigen sonst das Routen-Limit — die Funktion würde mitten im
+// bezahlten Call/Loop gekillt (verworfene Antwort, "unexpected error").
+// Gleiches Muster wie synthesis/agent/chat-Routen.
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();

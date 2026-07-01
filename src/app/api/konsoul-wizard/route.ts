@@ -36,6 +36,12 @@ import {
  *   200  — { success: true, result: { answer, suggestions } }
  */
 
+// Vercel-Funktionslimit anheben: die inneren LLM-Budgets (Opus-Single-Shot mit 120s Innenbudget)
+// übersteigen sonst das Routen-Limit — die Funktion würde mitten im
+// bezahlten Call/Loop gekillt (verworfene Antwort, "unexpected error").
+// Gleiches Muster wie synthesis/agent/chat-Routen.
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const t = await getTranslations("errors");
 

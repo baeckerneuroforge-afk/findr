@@ -10,7 +10,7 @@ import { GeistSans } from "geist/font/sans";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locale";
-import { MESSAGES } from "@/i18n/messages";
+import { pickClientMessages } from "@/i18n/client-messages";
 import { SITE_URL } from "@/lib/marketing/seo";
 import { SessionProviderWrapper } from "@/components/auth/SessionProviderWrapper";
 import "../globals.css";
@@ -110,34 +110,14 @@ export default async function RootLayout({
         {/* SessionProvider (NextAuth/Zitadel) stellt die Login-Identität für
             Client-Komponenten bereit. Clerk wurde vollständig entfernt. */}
         <SessionProviderWrapper>
+          {/* Perf: Der Root-Provider liefert nur noch die CORE-Namespaces der
+              globalen Shell (~12 kB statt ~137 kB RSC-Payload pro Seite und
+              Navigation). Jede Dashboard-Sektion legt ihre schweren Namespaces
+              per <ScopedMessages> im Sektions-Layout dazu — Mapping und
+              Merge-Semantik: src/i18n/client-messages.ts. */}
           <NextIntlClientProvider
             locale={locale}
-            messages={{
-              interview: MESSAGES[locale].interview,
-              nav: MESSAGES[locale].nav,
-              command: MESSAGES[locale].command,
-              settings: MESSAGES[locale].settings,
-              common: MESSAGES[locale].common,
-              // "heute" wird von der Client-Begrüßung (HeuteGreeting) gelesen —
-              // fehlt der Namespace hier, rendert next-intl den rohen Keypfad
-              // ("heute.greetingMorning"), während die server-gerenderten Teile
-              // derselben Seite weiter funktionieren. Prod-Befund 2026-06-11.
-              heute: MESSAGES[locale].heute,
-              sales: MESSAGES[locale].sales,
-              health: MESSAGES[locale].health,
-              research: MESSAGES[locale].research,
-              branding: MESSAGES[locale].branding,
-              sharedSynthesis: MESSAGES[locale].sharedSynthesis,
-              researchAgent: MESSAGES[locale].researchAgent,
-              missionControl: MESSAGES[locale].missionControl,
-              crossStudyAgent: MESSAGES[locale].crossStudyAgent,
-              metaSynthesis: MESSAGES[locale].metaSynthesis,
-              syntheticTest: MESSAGES[locale].syntheticTest,
-              // "kalender" wird von der Client-Komponente ScheduleActivationPanel
-              // (Deferred Activation) gelesen — wie "heute" oben MUSS der
-              // Namespace hier stehen, sonst rendert next-intl rohe Keypfade.
-              kalender: MESSAGES[locale].kalender,
-            }}
+            messages={pickClientMessages(locale)}
           >
             {children}
           </NextIntlClientProvider>

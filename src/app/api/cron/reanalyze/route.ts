@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { maybeTriggerAlert, getPreviousScore } from "@/lib/alerts/trigger";
+import { maybeTriggerAlert } from "@/lib/alerts/trigger";
 import { getSlackAlertPreferences } from "@/lib/alerts/service";
 import { maybeTriggerForecastChange } from "@/lib/alerts/triggers";
-import { getCallsByDealId } from "@/lib/calls/service";
+import { getCallsByDealIds } from "@/lib/calls/service";
+import { getLatestRiskScoresForDeals } from "@/lib/risk/service";
 import { getDealsByOrg } from "@/lib/deals/service";
 import type { Deal } from "@/lib/deals/types";
 import { getForecast } from "@/lib/forecast/service";
@@ -102,6 +103,16 @@ export async function GET(request: Request) {
 
       results.total_deals += activeDeals.length;
 
+      // Vorherige Scores EINMAL pro Org über die bestehende DISTINCT-ON-RPC
+      // (getLatestRiskScoresForDeals) statt einer Einzelquery pro Deal —
+      // gleicher „latest risk_score"-Wert wie getPreviousScore, aber aus
+      // 1 Query statt D. Vor den Inserts unten gelesen, also identische
+      // Semantik (kein anderer Writer). Fail-open: leere Map → previous null.
+      const previousScores = await getLatestRiskScoresForDeals(
+        org.id,
+        activeDeals.map((d) => d.id),
+      );
+
       // Bounded-concurrency batches instead of a fully sequential loop: the
       // per-deal work is DB/IO-bound (heuristic detectors, no LLM), so a chunk
       // in parallel cuts the cron's wall-clock ~Nx and keeps it well under the
@@ -110,17 +121,26 @@ export async function GET(request: Request) {
       // still holds because Promise.all awaits the whole chunk before the next.
       const DEAL_CONCURRENCY = 8;
       for (let i = 0; i < activeDeals.length; i += DEAL_CONCURRENCY) {
+        const chunk = activeDeals.slice(i, i + DEAL_CONCURRENCY);
+        // Calls für den ganzen Chunk in EINEM Read (statt einer Query pro
+        // Deal); Chunk-weise statt org-weit, damit nicht alle Transkripte
+        // der Org gleichzeitig im Speicher liegen.
+        const callsByDeal = await getCallsByDealIds(
+          org.id,
+          chunk.map((d) => d.id),
+        );
         await Promise.all(
-          activeDeals.slice(i, i + DEAL_CONCURRENCY).map(async (deal) => {
+          chunk.map(async (deal) => {
             try {
-              const calls = await getCallsByDealId(org.id, deal.id);
+              const calls = callsByDeal.get(deal.id) ?? [];
 
               if (calls.length === 0) {
                 results.skipped++;
                 return;
               }
 
-              const previousScore = await getPreviousScore(org.id, deal.id);
+              const previousScore =
+                previousScores.get(deal.id)?.risk_score ?? null;
               const analysis = await analyzeRisk(
                 buildDetectorInput({
                   orgId: org.id,

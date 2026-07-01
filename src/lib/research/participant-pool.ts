@@ -72,6 +72,12 @@ export interface PoolFilter {
  * Gibt [] bei Fehler zurück (liest in der UI als "Pool leer" — sicheres
  * Degradieren, der Nutzer kann neu laden).
  */
+/** Defensives Sicherheitsventil (Hygiene-Audit 2026-07-01): die Detailseiten
+ *  laden den GANZEN Org-Pool für Panels + Quoten-Zählung — mit dem geplanten
+ *  Klymeo-Master-Panel wächst das. 2000 neueste Profile sind großzügig; greift
+ *  der Deckel je, braucht der Pool-Manager echte Pagination. */
+const LIST_POOL_MEMBERS_LIMIT = 2000;
+
 export async function listPoolMembers(
   orgId: string,
   filter: PoolFilter = {},
@@ -89,7 +95,7 @@ export async function listPoolMembers(
     query = query.overlaps("tags", filter.tags);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query.limit(LIST_POOL_MEMBERS_LIMIT);
   if (error || !data) return [];
   return data.map(toMember);
 }
@@ -578,10 +584,22 @@ function toQuotaBase(row: ResearchPlanQuotaRow): Omit<QuotaProgressRecord, "invi
  * Einladungen je Rolle, deterministisch aus participant_pool_invites ⋈
  * participant_pool.role berechnet (zwei kleine Queries statt PostgREST-Embed,
  * weil die augmented-Types keine Relationship deklarieren). [] bei Fehler.
+ *
+ * Perf: Die Detailseiten (MR + PD) laden Pool-Members und Invite-IDs ohnehin
+ * parallel für ihre eigenen Panels — dieselben zwei Tabellen wurden hier
+ * intern NOCHMAL gelesen (2 doppelte Queries + 2 interne serielle Stufen pro
+ * Request). `preloaded` nimmt die In-flight-Promises dieser Reads entgegen
+ * (gleiche kanonische Loader, kein paralleler Datenpfad): dann bleibt nur die
+ * eigene Quota-Query, und die Rollen-Zählung wird reines JS über die geteilten
+ * Ergebnisse. Ohne `preloaded` unverändertes Verhalten.
  */
 export async function listQuotaProgress(
   orgId: string,
   planId: string,
+  preloaded?: {
+    poolMembers: PoolMemberRecord[] | Promise<PoolMemberRecord[]>;
+    invitedMemberIds: string[] | Promise<string[]>;
+  },
 ): Promise<QuotaProgressRecord[]> {
   const supabase = createResearchSupabase();
   const { data: quotaRows, error } = await supabase
@@ -594,20 +612,33 @@ export async function listQuotaProgress(
 
   // Rollen der aus dem Pool in diesen Plan eingeladenen Personen zählen.
   const roleCount = new Map<string, number>();
-  const { data: linkRows } = await supabase
-    .from("participant_pool_invites")
-    .select("pool_member_id")
-    .eq("org_id", orgId)
-    .eq("plan_id", planId);
-  const memberIds = (linkRows ?? []).map((r) => r.pool_member_id);
-  if (memberIds.length > 0) {
-    const { data: members } = await supabase
-      .from("participant_pool")
-      .select("id, role")
+  if (preloaded) {
+    const [members, invitedIds] = await Promise.all([
+      preloaded.poolMembers,
+      preloaded.invitedMemberIds,
+    ]);
+    const invited = new Set(invitedIds);
+    for (const m of members) {
+      if (invited.has(m.id) && m.role) {
+        roleCount.set(m.role, (roleCount.get(m.role) ?? 0) + 1);
+      }
+    }
+  } else {
+    const { data: linkRows } = await supabase
+      .from("participant_pool_invites")
+      .select("pool_member_id")
       .eq("org_id", orgId)
-      .in("id", memberIds);
-    for (const m of members ?? []) {
-      if (m.role) roleCount.set(m.role, (roleCount.get(m.role) ?? 0) + 1);
+      .eq("plan_id", planId);
+    const memberIds = (linkRows ?? []).map((r) => r.pool_member_id);
+    if (memberIds.length > 0) {
+      const { data: members } = await supabase
+        .from("participant_pool")
+        .select("id, role")
+        .eq("org_id", orgId)
+        .in("id", memberIds);
+      for (const m of members ?? []) {
+        if (m.role) roleCount.set(m.role, (roleCount.get(m.role) ?? 0) + 1);
+      }
     }
   }
 

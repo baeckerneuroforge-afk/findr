@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
 import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
@@ -73,8 +74,8 @@ export default function SolutionsIndex() {
               href={s.to}
               className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-0.5 hover:border-ink"
             >
-              <div className="aspect-[16/10] overflow-hidden border-b border-border">
-                <img src={photos[idx % photos.length]} alt="" loading="lazy" className="h-full w-full object-cover transition group-hover:scale-[1.03]" />
+              <div className="relative aspect-[16/10] overflow-hidden border-b border-border">
+                <Image src={photos[idx % photos.length]} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover transition group-hover:scale-[1.03]" />
               </div>
               <div className="p-8">
                 <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">{s.tag}</p>

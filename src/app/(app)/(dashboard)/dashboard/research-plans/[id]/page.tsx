@@ -135,17 +135,19 @@ export default async function ResearchPlanDetailPage({
     redirect("/dashboard");
   }
 
-  // Etappe B Teil 1 — read invites alongside the plan. Empty list reads as
-  // "no participants yet"; listInvitesForPlan returns [] on transient
-  // failure (safe degrade — the UI shows the InviteForm and the user can
-  // refresh).
-  const invites = await listInvitesForPlan(orgId, planId);
-
   // Participant-Pool + Screening-Quoten + offener Link + Panel-Credentials
-  // + persistierter Prolific-Draft. Additiv zum bestehenden Invite-Flow —
-  // unabhängige Reads, parallel. Listen degradieren auf [], der offene Link /
+  // + persistierter Prolific-Draft + Invites. Additiv zum bestehenden
+  // Invite-Flow — unabhängige Reads, parallel (Invites hängen nur an
+  // orgId+planId und liefen früher als eigene serielle Stufe vor diesem
+  // Batch). Listen degradieren auf [] (Invites: "no participants yet" — die
+  // UI zeigt das InviteForm, der Nutzer kann refreshen), der offene Link /
   // Prolific-Status / Draft auf null (safe; Draft-null heißt auch: Migration
   // 20260705000000 noch nicht angewandt).
+  // Pool-Members + Invite-IDs als geteilte In-flight-Promises: die Seite
+  // braucht beide selbst, und listQuotaProgress zählt seine Rollen daraus —
+  // statt dieselben zwei Tabellen intern nochmal zu lesen.
+  const poolMembersPromise = listPoolMembers(orgId);
+  const invitedPoolMemberIdsPromise = listInvitedPoolMemberIds(orgId, planId);
   const [
     poolMembers,
     invitedPoolMemberIds,
@@ -155,15 +157,20 @@ export default async function ResearchPlanDetailPage({
     prolificStudy,
     completed,
     totalSessions,
+    invites,
   ] = await Promise.all([
-    listPoolMembers(orgId),
-    listInvitedPoolMemberIds(orgId, planId),
-    listQuotaProgress(orgId, planId),
+    poolMembersPromise,
+    invitedPoolMemberIdsPromise,
+    listQuotaProgress(orgId, planId, {
+      poolMembers: poolMembersPromise,
+      invitedMemberIds: invitedPoolMemberIdsPromise,
+    }),
     getOpenLinkForPlan(orgId, planId),
     getProlificCredentialSummary(orgId),
     getProlificStudyForPlan(orgId, planId),
     countCompletedSessionsForPlan(orgId, planId),
     countSessionsForPlan(orgId, planId),
+    listInvitesForPlan(orgId, planId),
   ]);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),

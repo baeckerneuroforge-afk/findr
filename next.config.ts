@@ -140,24 +140,30 @@ const nextConfig: NextConfig = {
   //     quiet in production, the policy can be promoted to an enforcing
   //     Content-Security-Policy. NEVER promote without a quiet report stream.
   async headers() {
+    // Zitadel-Realität (Hygiene-Audit 2026-07-01): die frühere Policy
+    // allowlistete noch Clerk-Hosts (*.clerk.accounts.dev, Turnstile) — Clerk
+    // ist vollständig entfernt, der Report-Stream hätte gegen eine veraltete
+    // Welt gemessen und die Policy wäre so nie promotebar gewesen. Zitadel
+    // braucht KEINE Allowlist: Login ist ein Full-Page-OIDC-Redirect
+    // (next-auth server-side), es lädt kein Zitadel-JS und macht kein XHR von
+    // unserem Origin aus.
     const cspReportOnly = [
       "default-src 'self'",
       // 'unsafe-inline' is required by Next's inline bootstrap scripts (no
-      // nonce infrastructure yet). Clerk loads its JS from the Frontend-API
-      // host (dev: *.clerk.accounts.dev, prod: clerk.<domain> — first-party
-      // subdomain, reported if missing). Cloudflare Turnstile is Clerk's bot
-      // protection frame.
-      "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+      // nonce infrastructure yet).
+      "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       // https: in img-src is deliberate: stimulus images may live on external
       // hosts chosen by researchers.
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.livekit.cloud https://*.livekit.cloud https://*.clerk.accounts.dev https://clerk-telemetry.com",
+      "connect-src 'self' https://*.supabase.co wss://*.livekit.cloud https://*.livekit.cloud",
       // blob: for TTS-MP3 playback and recorded-audio previews.
       "media-src 'self' blob: https:",
       "worker-src 'self' blob:",
-      "frame-src https://challenges.cloudflare.com",
+      // Einziges reales iframe: das cal.eu-Demo-Buchungswidget auf /kontakt
+      // (DE+EN). Turnstile (Clerks Bot-Schutz) ist mit Clerk entfernt.
+      "frame-src https://www.cal.eu",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SiteShell, PageHero, CtaBlock, DEMO_URL } from "@/components/site/SiteShell";
 import { Konsoul } from "@/components/site/Konsoul";
@@ -204,7 +205,7 @@ export default function PricingPage() {
       <section className="border-y border-border bg-secondary/40 py-24">
         <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[1fr_1.1fr] lg:items-center">
           <div className="relative aspect-[4/5] overflow-hidden rounded-3xl border border-border">
-            <img src="/site/photo-industry.jpg" alt="Klymeo Workshop" loading="lazy" className="h-full w-full object-cover" />
+            <Image src="/site/photo-industry.jpg" alt="Klymeo Workshop" fill sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover" />
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-soul">Vier Methoden, eine Engine</p>

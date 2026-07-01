@@ -96,7 +96,13 @@ export default async function ResearchPlanSynthesisPage({
   }
 
   const { id: planId } = await params;
-  const plan = await getResearchPlan(orgId, planId);
+  // Plan + Synthese hängen beide nur an orgId+planId, nicht aneinander →
+  // parallel statt zwei serielle Roundtrips; die Guards greifen danach,
+  // bevor irgendetwas aus `synthesis` verwendet wird.
+  const [plan, synthesis] = await Promise.all([
+    getResearchPlan(orgId, planId),
+    getStudySynthesis(orgId, planId),
+  ]);
   if (!plan) notFound();
   if (plan.studyType !== "market_research" && !ENABLED_MODULES.productDiscovery) {
     redirect("/dashboard");
@@ -107,7 +113,6 @@ export default async function ResearchPlanSynthesisPage({
       ? `/dashboard/market-research/${planId}`
       : `/dashboard/research-plans/${planId}`;
 
-  const synthesis = await getStudySynthesis(orgId, planId);
   const synthesisReady =
     synthesis !== null && synthesis.synthesized_at !== null;
 

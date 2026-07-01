@@ -246,21 +246,33 @@ function sortSignals(signals: KonsoulSignal[]): KonsoulSignal[] {
  * Scope is market_research only (P1). Two parallel reads: one listResearchPlans
  * (also the scope source) and one loadOrgSyntheses (which already carries
  * basedOnCount + themes, so no per-plan synthesis reads). recurring_theme is
- * pure code over the loaded syntheses — no extra DB. (Konsoul deliberately does
- * NOT re-read completed-session counts or synthesis-id sets: its signals don't
- * depend on them, which also avoids duplicating the Heute page's own reads.)
+ * pure code over the loaded syntheses — no extra DB.
+ *
+ * Perf (Heute-Seite, 30s-AutoRefresh): Der Aufrufer kann bereits geladene
+ * Inputs per `preloaded` durchreichen — die Heute-Seite lädt Pläne und
+ * Synthesen ohnehin für ihre eigenen Sektionen. Mitgegebene Inputs ersetzen den
+ * jeweiligen Read 1:1 (gleiche Loader, gleiche Shapes — kein paralleler
+ * Datenpfad); fehlende werden wie bisher selbst geladen. So macht der
+ * Signal-Pfad auf der Heute-Seite ZERO eigene Queries statt vormals drei
+ * (davon eine exakt doppelt zur Seite).
  */
 export async function computeKonsoulSignals(
   orgId: string,
+  preloaded?: {
+    plans?: ResearchPlanRecord[];
+    syntheses?: MissionControlSynthesisInput[];
+  },
 ): Promise<KonsoulSignal[]> {
   try {
     const [plans, syntheses] = await Promise.all([
-      listResearchPlans(orgId, "market_research").catch(
-        () => [] as ResearchPlanRecord[],
-      ),
-      loadOrgSyntheses(orgId).catch(
-        () => [] as MissionControlSynthesisInput[],
-      ),
+      preloaded?.plans ??
+        listResearchPlans(orgId, "market_research").catch(
+          () => [] as ResearchPlanRecord[],
+        ),
+      preloaded?.syntheses ??
+        loadOrgSyntheses(orgId).catch(
+          () => [] as MissionControlSynthesisInput[],
+        ),
     ]);
     if (plans.length === 0) return [];
     return deriveKonsoulSignals({ plans, syntheses });

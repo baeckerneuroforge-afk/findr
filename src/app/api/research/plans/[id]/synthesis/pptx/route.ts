@@ -39,7 +39,12 @@ export async function GET(
 
   const { id: planId } = await params;
 
-  const plan = await getResearchPlan(orgId, planId);
+  // Perf: Plan + Synthese parallel (beide nur orgId+planId-keyed, unabhängig);
+  // die Guards greifen danach in unveränderter Reihenfolge.
+  const [plan, synthesis] = await Promise.all([
+    getResearchPlan(orgId, planId),
+    getStudySynthesis(orgId, planId),
+  ]);
   if (!plan) {
     return NextResponse.json(
       { error: t("notFound.researchPlan") },
@@ -47,7 +52,6 @@ export async function GET(
     );
   }
 
-  const synthesis = await getStudySynthesis(orgId, planId);
   if (!synthesis || synthesis.synthesized_at === null) {
     return NextResponse.json(
       {
@@ -59,9 +63,12 @@ export async function GET(
   }
 
   try {
-    const orgName = await getOrgName(orgId);
-    const branding = await resolveExportBranding(orgId);
-    const ts = await getTranslations("research.synthesis");
+    // Unabhängige Reads parallel statt drei serielle Stufen vor dem Deck-Build.
+    const [orgName, branding, ts] = await Promise.all([
+      getOrgName(orgId),
+      resolveExportBranding(orgId),
+      getTranslations("research.synthesis"),
+    ]);
     const signalsChart = buildSignalsDistribution(synthesis.signals_summary, {
       direct: ts("signalDirect"),
       partial: ts("signalPartial"),

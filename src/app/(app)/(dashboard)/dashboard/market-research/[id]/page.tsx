@@ -168,22 +168,21 @@ export default async function MarketCampaignDetailPage({
     redirect(`/dashboard/research-plans/${planId}`);
   }
 
-  const invites = await listInvitesForPlan(orgId, planId);
-  // Multi-Stimulus E3 — Dual-Read (D1): Set-Zeilen gewinnen, sonst wird ein
-  // Legacy-Single-Asset als 1-Element-Set angezeigt. Leer → Sektion entfällt
-  // (byte-identisch zu vorher für Pläne ohne Stimulus).
-  const stimulusSet = resolveStimulusSet(
-    plan,
-    await listPlanStimuli(orgId, planId),
-  );
-
   // Pool + Quoten + offener Link + Ziel-Pool-Fortschritt + Prolific-Credential
-  // + persistierter Prolific-Draft — alle unabhängig, parallel (kein N+1). Der
+  // + persistierter Prolific-Draft + Invites + Stimuli — alle unabhängig,
+  // parallel (kein N+1). Invites und Stimuli hängen nur an orgId+planId, nicht
+  // am Plan-Inhalt — sie liefen früher als zwei SERIELLE Stufen vor diesem
+  // Batch (2 vermeidbare Roundtrips auf der meistbesuchten Detailseite). Der
   // completed-Count ist die §7-Messung; null → "—" (fail-open).
   // getProlificCredentialSummary degradiert auf null, wenn kein Token verbunden
   // ist — das Panel zeigt dann den "erst Prolific verbinden"-Leerzustand, genau
   // wie auf der Product-Discovery-Detailseite. getProlificStudyForPlan ist
   // ebenso fail-open (null = nie ein Draft angelegt oder Migration fehlt noch).
+  // Pool-Members + Invite-IDs als geteilte In-flight-Promises: die Seite
+  // braucht beide selbst, und listQuotaProgress zählt seine Rollen daraus —
+  // statt dieselben zwei Tabellen intern nochmal zu lesen.
+  const poolMembersPromise = listPoolMembers(orgId);
+  const invitedPoolMemberIdsPromise = listInvitedPoolMemberIds(orgId, planId);
   const [
     poolMembers,
     invitedPoolMemberIds,
@@ -194,10 +193,15 @@ export default async function MarketCampaignDetailPage({
     prolificStudy,
     sessions,
     totalSessions,
+    invites,
+    planStimuli,
   ] = await Promise.all([
-    listPoolMembers(orgId),
-    listInvitedPoolMemberIds(orgId, planId),
-    listQuotaProgress(orgId, planId),
+    poolMembersPromise,
+    invitedPoolMemberIdsPromise,
+    listQuotaProgress(orgId, planId, {
+      poolMembers: poolMembersPromise,
+      invitedMemberIds: invitedPoolMemberIdsPromise,
+    }),
     getOpenLinkForPlan(orgId, planId),
     countCompletedSessionsForPlan(orgId, planId),
     getProlificCredentialSummary(orgId),
@@ -207,7 +211,14 @@ export default async function MarketCampaignDetailPage({
     // der Zähler, den auch die DELETE-Route prüft (nicht die 50-gedeckelte,
     // fail-open Sessions-Liste). null (Lesefehler) → Gate behandelt wie >0.
     countSessionsForPlan(orgId, planId),
+    listInvitesForPlan(orgId, planId),
+    listPlanStimuli(orgId, planId),
   ]);
+
+  // Multi-Stimulus E3 — Dual-Read (D1): Set-Zeilen gewinnen, sonst wird ein
+  // Legacy-Single-Asset als 1-Element-Set angezeigt. Leer → Sektion entfällt
+  // (byte-identisch zu vorher für Pläne ohne Stimulus).
+  const stimulusSet = resolveStimulusSet(plan, planStimuli);
   const poolRoles = [
     ...new Set(poolMembers.map((m) => m.role).filter((r): r is string => !!r)),
   ].sort();

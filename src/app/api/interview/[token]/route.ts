@@ -6,6 +6,7 @@ import { VoiceUnavailableError } from "@/lib/voice-agent/interviewer";
 import {
   advanceInterview,
   getPublicSession,
+  resolveInterviewSessionByToken,
 } from "@/lib/voice-agent/session-service";
 
 /**
@@ -59,7 +60,9 @@ export async function POST(
 
   // Participant-facing locale = the session's interview language (resolved from
   // the token), NOT the UI cookie: participants are login-free and carry none.
-  const existing = await getPublicSession(tokenParsed.data);
+  // Perf: interner Resolver — die Session wird unten als `preloaded` an
+  // advanceInterview durchgereicht statt pro Turn zweimal geladen zu werden.
+  const existing = await resolveInterviewSessionByToken(tokenParsed.data);
   const t = await getTranslations({
     locale: existing?.language ?? DEFAULT_LOCALE,
     namespace: "errors",
@@ -78,7 +81,13 @@ export async function POST(
   }
 
   try {
-    const session = await advanceInterview(tokenParsed.data, parsed.data.message);
+    const session = await advanceInterview(
+      tokenParsed.data,
+      parsed.data.message,
+      undefined,
+      undefined,
+      existing,
+    );
     if (!session) {
       return NextResponse.json(
         { error: t("notFound.interview") },

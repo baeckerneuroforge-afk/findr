@@ -48,7 +48,12 @@ export async function GET(
   // Ownership gate — same as POST /synthesis. A plan in another org returns
   // 404, not 403, so a probe can't distinguish "wrong org" from "no such
   // plan". Same posture as the other research routes.
-  const plan = await getResearchPlan(orgId, planId);
+  // Perf: Plan + Synthese parallel (beide nur orgId+planId-keyed, unabhängig);
+  // die Guards greifen danach in unveränderter Reihenfolge.
+  const [plan, synthesis] = await Promise.all([
+    getResearchPlan(orgId, planId),
+    getStudySynthesis(orgId, planId),
+  ]);
   if (!plan) {
     return NextResponse.json(
       { error: t("notFound.researchPlan") },
@@ -56,7 +61,6 @@ export async function GET(
     );
   }
 
-  const synthesis = await getStudySynthesis(orgId, planId);
   if (!synthesis || synthesis.synthesized_at === null) {
     // Either the row doesn't exist yet OR an empty slot is sitting there
     // unsynthesized. Both surface to the user as "no synthesis to download".
@@ -70,9 +74,12 @@ export async function GET(
   }
 
   try {
-    const orgName = await getOrgName(orgId);
-    const branding = await resolveExportBranding(orgId);
-    const ts = await getTranslations("research.synthesis");
+    // Unabhängige Reads parallel statt drei serielle Stufen vor dem PDF-Build.
+    const [orgName, branding, ts] = await Promise.all([
+      getOrgName(orgId),
+      resolveExportBranding(orgId),
+      getTranslations("research.synthesis"),
+    ]);
     const signalsChart = buildSignalsDistribution(synthesis.signals_summary, {
       direct: ts("signalDirect"),
       partial: ts("signalPartial"),

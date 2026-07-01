@@ -37,8 +37,11 @@ export async function GET(
   }
 
   try {
-    const orgName = await getOrgName(orgId);
-    const branding = await resolveExportBranding(orgId);
+    // Unabhängige Reads parallel statt zwei serielle Stufen vor dem Build.
+    const [orgName, branding] = await Promise.all([
+      getOrgName(orgId),
+      resolveExportBranding(orgId),
+    ]);
     const pdf = await buildMetaSynthesisPdf({
       title: record.title,
       createdAt: record.createdAt,

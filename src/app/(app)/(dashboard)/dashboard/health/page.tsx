@@ -126,15 +126,19 @@ export default async function CustomerHealthOverviewPage() {
   const tv = await getTranslations("health.common");
   const locale = await getLocale();
 
-  // One batch fetch per dimension — no AI, no Opus, all reads.
+  // One batch fetch per dimension — no AI, no Opus, all reads. Retention und
+  // Health-Scores hängen beide nur an `accounts` (nicht aneinander) → parallel
+  // statt zwei serielle Roundtrips nach dem Account-Read.
   const accounts = await getAccounts(orgId);
-  // Deterministic retention/NRR roll-up over the full account base (independent
-  // of whether an account has a health analysis yet).
-  const retention = await getRetentionSummary(orgId, accounts);
-  const healthMap = await getLatestHealthScoresForAccounts(
-    orgId,
-    accounts.map((a) => a.id),
-  );
+  const [retention, healthMap] = await Promise.all([
+    // Deterministic retention/NRR roll-up over the full account base
+    // (independent of whether an account has a health analysis yet).
+    getRetentionSummary(orgId, accounts),
+    getLatestHealthScoresForAccounts(
+      orgId,
+      accounts.map((a) => a.id),
+    ),
+  ]);
 
   // Pair each account with its latest health (drop those without an analysis).
   const analyzed: AnalyzedRow[] = accounts

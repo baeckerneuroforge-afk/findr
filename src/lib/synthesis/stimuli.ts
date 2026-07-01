@@ -413,11 +413,24 @@ export async function loadSynthesisStimulusInputs(
       fullRevealViews.length >= MIN_STIMULUS_SEGMENT_SESSIONS
     ) {
       const model = resolvePreferenceModel();
-      const results = await Promise.all(
-        fullRevealViews.map((v) =>
-          classifyPreference(items, v.preferenceTail, model),
-        ),
-      );
+      // Chunked-Concurrency statt unbegrenztem Promise.all: ein Haiku-Call
+      // pro Voll-Reveal-Session, bei großen Studien vorher ALLE gleichzeitig
+      // → 429-Bursts (SDK-Retry fängt sie, kostet aber Latenz). Muster wie
+      // DEAL_CONCURRENCY im Reanalyze-Cron.
+      const PREFERENCE_CONCURRENCY = 8;
+      const results: Array<number | null | undefined> = [];
+      for (
+        let i = 0;
+        i < fullRevealViews.length;
+        i += PREFERENCE_CONCURRENCY
+      ) {
+        const chunk = await Promise.all(
+          fullRevealViews
+            .slice(i, i + PREFERENCE_CONCURRENCY)
+            .map((v) => classifyPreference(items, v.preferenceTail, model)),
+        );
+        results.push(...chunk);
+      }
       votes = results.filter((r): r is number | null => r !== undefined);
     }
 

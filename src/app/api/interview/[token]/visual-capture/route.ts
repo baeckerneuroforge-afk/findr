@@ -103,6 +103,15 @@ export async function POST(
           { status: 404 },
         );
       }
+      // Idempotenz-Gate: visual_capture ist bereits gefüllt — 409, damit der
+      // legitime Client den Zustand erkennt und kein weiterer Vision-Call
+      // ausgelöst werden kann (Kosten-DoS-Bremse).
+      if (resolution.reason === "already_captured") {
+        return NextResponse.json(
+          { error: "Visual capture was already processed for this interview." },
+          { status: 409 },
+        );
+      }
       return NextResponse.json(
         { error: "Visual capture is not available for this interview." },
         { status: 403 },

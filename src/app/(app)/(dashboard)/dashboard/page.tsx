@@ -14,7 +14,9 @@ import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist"
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { ENABLED_MODULES } from "@/config/modules";
 import { auth } from "@/auth";
-import { loadOrgSynthesisStudyIds } from "@/lib/mission-control/engine";
+import { loadOrgSyntheses } from "@/lib/mission-control/engine";
+import type { MissionControlSynthesisInput } from "@/lib/mission-control/prompts";
+import { ScopedMessages } from "@/components/i18n/ScopedMessages";
 import {
   countCompletedSessionsForPlans,
   countRecentCompletedSessionsForPlans,
@@ -213,9 +215,9 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
     );
   }
 
-  // Zwei READ-ONLY-Batches über vorhandene Queries, parallel — identisches
+  // EIN READ-ONLY-Batch über vorhandene Queries, parallel — identisches
   // Muster (inkl. fail-open-Verhalten) wie /dashboard/market-research.
-  const [completedCounts, recentCounts, synthesisPlanIds, poolCount] =
+  const [completedCounts, recentCounts, orgSyntheses, poolCount] =
     await Promise.all([
       countCompletedSessionsForPlans(
         orgId,
@@ -226,13 +228,21 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
         orgId,
         plans.map((plan) => plan.id),
       ),
-      // Nur die plan_id-Menge (welche Studien synthetisiert sind) statt der
-      // vollen Synthese-JSONB — das Dashboard refresht alle 30s.
-      loadOrgSynthesisStudyIds(orgId).catch(() => new Set<string>()),
+      // EIN Synthese-Read für die ganze Seite (Perf, 30s-AutoRefresh): liefert
+      // sowohl die plan_id-Menge („welche Studien sind synthetisiert") als auch
+      // die Inputs für die Konsoul-Signale unten. loadOrgSyntheses ist seit dem
+      // Spaltenlisten-Fix schlank (keine personas/narrative/advisory-JSONB);
+      // vorher liefen hier loadOrgSynthesisStudyIds UND (seriell danach) die
+      // Signal-Engine mit eigenem listResearchPlans + Voll-JSONB-Read.
+      loadOrgSyntheses(orgId).catch(
+        () => [] as MissionControlSynthesisInput[],
+      ),
       // Head-count statt den ganzen Pool zu laden — das Dashboard refresht
       // alle 30s. Degradiert zu 0 = liest hier als „0 Profile“.
       countPoolMembers(orgId).catch(() => 0),
     ]);
+
+  const synthesisPlanIds = new Set(orgSyntheses.map((s) => s.studyId));
 
   const activePlans = plans.filter((p) => p.status === "active");
   const draftPlans = plans.filter((p) => p.status === "draft");
@@ -304,9 +314,13 @@ async function HeuteDashboard({ orgId }: { orgId: string }) {
   // (kein LLM, jede Zahl echt gezählt). STRENG FAIL-OPEN: ein Lesefehler im
   // SignalEngine darf die Startseite nie kippen → leere Liste, Sektion entfällt.
   // Additiv neben „Nächste Schritte"; verdoppelt die R1/R2/R3-Logik nicht.
-  const konsoulSignals: KonsoulSignal[] = await computeKonsoulSignals(
-    orgId,
-  ).catch(() => []);
+  // Perf: Pläne + Synthesen sind oben schon geladen und werden durchgereicht —
+  // der Signal-Pfad macht keine einzige eigene Query mehr (vorher: 3, davon
+  // listResearchPlans exakt doppelt zur Seite, seriell NACH dem Promise.all).
+  const konsoulSignals: KonsoulSignal[] = await computeKonsoulSignals(orgId, {
+    plans,
+    syntheses: orgSyntheses,
+  }).catch(() => []);
 
   const runningPlans = activePlans.slice(0, 4);
   const synthesizedPlans = plansWithSynthesis.slice(0, 5);
@@ -580,6 +594,11 @@ export default async function DashboardPage() {
 
   if (deals.length === 0) {
     return (
+      // i18n-Sektions-Provider (Perf-Split, src/i18n/client-messages.ts): der
+      // Sales-Branch der Startseite mountet Client-Komponenten mit
+      // useTranslations("sales.*") (AnalyzeAllButton, DealTableWithFilters) —
+      // der Root-Kern trägt "sales" nicht mehr.
+      <ScopedMessages namespaces={["sales"]}>
       <div className="space-y-8">
         <div>
           <h1 className="text-display text-neutral-900">{t("title")}</h1>
@@ -596,10 +615,13 @@ export default async function DashboardPage() {
           }}
         />
       </div>
+      </ScopedMessages>
     );
   }
 
   return (
+    // i18n-Sektions-Provider — Begründung wie am Leer-Zustand oben.
+    <ScopedMessages namespaces={["sales"]}>
     <div className="space-y-8">
       {/* Page header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -660,5 +682,6 @@ export default async function DashboardPage() {
       {/* Hint */}
       <p className="text-small text-neutral-500">{t("tableHint")}</p>
     </div>
+    </ScopedMessages>
   );
 }

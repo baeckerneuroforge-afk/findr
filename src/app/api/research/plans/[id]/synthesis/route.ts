@@ -83,22 +83,32 @@ export async function POST(
         // Two additive, BEST-EFFORT stages over the fresh synthesis: the
         // narrative and the eval-calibrated advisory. Either failing leaves the
         // base synthesis intact (mirrors the E4 extras posture).
-        try {
-          const expanded = await expandSynthesisNarrative(orgId, planId);
-          executiveNarrative = expanded.executiveNarrative;
-        } catch (narrErr) {
+        // Perf: beide hängen nur an der frischen Synthese, nicht aneinander →
+        // parallel via allSettled statt seriell (vorher 30–90s unnötige
+        // Wall-Zeit auf einer Route, auf der der Nutzer wartet). Die interne
+        // generate→refine-Kette der Advisory bleibt seriell — die ist echt
+        // abhängig.
+        const [narrativeOutcome, advisoryOutcome] = await Promise.allSettled([
+          expandSynthesisNarrative(orgId, planId),
+          generateSynthesisImplications(orgId, planId),
+        ]);
+        if (narrativeOutcome.status === "fulfilled") {
+          executiveNarrative = narrativeOutcome.value.executiveNarrative;
+        } else {
           console.warn(
             `[research/synthesis] narrative stage failed (base synthesis kept): ${
-              narrErr instanceof Error ? narrErr.message : narrErr
+              narrativeOutcome.reason instanceof Error
+                ? narrativeOutcome.reason.message
+                : narrativeOutcome.reason
             }`,
           );
         }
-        try {
-          await generateSynthesisImplications(orgId, planId);
-        } catch (advErr) {
+        if (advisoryOutcome.status === "rejected") {
           console.warn(
             `[research/synthesis] advisory stage failed (base synthesis kept): ${
-              advErr instanceof Error ? advErr.message : advErr
+              advisoryOutcome.reason instanceof Error
+                ? advisoryOutcome.reason.message
+                : advisoryOutcome.reason
             }`,
           );
         }

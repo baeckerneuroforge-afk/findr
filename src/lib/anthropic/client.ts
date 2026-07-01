@@ -33,9 +33,17 @@ export function getAnthropicClient(): Anthropic {
 
   _client = new Anthropic({
     apiKey,
-    timeout: 30_000,
+    // 120s statt 30s: der Default gilt für jeden Call OHNE per-Call-Options —
+    // konkret den Opus-Turn-Stream des Interviews (interviewer.ts). 30s waren
+    // für Opus-First-Byte in Lastspitzen zu knapp (harter Abbruch mitten im
+    // Interview); die übrigen Callsites überschreiben ohnehin mit eigenen
+    // 120s-Budgets. Per-Call weiterhin via options.timeout übersteuerbar.
+    timeout: 120_000,
     // SDK retries transient 429/500/529 errors with backoff and jitter.
-    maxRetries: 4,
+    // 2 statt 4: bei Überlast (529) liefen sonst bis zu 5 Versuche desselben
+    // teuren Opus-Calls (Kosten-Multiplikator), während der Nutzer längst ein
+    // Timeout sah. 2 Retries fangen transiente Fehler weiterhin ab.
+    maxRetries: 2,
   });
   return _client;
 }

@@ -5,6 +5,10 @@ import { z } from "zod";
 
 import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
 import {
+  cachedSystem,
+  withCacheBreakpointOnLastMessage,
+} from "@/lib/anthropic/cache";
+import {
   applyMissionControlAnchorFilter,
   buildMissionControlAnchorSet,
 } from "@/lib/mission-control/engine";
@@ -184,9 +188,18 @@ async function forceFinalEmit(
         {
           model,
           max_tokens: MAX_TOKENS,
-          system: CROSS_STUDY_AGENT_SYSTEM_PROMPT,
-          messages,
-          tools: [EMIT_TOOL],
+          system: cachedSystem(CROSS_STUDY_AGENT_SYSTEM_PROMPT),
+          messages: withCacheBreakpointOnLastMessage(messages),
+          // VOLLE Tool-Liste beibehalten (identisch zum Loop): tool_choice
+          // erzwingt ohnehin den Emit; eine geschrumpfte Tool-Liste würde nur
+          // den gecachten Präfix aller Loop-Steps brechen (Cache-Reihenfolge:
+          // tools → system → messages).
+          tools: [
+            LIST_STUDIES_TOOL,
+            LOAD_SYNTHESIS_TOOL,
+            AGGREGATE_THEME_FREQUENCY_TOOL,
+            EMIT_TOOL,
+          ],
           tool_choice: { type: "tool", name: EMIT_TOOL_NAME },
         },
         { timeout: 120_000, maxRetries: 1 },
@@ -260,8 +273,13 @@ export async function runCrossStudyAgentDiagnostics(
         {
           model,
           max_tokens: MAX_TOKENS,
-          system: CROSS_STUDY_AGENT_SYSTEM_PROMPT,
-          messages,
+          // Prompt-Caching (Muster interviewer.ts): Breakpoint auf System
+          // (deckt die Tool-Defs davor mit) + auf der letzten stabilen
+          // Message — jeder Step verlängert den gecachten Präfix des
+          // vorherigen statt den wachsenden Kontext (inkl. großer
+          // load_synthesis-Results) jede Runde voll zu bezahlen.
+          system: cachedSystem(CROSS_STUDY_AGENT_SYSTEM_PROMPT),
+          messages: withCacheBreakpointOnLastMessage(messages),
           tools: [
             LIST_STUDIES_TOOL,
             LOAD_SYNTHESIS_TOOL,

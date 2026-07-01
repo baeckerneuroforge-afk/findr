@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 
 import { withdrawSessionByToken } from "@/lib/voice-agent/session-service";
+
+// Gleiche Format-Validierung wie die Schwester-Routen (stream/speak/voice):
+// ein offensichtlich ungeformter Token (leer/zu kurz/zu lang) löst gar keine
+// DB-Query aus. Härtungs-Konsistenz, kein Verhaltenswechsel für echte Tokens.
+const TokenSchema = z.string().min(20).max(200);
 
 /**
  * POST /api/interview/[token]/withdraw — DSGVO-Selbstwiderruf (G6).
@@ -20,8 +26,15 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
+  const tokenParsed = TokenSchema.safeParse(token);
+  if (!tokenParsed.success) {
+    return NextResponse.json(
+      { success: false, error: "invalid_token" },
+      { status: 400 },
+    );
+  }
   try {
-    await withdrawSessionByToken(token);
+    await withdrawSessionByToken(tokenParsed.data);
     return NextResponse.json({ success: true });
   } catch (err) {
     // Public participant route: DB error text stays server-side; the client

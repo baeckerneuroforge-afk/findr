@@ -588,7 +588,14 @@ export async function listResearchPlans(
   if (studyType !== undefined) {
     query = query.eq("study_type", studyType);
   }
-  const { data, error } = await query.order("created_at", { ascending: false });
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    // Defensives Sicherheitsventil (Hygiene-Audit 2026-07-01): Übersichten
+    // und Zähler konsumieren die Liste komplett — ohne Deckel wächst der
+    // Transfer (inkl. topic_script/stimulus_analysis-JSONB je Plan) linear
+    // mit der Org-Historie. 500 neueste Pläne liegen weit über jeder realen
+    // Org; greift der Deckel je, braucht die Oberfläche echte Pagination.
+    .limit(500);
   if (error || !data) return [];
   return data.map(toRecord);
 }

@@ -721,24 +721,24 @@ export async function synthesizeStudy(
     sentiment: r.sentiment,
   }));
 
-  // E4 — Signal-/Rationale-Inputs (Turn-Signale E1 + WHY-Rationales E3).
-  // Fail-open im Loader: jeder Lesefehler ergibt null-Blöcke und die
-  // Kern-Synthese läuft byte-identisch zu vor E4 (Plan §4.7: „kein neues
-  // Datenmaterial, nur bereits abgeleitete Felder").
-  const signalInputs = await loadSynthesisSignalInputs(orgId, planId);
-
-  // E7 — Stimulus-Inputs (Set-Studien): Server-Zahlen + gedeckelte
-  // Erstreaktions-Ausschnitte; Präferenz-Klassifikation (Haiku) läuft nur
-  // ab Mindest-N Voll-Reveal-Sessions. Fail-open wie die Signal-Inputs.
-  const stimulusInputs = await loadSynthesisStimulusInputs(orgId, planId);
-
-  // Phase D — per-study usability aggregate (server-deterministic, fail-open,
-  // min-N gated, aggregate-only). Only for usability_test studies, where the
-  // success-rate has a task to mean against; null otherwise → no usability card.
-  const interactionSummary =
+  // Drei unabhängige Input-Loader, parallel statt seriell (alle nur
+  // org+plan-scoped, alle fail-open — spart 2 Roundtrips in einer ohnehin
+  // langen Route):
+  //  - E4 Signal-/Rationale-Inputs (Turn-Signale E1 + WHY-Rationales E3):
+  //    jeder Lesefehler ergibt null-Blöcke, die Kern-Synthese läuft
+  //    byte-identisch zu vor E4 (Plan §4.7).
+  //  - E7 Stimulus-Inputs (Set-Studien): Server-Zahlen + gedeckelte
+  //    Erstreaktions-Ausschnitte; Präferenz-Klassifikation (Haiku) nur ab
+  //    Mindest-N Voll-Reveal-Sessions.
+  //  - Phase D per-study Usability-Aggregat: nur für usability_test-Studien
+  //    (min-N gated, aggregate-only); sonst null → keine Usability-Karte.
+  const [signalInputs, stimulusInputs, interactionSummary] = await Promise.all([
+    loadSynthesisSignalInputs(orgId, planId),
+    loadSynthesisStimulusInputs(orgId, planId),
     plan.useCase === "usability_test"
-      ? await loadSynthesisInteractionSummary(orgId, planId)
-      : null;
+      ? loadSynthesisInteractionSummary(orgId, planId)
+      : Promise.resolve(null),
+  ]);
 
   const synthesis = await synthesizeFromInputs(
     {

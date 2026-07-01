@@ -6,7 +6,7 @@ import { VoiceUnavailableError } from "@/lib/voice-agent/interviewer";
 import {
   advanceInterview,
   ensureOpeningTurn,
-  getPublicSession,
+  resolveInterviewSessionByToken,
 } from "@/lib/voice-agent/session-service";
 
 /**
@@ -72,7 +72,11 @@ export async function POST(
 
   // Participant-facing locale = the session's interview language (resolved
   // from the token), NOT the UI cookie — mirrors the non-streaming route.
-  const existing = await getPublicSession(tokenParsed.data);
+  // Perf: interner Resolver statt getPublicSession — dieselbe Auflösung
+  // (inkl. lazy-create), aber die Session wird unten als `preloaded` an
+  // advanceInterview durchgereicht statt dort ein zweites Mal (volle Row samt
+  // conversation-JSONB) geladen zu werden.
+  const existing = await resolveInterviewSessionByToken(tokenParsed.data);
   const t = await getTranslations({
     locale: existing?.language ?? DEFAULT_LOCALE,
     namespace: "errors",
@@ -116,7 +120,13 @@ export async function POST(
         // Set feuern nie → Event-Strom byte-identisch zu vorher.
         const onShow = (position: number) => send("show", { position });
         const session = message
-          ? await advanceInterview(tokenParsed.data, message, onDelta, onShow)
+          ? await advanceInterview(
+              tokenParsed.data,
+              message,
+              onDelta,
+              onShow,
+              existing,
+            )
           : await ensureOpeningTurn(tokenParsed.data, onDelta, onShow);
 
         if (!session) {
