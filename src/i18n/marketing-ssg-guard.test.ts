@@ -16,8 +16,17 @@ import { describe, expect, it } from "vitest";
 // The public marketing routes moved to the flat (site) tree; the legacy
 // (marketing)/[lang] route tree was removed. The shared marketing components
 // survive (still used by the (app)/(participant) not-found pages), so the
-// "no request-time dynamic state" invariant is still guarded here.
-const ROOTS = ["src/components/marketing"];
+// "no request-time dynamic state" invariant is still guarded here — PLUS the
+// live (site) tree, its shared components, the marketing SEO/locale helpers,
+// and the new English tree at src/app/en (which must stay just as static, or
+// hreflang-driven crawling and the additive DE/EN rollout both break).
+const ROOTS = [
+  "src/components/marketing",
+  "src/app/(site)",
+  "src/components/site",
+  "src/lib/marketing",
+  "src/app/en",
+];
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -49,7 +58,10 @@ describe("marketing tree stays statically renderable", () => {
       if (/from\s+["']next\/headers["']/.test(code)) {
         offenders.push(`${file}: imports next/headers`);
       }
-      if (/\bcookies\s*\(/.test(code)) offenders.push(`${file}: cookies()`);
+      // Real next/headers cookies() calls always have empty parens — require
+      // that shape so English legal prose like "cookies (language, display)"
+      // (a real phrase in the EN cookies/privacy pages) doesn't false-positive.
+      if (/\bcookies\s*\(\s*\)/.test(code)) offenders.push(`${file}: cookies()`);
       if (/\bsearchParams\b/.test(code)) offenders.push(`${file}: searchParams`);
       if (/\bgetLocale\s*\(/.test(code)) offenders.push(`${file}: getLocale()`);
     }

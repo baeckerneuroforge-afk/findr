@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
 import { Stagger } from "@/components/site/Stagger";
 
 export const metadata: Metadata = {
   title: { absolute: "Branchen — Marktforschung mit Klymeo" },
   description: "Konsumgüter, FinTech, Pharma, Auto, Retail, B2B-SaaS, Pharma, Media — Klymeo arbeitet branchenagnostisch und EU-konform.",
-  alternates: { canonical: "/branchen" },
+  alternates: buildAlternates("de", "/branchen"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Branchen — Marktforschung mit Klymeo",
     description: "FMCG, SaaS, FinTech, Pharma, Automotive, Retail, Media & Energy — branchenagnostisch und EU-konform.",
     url: "/branchen",

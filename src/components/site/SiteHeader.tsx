@@ -4,10 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "./Logo";
-import { DEMO_URL, NAV_LINKS } from "./constants";
+import { DEMO_URL, EN_AVAILABLE_PATHS, SITE_CHROME, getNavLinks } from "./constants";
+import { siteLocalizePath, stripSiteLocalePrefix, type Locale } from "@/i18n/marketing-locale";
 
-export function SiteHeader() {
-  const pathname = usePathname();
+export function SiteHeader({ lang = "de" }: { lang?: Locale }) {
+  const pathname = usePathname() ?? "/";
+  const chrome = SITE_CHROME[lang];
+  const navLinks = getNavLinks(lang);
+  const otherLocale: Locale = lang === "de" ? "en" : "de";
+  const otherLocaleHref =
+    lang === "de"
+      ? EN_AVAILABLE_PATHS.includes(pathname)
+        ? siteLocalizePath("en", pathname)
+        : "/en"
+      : stripSiteLocalePrefix(pathname);
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const listRef = useRef<HTMLUListElement | null>(null);
@@ -47,7 +57,7 @@ export function SiteHeader() {
           scrolled ? "py-2.5" : "py-4"
         }`}
       >
-        <Logo />
+        <Logo lang={lang} />
         <ul
           ref={listRef}
           onMouseLeave={hidePill}
@@ -58,7 +68,7 @@ export function SiteHeader() {
             className="pointer-events-none absolute top-1/2 -z-0 h-9 -translate-y-1/2 rounded-full bg-secondary transition-all duration-[420ms] ease-[cubic-bezier(.22,1,.36,1)]"
             style={{ left: pill.left, width: pill.width, opacity: pill.opacity }}
           />
-          {NAV_LINKS.map((l) => (
+          {navLinks.map((l) => (
             <li key={l.to} className="relative">
               <Link
                 href={l.to}
@@ -75,11 +85,19 @@ export function SiteHeader() {
         </ul>
         <div className="flex items-center gap-2">
           <Link
+            href={otherLocaleHref}
+            hrefLang={otherLocale}
+            aria-label={otherLocale === "en" ? "Switch to English" : "Auf Deutsch wechseln"}
+            className="hidden items-center text-sm font-medium text-muted-foreground transition hover:text-ink md:inline-flex"
+          >
+            {otherLocale.toUpperCase()}
+          </Link>
+          <Link
             href="/sign-in"
             className="hidden items-center gap-1.5 text-sm text-muted-foreground transition hover:text-ink md:inline-flex"
           >
             <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-soul" />
-            Login
+            {chrome.login}
           </Link>
           <a
             href={DEMO_URL}
@@ -91,14 +109,14 @@ export function SiteHeader() {
               className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-soul/50 to-transparent transition-transform duration-700 group-hover:translate-x-full"
               aria-hidden
             />
-            <span className="relative">Demo buchen</span>
+            <span className="relative">{chrome.bookDemo}</span>
             <span aria-hidden className="relative transition-transform duration-300 group-hover:translate-x-1">→</span>
           </a>
           <button
             type="button"
             className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border transition hover:bg-secondary lg:hidden"
             onClick={() => setOpen(!open)}
-            aria-label="Menü"
+            aria-label={chrome.menuLabel}
             aria-expanded={open}
           >
             <div className="relative h-3.5 w-4">
@@ -127,7 +145,7 @@ export function SiteHeader() {
         }`}
       >
         <ul className="mx-auto flex max-w-7xl flex-col gap-1 px-6 py-3 text-sm">
-          {NAV_LINKS.map((l, i) => (
+          {navLinks.map((l, i) => (
             <li
               key={l.to}
               className="opacity-0"
@@ -152,6 +170,29 @@ export function SiteHeader() {
               </Link>
             </li>
           ))}
+          <li
+            className="mt-1 border-t border-border pt-1 opacity-0"
+            style={{
+              animation: open
+                ? `fade-in .45s cubic-bezier(.22,1,.36,1) ${0.05 + navLinks.length * 0.05}s forwards`
+                : undefined,
+            }}
+          >
+            <Link
+              href={otherLocaleHref}
+              hrefLang={otherLocale}
+              className="group flex items-center justify-between rounded-xl px-3 py-3 text-muted-foreground transition-all duration-300 hover:translate-x-1 hover:bg-secondary hover:text-ink"
+              onClick={() => setOpen(false)}
+            >
+              <span>{otherLocale === "en" ? "English" : "Deutsch"}</span>
+              <span
+                aria-hidden
+                className="-translate-x-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100"
+              >
+                →
+              </span>
+            </Link>
+          </li>
         </ul>
       </div>
     </header>

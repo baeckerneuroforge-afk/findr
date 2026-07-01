@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site/SiteShell";
 import { LegalProse, LegalSection } from "@/components/site/LegalProse";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 const CONTACT_LINK =
   "text-ink underline underline-offset-2 transition-colors hover:text-ink/70";
@@ -10,9 +10,9 @@ export const metadata: Metadata = {
   title: { absolute: "Impressum — Klymeo" },
   description:
     "Anbieterkennzeichnung und Pflichtangaben gemäß § 5 DDG für Klymeo.",
-  alternates: { canonical: "/impressum" },
+  alternates: buildAlternates("de", "/impressum"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Impressum — Klymeo",
     description:
       "Anbieterkennzeichnung und Pflichtangaben gemäß § 5 DDG für Klymeo.",

@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { SolutionPage } from "@/components/site/SolutionPage";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "User Research — UX-Forschung mit KI · Klymeo" },
   description:
     "UX- & Produktforschung mit Voice-Interviews: verstehe, wie Menschen dein Produkt nutzen — im Kontext, mit echtem Nachhaken durch Konsoul.",
-  alternates: { canonical: "/loesungen/user-research" },
+  alternates: buildAlternates("de", "/loesungen/user-research"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "User Research — UX-Forschung mit KI · Klymeo",
     description: "Tiefe Nutzer-Interviews — parallel, im Kontext, mit echten Follow-ups durch Konsoul.",
     url: "/loesungen/user-research",

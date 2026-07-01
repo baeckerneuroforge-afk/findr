@@ -3,15 +3,15 @@ import Link from "next/link";
 import { Konsoul } from "@/components/site/Konsoul";
 import { SiteShell, CtaBlock, DEMO_URL } from "@/components/site/SiteShell";
 import { Stagger } from "@/components/site/Stagger";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "Klymeo — KI-Marktforschung, orchestriert von Konsoul" },
   description:
     "Qualitative & quantitative Studien in Tagen: konzipieren, rekrutieren, interviewen, auswerten — orchestriert von Konsoul. EU-gehostet in Frankfurt.",
-  alternates: { canonical: "/" },
+  alternates: buildAlternates("de", "/"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Klymeo — KI-Marktforschung",
     description:
       "Konsoul orchestriert deine Studien. Belegt am Transkript. Veröffentlicht in Tagen.",

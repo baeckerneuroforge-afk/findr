@@ -2,7 +2,8 @@ import Link from "next/link";
 import { type ReactNode } from "react";
 import { Logo } from "./Logo";
 import { SiteHeader } from "./SiteHeader";
-import { DEMO_URL } from "./constants";
+import { DEMO_URL, SITE_CHROME } from "./constants";
+import type { Locale } from "@/i18n/marketing-locale";
 
 export { DEMO_URL, SUPPORT_EMAIL } from "./constants";
 
@@ -13,53 +14,95 @@ function pickMark(seed: string, offset = 0) {
   return MARK_COLORS[(h + offset) % MARK_COLORS.length];
 }
 
-export function SiteFooter() {
+// Footer column links, per locale. Items whose target page has no English
+// translation yet point at the German page directly (better than a 404) —
+// they pick up the /en prefix once that page is translated in a later step.
+const FOOTER_COLUMNS_DE = [
+  {
+    title: "Plattform",
+    items: [
+      { label: "Konsoul", to: "/konsoul" },
+      { label: "Module", to: "/plattform" },
+      { label: "Methoden", to: "/methoden" },
+      { label: "Preise", to: "/preise" },
+    ],
+  },
+  {
+    title: "Lösungen",
+    items: [
+      { label: "User Research", to: "/loesungen/user-research" },
+      { label: "Konzept-Test", to: "/loesungen/konzept-test" },
+      { label: "Marken­wahrnehmung", to: "/loesungen/markenwahrnehmung" },
+      { label: "Bedarf & Verhalten", to: "/loesungen/bedarf-verhalten" },
+      { label: "Personas", to: "/personas" },
+    ],
+  },
+  {
+    title: "Unternehmen",
+    items: [
+      { label: "Branchen", to: "/branchen" },
+      { label: "Kontakt", to: "/kontakt" },
+      { label: "Impressum", to: "/impressum" },
+      { label: "Datenschutz", to: "/datenschutz" },
+      { label: "AGB", to: "/agb" },
+      { label: "Cookies", to: "/cookies" },
+    ],
+  },
+];
+
+const FOOTER_COLUMNS_EN = [
+  {
+    title: "Platform",
+    items: [
+      { label: "Konsoul", to: "/en/konsoul" },
+      { label: "Modules", to: "/en/plattform" },
+      { label: "Methods", to: "/en/methoden" },
+      { label: "Pricing", to: "/en/preise" },
+    ],
+  },
+  {
+    title: "Solutions",
+    items: [
+      { label: "User Research", to: "/en/loesungen/user-research" },
+      { label: "Concept Test", to: "/en/loesungen/konzept-test" },
+      { label: "Brand Perception", to: "/en/loesungen/markenwahrnehmung" },
+      { label: "Needs & Behavior", to: "/en/loesungen/bedarf-verhalten" },
+      { label: "Personas", to: "/en/personas" },
+    ],
+  },
+  {
+    title: "Company",
+    items: [
+      { label: "Industries", to: "/en/branchen" },
+      { label: "Contact", to: "/en/kontakt" },
+      { label: "Imprint", to: "/en/impressum" },
+      { label: "Privacy", to: "/en/datenschutz" },
+      { label: "Terms", to: "/en/agb" },
+      { label: "Cookies", to: "/en/cookies" },
+    ],
+  },
+];
+
+export function SiteFooter({ lang = "de" }: { lang?: Locale }) {
+  const chrome = SITE_CHROME[lang];
+  const columns = lang === "en" ? FOOTER_COLUMNS_EN : FOOTER_COLUMNS_DE;
   return (
     <footer className="border-t border-border bg-secondary/40 py-16">
       <div className="mx-auto grid max-w-7xl gap-12 px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
-          <Logo />
-          <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-            Qualitative Marktforschung mit KI — orchestriert von Konsoul. EU-gehostet in Frankfurt.
-          </p>
+          <Logo lang={lang} />
+          <p className="mt-4 max-w-xs text-sm text-muted-foreground">{chrome.footerTagline}</p>
           <p className="mt-5 text-xs uppercase tracking-[0.18em] text-muted-foreground">
             Always-on · v1
           </p>
         </div>
-        <FooterCol
-          title="Plattform"
-          items={[
-            { label: "Konsoul", to: "/konsoul" },
-            { label: "Module", to: "/plattform" },
-            { label: "Methoden", to: "/methoden" },
-            { label: "Preise", to: "/preise" },
-          ]}
-        />
-        <FooterCol
-          title="Lösungen"
-          items={[
-            { label: "User Research", to: "/loesungen/user-research" },
-            { label: "Konzept-Test", to: "/loesungen/konzept-test" },
-            { label: "Marken­wahrnehmung", to: "/loesungen/markenwahrnehmung" },
-            { label: "Bedarf & Verhalten", to: "/loesungen/bedarf-verhalten" },
-            { label: "Personas", to: "/personas" },
-          ]}
-        />
-        <FooterCol
-          title="Unternehmen"
-          items={[
-            { label: "Branchen", to: "/branchen" },
-            { label: "Kontakt", to: "/kontakt" },
-            { label: "Impressum", to: "/impressum" },
-            { label: "Datenschutz", to: "/datenschutz" },
-            { label: "AGB", to: "/agb" },
-            { label: "Cookies", to: "/cookies" },
-          ]}
-        />
+        {columns.map((col) => (
+          <FooterCol key={col.title} title={col.title} items={col.items} />
+        ))}
       </div>
       <div className="mx-auto mt-10 flex max-w-7xl flex-col items-start justify-between gap-2 px-6 text-xs text-muted-foreground md:flex-row md:items-center">
         <p>© {new Date().getFullYear()} Klymeo · Ibbenbüren</p>
-        <p>🇪🇺 EU-gehostet · DSGVO · Belegt am Transkript</p>
+        <p>{chrome.footerBadge}</p>
       </div>
     </footer>
   );
@@ -88,12 +131,18 @@ function FooterCol({
   );
 }
 
-export function SiteShell({ children }: { children: ReactNode }) {
+export function SiteShell({
+  children,
+  lang = "de",
+}: {
+  children: ReactNode;
+  lang?: Locale;
+}) {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-clip">
-      <SiteHeader />
+      <SiteHeader lang={lang} />
       <main>{children}</main>
-      <SiteFooter />
+      <SiteFooter lang={lang} />
     </div>
   );
 }
@@ -153,15 +202,21 @@ export function CtaBlock({
   title,
   italic,
   body,
-  primary = "Demo buchen",
-  secondary = "Mit Sales sprechen",
+  primary,
+  secondary,
+  lang = "de",
 }: {
   title: string;
   italic?: string;
   body?: string;
   primary?: string;
   secondary?: string;
+  lang?: Locale;
 }) {
+  const chrome = SITE_CHROME[lang];
+  const primaryLabel = primary ?? chrome.bookDemo;
+  const secondaryLabel = secondary ?? chrome.ctaSecondary;
+  const contactHref = lang === "en" ? "/en/kontakt" : "/kontakt";
   return (
     <section className="py-24">
       <div className="mx-auto max-w-5xl px-6">
@@ -176,7 +231,7 @@ export function CtaBlock({
           />
           <div className="relative">
             <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-paper/60">
-              Lass uns loslegen
+              {chrome.ctaEyebrow}
             </p>
             <h2 className="mt-4 max-w-2xl text-4xl leading-[1.05] md:text-5xl">
               {title} {italic && <span className={`mark ${pickMark(italic, 2)}`}>{italic}</span>}
@@ -189,13 +244,13 @@ export function CtaBlock({
                 rel="noreferrer"
                 className="group inline-flex items-center gap-2 rounded-full bg-soul px-6 py-3.5 text-sm font-medium text-ink transition hover:scale-[1.02] hover:shadow-[0_12px_40px_-10px_oklch(0.72_0.16_55_/_0.6)]"
               >
-                {primary} <span aria-hidden className="transition group-hover:translate-x-0.5">→</span>
+                {primaryLabel} <span aria-hidden className="transition group-hover:translate-x-0.5">→</span>
               </a>
               <Link
-                href="/kontakt"
+                href={contactHref}
                 className="inline-flex items-center gap-2 rounded-full border border-paper/20 px-6 py-3.5 text-sm font-medium text-paper transition hover:bg-paper/10"
               >
-                {secondary}
+                {secondaryLabel}
               </Link>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
-import { ogDefaults, jsonLdHtml, SITE_URL } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor, jsonLdHtml, SITE_URL } from "@/lib/marketing/seo";
 
 const PATH = "/blog/ki-marktforschung-einsatz";
 
@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   title: { absolute: "Wie man KI für die Marktforschung einsetzt — Praxis-Guide (2026)" },
   description:
     "Schritt-für-Schritt-Guide: Wie du KI in der Marktforschung einsetzt — vom Briefing über dialogische Interviews bis zum belegten Report. Mit Best Practices, Fallstricken und Use Cases.",
-  alternates: { canonical: PATH },
+  alternates: buildAlternates("de", PATH),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Wie man KI für die Marktforschung einsetzt",
     description:
       "Vom Briefing zum belegten Report: Wie KI qualitative Tiefe und automatisierte Synthese in einem Workflow vereint.",

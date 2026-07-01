@@ -8,7 +8,10 @@ import {
   MARKETING_DEFAULT_LOCALE,
   MARKETING_LOCALES,
   resolveLocale,
+  siteLocalizePath,
+  siteLocaleOfPath,
   stripLocalePrefix,
+  stripSiteLocalePrefix,
 } from "./marketing-locale";
 
 describe("marketing-locale", () => {
@@ -94,6 +97,42 @@ describe("resolveLocale", () => {
     expect(resolveLocale("en")).toBe("en");
     expect(resolveLocale("fr")).toBe("de");
     expect(resolveLocale("")).toBe("de");
+  });
+});
+
+describe("siteLocalizePath (asymmetric: DE unprefixed, EN under /en)", () => {
+  it("leaves German paths unprefixed (canonical, unchanged)", () => {
+    expect(siteLocalizePath("de", "/preise")).toBe("/preise");
+    expect(siteLocalizePath("de", "/")).toBe("/");
+  });
+
+  it("prefixes only English under /en", () => {
+    expect(siteLocalizePath("en", "/preise")).toBe("/en/preise");
+    expect(siteLocalizePath("en", "/")).toBe("/en");
+  });
+
+  it("strips the /en prefix back to the canonical path", () => {
+    expect(stripSiteLocalePrefix("/en")).toBe("/");
+    expect(stripSiteLocalePrefix("/en/preise")).toBe("/preise");
+    // Already-canonical (German) paths are untouched.
+    expect(stripSiteLocalePrefix("/preise")).toBe("/preise");
+  });
+
+  it("derives the locale from the presence of an /en prefix", () => {
+    expect(siteLocaleOfPath("/en")).toBe("en");
+    expect(siteLocaleOfPath("/en/preise")).toBe("en");
+    expect(siteLocaleOfPath("/preise")).toBe("de");
+    expect(siteLocaleOfPath("/")).toBe("de");
+    // "/ensemble" starts with "/en" but is not the /en prefix (defensive).
+    expect(siteLocaleOfPath("/ensemble")).toBe("de");
+  });
+
+  it("round-trips localize(localeOf, strip) back to the original path", () => {
+    for (const path of ["/", "/en", "/preise", "/en/preise"]) {
+      expect(
+        siteLocalizePath(siteLocaleOfPath(path), stripSiteLocalePrefix(path)),
+      ).toBe(path);
+    }
   });
 });
 

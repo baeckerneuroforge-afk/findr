@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import {
-  localizePath,
+  siteLocalizePath,
   MARKETING_LOCALES,
   type Locale,
 } from "@/i18n/marketing-locale";
@@ -90,8 +90,11 @@ export function ogDefaultsFor(
  * `dePath` is the page's canonical GERMAN path (the existing route, e.g.
  * "/produkt" or "/"). Returns RELATIVE urls — Next resolves them against the
  * layout's `metadataBase` into absolutes, exactly like today's per-page
- * canonical. The `languages` map is IDENTICAL on both locale variants
- * (reciprocal hreflang) and always carries `x-default` → the German path.
+ * canonical. Uses the asymmetric `siteLocalizePath` (German unprefixed,
+ * English under /en — see src/i18n/marketing-locale.ts), NOT the symmetric
+ * `localizePath` built for the dead (marketing)/[lang] tree. The `languages`
+ * map is IDENTICAL on both locale variants (reciprocal hreflang) and always
+ * carries `x-default` → the German path.
  *
  *   buildAlternates("de", "/produkt")  // canonical "/produkt"
  *   buildAlternates("en", "/produkt")  // canonical "/en/produkt"
@@ -102,11 +105,11 @@ export function buildAlternates(
   dePath: string,
 ): NonNullable<Metadata["alternates"]> {
   return {
-    canonical: localizePath(locale, dePath),
+    canonical: siteLocalizePath(locale, dePath),
     languages: {
-      "de-DE": localizePath("de", dePath),
-      "en-US": localizePath("en", dePath),
-      "x-default": localizePath("de", dePath),
+      "de-DE": siteLocalizePath("de", dePath),
+      "en-US": siteLocalizePath("en", dePath),
+      "x-default": siteLocalizePath("de", dePath),
     },
   };
 }

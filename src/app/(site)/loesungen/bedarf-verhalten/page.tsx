@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { SolutionPage } from "@/components/site/SolutionPage";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "Bedarf & Verhalten — Market Research mit KI · Klymeo" },
   description: "Welche Jobs, Trigger und Hürden treiben Kaufentscheidungen? Jobs-to-be-Done aus erster Hand.",
-  alternates: { canonical: "/loesungen/bedarf-verhalten" },
+  alternates: buildAlternates("de", "/loesungen/bedarf-verhalten"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Bedarf & Verhalten — Market Research mit KI · Klymeo",
     description: "Trigger, Hürden und Substitute deiner Zielgruppe — auf JTBD-Niveau, mit echter Tiefe.",
     url: "/loesungen/bedarf-verhalten",

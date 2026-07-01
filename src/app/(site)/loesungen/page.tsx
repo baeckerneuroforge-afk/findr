@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "Lösungen — Marktforschung mit Klymeo" },
   description: "User Research, Konzept-Test, Markenwahrnehmung, Bedarf & Verhalten — eine Engine, vier Forschungsfragen.",
-  alternates: { canonical: "/loesungen" },
+  alternates: buildAlternates("de", "/loesungen"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Lösungen — Marktforschung mit Klymeo",
     description: "Eine Engine, vier Forschungsfragen: User Research, Konzept-Test, Markenwahrnehmung, Bedarf & Verhalten.",
     url: "/loesungen",

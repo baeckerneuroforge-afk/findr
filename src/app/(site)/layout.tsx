@@ -58,7 +58,10 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-/** Organization + WebSite JSON-LD — site-wide, mirrors the template's __root. */
+/** Organization + WebSite JSON-LD — site-wide, mirrors the template's __root.
+ *  `inLanguage` added now that a real English counterpart exists at
+ *  src/app/en/layout.tsx (crawlers should never see a language mismatch
+ *  between visible content and structured data). */
 const ORG_JSONLD = {
   "@context": "https://schema.org",
   "@graph": [
@@ -69,8 +72,9 @@ const ORG_JSONLD = {
       description:
         "Klymeo ist eine KI-Marktforschungsplattform, die qualitative und quantitative Studien konzipiert, durchführt und auswertet — orchestriert vom Agenten Konsoul.",
       email: "support@klymeo.com",
+      inLanguage: "de",
     },
-    { "@type": "WebSite", name: "Klymeo", url: SITE_URL },
+    { "@type": "WebSite", name: "Klymeo", url: SITE_URL, inLanguage: "de" },
   ],
 };
 

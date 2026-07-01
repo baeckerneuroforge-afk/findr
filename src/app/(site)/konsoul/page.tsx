@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Konsoul } from "@/components/site/Konsoul";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "Konsoul — Der KI-Orchestrator hinter Klymeo" },
   description:
     "Konsoul plant, führt durch, wertet aus. Der KI-Agent, der deine gesamte Marktforschung orchestriert — von Briefing bis Cross-Study-Vergleich.",
-  alternates: { canonical: "/konsoul" },
+  alternates: buildAlternates("de", "/konsoul"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Konsoul · KI-Forschungs-Orchestrator",
     description: "Lerne den Agenten kennen, der deine Studien orchestriert.",
     url: "/konsoul",
