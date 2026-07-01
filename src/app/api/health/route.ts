@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { readFreshDbCheck, storeDbCheck } from "./db-memo";
 
 /**
  * GET /api/health — public, side-effect-free liveness/readiness probe for uptime
@@ -13,15 +14,22 @@ import { createAdminSupabaseClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function GET(): Promise<NextResponse> {
-  let dbOk = false;
-  try {
-    const supabase = createAdminSupabaseClient();
-    const { error } = await supabase
-      .from("organizations")
-      .select("id", { count: "exact", head: true });
-    dbOk = !error;
-  } catch {
-    dbOk = false;
+  // 10s-Memo gegen anonyme DB-Query-Amplifikation — Details in ./db-memo.ts.
+  let dbOk: boolean;
+  const memoized = readFreshDbCheck();
+  if (memoized !== null) {
+    dbOk = memoized;
+  } else {
+    try {
+      const supabase = createAdminSupabaseClient();
+      const { error } = await supabase
+        .from("organizations")
+        .select("id", { count: "exact", head: true });
+      dbOk = !error;
+    } catch {
+      dbOk = false;
+    }
+    storeDbCheck(dbOk);
   }
 
   return NextResponse.json(

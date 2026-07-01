@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./route";
+import { __resetHealthDbMemoForTests } from "./db-memo";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -19,6 +20,9 @@ function mockHeadCount(error: unknown) {
 describe("GET /api/health", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Das 10s-DB-Check-Memo der Route würde sonst den Zustand des vorherigen
+    // Testfalls weitertragen (geteilte Modulinstanz).
+    __resetHealthDbMemoForTests();
   });
 
   it("returns 200 ok when the DB round-trip succeeds", async () => {

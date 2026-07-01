@@ -88,16 +88,17 @@ export async function GET(request: Request) {
       .lt("created_at", abandonCutoff);
     results.abandoned = count ?? 0;
   } else {
-    const { data: marked, error: abandonError } = await supabase
+    // count statt .select("id"): der Sweep braucht nur die ZAHL — bei einem
+    // großen Erst-Sweep reisten sonst zehntausende UUIDs zurück.
+    const { count: markedCount, error: abandonError } = await supabase
       .from("interview_sessions")
-      .update({ status: "abandoned" })
+      .update({ status: "abandoned" }, { count: "exact" })
       .eq("status", "open")
-      .lt("created_at", abandonCutoff)
-      .select("id");
+      .lt("created_at", abandonCutoff);
     if (abandonError) {
       results.errors.push(`abandon-sweep: ${abandonError.message}`);
     } else {
-      results.abandoned = marked?.length ?? 0;
+      results.abandoned = markedCount ?? 0;
     }
   }
 
@@ -118,17 +119,16 @@ export async function GET(request: Request) {
       continue;
     }
 
-    const { data: deleted, error: delError } = await supabase
+    const { count: deletedCount, error: delError } = await supabase
       .from("interview_sessions")
-      .delete()
+      .delete({ count: "exact" })
       .eq("org_id", row.org_id)
-      .lt("created_at", cutoff)
-      .select("id");
+      .lt("created_at", cutoff);
     if (delError) {
       results.errors.push(`${row.org_id}: ${delError.message}`);
       continue;
     }
-    results.deleted += deleted?.length ?? 0;
+    results.deleted += deletedCount ?? 0;
   }
 
   // Konsoul P3.0 — konsoul_action_log retention sweep (Design-Doc §3, Auflage
@@ -155,15 +155,14 @@ export async function GET(request: Request) {
         results.konsoul_action_log_deleted = count ?? 0;
       }
     } else {
-      const { data: konsoulDeleted, error: konsoulError } = await research
+      const { count: konsoulDeletedCount, error: konsoulError } = await research
         .from("konsoul_action_log")
-        .delete()
-        .lt("proposed_at", konsoulCutoff)
-        .select("id");
+        .delete({ count: "exact" })
+        .lt("proposed_at", konsoulCutoff);
       if (konsoulError) {
         results.errors.push(`konsoul-action-log: ${konsoulError.message}`);
       } else {
-        results.konsoul_action_log_deleted = konsoulDeleted?.length ?? 0;
+        results.konsoul_action_log_deleted = konsoulDeletedCount ?? 0;
       }
     }
   }
@@ -186,14 +185,13 @@ export async function GET(request: Request) {
         results.errors.push(`konsoul-threads: ${countError.message}`);
       else results.konsoul_threads_deleted = count ?? 0;
     } else {
-      const { data, error: delError } = await research
+      const { count: threadsDeletedCount, error: delError } = await research
         .from("konsoul_threads")
-        .delete()
-        .lt("updated_at", threadsCutoff)
-        .select("id");
+        .delete({ count: "exact" })
+        .lt("updated_at", threadsCutoff);
       if (delError && !isMissingRelation(delError))
         results.errors.push(`konsoul-threads: ${delError.message}`);
-      else results.konsoul_threads_deleted = data?.length ?? 0;
+      else results.konsoul_threads_deleted = threadsDeletedCount ?? 0;
     }
   }
 
@@ -213,14 +211,13 @@ export async function GET(request: Request) {
         results.errors.push(`konsoul-metrics: ${countError.message}`);
       else results.konsoul_metrics_deleted = count ?? 0;
     } else {
-      const { data, error: delError } = await research
+      const { count: metricsDeletedCount, error: delError } = await research
         .from("konsoul_metrics")
-        .delete()
-        .lt("occurred_at", metricsCutoff)
-        .select("id");
+        .delete({ count: "exact" })
+        .lt("occurred_at", metricsCutoff);
       if (delError && !isMissingRelation(delError))
         results.errors.push(`konsoul-metrics: ${delError.message}`);
-      else results.konsoul_metrics_deleted = data?.length ?? 0;
+      else results.konsoul_metrics_deleted = metricsDeletedCount ?? 0;
     }
   }
 

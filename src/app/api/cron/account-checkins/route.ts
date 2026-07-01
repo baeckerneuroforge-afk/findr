@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAuthorizedCron } from "@/lib/auth/cron";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { getCheckinEnabledAccounts } from "@/lib/accounts/service";
-import { getAccountCheckin } from "@/lib/voice-agent/session-service";
+import { getAccountIdsWithOpenCheckin } from "@/lib/voice-agent/session-service";
 import { createAndInviteCheckin } from "@/lib/voice-agent/checkin-orchestration";
 import { cronIsTotalFailure } from "@/lib/cron/status";
 
@@ -89,6 +89,19 @@ export async function GET(request: Request) {
     // getCheckinEnabledAccounts swallows DB errors (returns []), so no try here.
     const accounts = await getCheckinEnabledAccounts(org.id);
     results.enabled_accounts += accounts.length;
+    if (accounts.length === 0) continue;
+
+    // Offene Check-ins EINMAL pro Org (statt einer Query pro enabled Account).
+    // null = Read fehlgeschlagen → ganze Org konservativ überspringen (lieber
+    // einen Tag kein Check-in als ein Doppel-Trigger).
+    const openCheckinAccountIds = await getAccountIdsWithOpenCheckin(
+      org.id,
+      accounts.map((a) => a.id),
+    );
+    if (openCheckinAccountIds === null) {
+      results.errors.push(`org ${org.id}: open-checkin read failed`);
+      continue;
+    }
 
     for (const account of accounts) {
       try {
@@ -107,8 +120,9 @@ export async function GET(request: Request) {
 
         // Never double-trigger: skip if a check-in is already open (awaiting a
         // reply). It only becomes due again after it completes + the interval.
-        const existing = await getAccountCheckin(org.id, account.id);
-        if (existing && existing.status === "open") {
+        // (Batch-Set von oben; „irgendein offener existiert" statt „der
+        // letzte ist offen" — nie laxer, siehe getAccountIdsWithOpenCheckin.)
+        if (openCheckinAccountIds.has(account.id)) {
           results.skipped_open++;
           continue;
         }

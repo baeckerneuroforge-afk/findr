@@ -896,6 +896,38 @@ export async function getAccountCheckin(
 }
 
 /**
+ * Batch-Pendant zu getAccountCheckin für den Checkins-Cron: EIN Read pro Org
+ * („welche dieser Accounts haben einen OFFENEN Check-in?") statt einer Query
+ * pro enabled Account. Bewusst „irgendein offener existiert" statt „der
+ * letzte ist offen": nie doppelt triggern, solange IRGENDEIN Check-in offen
+ * ist — genau die Intention des Gates; verwaiste alte open-Sessions räumt
+ * der F7-Abandon-Sweep (Retention-Cron) nach 24h ohnehin ab. Fail-open zur
+ * sicheren Seite ist hier NICHT nötig: bei DB-Fehler geben wir null zurück,
+ * der Aufrufer überspringt dann die ganze Org (konservativ — lieber einen
+ * Tag kein Check-in als ein Doppel-Trigger).
+ */
+export async function getAccountIdsWithOpenCheckin(
+  orgId: string,
+  accountIds: string[],
+): Promise<Set<string> | null> {
+  if (accountIds.length === 0) return new Set();
+  const supabase = createResearchSupabase();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select("account_id")
+    .eq("org_id", orgId)
+    .eq("kind", "checkin")
+    .eq("status", "open")
+    .in("account_id", accountIds);
+  if (error) return null;
+  return new Set(
+    (data ?? [])
+      .map((r) => r.account_id)
+      .filter((id): id is string => id !== null),
+  );
+}
+
+/**
  * Stamp invited_at = now on a session, identified by its access token within the
  * org. Returns the new timestamp, or null if no matching session. Org-scoped.
  */
