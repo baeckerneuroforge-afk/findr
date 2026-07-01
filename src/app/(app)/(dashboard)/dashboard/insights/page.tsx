@@ -5,7 +5,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 
 import { toBcp47 } from "@/i18n/locale";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
-import { loadOrgSyntheses } from "@/lib/mission-control/engine";
+import { listOrgSynthesisStudies } from "@/lib/mission-control/engine";
 import { CrossStudyAgentPanel } from "@/components/dashboard/CrossStudyAgentPanel";
 import { isKonsoulP5Enabled } from "@/lib/konsoul/p5-flag";
 import { listThreads, loadThread } from "@/lib/konsoul/threads/service";
@@ -54,11 +54,10 @@ export default async function InsightsPage({
     throw err;
   }
 
-  const syntheses = await loadOrgSyntheses(orgId);
-  const studies = syntheses.map((s) => ({
-    studyId: s.studyId,
-    studyTitle: s.studyTitle,
-  }));
+  // Perf: nur {studyId, studyTitle} laden — vorher lud loadOrgSyntheses hier
+  // alle Synthese-JSONBs der Org, nur um die Quellenliste des Panels zu füllen.
+  // Der Engine-Read pro Frage bleibt unverändert (re-load + re-anchor je Turn).
+  const studies = await listOrgSynthesisStudies(orgId);
 
   // Prefill from the Cmd+K "Frag Konsoul" door. Mirror the market-research page's
   // q handling: trim, fall back to undefined when empty so the panel keeps its

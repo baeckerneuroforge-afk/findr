@@ -442,12 +442,16 @@ export async function getAllInsightsForOrg(
     .order("analyzed_at", { ascending: false });
   if (since) query = query.gte("analyzed_at", since);
 
-  const { data, error } = await query;
+  // §6-Filterquelle parallel zum Haupt-Read (beide nur org-keyed, unabhängig) —
+  // vorher lief getMarketResearchPlanIds als eigene serielle Stufe danach.
+  const [{ data, error }, marketPlanIds] = await Promise.all([
+    query,
+    getMarketResearchPlanIds(orgId),
+  ]);
   if (error || !data) return [];
 
   // §6 — drop market_research-study rows so the product KPIs count product
   // signal only. Fail-open empty set → no exclusion (see function docstring).
-  const marketPlanIds = await getMarketResearchPlanIds(orgId);
   const rows =
     marketPlanIds.size === 0
       ? data

@@ -355,7 +355,15 @@ export async function loadOrgSyntheses(
 
   const { data: synthRows, error } = await supabase
     .from("study_synthesis")
-    .select("*")
+    // Perf: explizite Spaltenliste statt select("*") — genau die Felder, die in
+    // MissionControlSynthesisInput landen. Die schweren, hier NIE gelesenen
+    // JSONB-Spalten (personas, executive_narrative, stimulus_sections,
+    // signal_observations, advisory, methodology, …) bleiben in der DB; bei
+    // vielen reichen Synthesen sind das mehrere MB pro Aufruf, und dieser
+    // Loader läuft u. a. pro Mission-Control-Chat-Turn und auf der Heute-Seite
+    // (30s-AutoRefresh). Ordering auf created_at funktioniert in PostgREST
+    // auch ohne die Spalte zu selektieren.
+    .select("id, plan_id, overview, emergent_themes, tensions, based_on_count")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
     // Deterministic tie-breaker so equal created_at timestamps can't reorder the
@@ -413,6 +421,43 @@ export async function loadOrgSynthesisStudyIds(
     .eq("org_id", orgId);
   if (error || !data) return new Set<string>();
   return new Set(data.map((row) => row.plan_id));
+}
+
+/**
+ * Leichte {studyId, studyTitle}-Liste der synthetisierten Studien einer Org —
+ * für Oberflächen, die nur eine Auswahl-/Quellenliste rendern (z. B. die
+ * Insights-Seite für den Cross-Study-Agent). Gleiche Reihenfolge wie
+ * loadOrgSyntheses (created_at desc, id asc), aber OHNE jedes Synthese-JSONB:
+ * vorher lud die Insights-Seite dafür loadOrgSyntheses komplett und warf alles
+ * außer den Titeln weg. Fail-open (DB-Fehler → leere Liste). Kein paralleler
+ * Datenpfad: dieselben zwei Tabellen/Filter wie loadOrgSyntheses, nur ohne
+ * Payload-Spalten.
+ */
+export async function listOrgSynthesisStudies(
+  orgId: string,
+): Promise<Array<{ studyId: string; studyTitle: string }>> {
+  const supabase = createMissionControlSupabase();
+  const { data: synthRows, error } = await supabase
+    .from("study_synthesis")
+    .select("plan_id")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true });
+  if (error || !synthRows || synthRows.length === 0) return [];
+
+  const planIds = [...new Set(synthRows.map((r) => r.plan_id))];
+  const { data: planRows } = await supabase
+    .from("research_plans")
+    .select("id, title")
+    .eq("org_id", orgId)
+    .in("id", planIds);
+  const titleByPlan = new Map<string, string>(
+    (planRows ?? []).map((p) => [p.id, p.title]),
+  );
+  return synthRows.map((row) => ({
+    studyId: row.plan_id,
+    studyTitle: titleByPlan.get(row.plan_id) ?? "Untitled study",
+  }));
 }
 
 /**

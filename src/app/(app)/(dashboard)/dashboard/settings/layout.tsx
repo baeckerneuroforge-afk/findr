@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { requireOrgId, OrgResolutionError } from "@/lib/auth/org";
 import { SettingsNav } from "@/components/settings/SettingsNav";
+import { ScopedMessages } from "@/components/i18n/ScopedMessages";
 
 export default async function SettingsLayout({
   children,
@@ -22,6 +23,10 @@ export default async function SettingsLayout({
   const t = await getTranslations("settings");
 
   return (
+    // i18n-Sektions-Provider (Perf-Split, src/i18n/client-messages.ts):
+    // "branding" für das BrandingSettingsForm unter /settings/organization;
+    // "settings" selbst ist Teil des Root-Kerns (UserMenu im Header).
+    <ScopedMessages namespaces={["branding"]}>
     <div className="space-y-8">
       <div>
         <h1 className="text-display text-neutral-900">{t("title")}</h1>
@@ -33,5 +38,6 @@ export default async function SettingsLayout({
         <div className="p-5">{children}</div>
       </div>
     </div>
+    </ScopedMessages>
   );
 }
