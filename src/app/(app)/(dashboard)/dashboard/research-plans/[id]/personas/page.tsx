@@ -17,6 +17,8 @@ import {
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GeneratePersonasButton } from "@/components/dashboard/GeneratePersonasButton";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
+import { DonutChart } from "@/components/dashboard/DonutChart";
+import { buildPersonaDistribution } from "@/lib/synthesis/charts";
 
 /**
  * /dashboard/research-plans/[id]/personas — Persona stage (Spec
@@ -88,6 +90,11 @@ export default async function ResearchPlanPersonasPage({
   const insightCount = await countInsightsForPlanSince(orgId, planId, null);
   const canGenerate = insightCount >= MIN_PERSONA_INTERVIEWS;
   const hasExisting = personas !== null;
+
+  // Segment-Verteilungs-Donut — nur aus den server-überschriebenen shareCounts.
+  const personaChart = personas
+    ? buildPersonaDistribution(personas.personas)
+    : null;
 
   // Beleg-Links: alle in Personas + Evidence zitierten Insight-IDs auflösen.
   const linkIds = personas
@@ -188,6 +195,15 @@ export default async function ResearchPlanPersonasPage({
                 recommended: PERSONA_QUALITY_HINT_UNTIL,
               })}
             </div>
+          )}
+
+          {personaChart && (
+            <DonutChart
+              data={personaChart}
+              title={t("distributionTitle")}
+              centerLabel={String(personaChart.total)}
+              centerSub={t("distributionCenterSub")}
+            />
           )}
 
           <section className="space-y-4">

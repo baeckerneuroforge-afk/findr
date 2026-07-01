@@ -23,7 +23,11 @@ import { ExportSynthesisPptxButton } from "@/components/dashboard/ExportSynthesi
 import { HighlightReelPanel } from "@/components/dashboard/HighlightReelPanel";
 import { SynthesisThemeCard } from "@/components/dashboard/SynthesisThemeCard";
 import { FrequencyBarChart } from "@/components/dashboard/FrequencyBarChart";
-import { buildThemeFrequencyChart } from "@/lib/synthesis/charts";
+import { DonutChart } from "@/components/dashboard/DonutChart";
+import {
+  buildThemeFrequencyChart,
+  buildSignalsDistribution,
+} from "@/lib/synthesis/charts";
 import { UpdateSynthesisButton } from "@/components/dashboard/UpdateSynthesisButton";
 import { SynthesisShareManager } from "@/components/dashboard/SynthesisShareManager";
 import { ENABLED_MODULES } from "@/config/modules";
@@ -158,6 +162,16 @@ export default async function ResearchPlanSynthesisPage({
         synthesis.emergent_themes,
         synthesis.based_on_count,
       )
+    : null;
+
+  // Antwort-Direktheit als Donut — nur aus signals_summary (Server-Zählung).
+  const signalsChart = synthesis
+    ? buildSignalsDistribution(synthesis.signals_summary, {
+        direct: t("signalDirect"),
+        partial: t("signalPartial"),
+        evasive: t("signalEvasive"),
+        declined: t("signalDeclined"),
+      })
     : null;
 
   return (
@@ -594,6 +608,12 @@ export default async function ResearchPlanSynthesisPage({
                   </p>
                 </CardBody>
               </Card>
+              {signalsChart && (
+                <DonutChart
+                  data={signalsChart}
+                  title={t("signalsDistributionTitle")}
+                />
+              )}
             </section>
           )}
 
