@@ -6,6 +6,7 @@ import { getOrgName, requireOrgIdOrError } from "@/lib/auth/org";
 import { getResearchPlan } from "@/lib/research/plans-service";
 import { getStudySynthesis } from "@/lib/synthesis/service";
 import { buildSynthesisPdf } from "@/lib/pdf/synthesis-report";
+import { buildSignalsDistribution } from "@/lib/synthesis/charts";
 import { resolveExportBranding } from "@/lib/settings/branding-assets";
 
 /**
@@ -71,6 +72,13 @@ export async function GET(
   try {
     const orgName = await getOrgName(orgId);
     const branding = await resolveExportBranding(orgId);
+    const ts = await getTranslations("research.synthesis");
+    const signalsChart = buildSignalsDistribution(synthesis.signals_summary, {
+      direct: ts("signalDirect"),
+      partial: ts("signalPartial"),
+      evasive: ts("signalEvasive"),
+      declined: ts("signalDeclined"),
+    });
     const pdf = await buildSynthesisPdf({
       plan: {
         title: plan.title,
@@ -91,6 +99,7 @@ export async function GET(
         implications: synthesis.implications,
       },
       orgName,
+      signalsChart,
       locale,
       branding,
     });

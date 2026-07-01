@@ -11,7 +11,12 @@ import type {
 } from "@/lib/schemas/synthesis";
 import type { ExportBranding } from "@/lib/settings/branding-assets";
 import type { SynthesisImplication } from "@/lib/schemas/synthesis-advisory";
-import { barAxis, type FrequencyChartData } from "@/lib/charts";
+import {
+  barAxis,
+  chartColor,
+  type DistributionChartData,
+  type FrequencyChartData,
+} from "@/lib/charts";
 import { buildThemeFrequencyChart } from "@/lib/synthesis/charts";
 import { translate } from "@/i18n/messages";
 import { type Locale, toBcp47 } from "@/i18n/locale";
@@ -74,6 +79,10 @@ export interface SynthesisPdfInput {
     implications?: SynthesisImplication[];
   };
   orgName: string;
+  /** Optional answer-directness distribution (Turn-Signals) — a part-of-a-whole
+   *  the route pre-builds (with translated labels). Rendered as a segmented bar.
+   *  Absent when the study has no signals. */
+  signalsChart?: DistributionChartData | null;
   /** Resolved UI locale (from the request cookie, via the route handler).
    *  Drives every chrome string + date formatting. */
   locale: Locale;
@@ -297,6 +306,39 @@ function drawFrequencyChart(
 
   doc.y = chartBottom + 16;
   doc.moveDown(0.3);
+}
+
+/** Segmented proportion bar for a distribution (answer directness) — a
+ *  part-of-a-whole rendered honestly from server counts + a text legend. */
+function drawDistributionBar(
+  doc: PDFKit.PDFDocument,
+  dist: DistributionChartData,
+  heading: string,
+  fonts: Fonts,
+): void {
+  const left = doc.page.margins.left;
+  const width = contentWidth(doc);
+  if (dist.total <= 0) return;
+  ensureSpace(doc, 56);
+  sectionHeading(doc, heading, fonts.bold);
+  const barY = doc.y;
+  const barH = 12;
+  let x = left;
+  for (const s of dist.slices) {
+    const w = (s.value / dist.total) * width;
+    if (w > 0) doc.rect(x, barY, w, barH).fill(chartColor(s.colorIndex));
+    x += w;
+  }
+  doc.y = barY + barH + 8;
+  const legend = dist.slices
+    .map((s) => `${s.label} ${Math.round((s.value / dist.total) * 100)} %`)
+    .join("   ·   ");
+  doc
+    .font(fonts.regular)
+    .fontSize(8.5)
+    .fillColor(COLORS.muted)
+    .text(legend, left, doc.y, { width });
+  doc.moveDown(0.6);
 }
 
 // ── builder ─────────────────────────────────────────────────────────────────
@@ -587,6 +629,16 @@ export async function buildSynthesisPdf(
       doc.moveDown(0.4);
     }
     doc.moveDown(0.2);
+  }
+
+  // ── Antwort-Direktheit (Verteilung aus signals) ──
+  if (input.signalsChart) {
+    drawDistributionBar(
+      doc,
+      input.signalsChart,
+      translate(locale, "research.synthesis.signalsDistributionTitle"),
+      fonts,
+    );
   }
 
   // Optional: model footnote, dezent, am Ende des Content-Streams.

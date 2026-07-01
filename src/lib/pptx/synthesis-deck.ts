@@ -4,7 +4,7 @@ import PptxGenJS from "pptxgenjs";
 
 import type { EmergentTheme, Tension, TensionSide } from "@/lib/schemas/synthesis";
 import type { SynthesisPdfInput } from "@/lib/pdf/synthesis-report";
-import type { FrequencyChartData } from "@/lib/charts";
+import { chartColor, type FrequencyChartData } from "@/lib/charts";
 import { buildThemeFrequencyChart } from "@/lib/synthesis/charts";
 import { translate } from "@/i18n/messages";
 import { type Locale, toBcp47 } from "@/i18n/locale";
@@ -194,6 +194,64 @@ function addChartSlide(
   );
 }
 
+/** Native doughnut slide for a distribution (answer directness). */
+function addDoughnutSlide(
+  pptx: PptxGenJS,
+  input: SynthesisPdfInput,
+  heading: string,
+  brandName: string,
+  accentNoHash: string,
+): void {
+  const dist = input.signalsChart;
+  if (!dist || dist.total <= 0) return;
+  const slide = pptx.addSlide();
+  const top = chrome(slide, heading, input.locale, brandName, accentNoHash);
+  slide.addText(heading, {
+    x: MARGIN,
+    y: top,
+    w: CONTENT_W,
+    h: 0.6,
+    fontFace: FONT,
+    fontSize: 26,
+    bold: true,
+    color: COLORS.ink,
+    align: "left",
+  });
+  slide.addShape("rect", {
+    x: MARGIN,
+    y: top + 0.62,
+    w: 0.7,
+    h: 0.04,
+    fill: { color: accentNoHash },
+  });
+  slide.addChart(
+    "doughnut",
+    [
+      {
+        name: heading,
+        labels: dist.slices.map((s) => s.label),
+        values: dist.slices.map((s) => s.value),
+      },
+    ],
+    {
+      x: MARGIN,
+      y: top + 1.0,
+      w: CONTENT_W,
+      h: PAGE_H - top - 1.6,
+      chartColors: dist.slices.map((s) => chartColor(s.colorIndex).replace(/^#/, "")),
+      showLegend: true,
+      legendPos: "r",
+      legendColor: COLORS.body,
+      legendFontSize: 11,
+      showPercent: true,
+      dataLabelColor: COLORS.white,
+      dataLabelFontSize: 10,
+      showTitle: false,
+      holeSize: 55,
+    },
+  );
+}
+
 // ── builder ──────────────────────────────────────────────────────────────────
 
 export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buffer> {
@@ -231,6 +289,15 @@ export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buff
       themeChart,
       translate(locale, "research.synthesis.chartThemeTitle"),
       locale,
+      brandName,
+      accentNoHash,
+    );
+  }
+  if (input.signalsChart) {
+    addDoughnutSlide(
+      pptx,
+      input,
+      translate(locale, "research.synthesis.signalsDistributionTitle"),
       brandName,
       accentNoHash,
     );

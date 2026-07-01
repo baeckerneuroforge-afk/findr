@@ -66,6 +66,14 @@ const SYNTHESIS_INPUT: SynthesisPdfInput = {
     ],
   },
   orgName: "Test-Org",
+  signalsChart: {
+    slices: [
+      { label: "direkt", value: 12, colorIndex: 1 },
+      { label: "teilweise", value: 5, colorIndex: 3 },
+      { label: "ausweichend", value: 3, colorIndex: 2 },
+    ],
+    total: 20,
+  },
   locale: "de",
 };
 
