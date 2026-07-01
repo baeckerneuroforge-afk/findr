@@ -211,6 +211,8 @@ export default async function ResearchPlanSynthesisPage({
           <UpdateSynthesisButton
             planId={planId}
             hasExisting={synthesis !== null && synthesis.synthesized_at !== null}
+            synthesisReady={synthesisReady}
+            currentDetailLevel={synthesis?.detail_level ?? "standard"}
           />
           {/* PDF-Export: nur sinnvoll wenn eine fertige Synthese da ist.
               Bei einem unsynthesisierten Slot bleibt der Button weg —
@@ -271,6 +273,23 @@ export default async function ResearchPlanSynthesisPage({
               <CardBody>
                 <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-700">
                   {synthesis.overview}
+                </p>
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Ausführlicher Überblick — optionale Erzähl-Stufe (verankert;
+              re-narriert nur die belegte Substanz, keine Empfehlungen). */}
+          {synthesis.executive_narrative && (
+            <Card>
+              <CardHeader>
+                <h2 className="text-h3 text-neutral-900">
+                  {t("narrativeTitle")}
+                </h2>
+              </CardHeader>
+              <CardBody>
+                <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-700">
+                  {synthesis.executive_narrative}
                 </p>
               </CardBody>
             </Card>

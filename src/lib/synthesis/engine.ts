@@ -155,6 +155,11 @@ type StudySynthesisRow = {
   personas: Json | null;
   personas_summary: Json | null;
   personas_generated_at: string | null;
+  // Ausführlich-Stufe (20260727000000) — additive, nullable; geschrieben NUR von
+  // der Erzähl-Stufe (src/lib/synthesis/narrative.ts), nie vom Kern-Upsert.
+  // detail_level defaultet DB-seitig auf 'standard'.
+  detail_level: string | null;
+  executive_narrative: string | null;
 };
 
 type StudySynthesisInsert = {
@@ -178,6 +183,8 @@ type StudySynthesisInsert = {
   personas?: Json | null;
   personas_summary?: Json | null;
   personas_generated_at?: string | null;
+  detail_level?: string | null;
+  executive_narrative?: string | null;
 };
 
 type StudySynthesisUpdate = Partial<StudySynthesisInsert>;

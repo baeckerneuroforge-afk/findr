@@ -9,6 +9,7 @@ import { getResearchPlan } from "@/lib/research/plans-service";
 // StudySynthesisRecord) bleiben über den Merge stabil — wenn nicht, fällt
 // es hier am Type-Check sofort auf.
 import { synthesizeStudy } from "@/lib/synthesis/engine";
+import { expandSynthesisNarrative } from "@/lib/synthesis/narrative";
 
 /**
  * POST /api/research/plans/[id]/synthesis — re-run / create Stage-2 synthesis.
@@ -32,7 +33,7 @@ import { synthesizeStudy } from "@/lib/synthesis/engine";
 export const maxDuration = 300;
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const t = await getTranslations("errors");
@@ -41,6 +42,17 @@ export async function POST(
   const { orgId } = orgOrError;
 
   const { id: planId } = await params;
+
+  // Optional body: { detailLevel: "standard" | "ausführlich" }. Absent/non-JSON
+  // → "standard" = the unchanged behaviour (the plain re-run button sends no
+  // body). Only an explicit "ausführlich" triggers the additive narrative stage.
+  let detailLevel: "standard" | "ausführlich" = "standard";
+  try {
+    const body = (await request.json()) as { detailLevel?: unknown };
+    if (body?.detailLevel === "ausführlich") detailLevel = "ausführlich";
+  } catch {
+    // no/invalid body → standard
+  }
 
   // Plan-ownership check. getResearchPlan filters by org_id; null = either
   // not present or not in this org. Either way it's a 404 to the caller —
@@ -55,7 +67,23 @@ export async function POST(
 
   try {
     const synthesis = await synthesizeStudy(orgId, planId);
-    return NextResponse.json({ success: true, synthesis });
+    // Ausführlich = additive, BEST-EFFORT second stage. The core synthesis above
+    // is the hard path; if the narrative stage fails, the base synthesis still
+    // stands and we just return without it (mirrors the E4 extras posture).
+    let executiveNarrative: string | null = null;
+    if (detailLevel === "ausführlich" && synthesis.status === "synthesized") {
+      try {
+        const expanded = await expandSynthesisNarrative(orgId, planId);
+        executiveNarrative = expanded.executiveNarrative;
+      } catch (narrErr) {
+        console.warn(
+          `[research/synthesis] narrative stage failed (base synthesis kept): ${
+            narrErr instanceof Error ? narrErr.message : narrErr
+          }`,
+        );
+      }
+    }
+    return NextResponse.json({ success: true, synthesis, executiveNarrative });
   } catch (err) {
     console.error("[research/synthesis] failed:", err instanceof Error ? err.message : err);
     return NextResponse.json(

@@ -84,6 +84,11 @@ export interface StudySynthesisRecord {
    *  Zeit/Klicks, Reibungsrate, Judge-Übereinstimmung). Null unter Mindest-N /
    *  Nicht-Usability / pre-migration. Aggregate-only (Art. 22). */
   interaction_summary: InteractionSummary | null;
+  /** Ausführlich-Stufe (20260727000000) — Detailgrad + optionale Executive-
+   *  Narrative (separate Stufe src/lib/synthesis/narrative.ts). detail_level
+   *  defaultet 'standard'; executive_narrative null bis „ausführlich" gewählt. */
+  detail_level: string;
+  executive_narrative: string | null;
 }
 
 export type { EmergentTheme, Tension, TensionSide };
@@ -111,6 +116,8 @@ export async function getStudySynthesis(
     stimulus_sections?: unknown;
     stimulus_comparison?: unknown;
     interaction_summary?: unknown;
+    detail_level?: unknown;
+    executive_narrative?: unknown;
   };
   return {
     id: data.id,
@@ -137,6 +144,15 @@ export async function getStudySynthesis(
         ? row.stimulus_comparison
         : null,
     interaction_summary: coerceInteractionSummary(row.interaction_summary),
+    detail_level:
+      typeof row.detail_level === "string" && row.detail_level.trim() !== ""
+        ? row.detail_level
+        : "standard",
+    executive_narrative:
+      typeof row.executive_narrative === "string" &&
+      row.executive_narrative.trim() !== ""
+        ? row.executive_narrative
+        : null,
   };
 }
 
