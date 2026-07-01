@@ -161,8 +161,9 @@ const nextConfig: NextConfig = {
       // blob: for TTS-MP3 playback and recorded-audio previews.
       "media-src 'self' blob: https:",
       "worker-src 'self' blob:",
-      // Nichts wird mehr geframet (Turnstile war Clerks Bot-Schutz).
-      "frame-src 'none'",
+      // Einziges reales iframe: das cal.eu-Demo-Buchungswidget auf /kontakt
+      // (DE+EN). Turnstile (Clerks Bot-Schutz) ist mit Clerk entfernt.
+      "frame-src https://www.cal.eu",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -199,6 +199,24 @@ export async function callClaudeStructured<T>(
       )
       .finalMessage();
 
+    // stop_reason-Guard (Review-Fund 2026-07-01): Beim Streaming baut das SDK
+    // tool_use.input client-seitig per partialParse aus den input_json_deltas.
+    // Bricht die Generierung mit max_tokens ab, entsteht ein PARTIELL
+    // geparstes Objekt, das trotzdem Zod-VALIDE sein kann (z. B. ein kürzeres
+    // themes-Array) — der alte create-Pfad lieferte dafür einen harten
+    // Schema-Fehler. Trunkierung daher explizit als Fehlversuch behandeln
+    // (Retry, dann StructuredOutputError) statt still gekürzte Daten
+    // zurückzugeben.
+    if (response.stop_reason === "max_tokens") {
+      lastRaw = `stop_reason=max_tokens (maxTokens=${maxTokens})`;
+      if (attempt === 0) {
+        console.warn(
+          "Structured output hit max_tokens on first attempt (truncated tool input), retrying.",
+        );
+      }
+      continue;
+    }
+
     const toolUse = response.content.find(
       (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
     );
