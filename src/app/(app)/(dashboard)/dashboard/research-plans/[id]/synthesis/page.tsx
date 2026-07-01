@@ -24,9 +24,12 @@ import { HighlightReelPanel } from "@/components/dashboard/HighlightReelPanel";
 import { SynthesisThemeCard } from "@/components/dashboard/SynthesisThemeCard";
 import { AxisBarChart } from "@/components/dashboard/AxisBarChart";
 import { DonutChart } from "@/components/dashboard/DonutChart";
+import { DivergingBar } from "@/components/dashboard/DivergingBar";
 import {
   buildThemeFrequencyChart,
   buildSignalsDistribution,
+  buildTensionDiverging,
+  buildStimulusPreference,
 } from "@/lib/synthesis/charts";
 import { UpdateSynthesisButton } from "@/components/dashboard/UpdateSynthesisButton";
 import { SynthesisShareManager } from "@/components/dashboard/SynthesisShareManager";
@@ -172,6 +175,14 @@ export default async function ResearchPlanSynthesisPage({
         evasive: t("signalEvasive"),
         declined: t("signalDeclined"),
       })
+    : null;
+
+  // Stimulus-Präferenz als Donut — nur aus den Server-Präferenz-Stimmen.
+  const stimulusChart = synthesis?.stimulus_summary?.preference
+    ? buildStimulusPreference(
+        synthesis.stimulus_summary.preference.votes,
+        (position) => t("stimulusPositionShort", { n: position }),
+      )
     : null;
 
   return (
@@ -403,12 +414,15 @@ export default async function ResearchPlanSynthesisPage({
               </Card>
             ) : (
               <div className="space-y-4">
-                {synthesis.tensions.map((tension: Tension, i) => (
+                {synthesis.tensions.map((tension: Tension, i) => {
+                  const diverging = buildTensionDiverging(tension);
+                  return (
                   <Card key={`tension-${i}`}>
                     <CardBody className="space-y-4">
                       <p className="text-body-strong text-neutral-900">
                         {tension.description}
                       </p>
+                      {diverging && <DivergingBar data={diverging} />}
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <TensionSidePanel
                           side={tension.side_a}
@@ -421,7 +435,8 @@ export default async function ResearchPlanSynthesisPage({
                       </div>
                     </CardBody>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
@@ -513,6 +528,12 @@ export default async function ResearchPlanSynthesisPage({
                         counted: synthesis.stimulus_summary.preference.counted,
                       })}
                     </p>
+                    {stimulusChart && (
+                      <DonutChart
+                        data={stimulusChart}
+                        title={t("stimulusPreferenceTitle")}
+                      />
+                    )}
                     <ul className="space-y-1">
                       {synthesis.stimulus_summary.preference.votes.map(
                         (vote) => {

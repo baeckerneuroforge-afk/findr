@@ -2,9 +2,10 @@ import {
   MIN_CHART_BARS,
   MIN_DISTRIBUTION_SLICES,
   type DistributionChartData,
+  type DivergingBarData,
   type FrequencyChartData,
 } from "@/lib/charts";
-import type { EmergentTheme } from "@/lib/schemas/synthesis";
+import type { EmergentTheme, Tension } from "@/lib/schemas/synthesis";
 
 /**
  * Deterministic chart builders for the single-study synthesis. PURE — every
@@ -65,5 +66,39 @@ export function buildSignalsDistribution(
   const slices = raw.filter((s) => s.value > 0);
   const total = slices.reduce((n, s) => n + s.value, 0);
   if (slices.length < MIN_DISTRIBUTION_SLICES || total === 0) return null;
+  return { slices, total };
+}
+
+/** A tension as a two-sided split — each side sized by how many respondents it
+ *  drew (sourceInsightIds length). Null when either side has no cited source. */
+export function buildTensionDiverging(tension: Tension): DivergingBarData | null {
+  const left = tension.side_a.sourceInsightIds.length;
+  const right = tension.side_b.sourceInsightIds.length;
+  if (left === 0 || right === 0) return null;
+  return {
+    leftLabel: tension.side_a.label,
+    rightLabel: tension.side_b.label,
+    leftValue: left,
+    rightValue: right,
+    caption: tension.description,
+  };
+}
+
+/** Stimulus preference as a donut — each slice a stimulus position, sized by its
+ *  server-counted preference votes. Labels are passed in already-formatted. */
+export function buildStimulusPreference(
+  votes: { position: number; count: number }[],
+  labelFor: (position: number) => string,
+): DistributionChartData | null {
+  const slices = votes
+    .filter((v) => v.count > 0)
+    .map((v, i) => ({
+      label: labelFor(v.position),
+      value: v.count,
+      colorIndex: i,
+    }));
+  if (slices.length < MIN_DISTRIBUTION_SLICES) return null;
+  const total = slices.reduce((n, s) => n + s.value, 0);
+  if (total === 0) return null;
   return { slices, total };
 }

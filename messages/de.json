@@ -1907,6 +1907,7 @@
       "stimulusSeen": "{count} von {total} Interviews",
       "stimulusBelowMinN": "Noch zu wenige Interviews für eine Auswertung dieses Stimulus (Mindestbasis: 3).",
       "stimulusPreferenceTitle": "Präferenz im Vergleich",
+      "stimulusPositionShort": "Stimulus {n}",
       "stimulusPreferenceCounted": "Gezählt über {counted} Interviews, die alle Stimuli gesehen haben (Antworten auf die Präferenzfrage).",
       "stimulusVotes": "{count, plural, =1 {1 Stimme} other {# Stimmen}}",
       "stimulusNoPreference": "Keine klare Präferenz",
