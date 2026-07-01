@@ -119,3 +119,24 @@ export function niceAxis(maxValue: number, tickCount = 4): {
   for (let t = 0; t <= axisMax + 1e-9; t += step) ticks.push(Math.round(t));
   return { axisMax, ticks };
 }
+
+/**
+ * Value-axis for a FrequencyChartData. When the chart has a `total` denominator
+ * ("X of N"), the axis tops out at N EXACTLY (so a bar carried by everyone
+ * reaches full width) with nice ticks ≤ N. Without a denominator, it rounds up to
+ * a nice max. Shared by web/PDF so all renderers get identical axes.
+ */
+export function barAxis(chart: FrequencyChartData): {
+  axisMax: number;
+  ticks: number[];
+} {
+  const dataMax = Math.max(...chart.bars.map((b) => b.value), 1);
+  if (chart.total && chart.total > 0) {
+    const { ticks } = niceAxis(chart.total);
+    return {
+      axisMax: chart.total,
+      ticks: ticks.filter((t) => t <= chart.total!),
+    };
+  }
+  return niceAxis(dataMax);
+}

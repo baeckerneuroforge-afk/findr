@@ -417,55 +417,38 @@ function addChartSlide(
     fill: { color: accentNoHash },
   });
   const bars = chart.bars.slice(0, 8);
-  const scaleMax = chart.total ?? Math.max(...bars.map((b) => b.value), 1);
-  let rowY = top + 1.05;
-  const rowH = 0.58;
-  for (const bar of bars) {
-    slide.addText(truncate(bar.label, 70), {
+  // Native chart → echte Werteachse + Wertelabels (das „richtige Chart mit Achsen").
+  slide.addChart(
+    "bar",
+    [
+      {
+        name: heading,
+        labels: bars.map((b) => truncate(b.label, 42)),
+        values: bars.map((b) => b.value),
+      },
+    ],
+    {
       x: MARGIN,
-      y: rowY,
-      w: CONTENT_W - 1.7,
-      h: 0.26,
-      fontFace: FONT,
-      fontSize: 12,
-      color: COLORS.ink,
-      align: "left",
-      valign: "middle",
-    });
-    const valText = chart.total
-      ? `${bar.value} / ${chart.total}`
-      : String(bar.value);
-    slide.addText(valText, {
-      x: PAGE_W - MARGIN - 1.7,
-      y: rowY,
-      w: 1.7,
-      h: 0.26,
-      fontFace: FONT,
-      fontSize: 11,
-      color: COLORS.muted,
-      align: "right",
-      valign: "middle",
-    });
-    const barY = rowY + 0.29;
-    slide.addShape("roundRect", {
-      x: MARGIN,
-      y: barY,
+      y: top + 1.0,
       w: CONTENT_W,
-      h: 0.16,
-      rectRadius: 0.06,
-      fill: { color: COLORS.panel },
-    });
-    const fillW = Math.max(0.05, (bar.value / scaleMax) * CONTENT_W);
-    slide.addShape("roundRect", {
-      x: MARGIN,
-      y: barY,
-      w: fillW,
-      h: 0.16,
-      rectRadius: 0.06,
-      fill: { color: accentNoHash },
-    });
-    rowY += rowH;
-  }
+      h: PAGE_H - top - 1.6,
+      barDir: "bar",
+      chartColors: [accentNoHash],
+      showValue: true,
+      dataLabelColor: COLORS.ink,
+      dataLabelFontSize: 10,
+      showLegend: false,
+      showTitle: false,
+      catAxisLabelColor: COLORS.body,
+      catAxisLabelFontSize: 9,
+      valAxisLabelColor: COLORS.muted,
+      valAxisLabelFontSize: 9,
+      valAxisMinVal: 0,
+      ...(chart.total ? { valAxisMaxVal: chart.total } : {}),
+      valGridLine: { style: "dash", color: COLORS.border, size: 1 },
+      catGridLine: { style: "none" },
+    },
+  );
 }
 
 /** Quote runs with per-study attribution — the meta-specific value in the deck. */

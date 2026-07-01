@@ -11,7 +11,7 @@ import type {
 } from "@/lib/schemas/synthesis";
 import type { ExportBranding } from "@/lib/settings/branding-assets";
 import type { SynthesisImplication } from "@/lib/schemas/synthesis-advisory";
-import type { FrequencyChartData } from "@/lib/charts";
+import { barAxis, type FrequencyChartData } from "@/lib/charts";
 import { buildThemeFrequencyChart } from "@/lib/synthesis/charts";
 import { translate } from "@/i18n/messages";
 import { type Locale, toBcp47 } from "@/i18n/locale";
@@ -237,17 +237,44 @@ function drawFrequencyChart(
   const left = doc.page.margins.left;
   const width = contentWidth(doc);
   const bars = chart.bars.slice(0, 8);
-  const scaleMax = chart.total ?? Math.max(...bars.map((b) => b.value), 1);
+  const { axisMax, ticks } = barAxis(chart);
   const rowH = 26;
-  ensureSpace(doc, 40 + bars.length * rowH);
+  ensureSpace(doc, 40 + bars.length * rowH + 20);
   sectionHeading(doc, heading, fonts.bold);
-  for (const bar of bars) {
-    const y = doc.y;
+
+  const chartTop = doc.y;
+  const chartBottom = chartTop + bars.length * rowH;
+  const xForValue = (v: number) => left + (v / axisMax) * width;
+
+  // Vertical gridlines + value-axis ticks (behind the bars → drawn first).
+  for (const tick of ticks) {
+    const x = xForValue(tick);
+    doc
+      .save()
+      .lineWidth(tick === 0 ? 0.8 : 0.4)
+      .strokeColor(COLORS.border)
+      .moveTo(x, chartTop)
+      .lineTo(x, chartBottom)
+      .stroke()
+      .restore();
+    doc
+      .font(fonts.regular)
+      .fontSize(7.5)
+      .fillColor(COLORS.faint)
+      .text(String(tick), x - 12, chartBottom + 4, {
+        width: 24,
+        align: "center",
+        lineBreak: false,
+      });
+  }
+
+  bars.forEach((bar, i) => {
+    const y = chartTop + i * rowH;
     doc
       .font(fonts.regular)
       .fontSize(9.5)
       .fillColor(COLORS.ink)
-      .text(truncate(bar.label, 64), left, y, {
+      .text(truncate(bar.label, 60), left, y, {
         width: width - 92,
         lineBreak: false,
       });
@@ -264,12 +291,12 @@ function drawFrequencyChart(
         lineBreak: false,
       });
     const barY = y + 14;
-    doc.roundedRect(left, barY, width, 6, 3).fill(COLORS.panel);
-    const fillW = Math.max(3, Math.round((bar.value / scaleMax) * width));
-    doc.roundedRect(left, barY, fillW, 6, 3).fill(COLORS.violet);
-    doc.y = y + rowH;
-  }
-  doc.moveDown(0.5);
+    const fillW = Math.max(3, Math.round((bar.value / axisMax) * width));
+    doc.roundedRect(left, barY, fillW, 7, 2).fill(COLORS.violet);
+  });
+
+  doc.y = chartBottom + 16;
+  doc.moveDown(0.3);
 }
 
 // ── builder ─────────────────────────────────────────────────────────────────

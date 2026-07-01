@@ -1,4 +1,4 @@
-import { niceAxis, type FrequencyChartData } from "@/lib/charts";
+import { barAxis, type FrequencyChartData } from "@/lib/charts";
 
 /**
  * „Richtiges" horizontal bar chart with a labelled value axis + gridlines —
@@ -19,8 +19,7 @@ export function AxisBarChart({
   unit?: string;
 }) {
   const bars = chart.bars.slice(0, 8);
-  const dataMax = Math.max(...bars.map((b) => b.value), 1);
-  const { axisMax, ticks } = niceAxis(chart.total ?? dataMax);
+  const { axisMax, ticks } = barAxis(chart);
 
   // SVG geometry (viewBox units).
   const W = 340;
