@@ -368,6 +368,25 @@ export async function buildMetaSynthesisPdf(
   }
   doc.moveDown(0.6);
 
+  // ── Ausführlicher Überblick (optionale Erzähl-Stufe) ──
+  if (result.executive_narrative.trim() !== "") {
+    sectionHeading(
+      doc,
+      translate(locale, `${L}.narrativeHeading`),
+      fonts.bold,
+      accent,
+    );
+    doc
+      .font(fonts.regular)
+      .fontSize(10.5)
+      .fillColor(COLORS.body)
+      .text(cleanText(result.executive_narrative), left, doc.y, {
+        width,
+        lineGap: 1.5,
+      });
+    doc.moveDown(0.6);
+  }
+
   // ── Convergent themes ──
   sectionHeading(
     doc,

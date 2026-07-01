@@ -129,6 +129,9 @@ export async function buildMetaSynthesisPptx(
 
   addTitleSlide(pptx, input, brandName, accentNoHash);
   addOverviewSlide(pptx, input, brandName, accentNoHash);
+  if (result.executive_narrative.trim() !== "") {
+    addNarrativeSlide(pptx, input, brandName, accentNoHash);
+  }
   for (const theme of result.convergent_themes) {
     addThemeSlide(pptx, theme, input, resolveTitle, brandName, accentNoHash);
   }
@@ -308,6 +311,50 @@ function addOverviewSlide(
       lineSpacingMultiple: 1.2,
     },
   );
+}
+
+/** Ausführlicher Überblick — die optionale Erzähl-Stufe als eigene Folie. */
+function addNarrativeSlide(
+  pptx: PptxGenJS,
+  input: MetaSynthesisPdfInput,
+  brandName: string,
+  accentNoHash: string,
+): void {
+  const { result, locale } = input;
+  const heading = translate(locale, "export.metaSynthesis.narrativeHeading");
+  const slide = pptx.addSlide();
+  const top = chrome(slide, heading, locale, brandName, accentNoHash);
+
+  slide.addText(heading, {
+    x: MARGIN,
+    y: top,
+    w: CONTENT_W,
+    h: 0.7,
+    fontFace: FONT,
+    fontSize: 28,
+    bold: true,
+    color: COLORS.ink,
+    align: "left",
+  });
+  slide.addShape("rect", {
+    x: MARGIN,
+    y: top + 0.7,
+    w: 0.7,
+    h: 0.04,
+    fill: { color: COLORS.violet },
+  });
+  slide.addText(truncate(result.executive_narrative, 1600), {
+    x: MARGIN,
+    y: top + 1.0,
+    w: CONTENT_W,
+    h: PAGE_H - top - 1.6,
+    fontFace: FONT,
+    fontSize: 16,
+    color: COLORS.body,
+    align: "left",
+    valign: "top",
+    lineSpacingMultiple: 1.25,
+  });
 }
 
 /** Quote runs with per-study attribution — the meta-specific value in the deck. */

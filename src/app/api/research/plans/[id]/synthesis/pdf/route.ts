@@ -87,6 +87,7 @@ export async function GET(
         // is safe at runtime.
         synthesized_at: synthesis.synthesized_at as string,
         model: synthesis.model,
+        executive_narrative: synthesis.executive_narrative,
       },
       orgName,
       locale,

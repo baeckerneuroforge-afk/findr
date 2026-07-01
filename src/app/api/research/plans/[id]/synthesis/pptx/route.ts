@@ -73,6 +73,7 @@ export async function GET(
         based_on_count: synthesis.based_on_count,
         synthesized_at: synthesis.synthesized_at as string,
         model: synthesis.model,
+        executive_narrative: synthesis.executive_narrative,
       },
       orgName,
       locale,

@@ -149,6 +149,12 @@ export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buff
   pptx.title = `${translate(locale, "export.synthesis.title")} — ${plan.title}`;
 
   addTitleSlide(pptx, input, brandName, accentNoHash);
+  if (
+    synthesis.executive_narrative &&
+    synthesis.executive_narrative.trim() !== ""
+  ) {
+    addNarrativeSlide(pptx, input, brandName, accentNoHash);
+  }
   for (const theme of synthesis.emergent_themes) {
     addThemeSlide(pptx, theme, synthesis.based_on_count, locale, brandName, accentNoHash);
   }
@@ -535,6 +541,50 @@ function renderTensionColumn(
     fontFace: FONT,
     align: "left",
     valign: "top",
+  });
+}
+
+/** Ausführlicher Überblick — die optionale Erzähl-Stufe als eigene Folie. */
+function addNarrativeSlide(
+  pptx: PptxGenJS,
+  input: SynthesisPdfInput,
+  brandName: string,
+  accentNoHash: string,
+): void {
+  const { synthesis, locale } = input;
+  const heading = translate(locale, "export.synthesis.narrativeHeading");
+  const slide = pptx.addSlide();
+  const top = chrome(slide, heading, locale, brandName, accentNoHash);
+
+  slide.addText(heading, {
+    x: MARGIN,
+    y: top,
+    w: CONTENT_W,
+    h: 0.7,
+    fontFace: FONT,
+    fontSize: 28,
+    bold: true,
+    color: COLORS.ink,
+    align: "left",
+  });
+  slide.addShape("rect", {
+    x: MARGIN,
+    y: top + 0.7,
+    w: 0.7,
+    h: 0.04,
+    fill: { color: COLORS.violet },
+  });
+  slide.addText(truncate(synthesis.executive_narrative ?? "", 1600), {
+    x: MARGIN,
+    y: top + 1.0,
+    w: CONTENT_W,
+    h: PAGE_H - top - 1.6,
+    fontFace: FONT,
+    fontSize: 16,
+    color: COLORS.body,
+    align: "left",
+    valign: "top",
+    lineSpacingMultiple: 1.25,
   });
 }
 

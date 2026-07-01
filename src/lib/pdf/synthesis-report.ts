@@ -63,6 +63,9 @@ export interface SynthesisPdfInput {
      *  row). */
     synthesized_at: string;
     model: string | null;
+    /** Ausführlich-Stufe — optionale längere Erzählung (verankert). Null im
+     *  Standard-Modus; dann wird die Sektion weggelassen. */
+    executive_narrative?: string | null;
   };
   orgName: string;
   /** Resolved UI locale (from the request cookie, via the route handler).
@@ -394,6 +397,27 @@ export async function buildSynthesisPdf(
       });
   }
   doc.moveDown(0.6);
+
+  // ── Ausführlicher Überblick (optionale Erzähl-Stufe) ──
+  if (
+    synthesis.executive_narrative &&
+    synthesis.executive_narrative.trim() !== ""
+  ) {
+    sectionHeading(
+      doc,
+      translate(locale, "export.synthesis.narrativeHeading"),
+      fonts.bold,
+    );
+    doc
+      .font(fonts.regular)
+      .fontSize(10.5)
+      .fillColor(COLORS.body)
+      .text(cleanText(synthesis.executive_narrative), left, doc.y, {
+        width,
+        lineGap: 1.5,
+      });
+    doc.moveDown(0.6);
+  }
 
   // ── Emergent themes ──
   sectionHeading(
