@@ -3,6 +3,10 @@ import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
 
 import { CLAUDE_MODELS, getAnthropicClient } from "@/lib/anthropic/client";
+import {
+  cachedSystem,
+  withCacheBreakpointOnLastMessage,
+} from "@/lib/anthropic/cache";
 import { runCrossStudyAgent } from "@/lib/cross-study-agent/engine";
 import type { CrossStudyAgentResult } from "@/lib/schemas/cross-study-agent";
 import type { MissionControlHistoryTurn } from "@/lib/schemas/mission-control";
@@ -505,8 +509,12 @@ export async function runKonsoulAgentWith(
         {
           model,
           max_tokens: MAX_TOKENS,
-          system: KONSOUL_AGENT_SYSTEM_PROMPT,
-          messages,
+          // Prompt-Caching (Muster interviewer.ts / cross-study-agent):
+          // Breakpoint auf System (deckt die Tool-Defs davor mit) + auf der
+          // letzten stabilen Message — jeder Step verlängert den gecachten
+          // Präfix statt den wachsenden Kontext jede Runde voll zu bezahlen.
+          system: cachedSystem(KONSOUL_AGENT_SYSTEM_PROMPT),
+          messages: withCacheBreakpointOnLastMessage(messages),
           tools: offeredTools,
           // Erster Turn: irgendein Tool erzwingen (handeln, nicht freitexten);
           // danach auto, damit das Modell entscheidet, wann es delegiert/emittet.
@@ -733,7 +741,7 @@ export async function runKonsoulAgentWith(
 
   // Budget erschöpft ohne Emit/Delegation → EIN erzwungener guidance-Final-Emit,
   // geerdet NUR in dem, was schon geladen wurde. Sonst fail-closed.
-  return forceFinalGuidance(client, model, messages, acc);
+  return forceFinalGuidance(client, model, messages, acc, offeredTools);
 }
 
 /**
@@ -747,6 +755,7 @@ async function forceFinalGuidance(
   model: string,
   baseMessages: Anthropic.MessageParam[],
   acc: Accumulator,
+  offeredTools: Anthropic.Tool[],
 ): Promise<KonsoulResult> {
   const messages: Anthropic.MessageParam[] = [
     ...baseMessages,
@@ -764,9 +773,13 @@ async function forceFinalGuidance(
         {
           model,
           max_tokens: MAX_TOKENS,
-          system: KONSOUL_AGENT_SYSTEM_PROMPT,
-          messages,
-          tools: [EMIT_GUIDANCE_TOOL],
+          system: cachedSystem(KONSOUL_AGENT_SYSTEM_PROMPT),
+          messages: withCacheBreakpointOnLastMessage(messages),
+          // DIESELBE Tool-Liste wie im Loop: tool_choice erzwingt den Emit
+          // ohnehin; die frühere geschrumpfte Liste ([EMIT_GUIDANCE_TOOL])
+          // brach nur den gecachten Präfix aller Loop-Steps (Cache-Reihenfolge:
+          // tools → system → messages).
+          tools: offeredTools,
           tool_choice: { type: "tool", name: EMIT_TOOL_NAME },
         },
         { timeout: 120_000, maxRetries: 1 },

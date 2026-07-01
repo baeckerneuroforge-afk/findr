@@ -43,6 +43,12 @@ import { MissionControlRequestSchema } from "@/lib/schemas/mission-control";
 // engine/eval contract (≤2000-char question, ≤20 history turns of ≤4000 chars).
 const BodySchema = MissionControlRequestSchema.omit({ orgId: true });
 
+// Vercel-Funktionslimit anheben: die inneren LLM-Budgets (Opus-Chat-Turn mit großer Datensektion)
+// übersteigen sonst das Routen-Limit — die Funktion würde mitten im
+// bezahlten Call/Loop gekillt (verworfene Antwort, "unexpected error").
+// Gleiches Muster wie synthesis/agent/chat-Routen.
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const t = await getTranslations("errors");
   const orgOrError = await requireOrgIdOrError();

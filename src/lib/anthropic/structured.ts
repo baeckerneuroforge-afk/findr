@@ -175,18 +175,29 @@ export async function callClaudeStructured<T>(
       ? [{ type: "text", text: sys, cache_control: { type: "ephemeral" } }]
       : sys;
 
-    const response = await client.messages.create(
-      {
-        model,
-        max_tokens: maxTokens,
-        // No `temperature` — Opus 4.7 rejects the parameter (400).
-        system: systemParam,
-        messages,
-        tools: [tool],
-        tool_choice: { type: "tool", name: toolName },
-      },
-      { timeout: timeoutMs, maxRetries },
-    );
+    // STREAMING-Transport (Perf/Robustheit): die großen Erzeuger (Synthese
+    // 10k, Meta-Synthese 10k, Personas 16k maxTokens auf Opus) liefen hier
+    // vorher als blockierender messages.create — 1–3 Minuten ohne ein Byte auf
+    // der Leitung, genau die Zone, in der lange Requests von Timeouts gekillt
+    // werden. `stream(...).finalMessage()` hält die Verbindung mit Events am
+    // Leben und liefert am Ende DIESELBE Message (inkl. tool_use.input als
+    // geparstes Objekt) — kein Verhaltens- oder Schnittstellenwechsel für die
+    // Aufrufer, kein UI-Zwang. Der SDK-Stream retryt Transportfehler wie
+    // create gemäß maxRetries.
+    const response = await client.messages
+      .stream(
+        {
+          model,
+          max_tokens: maxTokens,
+          // No `temperature` — Opus 4.7 rejects the parameter (400).
+          system: systemParam,
+          messages,
+          tools: [tool],
+          tool_choice: { type: "tool", name: toolName },
+        },
+        { timeout: timeoutMs, maxRetries },
+      )
+      .finalMessage();
 
     const toolUse = response.content.find(
       (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
