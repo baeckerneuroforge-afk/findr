@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import {
   Inter,
-  Hanken_Grotesk,
   JetBrains_Mono,
   Space_Grotesk,
   Space_Mono,
@@ -40,11 +39,14 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-const hankenGrotesk = Hanken_Grotesk({
-  variable: "--font-hanken",
-  subsets: ["latin"],
-});
-
+// Hanken Grotesk was dropped from this root: `--font-hanken` is consumed
+// nowhere (globals.css maps --font-heading/--font-body to Geist; no component
+// under (participant)/ or components/interview references the variable).
+// The other faces stay: --font-inter (InterviewChat/VoiceInterviewView/
+// branding.ts), Geist (font-body/font-marketing utilities), --font-display =
+// Space Grotesk (ParticipantShell + InterviewChat), and Space Mono/JetBrains
+// Mono via the --font-mono chain (`font-mono` in the marketing header/footer
+// used by not-found).
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
@@ -96,7 +98,7 @@ export default async function ParticipantLayout({
     <html
       lang={locale}
       data-scroll-behavior="smooth"
-      className={`${inter.variable} ${GeistSans.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} h-full scroll-smooth antialiased`}
+      className={`${inter.variable} ${GeistSans.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} h-full scroll-smooth antialiased`}
     >
       <body className="min-h-full flex flex-col bg-obsidian text-white">
         <NextIntlClientProvider

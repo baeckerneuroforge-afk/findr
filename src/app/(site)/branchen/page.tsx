@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
@@ -86,8 +87,8 @@ export default function IndustriesPage() {
             ];
             return (
               <article key={i.n} className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:border-ink hover:shadow-[0_24px_50px_-28px_oklch(0.16_0.01_260/0.35)]">
-                <div className="aspect-[4/3] overflow-hidden border-b border-border">
-                  <img src={photos[idx]} alt={i.n} loading="lazy" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]" />
+                <div className="relative aspect-[4/3] overflow-hidden border-b border-border">
+                  <Image src={photos[idx]} alt={i.n} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover transition duration-700 group-hover:scale-[1.05]" />
                 </div>
                 <div className="p-6">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Branche</span>

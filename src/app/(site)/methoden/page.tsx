@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { buildAlternates, ogDefaultsFor, jsonLdHtml } from "@/lib/marketing/seo";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
 import { Stagger } from "@/components/site/Stagger";
@@ -100,8 +101,8 @@ export default function MethodsPage() {
         <Stagger step={90} className="mx-auto grid max-w-7xl gap-6 px-6 md:grid-cols-2">
           {methods.map((m) => (
             <article key={m.n} className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:border-ink hover:shadow-[0_24px_50px_-28px_oklch(0.16_0.01_260/0.35)]">
-              <div className="aspect-[16/9] overflow-hidden border-b border-border">
-                <img src={m.photo} alt={m.alt} loading="lazy" width={1280} height={720} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]" />
+              <div className="relative aspect-[16/9] overflow-hidden border-b border-border">
+                <Image src={m.photo} alt={m.alt} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover transition duration-700 group-hover:scale-[1.05]" />
               </div>
               <div className="p-7">
                 <h2 className="text-xl">{m.n}</h2>

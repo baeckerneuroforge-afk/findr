@@ -1,9 +1,12 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Locale } from "@/i18n/marketing-locale";
 
 /**
- * Klymeo wordmark + animated mark. The PNG is self-hosted at /site/klymeo-logo.png
- * (downloaded from the design source — nothing loads from Lovable at runtime).
+ * Klymeo wordmark + animated mark. The PNG is self-hosted at
+ * /site/klymeo-logo-144.png — a 144×144 sips-derivative of the original
+ * 904×904 /site/klymeo-logo.png (kept for other consumers), since the mark
+ * renders at 36px (4× = comfortable Retina headroom).
  * No hooks → usable from both the client header and the server footer.
  *
  * `lang` points the home link at the locale's homepage (`/en` vs `/`) so
@@ -27,10 +30,12 @@ export function Logo({
           aria-hidden
           className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(124,107,255,0.4),transparent_70%)] blur-md opacity-70 transition-opacity duration-500 group-hover:opacity-100 group-hover:scale-125"
         />
-        <img
-          src="/site/klymeo-logo.png"
+        <Image
+          src="/site/klymeo-logo-144.png"
           alt=""
           aria-hidden
+          width={36}
+          height={36}
           draggable={false}
           className="relative h-9 w-9 select-none transition-transform duration-700 ease-out group-hover:rotate-[28deg] group-hover:scale-110 animate-[logo-float_7s_ease-in-out_infinite]"
         />

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { type ReactNode } from "react";
 import { Logo } from "./Logo";
@@ -101,7 +102,10 @@ export function SiteFooter({ lang = "de" }: { lang?: Locale }) {
         ))}
       </div>
       <div className="mx-auto mt-10 flex max-w-7xl flex-col items-start justify-between gap-2 px-6 text-xs text-muted-foreground md:flex-row md:items-center">
-        <p>© {new Date().getFullYear()} Klymeo · Ibbenbüren</p>
+        {/* Fixed year on purpose: the site pages are statically prerendered, so a
+            runtime `new Date().getFullYear()` would freeze at build time anyway
+            (and risk a hydration mismatch across New Year). Bump manually. */}
+        <p>© 2026 Klymeo · Ibbenbüren</p>
         <p>{chrome.footerBadge}</p>
       </div>
     </footer>
@@ -185,11 +189,16 @@ export function PageHero({
         </div>
         {image && (
           <div className="relative aspect-[4/5] overflow-hidden rounded-3xl border border-border bg-secondary md:aspect-[3/4] opacity-0 [animation:fade-in_.9s_ease-out_.35s_forwards]">
-            <img
+            {/* Above-the-fold LCP on every subpage → preload + high fetch priority
+                (Next 16: `preload` replaces the deprecated `priority` prop). */}
+            <Image
               src={image}
               alt={imageAlt ?? ""}
-              loading="lazy"
-              className="h-full w-full object-cover kenburns"
+              fill
+              preload
+              fetchPriority="high"
+              sizes="(max-width: 768px) 100vw, 40vw"
+              className="object-cover kenburns"
             />
           </div>
         )}

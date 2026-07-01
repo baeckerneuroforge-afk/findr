@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Konsoul } from "@/components/site/Konsoul";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
@@ -132,11 +133,12 @@ export default function PlatformPage() {
                 className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:border-ink hover:shadow-[0_24px_50px_-28px_oklch(0.16_0.01_260/0.35)]"
               >
                 <div className="relative aspect-[16/10] overflow-hidden bg-secondary">
-                  <img
+                  <Image
                     src={m.image}
                     alt={m.title}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover transition duration-700 group-hover:scale-[1.05]"
                   />
                   <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-card/90 px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest text-ink backdrop-blur">
                     <span className="text-muted-foreground">{m.n}</span>
