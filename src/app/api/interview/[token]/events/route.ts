@@ -68,13 +68,14 @@ function sanitizeTargetSelector(raw: string): string | undefined {
 }
 
 const EventSchema = z.object({
+  // B6 (UX-Engine-Fixes 2026-07-02): exakt die Typen, die der Collector
+  // tatsächlich sendet — "dwell"/"nav" waren Geister-Einträge, die kein Client
+  // je erzeugte (toter Vertragsteil, der Auswertungs-Erwartungen weckte).
   event_type: z.enum([
     "click",
     "scroll",
-    "dwell",
     "input_focus",
     "input_blur",
-    "nav",
     "task_start",
     "task_complete",
     "task_abandon",

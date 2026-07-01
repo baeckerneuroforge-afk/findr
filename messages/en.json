@@ -1097,7 +1097,10 @@
     "emptyCta": "Create a study",
     "tzNote": "All times in Europe/Berlin",
     "todayBtn": "Today",
-    "view": { "month": "Month", "agenda": "Agenda" },
+    "view": {
+      "month": "Month",
+      "agenda": "Agenda"
+    },
     "legend": {
       "scheduled": "Scheduled",
       "live": "Running",
@@ -1117,7 +1120,10 @@
       "noDraftsCta": "Create a study",
       "errPick": "Please pick a study."
     },
-    "a11y": { "prevMonth": "Previous month", "nextMonth": "Next month" }
+    "a11y": {
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month"
+    }
   },
   "research": {
     "common": {
@@ -2283,6 +2289,10 @@
       "s2TaskLabel": "Task for participants",
       "s2TaskPh": "e.g. Find a recipe in the prototype and add it to your shortlist.",
       "s2TaskUrlLabel": "Prototype link",
+      "s2TaskCriterionLabel": "Success criterion (visible only to you)",
+      "s2TaskCriterionPh": "e.g. The recipe ends up on the shortlist.",
+      "s2TaskCriterionHint": "Basis for the AI success verdict after each session. Participants never see it. Without a criterion, no verdict is produced.",
+      "s2TaskHostingLabel": "Where do participants work on the task?",
       "s2GuideHeading": "Interview guide",
       "s2GuideMeta": "{n} topics · editable",
       "s2TopicMainPh": "Lead question …",

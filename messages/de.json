@@ -1097,7 +1097,10 @@
     "emptyCta": "Studie anlegen",
     "tzNote": "Alle Zeiten in Europe/Berlin",
     "todayBtn": "Heute",
-    "view": { "month": "Monat", "agenda": "Agenda" },
+    "view": {
+      "month": "Monat",
+      "agenda": "Agenda"
+    },
     "legend": {
       "scheduled": "Geplant",
       "live": "Läuft",
@@ -1117,7 +1120,10 @@
       "noDraftsCta": "Studie anlegen",
       "errPick": "Bitte eine Studie wählen."
     },
-    "a11y": { "prevMonth": "Vorheriger Monat", "nextMonth": "Nächster Monat" }
+    "a11y": {
+      "prevMonth": "Vorheriger Monat",
+      "nextMonth": "Nächster Monat"
+    }
   },
   "research": {
     "common": {
@@ -2283,6 +2289,10 @@
       "s2TaskLabel": "Aufgabe für die Teilnehmer:innen",
       "s2TaskPh": "z. B. Finde im Prototyp ein Rezept und leg es auf deine Merkliste.",
       "s2TaskUrlLabel": "Prototyp-Link",
+      "s2TaskCriterionLabel": "Erfolgskriterium (nur für dich sichtbar)",
+      "s2TaskCriterionPh": "z. B. Das Rezept liegt am Ende auf der Merkliste.",
+      "s2TaskCriterionHint": "Grundlage für das KI-Erfolgs-Urteil nach jeder Session. Teilnehmer:innen sehen es nie. Ohne Kriterium entfällt das Urteil.",
+      "s2TaskHostingLabel": "Wo bearbeiten Teilnehmer:innen die Aufgabe?",
       "s2GuideHeading": "Leitfaden",
       "s2GuideMeta": "{n} Themen · editierbar",
       "s2TopicMainPh": "Leitfrage …",

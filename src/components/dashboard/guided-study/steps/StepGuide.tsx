@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { emptyTopicDraft, type TopicDraft } from "@/components/dashboard/TopicEditor";
 import { getUseCaseMeta, type WizardState } from "../types";
 import { StimulusUploader, type StimulusItem } from "../StimulusUploader";
+import { PROTOTYPE_HOSTING } from "@/lib/research/task";
 import {
   ArrowRightIcon,
   Card,
@@ -50,6 +51,9 @@ export function StepGuide({
   onApprove: () => void;
 }) {
   const tw = useTranslations("research.wizard");
+  // B2 — Hosting-Options-Labels teilen sich die Keys mit dem EditStudyForm
+  // (research.plans.prototypeHosting_*): eine Quelle, keine Drift.
+  const tp = useTranslations("research.plans");
   const meta = getUseCaseMeta(state.useCase);
 
   function patchTopic(i: number, t: Partial<TopicDraft>) {
@@ -116,6 +120,21 @@ export function StepGuide({
             value={state.taskInstruction}
             onChange={(e) => patch({ taskInstruction: e.target.value })}
           />
+          {/* B2 (2026-07-02): Erfolgskriterium — Voraussetzung fürs advisory
+              KI-Erfolgs-Urteil (Phase C); der Judge skippt ohne Kriterium
+              still. Erreicht den Teilnehmer nie (researcher-only). */}
+          <label className="mb-1.5 mt-3 block text-small font-medium text-neutral-700">
+            {tw("s2TaskCriterionLabel")}
+          </label>
+          <TextArea
+            rows={2}
+            placeholder={tw("s2TaskCriterionPh")}
+            value={state.taskSuccessCriterion}
+            onChange={(e) => patch({ taskSuccessCriterion: e.target.value })}
+          />
+          <p className="mt-1 text-caption text-neutral-400">
+            {tw("s2TaskCriterionHint")}
+          </p>
           <label className="mb-1.5 mt-3 block text-small font-medium text-neutral-700">
             {tw("s2TaskUrlLabel")}
           </label>
@@ -126,6 +145,33 @@ export function StepGuide({
             value={state.taskTargetUrl}
             onChange={(e) => patch({ taskTargetUrl: e.target.value })}
           />
+          {/* B2: Hosting-Wahl — nur relevant mit URL. first_party_iframe
+              rendert das messbare iframe-Panel in der Interview-Seite (Klicks
+              zählbar, nur same-origin/embedbare Ziele); external_url = Link im
+              neuen Tab (dort ist nichts messbar, nur Lifecycle). */}
+          {state.taskTargetUrl.trim() !== "" && (
+            <>
+              <label className="mb-1.5 mt-3 block text-small font-medium text-neutral-700">
+                {tw("s2TaskHostingLabel")}
+              </label>
+              <select
+                value={state.taskPrototypeHosting}
+                onChange={(e) =>
+                  patch({
+                    taskPrototypeHosting: e.target
+                      .value as WizardState["taskPrototypeHosting"],
+                  })
+                }
+                className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-body text-neutral-900 focus:border-primary-400 focus:outline-none"
+              >
+                {PROTOTYPE_HOSTING.map((h) => (
+                  <option key={h} value={h}>
+                    {tp(`prototypeHosting_${h}`)}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
       ) : null}
 

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { EventTrackingConsent } from "./EventTrackingConsent";
+import { useEventCollector } from "./useEventCollector";
 import {
   isKonsoulInterviewerFaceEnabled,
   isKonsoulInterviewerPersonaEnabled,
@@ -92,11 +94,16 @@ interface VoiceInterviewViewProps {
   maxDurationSeconds?: number | null;
   /** „Raum betreten"-Zeitstempel (ISO) bzw. null — Basis des Countdowns. */
   startedAt?: string | null;
-  /** Phase 1b — die Usability-Aufgabe als persistente Karte (NUR instruction +
-   *  targetUrl; successCriterion/prototypeHosting trägt der Typ nicht). Voice
-   *  zeigt die Aufgabe nur an — der explizite Abschluss (Phase B) ist text-only
-   *  (kein DOM-Event-Collector im Voice-Pfad). Null → keine Karte. */
+  /** Phase 1b — die Usability-Aufgabe als persistente Karte (instruction +
+   *  targetUrl; successCriterion trägt der Typ strukturell nicht). Null →
+   *  keine Karte. B5 (2026-07-02): Voice hat jetzt Paritäts-Erfassung —
+   *  Events-Consent + Lifecycle-Collector + „Geschafft/Nicht"-Abschluss; der
+   *  embed/iframe-Modus bleibt text-only (Layout), Voice behandelt jede
+   *  Prototyp-URL als Neuer-Tab-Link. */
   task?: ParticipantTask | null;
+  /** B5 — per-Studie Event-Tracking-Toggle (wie InterviewChat). Default false
+   *  → Banner/Collector/Buttons entfallen, Render byte-identisch zu vorher. */
+  eventTrackingEnabled?: boolean;
 }
 
 type Phase =
@@ -700,6 +707,7 @@ export function VoiceInterviewView({
   maxDurationSeconds = null,
   startedAt = null,
   task = null,
+  eventTrackingEnabled = false,
 }: VoiceInterviewViewProps) {
   const t = useTranslations("interview");
   const locale = useLocale();
@@ -737,6 +745,28 @@ export function VoiceInterviewView({
   const [agentState, setAgentState] = useState<AgentState | null>(null);
   const [showLastQuestion, setShowLastQuestion] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  // B5 — Events-Consent + Lifecycle-Collector (Paritäts-Erfassung zum Text-
+  // Chat). mode="external": im Voice-Pfad bewusst keine Klick-/Scroll-
+  // Listener (siehe taskCard-Kommentar) — nur task_start (Link) + Terminal
+  // (Buttons). Ohne eventTrackingEnabled bleibt alles inert.
+  const [eventsConsent, setEventsConsent] = useState<
+    "pending" | "granted" | "declined"
+  >("pending");
+  const { declareOutcome, markTaskStarted } = useEventCollector({
+    token,
+    active: eventTrackingEnabled && eventsConsent === "granted",
+    mode: "external",
+  });
+  const [taskOutcome, setTaskOutcome] = useState<null | "complete" | "abandon">(
+    null,
+  );
+  const declareTaskOutcome = useCallback(
+    (outcome: "complete" | "abandon") => {
+      declareOutcome(outcome);
+      setTaskOutcome(outcome);
+    },
+    [declareOutcome],
+  );
   /** E4: stimulus panel hidden behind the placeholder until the agent's
    *  "show" DataPacket (or the timed fallback) reveals it. Reveal is one-way
    *  for the session — repeated show events are no-ops. */
@@ -1281,12 +1311,16 @@ export function VoiceInterviewView({
   }
 
   const heading = headingOverride ?? t("header.titleResearch");
-  // Phase 1b — Aufgabenkarte. Voice ZEIGT die Aufgabe nur an; der explizite
-  // Abschluss (Phase B) ist text-only, weil der Voice-Pfad keinen DOM-Event-
-  // Collector hat. Nur instruction (+ optional Prototyp-Link); successCriterion
-  // erreicht den Teilnehmer nie. null → nichts gerendert (byte-identisch).
-  // Gleiche Optik wie die Karte im Text-Chat.
-  const taskCard = task ? (
+  // Phase 1b + B5 — Aufgabenkarte mit Paritäts-Erfassung (2026-07-02): Voice
+  // bekommt denselben Events-Consent-Banner, den Lifecycle-Collector und den
+  // expliziten „Geschafft/Nicht"-Abschluss wie der Text-Chat — DOM-Events sind
+  // transport-agnostisch, die Teilnehmer-Seite ist eine normale Web-Seite.
+  // Bewusst IMMER mode="external": im Voice-Layout gibt es kein iframe-Panel
+  // und die Voice-Seite selbst ist nie die Aufgabenfläche (der Orb ist kein
+  // Testobjekt) → keine Klick-/Scroll-Listener, nur Lifecycle (task_start über
+  // den Link, Ausgang über die Buttons). successCriterion erreicht den
+  // Teilnehmer weiterhin nie. Ohne eventTrackingEnabled: byte-identisch.
+  const taskCardContent = task ? (
     <div className="mb-5 rounded-lg border border-[#E8E4F2] bg-[#FAFAFE] px-4 py-4">
       <p className="text-[11px] font-medium uppercase tracking-wider text-[#8A85A0]">
         {t("task.label")}
@@ -1299,12 +1333,60 @@ export function VoiceInterviewView({
           href={task.targetUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={markTaskStarted}
           className="mt-3 inline-flex h-[34px] items-center rounded-lg border border-[#E8E4F2] bg-white px-3 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:border-[#CFC9E0]"
         >
           {t("task.openPrototype")}
         </a>
       )}
+      {eventTrackingEnabled &&
+        eventsConsent === "granted" &&
+        (taskOutcome !== null ? (
+          <p className="mt-4 border-t border-[#E8E4F2] pt-3 text-[12px] font-medium text-[#6B6680]">
+            {taskOutcome === "complete"
+              ? t("task.recordedDone")
+              : t("task.recordedFailed")}
+          </p>
+        ) : (
+          <div className="mt-4 border-t border-[#E8E4F2] pt-3">
+            <p className="text-[12px] text-[#6B6680]">
+              {t("task.outcomePrompt")}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => declareTaskOutcome("complete")}
+                className="inline-flex h-[34px] items-center rounded-lg bg-[var(--brand-accent)] px-3 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
+              >
+                {t("task.done")}
+              </button>
+              <button
+                type="button"
+                onClick={() => declareTaskOutcome("abandon")}
+                className="inline-flex h-[34px] items-center rounded-lg border border-[#E8E4F2] bg-white px-3 text-[12px] font-medium text-[#0E0A1F] transition-colors hover:border-[#CFC9E0]"
+              >
+                {t("task.failed")}
+              </button>
+            </div>
+          </div>
+        ))}
     </div>
+  ) : null;
+  // Consent-Banner direkt über der Aufgabenkarte (nur solange offen und
+  // unentschieden; Ablehnen lässt das Interview unangetastet weiterlaufen).
+  const taskCard = task ? (
+    <>
+      <EventTrackingConsent
+        token={token}
+        show={
+          eventTrackingEnabled &&
+          eventsConsent === "pending" &&
+          initialStatus === "open"
+        }
+        onDecision={setEventsConsent}
+      />
+      {taskCardContent}
+    </>
   ) : null;
 
   // Orb state: prefer the published agent state, fall back to the

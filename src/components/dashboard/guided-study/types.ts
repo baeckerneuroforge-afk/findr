@@ -1,4 +1,5 @@
 import type { TopicDraft } from "@/components/dashboard/TopicEditor";
+import type { PrototypeHosting } from "@/lib/research/task";
 
 /**
  * Zustand + Metadaten des gefuehrten Studien-Wizards (Markt-Studien).
@@ -36,6 +37,12 @@ export interface WizardState {
    *  (siehe StimulusUploader). */
   taskInstruction: string;
   taskTargetUrl: string;
+  /** B2 (2026-07-02): Erfolgskriterium fürs advisory KI-Urteil (Phase C) —
+   *  vorher hartkodiert null, wodurch Wizard-Studien NIE gejudgt wurden. */
+  taskSuccessCriterion: string;
+  /** B2: Hosting-Wahl (Default external_url — der ehrliche Default für fremde
+   *  Prototypen; first_party_iframe rendert das messbare iframe-Panel). */
+  taskPrototypeHosting: PrototypeHosting;
 
   /** Schritt 3 — Interview. */
   voiceEnabled: boolean;
@@ -60,6 +67,8 @@ export function initialWizardState(): WizardState {
     topics: [],
     taskInstruction: "",
     taskTargetUrl: "",
+    taskSuccessCriterion: "",
+    taskPrototypeHosting: "external_url",
     voiceEnabled: false,
     interviewDepth: "mittel",
     language: "de",

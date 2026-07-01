@@ -161,9 +161,14 @@ const nextConfig: NextConfig = {
       // blob: for TTS-MP3 playback and recorded-audio previews.
       "media-src 'self' blob: https:",
       "worker-src 'self' blob:",
-      // Einziges reales iframe: das cal.eu-Demo-Buchungswidget auf /kontakt
-      // (DE+EN). Turnstile (Clerks Bot-Schutz) ist mit Clerk entfernt.
-      "frame-src https://www.cal.eu",
+      // Reale iframes: das cal.eu-Demo-Buchungswidget auf /kontakt (DE+EN)
+      // und — seit dem first-party-Prototyp-Panel (UX-Engine B1, 2026-07-02)
+      // — forscher-gewählte Prototyp-URLs auf /interview/[token]. Letztere
+      // sind by-design beliebige https-Ziele (dieselbe Begründung wie `https:`
+      // in img-src für Stimulus-Bilder), daher https: statt einer Allowlist.
+      // 'self' deckt same-origin-Prototypen. Turnstile (Clerks Bot-Schutz)
+      // ist mit Clerk entfernt.
+      "frame-src 'self' https:",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

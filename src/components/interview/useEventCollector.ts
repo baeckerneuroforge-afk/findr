@@ -10,13 +10,46 @@ import { useCallback, useEffect, useRef } from "react";
  * event-tracking flag AND the participant's "events" consent tier.
  *
  * STRUCTURAL RED LINE (integration plan L8): behavioural only. We send the event
- * type, a relative timestamp, and a SHORT structural selector (tag / id /
+ * type, an epoch timestamp, and a SHORT structural selector (tag / id /
  * first-class, truncated) — never element text, input values, audio, video or
  * any affect signal. The server route additionally rejects value/text payload
  * keys.
  *
  * `active` gates EVERYTHING: without events-tier consent the caller passes
  * active=false and not a single listener is attached or request sent.
+ *
+ * ── MESS-EHRLICHKEIT (UX-Engine-Fixes 2026-07-02, Befunde B1/B3/B4) ─────────
+ *
+ * B1 — Task-Surface-Scoping: Wo die Interaktions-Listener hängen, hängt von
+ * `mode` ab. Vorher hingen sie IMMER am Dokument der Interview-Seite — bei
+ * einem Prototyp im neuen Tab zählten click_count/„Rage-Clicks" also Klicks
+ * ins Chat-UI, nicht ins Testobjekt.
+ *   "page"     → Aufgabe findet auf der Interview-Seite selbst statt (kein
+ *                targetUrl / kein Task): Seiten-Listener + auto task_start bei
+ *                Aktivierung — das alte Verhalten, dort ist es korrekt.
+ *   "embed"    → first-party iframe: Listener hängen NUR am (same-origin)
+ *                iframe-Dokument (`surfaceDoc`, vom Aufrufer aus onLoad
+ *                gereicht). Cross-origin (contentDocument unzugänglich) →
+ *                surfaceDoc bleibt null → nur Lifecycle-Events, keine
+ *                erfundenen Klick-Zahlen.
+ *   "external" → Prototyp im neuen Tab: dort können wir strukturell nichts
+ *                messen → KEINE click/scroll/focus-Listener; es zählt nur der
+ *                Lifecycle (task_start über den Link-Klick via
+ *                markTaskStarted, Ausgang über declareOutcome).
+ *
+ * B3 — Kein Auto-Ausgang mehr: Früher stempelte das Interview-Ende automatisch
+ * task_complete (und pagehide task_abandon) — jede abgeschlossene Session ohne
+ * explizite Erklärung zählte als „geschafft" (systematischer Erfolgs-Bias im
+ * Aggregat). Jetzt entsteht ein Terminal-Event AUSSCHLIESSLICH über
+ * declareOutcome (die „Geschafft / Nicht geschafft"-Buttons). Ohne Erklärung
+ * bleibt success=null → „offen"/indeterminate; das Aggregat rechnet die Rate
+ * ohnehin nur über determinierte Ausgänge.
+ *
+ * B4 — Epoch-Timestamps: ts_ms war relativ zum Collector-Start; nach einem
+ * Seiten-Reload begann die Uhr wieder bei 0 und der Server (der ALLE Events
+ * einer Session nach ts_ms sortiert) verwob zwei Läufe chronologisch falsch.
+ * Jetzt ist ts_ms Date.now() (Epoch) — reload-stabil geordnet; der Server
+ * rechnet ausschließlich Differenzen (MAX_TS_MS lässt Epoch explizit zu).
  */
 
 type CollectedEventType =
@@ -27,6 +60,8 @@ type CollectedEventType =
   | "task_start"
   | "task_complete"
   | "task_abandon";
+
+export type TaskSurfaceMode = "page" | "embed" | "external";
 
 interface CollectedEvent {
   event_type: CollectedEventType;
@@ -64,14 +99,23 @@ function isFormField(target: EventTarget | null): boolean {
 export function useEventCollector({
   token,
   active,
-  completed,
+  mode = "page",
+  surfaceDoc = null,
 }: {
   token: string;
   active: boolean;
-  completed: boolean;
-}): { declareOutcome: (outcome: "complete" | "abandon") => void } {
+  /** B1 — wo die Aufgabe stattfindet (siehe Modul-Doku). Default "page" =
+   *  Alt-Verhalten für Studien ohne Prototyp-URL. */
+  mode?: TaskSurfaceMode;
+  /** B1 — same-origin Dokument des first-party iframes (Aufrufer setzt es aus
+   *  iframe.onLoad; cross-origin → null). Nur in mode="embed" relevant. */
+  surfaceDoc?: Document | null;
+}): {
+  declareOutcome: (outcome: "complete" | "abandon") => void;
+  /** B1 — expliziter Task-Beginn (Klick auf den Prototyp-Link). Idempotent. */
+  markTaskStarted: () => void;
+} {
   const bufferRef = useRef<CollectedEvent[]>([]);
-  const startEpochRef = useRef(0);
   const startedRef = useRef(false);
   const completedSentRef = useRef(false);
 
@@ -103,12 +147,11 @@ export function useEventCollector({
       const isTerminal =
         event_type === "task_complete" || event_type === "task_abandon";
       if (!isTerminal && bufferRef.current.length >= MAX_BUFFER) return;
-      const ts_ms = startEpochRef.current
-        ? Math.max(0, Math.round(Date.now() - startEpochRef.current))
-        : 0;
       bufferRef.current.push({
         event_type,
-        ts_ms,
+        // B4 — Epoch-ms: reload-stabile globale Ordnung; der Server rechnet
+        // nur Differenzen und toleriert Epoch per MAX_TS_MS ausdrücklich.
+        ts_ms: Date.now(),
         ...(target_selector ? { target_selector } : {}),
       });
       if (bufferRef.current.length >= FLUSH_AT_COUNT) flush();
@@ -116,77 +159,113 @@ export function useEventCollector({
     [flush],
   );
 
-  // Listener lifetime tracks `active`. Attaches ONLY with events-tier consent.
+  const markTaskStarted = useCallback(() => {
+    if (!active || startedRef.current) return;
+    startedRef.current = true;
+    push("task_start");
+    flush();
+  }, [active, push, flush]);
+
+  // Flush-Takt + pagehide-Final-Flush laufen in JEDEM Modus, sobald aktiv.
+  // B3: pagehide sendet KEIN task_abandon mehr — Tab-Wechsel zum Prototyp oder
+  // Schließen nach dem Interview sind kein erklärter Misserfolg; ohne
+  // explizite Erklärung bleibt der Ausgang „offen".
   useEffect(() => {
     if (!active) return;
-    if (!startedRef.current) {
+
+    // mode="page": die Interview-Seite IST die Aufgabenfläche → Task beginnt
+    // mit der Erfassung (Alt-Verhalten, korrekt für Aufgaben ohne Prototyp).
+    if (mode === "page" && !startedRef.current) {
       startedRef.current = true;
-      startEpochRef.current = Date.now();
       push("task_start");
     }
 
-    let lastScroll = 0;
-    const onClick = (e: Event) => push("click", shortSelector(e.target));
-    const onScroll = () => {
-      const now = Date.now();
-      if (now - lastScroll < SCROLL_THROTTLE_MS) return;
-      lastScroll = now;
-      push("scroll");
-    };
-    const onFocusIn = (e: Event) => {
-      if (isFormField(e.target)) push("input_focus", shortSelector(e.target));
-    };
-    const onFocusOut = (e: Event) => {
-      if (isFormField(e.target)) push("input_blur", shortSelector(e.target));
-    };
-    const onPageHide = () => {
-      if (!completedSentRef.current) push("task_abandon");
-      flush(true);
-    };
-
-    document.addEventListener("click", onClick, true);
-    window.addEventListener("scroll", onScroll, true);
-    document.addEventListener("focusin", onFocusIn);
-    document.addEventListener("focusout", onFocusOut);
+    const onPageHide = () => flush(true);
     window.addEventListener("pagehide", onPageHide);
     const interval = window.setInterval(() => flush(), FLUSH_INTERVAL_MS);
-
     return () => {
-      document.removeEventListener("click", onClick, true);
-      window.removeEventListener("scroll", onScroll, true);
-      document.removeEventListener("focusin", onFocusIn);
-      document.removeEventListener("focusout", onFocusOut);
       window.removeEventListener("pagehide", onPageHide);
       window.clearInterval(interval);
       flush();
     };
-  }, [active, flush, push]);
+  }, [active, mode, flush, push]);
 
-  // Task completion → one terminal task_complete + a final flush.
+  // B1 — Interaktions-Listener am richtigen Dokument:
+  //   page  → Interview-Seite (document)
+  //   embed → same-origin iframe-Dokument (surfaceDoc); null → nichts
+  //   external → nichts (dort ist strukturell nichts messbar)
   useEffect(() => {
-    if (!active || !completed || completedSentRef.current) return;
-    completedSentRef.current = true;
-    push("task_complete");
-    flush();
-  }, [active, completed, flush, push]);
+    if (!active) return;
+    const target: Document | null =
+      mode === "page" ? document : mode === "embed" ? surfaceDoc : null;
+    if (!target) return;
+
+    // Erste echte Interaktion mit dem eingebetteten Prototyp = Task-Beginn
+    // (falls der Teilnehmer nicht vorher den Fallback-Link geklickt hat).
+    const ensureStarted = () => {
+      if (!startedRef.current) {
+        startedRef.current = true;
+        push("task_start");
+      }
+    };
+
+    let lastScroll = 0;
+    const onClick = (e: Event) => {
+      ensureStarted();
+      push("click", shortSelector(e.target));
+    };
+    const onScroll = () => {
+      const now = Date.now();
+      if (now - lastScroll < SCROLL_THROTTLE_MS) return;
+      lastScroll = now;
+      ensureStarted();
+      push("scroll");
+    };
+    const onFocusIn = (e: Event) => {
+      if (isFormField(e.target)) {
+        ensureStarted();
+        push("input_focus", shortSelector(e.target));
+      }
+    };
+    const onFocusOut = (e: Event) => {
+      if (isFormField(e.target)) push("input_blur", shortSelector(e.target));
+    };
+
+    const scrollTarget: Document | Window =
+      mode === "page" ? window : target;
+    target.addEventListener("click", onClick, true);
+    scrollTarget.addEventListener("scroll", onScroll, true);
+    target.addEventListener("focusin", onFocusIn);
+    target.addEventListener("focusout", onFocusOut);
+
+    return () => {
+      target.removeEventListener("click", onClick, true);
+      scrollTarget.removeEventListener("scroll", onScroll, true);
+      target.removeEventListener("focusin", onFocusIn);
+      target.removeEventListener("focusout", onFocusOut);
+    };
+  }, [active, mode, surfaceDoc, push]);
 
   // Phase 1b — explicit participant task outcome (the "Aufgabe geschafft /
-  // nicht geschafft" control). This is the AUTHORITATIVE terminal signal: a
-  // behavioural fact the participant declares, NOT a model verdict. Setting
-  // completedSentRef suppresses the interview-completion auto task_complete
-  // above, so an explicit `abandon` is never overwritten by a later auto
-  // `complete`. No-op if the collector never started (no events consent) or a
-  // terminal was already sent. Reuses the existing task_complete/task_abandon
-  // event types, so computeTaskResult (last terminal wins) needs no change.
+  // nicht geschafft" control). This is the ONLY terminal signal (B3): a
+  // behavioural fact the participant declares, NOT a model verdict and NOT ein
+  // Auto-Stempel des Interview-Endes. Fehlt vor dem Terminal ein task_start
+  // (external-Modus, Link nie geklickt), wird er nachgeholt, damit die
+  // Zeitmessung ein definiertes Fenster hat. At most ONE terminal per session
+  // (completedSentRef); computeTaskResult (last terminal wins) needs no change.
   const declareOutcome = useCallback(
     (outcome: "complete" | "abandon") => {
-      if (!startedRef.current || completedSentRef.current) return;
+      if (!active || completedSentRef.current) return;
+      if (!startedRef.current) {
+        startedRef.current = true;
+        push("task_start");
+      }
       completedSentRef.current = true;
       push(outcome === "complete" ? "task_complete" : "task_abandon");
       flush();
     },
-    [flush, push],
+    [active, flush, push],
   );
 
-  return { declareOutcome };
+  return { declareOutcome, markTaskStarted };
 }
