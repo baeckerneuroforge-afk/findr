@@ -18,6 +18,7 @@
     "eval:churn-severity": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-churn-severity/run.ts",
     "eval:loss": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-loss/run.ts llm",
     "eval:synthesis": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-synthesis/run.ts",
+    "eval:synthesis-advisory": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-synthesis-advisory/run.ts",
     "eval:market-research": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-market-research/run.ts",
     "eval:research-saturation": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-research-saturation/run.ts",
     "eval:multi-stimulus": "env -u ANTHROPIC_API_KEY tsx --conditions=react-server evals-multi-stimulus/run.ts",
