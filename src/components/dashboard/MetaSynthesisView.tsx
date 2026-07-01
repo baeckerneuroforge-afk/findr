@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { toBcp47 } from "@/i18n/locale";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { FrequencyBarChart } from "@/components/dashboard/FrequencyBarChart";
+import { AxisBarChart } from "@/components/dashboard/AxisBarChart";
 import {
   buildConvergentFrequencyChart,
   buildInterviewsPerStudyChart,
@@ -156,14 +156,14 @@ export async function MetaSynthesisView({
       {(convergentChart || interviewsChart) && (
         <div className="grid gap-4 sm:grid-cols-2">
           {convergentChart && (
-            <FrequencyBarChart
+            <AxisBarChart
               chart={convergentChart}
               title={t("chartConvergentTitle")}
               unit={t("unitStudies")}
             />
           )}
           {interviewsChart && (
-            <FrequencyBarChart
+            <AxisBarChart
               chart={interviewsChart}
               title={t("chartInterviewsTitle")}
             />

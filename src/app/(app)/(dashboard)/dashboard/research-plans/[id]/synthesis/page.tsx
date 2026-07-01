@@ -22,7 +22,7 @@ import { ExportSynthesisPdfButton } from "@/components/dashboard/ExportSynthesis
 import { ExportSynthesisPptxButton } from "@/components/dashboard/ExportSynthesisPptxButton";
 import { HighlightReelPanel } from "@/components/dashboard/HighlightReelPanel";
 import { SynthesisThemeCard } from "@/components/dashboard/SynthesisThemeCard";
-import { FrequencyBarChart } from "@/components/dashboard/FrequencyBarChart";
+import { AxisBarChart } from "@/components/dashboard/AxisBarChart";
 import { DonutChart } from "@/components/dashboard/DonutChart";
 import {
   buildThemeFrequencyChart,
@@ -344,7 +344,7 @@ export default async function ResearchPlanSynthesisPage({
 
           {/* Themen-Häufigkeit auf einen Blick — nur aus Server-Zahlen. */}
           {themeChart && (
-            <FrequencyBarChart
+            <AxisBarChart
               chart={themeChart}
               title={t("chartThemeTitle")}
               unit={t("chartUnitInterviews")}
