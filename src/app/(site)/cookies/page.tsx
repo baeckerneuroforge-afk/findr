@@ -12,7 +12,7 @@ import {
   LegalStand,
 } from "@/components/site/LegalProse";
 import { SiteShell } from "@/components/site/SiteShell";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 const STAND = "Juni 2026";
 
@@ -20,9 +20,9 @@ export const metadata: Metadata = {
   title: { absolute: "Cookie-Richtlinie — Klymeo" },
   description:
     "Welche Cookies und Speichertechnologien Klymeo einsetzt, zu welchem Zweck und auf welcher Rechtsgrundlage.",
-  alternates: { canonical: "/cookies" },
+  alternates: buildAlternates("de", "/cookies"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Cookie-Richtlinie — Klymeo",
     description:
       "Welche Cookies und Speichertechnologien Klymeo einsetzt, zu welchem Zweck und auf welcher Rechtsgrundlage.",

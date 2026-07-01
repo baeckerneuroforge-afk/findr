@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
-import { ogDefaults, jsonLdHtml, SITE_URL } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor, jsonLdHtml, SITE_URL } from "@/lib/marketing/seo";
 
 const PATH = "/blog/system-usability-scale-guide";
 
@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   title: { absolute: "System Usability Scale (SUS): Der vollständige Guide — Klymeo" },
   description:
     "System Usability Scale (SUS) erklärt: 10 Fragen, Berechnung des Scores, Benchmarks und wie Klymeos KI-Agent Konsoul SUS-Studien automatisch durchführt und auswertet.",
-  alternates: { canonical: PATH },
+  alternates: buildAlternates("de", PATH),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "System Usability Scale (SUS) — Guide",
     description:
       "Methodik, Score-Berechnung, Benchmarks und automatisierte SUS-Auswertung mit KI.",

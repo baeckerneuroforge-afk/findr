@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 import { Konsoul } from "@/components/site/Konsoul";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
 
 export const metadata: Metadata = {
   title: { absolute: "Personas — daten-getrieben mit KI · Klymeo" },
   description: "Personas aus echten Interviews destilliert: Jobs-to-be-Done, Zitate, lebendig — kein Stereotyp, kein Bauchgefühl.",
-  alternates: { canonical: "/personas" },
+  alternates: buildAlternates("de", "/personas"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Personas — daten-getrieben mit KI · Klymeo",
     description: "Personas aus echten Interviews — mit Zitaten, JTBD und Triggern, lebendig und prüfbar.",
     url: "/personas",

@@ -20,8 +20,10 @@ import type { ReactNode } from "react";
  * @param notice  Render the "⚠ Entwurf" draft banner (default true).
  *                Pass `false` once a page carries real, binding text.
  * @param stand   Optional "Stand" marker rendered as a muted mono label.
- * @param lang    Accept but ignore — (site) is DE-only; never auto-shows
- *                an EN banner.
+ * @param lang    When `"en"`, renders `LegalLanguageNotice` ("German is the
+ *                legally authoritative version") — the real English legal
+ *                pages under src/app/en/** now use this. DE pages never pass
+ *                it (defaults to `"de"`, no banner beyond `notice`).
  * @param closing Optional closing band below the body, separated by a
  *                hairline.
  */
@@ -30,7 +32,7 @@ export function LegalProse({
   intro,
   stand,
   notice = true,
-  lang: _lang,
+  lang = "de",
   closing,
   children,
 }: {
@@ -38,11 +40,12 @@ export function LegalProse({
   intro?: ReactNode;
   stand?: ReactNode;
   notice?: boolean;
-  /** Accept for API compatibility; ignored — DE-only site. */
-  lang?: string;
+  lang?: "de" | "en";
   closing?: ReactNode;
   children: ReactNode;
 }) {
+  const showLanguageNotice = lang === "en";
+  const anyBanner = notice || showLanguageNotice;
   return (
     <section className="py-16 sm:py-20">
       <div className="mx-auto max-w-[760px] px-6">
@@ -61,7 +64,8 @@ export function LegalProse({
             </p>
           ) : null}
           {notice ? <LegalPlaceholderNotice /> : null}
-          <div className={`flex flex-col gap-9${notice ? "" : " mt-10"}`}>
+          {showLanguageNotice ? <LegalLanguageNotice /> : null}
+          <div className={`flex flex-col gap-9${anyBanner ? "" : " mt-10"}`}>
             {children}
           </div>
           {closing ? (
@@ -102,9 +106,9 @@ export function LegalPlaceholderNotice() {
 }
 
 /**
- * English courtesy banner — included for API completeness.
- * On the DE-only (site) tree this is never auto-rendered by LegalProse,
- * but is exported so pages that import it explicitly still compile.
+ * English courtesy banner — rendered automatically by `LegalProse` when
+ * `lang="en"` (see the four pages under src/app/en/{impressum,datenschutz,agb,cookies}).
+ * Also still exported standalone for API completeness.
  */
 export function LegalLanguageNotice() {
   return (

@@ -11,7 +11,7 @@ import {
   LegalStand,
 } from "@/components/site/LegalProse";
 import { SiteShell } from "@/components/site/SiteShell";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 const STAND = "Juni 2026";
 
@@ -19,9 +19,9 @@ export const metadata: Metadata = {
   title: { absolute: "Datenschutz — Klymeo" },
   description:
     "Informationen zur Verarbeitung personenbezogener Daten bei Klymeo gemäß DSGVO.",
-  alternates: { canonical: "/datenschutz" },
+  alternates: buildAlternates("de", "/datenschutz"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Datenschutz — Klymeo",
     description:
       "Informationen zur Verarbeitung personenbezogener Daten bei Klymeo gemäß DSGVO.",

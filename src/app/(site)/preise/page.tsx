@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell, PageHero, CtaBlock, DEMO_URL } from "@/components/site/SiteShell";
 import { Konsoul } from "@/components/site/Konsoul";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "Preise — Eine Lizenz, alle Methoden · Klymeo" },
   description:
     "Klymeo passt sich an dein Team an — alle vier Methoden inklusive. Den Preis legen wir gemeinsam im Demo-Call fest, transparent und ohne Schubladen-Tarif.",
-  alternates: { canonical: "/preise" },
+  alternates: buildAlternates("de", "/preise"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Preise — Eine Lizenz, alle Methoden · Klymeo",
     description: "Vier Faktoren bestimmen deinen Preis: Zugang, Umfang, Begleitung, Laufzeit.",
     url: "/preise",

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { SolutionPage } from "@/components/site/SolutionPage";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "Markenwahrnehmung — Brand Research mit KI · Klymeo" },
   description: "Wofür steht deine Marke wirklich? Implizite Assoziationen aus offenen Gesprächen, belegt am Wortlaut.",
-  alternates: { canonical: "/loesungen/markenwahrnehmung" },
+  alternates: buildAlternates("de", "/loesungen/markenwahrnehmung"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Markenwahrnehmung — Brand Research mit KI · Klymeo",
     description: "Implizite Marken-Assoziationen aus offenen Gesprächen — belegt am Wortlaut.",
     url: "/loesungen/markenwahrnehmung",

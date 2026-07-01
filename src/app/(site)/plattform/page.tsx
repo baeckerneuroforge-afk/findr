@@ -3,15 +3,15 @@ import Link from "next/link";
 import { Konsoul } from "@/components/site/Konsoul";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
 import { Stagger } from "@/components/site/Stagger";
-import { ogDefaults } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "Plattform — Alle Module von Klymeo" },
   description:
     "Studien-Design, Recruiting, Voice- & Text-Interviews, Stimulus-Engine, Synthese, Personas, Cross-Study, Reporting — alle Module der Klymeo-Plattform.",
-  alternates: { canonical: "/plattform" },
+  alternates: buildAlternates("de", "/plattform"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Plattform — Alle Module von Klymeo",
     description: "Acht Module: Design, Recruiting, Interviews, Stimulus, Synthese, Personas, Cross-Study, Reporting.",
     url: "/plattform",

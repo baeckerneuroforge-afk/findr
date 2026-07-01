@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ogDefaults, jsonLdHtml, SITE_URL } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor, jsonLdHtml } from "@/lib/marketing/seo";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
 import { Stagger } from "@/components/site/Stagger";
 
@@ -15,9 +15,9 @@ const faqs = [
 export const metadata: Metadata = {
   title: { absolute: "Methoden — Voice, Text, Stimulus, Cross-Study · Klymeo" },
   description: "Voice-Interviews, Text-Interviews, Stimulus-Tests, Tagebuchstudien, Cross-Study-Analysen — alle Methoden, die Klymeo orchestriert.",
-  alternates: { canonical: "/methoden" },
+  alternates: buildAlternates("de", "/methoden"),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "Methoden — Voice, Text, Stimulus, Cross-Study · Klymeo",
     description: "Sechs Methoden, ein Agent: Voice, Text, Stimulus, Tagebuch, Critical-Incident, Cross-Study.",
     url: "/methoden",

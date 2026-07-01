@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell, PageHero, CtaBlock } from "@/components/site/SiteShell";
-import { ogDefaults, jsonLdHtml, SITE_URL } from "@/lib/marketing/seo";
+import { buildAlternates, ogDefaultsFor, jsonLdHtml, SITE_URL } from "@/lib/marketing/seo";
 
 const PATH = "/blog/ai-market-research-tools-comparison";
 
@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   title: { absolute: "KI-Marktforschungs-Tools im Vergleich 2026 | Klymeo" },
   description:
     "Klymeo, klassische Survey-Plattformen und Synthetic-User-Tools im Vergleich: Funktionen, Datenqualität, Preise und Use Cases.",
-  alternates: { canonical: PATH },
+  alternates: buildAlternates("de", PATH),
   openGraph: {
-    ...ogDefaults,
+    ...ogDefaultsFor("de"),
     title: "KI-Marktforschungs-Tools im Vergleich (2026)",
     description:
       "Welche KI-Plattform passt zu welcher Forschungsfrage? Funktionen, Datenqualität, Preise und Use Cases im direkten Vergleich.",

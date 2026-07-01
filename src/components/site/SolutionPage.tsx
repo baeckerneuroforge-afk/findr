@@ -3,6 +3,7 @@ import { Konsoul } from "./Konsoul";
 import { SiteShell, PageHero, CtaBlock } from "./SiteShell";
 import { Stagger } from "./Stagger";
 import type { ReactNode } from "react";
+import type { Locale } from "@/i18n/marketing-locale";
 
 export type SolutionData = {
   eyebrow: string;
@@ -18,9 +19,49 @@ export type SolutionData = {
   related: { label: string; href: string }[];
 };
 
-export function SolutionPage({ data, extra }: { data: SolutionData; extra?: ReactNode }) {
+const CHROME = {
+  de: {
+    whatItIs: "Was es ist",
+    whatItIsHeading: "Eine klare Antwort, belegt am Wortlaut.",
+    questions: "Typische Fragen",
+    howItWorks: "So läuft's",
+    inDays: "In",
+    daysNotWeeks: "Tagen, nicht Wochen.",
+    youGet: "Du bekommst",
+    youGetHeading: "Deliverables, mit denen du Entscheidungen triffst.",
+    ctaTitle: "Lass uns deine Studie",
+    ctaItalic: "aufsetzen.",
+    ctaBody: "30 Minuten reichen, um deine konkrete Forschungsfrage in einen Studien-Plan zu übersetzen.",
+    related: "Verwandte Lösungen:",
+  },
+  en: {
+    whatItIs: "What it is",
+    whatItIsHeading: "A clear answer, evidenced in the wording.",
+    questions: "Common questions",
+    howItWorks: "How it works",
+    inDays: "In",
+    daysNotWeeks: "days, not weeks.",
+    youGet: "You get",
+    youGetHeading: "Deliverables you can make decisions with.",
+    ctaTitle: "Let's set up",
+    ctaItalic: "your study.",
+    ctaBody: "30 minutes is enough to turn your concrete research question into a study plan.",
+    related: "Related solutions:",
+  },
+} as const satisfies Record<Locale, Record<string, string>>;
+
+export function SolutionPage({
+  data,
+  extra,
+  lang = "de",
+}: {
+  data: SolutionData;
+  extra?: ReactNode;
+  lang?: Locale;
+}) {
+  const t = CHROME[lang];
   return (
-    <SiteShell>
+    <SiteShell lang={lang}>
       <PageHero
         eyebrow={data.eyebrow}
         title={data.title}
@@ -32,12 +73,12 @@ export function SolutionPage({ data, extra }: { data: SolutionData; extra?: Reac
       <section className="py-20">
         <div className="mx-auto grid max-w-7xl gap-12 px-6 md:grid-cols-[1fr_1.2fr]">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-soul">Was es ist</p>
-            <h2 className="mt-3 text-3xl leading-[1.1]">Eine klare Antwort, belegt am Wortlaut.</h2>
+            <p className="text-xs uppercase tracking-[0.22em] text-soul">{t.whatItIs}</p>
+            <h2 className="mt-3 text-3xl leading-[1.1]">{t.whatItIsHeading}</h2>
             <p className="mt-5 text-muted-foreground leading-relaxed">{data.whatItIs}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-soul">Typische Fragen</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-soul">{t.questions}</p>
             <Stagger as="ul" step={90} className="mt-4 grid gap-3">
               {data.questions.map((q) => (
                 <li
@@ -55,9 +96,9 @@ export function SolutionPage({ data, extra }: { data: SolutionData; extra?: Reac
 
       <section className="border-y border-border bg-secondary/40 py-24">
         <div className="mx-auto max-w-7xl px-6">
-          <p className="text-xs uppercase tracking-[0.22em] text-soul">So läuft&apos;s</p>
+          <p className="text-xs uppercase tracking-[0.22em] text-soul">{t.howItWorks}</p>
           <h2 className="mt-3 text-4xl leading-[1.05]">
-            In <span className="mark mark-amber">Tagen</span>, nicht Wochen.
+            {t.inDays} <span className="mark mark-amber">{t.daysNotWeeks}</span>
           </h2>
           <Stagger step={110} className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-4">
             {data.process.map((p) => (
@@ -74,8 +115,8 @@ export function SolutionPage({ data, extra }: { data: SolutionData; extra?: Reac
       <section className="py-24">
         <div className="mx-auto grid max-w-7xl gap-12 px-6 md:grid-cols-2">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-soul">Du bekommst</p>
-            <h2 className="mt-3 text-3xl leading-[1.1]">Deliverables, mit denen du Entscheidungen triffst.</h2>
+            <p className="text-xs uppercase tracking-[0.22em] text-soul">{t.youGet}</p>
+            <h2 className="mt-3 text-3xl leading-[1.1]">{t.youGetHeading}</h2>
             <Stagger as="ul" step={70} className="mt-6 space-y-3">
               {data.deliverables.map((d) => (
                 <li key={d} className="flex gap-3 border-b border-border pb-3 text-sm">
@@ -98,11 +139,11 @@ export function SolutionPage({ data, extra }: { data: SolutionData; extra?: Reac
 
       {extra}
 
-      <CtaBlock title="Lass uns deine Studie" italic="aufsetzen." body="30 Minuten reichen, um deine konkrete Forschungsfrage in einen Studien-Plan zu übersetzen." />
+      <CtaBlock lang={lang} title={t.ctaTitle} italic={t.ctaItalic} body={t.ctaBody} />
 
       <div className="border-t border-border bg-secondary/30 py-10">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 text-sm">
-          <span className="text-muted-foreground">Verwandte Lösungen:</span>
+          <span className="text-muted-foreground">{t.related}</span>
           <div className="flex flex-wrap gap-4">
             {data.related.map((r) => (
               <Link key={r.label} href={r.href} className="text-ink underline-offset-4 hover:underline">
