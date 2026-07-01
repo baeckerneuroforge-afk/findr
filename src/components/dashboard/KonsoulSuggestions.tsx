@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { Konsoul } from "@/components/dashboard/Konsoul";
 import type {
   KonsoulSignal,
   KonsoulSignalKind,
@@ -95,13 +94,8 @@ export async function KonsoulSuggestions({
 
   return (
     <Card>
-      <CardHeader className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {/* Kleines Konsoul-Gesicht (answer-Zustand, grüner Pip) als
-              Sektions-Marke — aria-hidden, alle Bedeutung steht im Titel-Text. */}
-          <Konsoul state="answer" className="hidden h-12 w-[120px] sm:block" />
-          <h2 className="text-h3 text-neutral-900">{t("sectionTitle")}</h2>
-        </div>
+      <CardHeader>
+        <h2 className="text-h3 text-neutral-900">{t("sectionTitle")}</h2>
       </CardHeader>
 
       {topSignals.map((signal) => {
