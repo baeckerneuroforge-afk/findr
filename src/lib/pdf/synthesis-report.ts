@@ -10,6 +10,8 @@ import type {
   TensionSide,
 } from "@/lib/schemas/synthesis";
 import type { ExportBranding } from "@/lib/settings/branding-assets";
+import type { FrequencyChartData } from "@/lib/charts";
+import { buildThemeFrequencyChart } from "@/lib/synthesis/charts";
 import { translate } from "@/i18n/messages";
 import { type Locale, toBcp47 } from "@/i18n/locale";
 
@@ -219,6 +221,53 @@ function quoteLine(
   doc.y = qy + qh + 4;
 }
 
+/** Honest horizontal bar chart — draws a FrequencyChartData with pdfkit rects.
+ *  Bars scale to `total` (or the max value); each row shows label + "value/total"
+ *  above a violet bar. SAME numbers as the on-screen chart (one data path). */
+function drawFrequencyChart(
+  doc: PDFKit.PDFDocument,
+  chart: FrequencyChartData,
+  heading: string,
+  fonts: Fonts,
+): void {
+  const left = doc.page.margins.left;
+  const width = contentWidth(doc);
+  const bars = chart.bars.slice(0, 8);
+  const scaleMax = chart.total ?? Math.max(...bars.map((b) => b.value), 1);
+  const rowH = 26;
+  ensureSpace(doc, 40 + bars.length * rowH);
+  sectionHeading(doc, heading, fonts.bold);
+  for (const bar of bars) {
+    const y = doc.y;
+    doc
+      .font(fonts.regular)
+      .fontSize(9.5)
+      .fillColor(COLORS.ink)
+      .text(truncate(bar.label, 64), left, y, {
+        width: width - 92,
+        lineBreak: false,
+      });
+    const valText = chart.total
+      ? `${bar.value} / ${chart.total}`
+      : String(bar.value);
+    doc
+      .font(fonts.regular)
+      .fontSize(9)
+      .fillColor(COLORS.muted)
+      .text(valText, left + width - 90, y, {
+        width: 90,
+        align: "right",
+        lineBreak: false,
+      });
+    const barY = y + 14;
+    doc.roundedRect(left, barY, width, 6, 3).fill(COLORS.panel);
+    const fillW = Math.max(3, Math.round((bar.value / scaleMax) * width));
+    doc.roundedRect(left, barY, fillW, 6, 3).fill(COLORS.violet);
+    doc.y = y + rowH;
+  }
+  doc.moveDown(0.5);
+}
+
 // ── builder ─────────────────────────────────────────────────────────────────
 
 export async function buildSynthesisPdf(
@@ -417,6 +466,20 @@ export async function buildSynthesisPdf(
         lineGap: 1.5,
       });
     doc.moveDown(0.6);
+  }
+
+  // ── Themen-Häufigkeit (ehrliches Balken-Diagramm aus Server-Zahlen) ──
+  const themeChart = buildThemeFrequencyChart(
+    synthesis.emergent_themes,
+    synthesis.based_on_count,
+  );
+  if (themeChart) {
+    drawFrequencyChart(
+      doc,
+      themeChart,
+      translate(locale, "research.synthesis.chartThemeTitle"),
+      fonts,
+    );
   }
 
   // ── Emergent themes ──

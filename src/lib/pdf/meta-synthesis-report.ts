@@ -6,6 +6,11 @@ import PDFDocument from "pdfkit";
 
 import type { MetaSynthesisResult } from "@/lib/schemas/meta-synthesis";
 import type { ExportBranding } from "@/lib/settings/branding-assets";
+import type { FrequencyChartData } from "@/lib/charts";
+import {
+  buildConvergentFrequencyChart,
+  buildInterviewsPerStudyChart,
+} from "@/lib/meta-synthesis/charts";
 import { translate } from "@/i18n/messages";
 import { type Locale, toBcp47 } from "@/i18n/locale";
 
@@ -203,6 +208,53 @@ function attributedQuote(
   doc.moveDown(0.4);
 }
 
+/** Honest horizontal bar chart (pdfkit rects) — SAME numbers as the on-screen
+ *  chart. Bars scale to `total` (or the max value); fill uses the brand accent. */
+function drawFrequencyChart(
+  doc: PDFKit.PDFDocument,
+  chart: FrequencyChartData,
+  heading: string,
+  fonts: Fonts,
+  accent: string,
+): void {
+  const left = doc.page.margins.left;
+  const width = contentWidth(doc);
+  const bars = chart.bars.slice(0, 8);
+  const scaleMax = chart.total ?? Math.max(...bars.map((b) => b.value), 1);
+  const rowH = 26;
+  ensureSpace(doc, 40 + bars.length * rowH);
+  sectionHeading(doc, heading, fonts.bold, accent);
+  for (const bar of bars) {
+    const y = doc.y;
+    doc
+      .font(fonts.regular)
+      .fontSize(9.5)
+      .fillColor(COLORS.ink)
+      .text(truncate(bar.label, 64), left, y, {
+        width: width - 92,
+        lineBreak: false,
+      });
+    const valText = chart.total
+      ? `${bar.value} / ${chart.total}`
+      : String(bar.value);
+    doc
+      .font(fonts.regular)
+      .fontSize(9)
+      .fillColor(COLORS.muted)
+      .text(valText, left + width - 90, y, {
+        width: 90,
+        align: "right",
+        lineBreak: false,
+      });
+    const barY = y + 14;
+    doc.roundedRect(left, barY, width, 6, 3).fill(COLORS.panel);
+    const fillW = Math.max(3, Math.round((bar.value / scaleMax) * width));
+    doc.roundedRect(left, barY, fillW, 6, 3).fill(accent);
+    doc.y = y + rowH;
+  }
+  doc.moveDown(0.5);
+}
+
 // ── builder ─────────────────────────────────────────────────────────────────
 
 export async function buildMetaSynthesisPdf(
@@ -385,6 +437,31 @@ export async function buildMetaSynthesisPdf(
         lineGap: 1.5,
       });
     doc.moveDown(0.6);
+  }
+
+  // ── Diagramme (ehrlich, aus Server-Zahlen) ──
+  const convChart = buildConvergentFrequencyChart(
+    result.convergent_themes,
+    input.totalStudies,
+  );
+  if (convChart) {
+    drawFrequencyChart(
+      doc,
+      convChart,
+      translate(locale, "metaSynthesis.chartConvergentTitle"),
+      fonts,
+      accent,
+    );
+  }
+  const ivChart = buildInterviewsPerStudyChart(input.studies);
+  if (ivChart) {
+    drawFrequencyChart(
+      doc,
+      ivChart,
+      translate(locale, "metaSynthesis.chartInterviewsTitle"),
+      fonts,
+      accent,
+    );
   }
 
   // ── Convergent themes ──

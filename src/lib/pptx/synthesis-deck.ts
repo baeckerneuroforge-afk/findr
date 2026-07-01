@@ -4,6 +4,8 @@ import PptxGenJS from "pptxgenjs";
 
 import type { EmergentTheme, Tension, TensionSide } from "@/lib/schemas/synthesis";
 import type { SynthesisPdfInput } from "@/lib/pdf/synthesis-report";
+import type { FrequencyChartData } from "@/lib/charts";
+import { buildThemeFrequencyChart } from "@/lib/synthesis/charts";
 import { translate } from "@/i18n/messages";
 import { type Locale, toBcp47 } from "@/i18n/locale";
 
@@ -128,6 +130,87 @@ function chrome(
   return 0.95;
 }
 
+/** Honest bar-chart slide (rect bars) — SAME numbers as the on-screen chart. */
+function addChartSlide(
+  pptx: PptxGenJS,
+  chart: FrequencyChartData,
+  heading: string,
+  locale: Locale,
+  brandName: string,
+  accentNoHash: string,
+): void {
+  const slide = pptx.addSlide();
+  const top = chrome(slide, heading, locale, brandName, accentNoHash);
+  slide.addText(heading, {
+    x: MARGIN,
+    y: top,
+    w: CONTENT_W,
+    h: 0.6,
+    fontFace: FONT,
+    fontSize: 26,
+    bold: true,
+    color: COLORS.ink,
+    align: "left",
+  });
+  slide.addShape("rect", {
+    x: MARGIN,
+    y: top + 0.62,
+    w: 0.7,
+    h: 0.04,
+    fill: { color: accentNoHash },
+  });
+  const bars = chart.bars.slice(0, 8);
+  const scaleMax = chart.total ?? Math.max(...bars.map((b) => b.value), 1);
+  let rowY = top + 1.05;
+  const rowH = 0.58;
+  for (const bar of bars) {
+    slide.addText(truncate(bar.label, 70), {
+      x: MARGIN,
+      y: rowY,
+      w: CONTENT_W - 1.7,
+      h: 0.26,
+      fontFace: FONT,
+      fontSize: 12,
+      color: COLORS.ink,
+      align: "left",
+      valign: "middle",
+    });
+    const valText = chart.total
+      ? `${bar.value} / ${chart.total}`
+      : String(bar.value);
+    slide.addText(valText, {
+      x: PAGE_W - MARGIN - 1.7,
+      y: rowY,
+      w: 1.7,
+      h: 0.26,
+      fontFace: FONT,
+      fontSize: 11,
+      color: COLORS.muted,
+      align: "right",
+      valign: "middle",
+    });
+    const barY = rowY + 0.29;
+    slide.addShape("roundRect", {
+      x: MARGIN,
+      y: barY,
+      w: CONTENT_W,
+      h: 0.16,
+      rectRadius: 0.06,
+      fill: { color: COLORS.panel },
+    });
+    const fillW = Math.max(0.05, (bar.value / scaleMax) * CONTENT_W);
+    slide.addShape("roundRect", {
+      x: MARGIN,
+      y: barY,
+      w: fillW,
+      h: 0.16,
+      rectRadius: 0.06,
+      fill: { color: accentNoHash },
+    });
+    rowY += rowH;
+  }
+}
+
 // ── builder ──────────────────────────────────────────────────────────────────
 
 export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buffer> {
@@ -154,6 +237,20 @@ export async function buildSynthesisPptx(input: SynthesisPdfInput): Promise<Buff
     synthesis.executive_narrative.trim() !== ""
   ) {
     addNarrativeSlide(pptx, input, brandName, accentNoHash);
+  }
+  const themeChart = buildThemeFrequencyChart(
+    synthesis.emergent_themes,
+    synthesis.based_on_count,
+  );
+  if (themeChart) {
+    addChartSlide(
+      pptx,
+      themeChart,
+      translate(locale, "research.synthesis.chartThemeTitle"),
+      locale,
+      brandName,
+      accentNoHash,
+    );
   }
   for (const theme of synthesis.emergent_themes) {
     addThemeSlide(pptx, theme, synthesis.based_on_count, locale, brandName, accentNoHash);
