@@ -32,10 +32,10 @@ let createImpl: (() => Anthropic.Message) | null = null;
 vi.mock("@/lib/anthropic/client", () => ({
   CLAUDE_MODELS: {
     opus: "claude-opus-4-8",
-    sonnet: "claude-sonnet-4-6",
+    sonnet: "claude-sonnet-5",
     haiku: "claude-haiku-4-5-20251001",
   },
-  DEFAULT_MODEL: "claude-sonnet-4-6",
+  DEFAULT_MODEL: "claude-sonnet-5",
   getAnthropicClient: () => ({
     messages: {
       create: (params: Anthropic.MessageCreateParamsNonStreaming) => {
@@ -107,7 +107,7 @@ function toolUseMsg(name: string, input: unknown): Anthropic.Message {
     id: `msg_${toolUseId}`,
     type: "message",
     role: "assistant",
-    model: "claude-sonnet-4-6",
+    model: "claude-sonnet-5",
     stop_reason: "tool_use",
     stop_sequence: null,
     usage: { input_tokens: 1, output_tokens: 1 } as Anthropic.Usage,
@@ -128,7 +128,7 @@ function textMsg(text: string): Anthropic.Message {
     id: `msg_${toolUseId}`,
     type: "message",
     role: "assistant",
-    model: "claude-sonnet-4-6",
+    model: "claude-sonnet-5",
     stop_reason: "end_turn",
     stop_sequence: null,
     usage: { input_tokens: 1, output_tokens: 1 } as Anthropic.Usage,
@@ -423,7 +423,7 @@ describe("runKonsoulAgentWith — delegation is terminal + Opus-pinned", () => {
     expect(Object.keys(calls[0] as object)).not.toContain("model");
     // The single Konsoul model call used Sonnet, never Opus.
     expect(createCalls[0].model).toBe(KONSOUL_ORCHESTRATOR_MODEL);
-    expect(createCalls[0].model).toBe("claude-sonnet-4-6");
+    expect(createCalls[0].model).toBe("claude-sonnet-5");
   });
 
   it("never sends a temperature param (Opus would 400)", async () => {

@@ -41,7 +41,7 @@ import {
  * more honest refusals, never a hallucination — that safety floor is
  * model-independent, so the default is a deliberate ROBUSTNESS choice: the
  * deepest model (Opus) for this multi-step, judgement-heavy deliverable builder.
- * Set RESEARCH_AGENT_MODEL=claude-sonnet-4-6 for the cheaper, lower-latency run
+ * Set RESEARCH_AGENT_MODEL=claude-sonnet-5 for the cheaper, lower-latency run
  * when that tradeoff is preferred.
  */
 

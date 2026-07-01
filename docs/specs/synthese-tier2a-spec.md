@@ -101,7 +101,7 @@ Provozierende Fixtures beweisen einen Check **nicht** (das Modell kann sich korr
 ### A3 — LLM-Judge für Prosa-Deckung
 
 **Gewünschtes Verhalten**
-- **Modell** (R3.1): `claude-sonnet-4-6` (Sonnet 4.6) als Default-Judge; override via Env (z.B. `SYNTHESIS_JUDGE_MODEL`). Bei Eval-Volumen (≈15 Fälle, gelegentliche Läufe) ist die Kost trivial; Sonnets Urteilsstärke wiegt schwerer als der Cent-Unterschied zu Haiku 4.5. **Hinweis:** der `effort`-Parameter darf bei Haiku 4.5 **nicht** gesetzt werden (Haiku 4.5 lehnt ihn per 400 ab) — der Judge-Call setzt `effort` nicht bzw. nur modellbedingt.
+- **Modell** (R3.1): `claude-sonnet-5` (Sonnet 5) als Default-Judge; override via Env (z.B. `SYNTHESIS_JUDGE_MODEL`). Bei Eval-Volumen (≈15 Fälle, gelegentliche Läufe) ist die Kost trivial; Sonnets Urteilsstärke wiegt schwerer als der Cent-Unterschied zu Haiku 4.5. **Hinweis:** der `effort`-Parameter darf bei Haiku 4.5 **nicht** gesetzt werden (Haiku 4.5 lehnt ihn per 400 ab) — der Judge-Call setzt `effort` nicht bzw. nur modellbedingt.
 - **Eingaben:** der Judge erhält das **Input-Material** (die Insights des Falls) **und** die erzeugte Prosa.
 - **Geprüfte Felder** (R3.2): `overview`, jede `theme.summary`, jede `tension.description`.
 - **Doppelnutzung** (R3.2): **ein** Judge-Call je Fall liefert **getrennte strukturierte Felder** — (1) ein **Grounding-Verdikt je Feld** (`grounded | unsupported_claim`), (2) die **Methoden-Kategorie** je Tension/Theme (für A1). **Kein** verschmolzenes Prosa-Urteil; beide Outputs sind separate, schema-validierte Felder.

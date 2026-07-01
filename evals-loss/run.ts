@@ -21,7 +21,7 @@
  *
  *            (`env -u ANTHROPIC_API_KEY` clears an empty/shadowing shell var so
  *            dotenv can inject the real key from .env.local; harmless if unset.
- *            Add LOSS_MODEL=claude-sonnet-4-6 in front to test a cheaper model.)
+ *            Add LOSS_MODEL=claude-sonnet-5 in front to test a cheaper model.)
  *
  * The LLM extractor is imported DYNAMICALLY inside llm mode only, so regex mode
  * never loads "server-only" and keeps running under plain tsx with no flag.

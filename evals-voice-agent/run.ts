@@ -20,7 +20,7 @@
  *
  * (env -u clears an empty/shadowing shell var so dotenv loads the real key.
  * VOICE_MODEL overrides the agent model; VOICE_CUSTOMER_MODEL the simulated
- * buyer. e.g. VOICE_MODEL=claude-sonnet-4-6 for a cheap run.)
+ * buyer. e.g. VOICE_MODEL=claude-sonnet-5 for a cheap run.)
  */
 
 import { config } from "dotenv";

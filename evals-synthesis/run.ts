@@ -35,7 +35,7 @@
  *                          Objective-Zahlen (z.B. „Q3").
  *   (i) quote-coverage   — A4, DETERMINISTISCH, WARN: Themen/Tension-Seiten
  *                          ohne wörtliches Zitat.
- *   JUDGE (A1+A3)        — ein LIVE Sonnet-Judge je Fall (claude-sonnet-4-6,
+ *   JUDGE (A1+A3)        — ein LIVE Sonnet-Judge je Fall (claude-sonnet-5,
  *                          Override SYNTHESIS_JUDGE_MODEL) prüft Prosa-Grounding
  *                          und vergibt Methoden-Kategorien. Beide Befundarten
  *                          sind IMMER WARN — der Judge gatet nirgends (Spec §3:
@@ -45,7 +45,7 @@
  * Always calls the LLM. Default model is the PRODUCTION synthesis model
  * (DEFAULT_SYNTHESIS_MODEL = Opus) so the standard run validates real prod
  * behaviour. For cheap repeated iteration, override with
- * SYNTHESIS_MODEL=claude-sonnet-4-6. Run it yourself, foreground:
+ * SYNTHESIS_MODEL=claude-sonnet-5. Run it yourself, foreground:
  *
  *   env -u ANTHROPIC_API_KEY \
  *     pnpm exec tsx --conditions=react-server evals-synthesis/run.ts
@@ -86,10 +86,10 @@ config({ path: ".env" });
 
 // Default to the PRODUCTION synthesis model (Opus via DEFAULT_SYNTHESIS_MODEL)
 // so the standard eval run validates prod behaviour, not a cheaper proxy.
-// For cheap iteration, override: SYNTHESIS_MODEL=claude-sonnet-4-6.
+// For cheap iteration, override: SYNTHESIS_MODEL=claude-sonnet-5.
 const MODEL = process.env.SYNTHESIS_MODEL ?? DEFAULT_SYNTHESIS_MODEL;
 
-// Tier-2a A3 — günstiger Grounding-Judge (Sonnet 4.6 Default; Override via
+// Tier-2a A3 — günstiger Grounding-Judge (Sonnet 5 Default; Override via
 // SYNTHESIS_JUDGE_MODEL). NUR im echten Eval-Lauf live; seine Befunde sind
 // immer WARN.
 const JUDGE_MODEL = process.env.SYNTHESIS_JUDGE_MODEL ?? DEFAULT_JUDGE_MODEL;

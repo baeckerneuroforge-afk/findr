@@ -221,7 +221,7 @@ describe("analyzeStimulusImage", () => {
   });
 
   it("honors the STIMULUS_ANALYSIS_MODEL env override", async () => {
-    process.env.STIMULUS_ANALYSIS_MODEL = "claude-sonnet-4-6";
+    process.env.STIMULUS_ANALYSIS_MODEL = "claude-sonnet-5";
 
     const payload = await analyzeStimulusImage({
       imageBase64: "aGFsbG8=",
@@ -230,9 +230,9 @@ describe("analyzeStimulusImage", () => {
     });
 
     expect(mockCallClaudeStructured.mock.calls[0][0].model).toBe(
-      "claude-sonnet-4-6",
+      "claude-sonnet-5",
     );
-    expect(payload.model).toBe("claude-sonnet-4-6");
+    expect(payload.model).toBe("claude-sonnet-5");
   });
 
   it("propagates analyzer failures to the caller (the route maps them to 'failed')", async () => {
@@ -320,7 +320,7 @@ describe("analyzeStimulusVideo", () => {
   });
 
   it("honors the STIMULUS_ANALYSIS_MODEL env override", async () => {
-    process.env.STIMULUS_ANALYSIS_MODEL = "claude-sonnet-4-6";
+    process.env.STIMULUS_ANALYSIS_MODEL = "claude-sonnet-5";
 
     const payload = await analyzeStimulusVideo({
       frames: FRAMES,
@@ -328,9 +328,9 @@ describe("analyzeStimulusVideo", () => {
     });
 
     expect(mockCallClaudeStructured.mock.calls[0][0].model).toBe(
-      "claude-sonnet-4-6",
+      "claude-sonnet-5",
     );
-    expect(payload.model).toBe("claude-sonnet-4-6");
+    expect(payload.model).toBe("claude-sonnet-5");
   });
 
   it("rejects an empty frame list before any model call", async () => {

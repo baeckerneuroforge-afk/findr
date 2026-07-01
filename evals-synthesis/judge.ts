@@ -1,7 +1,7 @@
 /**
  * Study-Synthesis Grounding-Judge (Tier-2a, A3 + A1-Input)
  * --------------------------------------------------------
- * Ein günstiger LLM-Judge (Default Sonnet 4.6), der die FREITEXT-PROSA einer
+ * Ein günstiger LLM-Judge (Default Sonnet 5), der die FREITEXT-PROSA einer
  * fertigen Synthese gegen das Eingabe-Material prüft und jedes Theme/jede
  * Tension in eine Methoden-Kategorie einordnet. Beide Ergebnisse kommen in
  * GETRENNTEN strukturierten Feldern zurück (Spec A3.2) — Grounding-Verdikt und
@@ -12,7 +12,7 @@
  * Abbildung des Ergebnisses auf WARN-Befunde (judgeResultToFindings) ist pur
  * und in src/lib/synthesis/eval-checks.ts deterministisch getestet.
  *
- * Modell: claude-sonnet-4-6 (Default), Override via SYNTHESIS_JUDGE_MODEL.
+ * Modell: claude-sonnet-5 (Default), Override via SYNTHESIS_JUDGE_MODEL.
  * Der `effort`-Parameter wird NICHT gesetzt — callClaudeStructured kennt ihn
  * nicht, und Haiku 4.5 (möglicher Override) lehnt effort per 400 ab; der
  * Override-Pfad bleibt damit gefahrlos.
