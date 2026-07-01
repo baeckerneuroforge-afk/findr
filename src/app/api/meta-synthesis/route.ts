@@ -82,6 +82,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       parsed.data.studyIds,
       parsed.data.focus,
       model,
+      parsed.data.detailLevel,
     );
 
     // Persist the anchor-filtered artifact + a point-in-time study snapshot so

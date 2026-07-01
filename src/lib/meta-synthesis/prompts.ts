@@ -28,6 +28,9 @@ export interface MetaSynthesisFromInputs {
    *  this). Steers WHICH cross-study angle to foreground; never widens the
    *  evidence. */
   focus?: string;
+  /** "ausführlich" additionally requests the longer executive_narrative;
+   *  "standard" (default) keeps it empty. */
+  detailLevel?: "standard" | "ausführlich";
 }
 
 // ── System prompt (posture + cross-study meta-synthesis contract) ────────────
@@ -76,6 +79,7 @@ OUTPUT — call the tool exactly once with this shape, no markdown, no preamble:
   "study_contributions": [
     { "studyId": "<id>", "summary": "<what only this study surfaced>", "citations": [ { "studyId": "<id>", "quote": "<verbatim>" } ] }
   ],
+  "executive_narrative": "<empty \"\" unless the task explicitly asks for it; then a longer German re-narration grounded ONLY in the above, no new facts/numbers, no recommendations>",
   "interpretation": "<usually empty>"
 }`;
 
@@ -92,12 +96,28 @@ export function buildMetaSynthesisSystemPrompt(
   )}`;
 }
 
-/** The user turn — the task, plus the optional focus. The focus steers emphasis
- *  only; the evidence is fixed by the STUDY blocks in the system prompt. */
-export function buildMetaSynthesisTaskPrompt(focus?: string): string {
-  const base =
-    "Erstelle die Meta-Synthese über die oben gelisteten Studien: eine studienübergreifende Übersicht, die konvergenten Themen (in ≥2 Studien, je Studie belegt), die echten Divergenzen zwischen Studien und — wo vorhanden — was einzelne Studien als Einziges beigetragen haben. Belege jede Aussage mit wörtlichen Zitaten aus der jeweils genannten Studie.";
+/** The user turn — the task, plus the optional focus + detail level. The focus
+ *  steers emphasis only; the evidence is fixed by the STUDY blocks in the system
+ *  prompt. */
+export function buildMetaSynthesisTaskPrompt(
+  focus?: string,
+  detailLevel: "standard" | "ausführlich" = "standard",
+): string {
+  const parts = [
+    "Erstelle die Meta-Synthese über die oben gelisteten Studien: eine studienübergreifende Übersicht, die konvergenten Themen (in ≥2 Studien, je Studie belegt), die echten Divergenzen zwischen Studien und — wo vorhanden — was einzelne Studien als Einziges beigetragen haben. Belege jede Aussage mit wörtlichen Zitaten aus der jeweils genannten Studie.",
+  ];
   const trimmed = focus?.trim();
-  if (!trimmed) return base;
-  return `${base}\n\nFokus des Vergleichs (nur Schwerpunkt, erweitert die Evidenz nicht): ${trimmed}`;
+  if (trimmed) {
+    parts.push(
+      `Fokus des Vergleichs (nur Schwerpunkt, erweitert die Evidenz nicht): ${trimmed}`,
+    );
+  }
+  if (detailLevel === "ausführlich") {
+    parts.push(
+      'Schreibe zusätzlich eine ausführliche executive_narrative (6-10 Sätze, fließend, auf Deutsch), die die konvergenten Themen und Divergenzen zu einer zusammenhängenden Erzählung verbindet — AUSSCHLIESSLICH aus dem oben Belegten, ohne neue Fakten/Zahlen und ohne Empfehlungen.',
+    );
+  } else {
+    parts.push('Lasse executive_narrative leer ("").');
+  }
+  return parts.join("\n\n");
 }

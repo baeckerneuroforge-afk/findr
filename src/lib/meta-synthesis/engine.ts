@@ -152,6 +152,9 @@ export function applyMetaSynthesisAnchorFilter(
     convergent_themes,
     divergences,
     study_contributions,
+    // Prose channels — not per-sentence anchored (grounded by the prompt), so
+    // carried through verbatim, same as overview.
+    executive_narrative: raw.executive_narrative,
     interpretation: raw.interpretation,
   };
 }
@@ -212,7 +215,10 @@ export async function runMetaSynthesisDiagnostics(
       schema: MetaSynthesisResultSchema,
       system: systemPrompt,
       messages: [
-        { role: "user", content: buildMetaSynthesisTaskPrompt(input.focus) },
+        {
+          role: "user",
+          content: buildMetaSynthesisTaskPrompt(input.focus, input.detailLevel),
+        },
       ],
       model,
       maxTokens: MAX_TOKENS,
@@ -279,6 +285,7 @@ export async function runMetaSynthesis(
   studyIds: string[],
   focus?: string,
   model?: string,
+  detailLevel: "standard" | "ausführlich" = "standard",
 ): Promise<MetaSynthesisRun> {
   const requested = new Set(studyIds);
   const all = await loadOrgSyntheses(orgId);
@@ -293,7 +300,7 @@ export async function runMetaSynthesis(
   }
 
   const result = await runMetaSynthesisFromInputs(
-    { syntheses: usedStudies, focus },
+    { syntheses: usedStudies, focus, detailLevel },
     model,
   );
   return { result, usedStudies };

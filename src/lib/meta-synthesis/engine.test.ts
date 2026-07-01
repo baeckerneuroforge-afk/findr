@@ -69,6 +69,7 @@ function makeRaw(over: Partial<MetaSynthesisResult>): MetaSynthesisResult {
     convergent_themes: [],
     divergences: [],
     study_contributions: [],
+    executive_narrative: "",
     interpretation: "",
     ...over,
   };

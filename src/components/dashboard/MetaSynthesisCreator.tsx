@@ -48,6 +48,7 @@ export function MetaSynthesisCreator({
   );
   const [selected, setSelected] = useState<Set<string>>(validInitial);
   const [focus, setFocus] = useState(initialFocus ?? "");
+  const [ausfuehrlich, setAusfuehrlich] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +80,7 @@ export function MetaSynthesisCreator({
         body: JSON.stringify({
           studyIds: [...selected],
           focus: focus.trim() || undefined,
+          detailLevel: ausfuehrlich ? "ausführlich" : "standard",
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -173,6 +175,17 @@ export function MetaSynthesisCreator({
                 className="block w-full rounded-md border border-neutral-200 bg-card px-3 py-2 text-body text-neutral-900 placeholder:text-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
               />
             </div>
+
+            <label className="flex cursor-pointer items-center gap-2 text-small text-neutral-700">
+              <input
+                type="checkbox"
+                checked={ausfuehrlich}
+                onChange={(e) => setAusfuehrlich(e.target.checked)}
+                disabled={loading}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              {t("detailAusfuehrlich")}
+            </label>
 
             <div className="flex items-center justify-between gap-3">
               {error ? (

@@ -158,6 +158,7 @@ function coerceResult(value: unknown): MetaSynthesisResult {
     convergent_themes: [],
     divergences: [],
     study_contributions: [],
+    executive_narrative: "",
     interpretation: "",
   };
 }

@@ -120,6 +120,12 @@ export const MetaSynthesisResultSchema = z.object({
     .array(MetaSynthesisContributionSchema)
     .max(12)
     .default([]),
+  /** OPTIONAL longer executive narrative — only filled when detailLevel is
+   *  "ausführlich". A flowing German re-narration of the cross-study findings
+   *  above (convergences + divergences), grounded ONLY in them. Prose, NOT
+   *  anchor-checked per sentence (same posture as `overview`); the prompt forbids
+   *  new facts/numbers/recommendations. Empty "" in standard mode. */
+  executive_narrative: z.string().max(4000).default(""),
   /** OPTIONAL non-anchored soft channel (identical posture to the
    *  Cross-Study-Agent's `interpretation`): a cross-study observation the
    *  synthesizer could back with NEITHER a study count NOR per-study citations.
@@ -142,6 +148,9 @@ export const MetaSynthesisRequestSchema = z.object({
    *  that triggered this ("Wie unterscheidet sich das Onboarding-Verständnis?").
    *  Steers emphasis; never widens the evidence. */
   focus: z.string().max(2000).optional(),
+  /** Detail level. "ausführlich" additionally requests a longer executive
+   *  narrative; "standard" (default) keeps today's concise output. */
+  detailLevel: z.enum(["standard", "ausführlich"]).default("standard"),
   /** Optional human title for the persisted artifact. Falls back to an
    *  auto-generated one in the engine/service. */
   title: z.string().max(200).optional(),

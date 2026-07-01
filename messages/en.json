@@ -2872,7 +2872,9 @@
     "groundingNote": "Every theme and divergence is anchored with verbatim quotes from the named study's synthesis. Observations that cannot be evidenced appear separately as interpretation.",
     "chartConvergentTitle": "Themes by number of studies",
     "chartInterviewsTitle": "Interviews per study",
-    "unitStudies": "studies"
+    "unitStudies": "studies",
+    "narrativeTitle": "Detailed overview",
+    "detailAusfuehrlich": "Detailed version"
   },
   "syntheticTest": {
     "pageTitle": "Test the study — dry run",

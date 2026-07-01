@@ -2872,7 +2872,9 @@
     "groundingNote": "Jedes Thema und jede Divergenz ist mit wörtlichen Zitaten aus der jeweils genannten Synthese verankert. Nicht belegbare Beobachtungen erscheinen separat als Interpretation.",
     "chartConvergentTitle": "Themen nach Studienzahl",
     "chartInterviewsTitle": "Interviews je Studie",
-    "unitStudies": "Studien"
+    "unitStudies": "Studien",
+    "narrativeTitle": "Ausführlicher Überblick",
+    "detailAusfuehrlich": "Ausführliche Fassung"
   },
   "syntheticTest": {
     "pageTitle": "Studie testen — Trockenlauf",

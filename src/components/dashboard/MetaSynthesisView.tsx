@@ -137,6 +137,21 @@ export async function MetaSynthesisView({
         </CardBody>
       </Card>
 
+      {/* Ausführlicher Überblick — optionale Erzähl-Stufe (verankert;
+          re-narriert nur die belegte Substanz, keine Empfehlungen). */}
+      {result.executive_narrative.trim() !== "" && (
+        <Card>
+          <CardHeader>
+            <h2 className="text-h3 text-neutral-900">{t("narrativeTitle")}</h2>
+          </CardHeader>
+          <CardBody>
+            <p className="whitespace-pre-wrap text-body leading-relaxed text-neutral-800">
+              {result.executive_narrative}
+            </p>
+          </CardBody>
+        </Card>
+      )}
+
       {/* Auf einen Blick — honest charts from stored server counts. */}
       {(convergentChart || interviewsChart) && (
         <div className="grid gap-4 sm:grid-cols-2">
