@@ -72,6 +72,12 @@ export interface PoolFilter {
  * Gibt [] bei Fehler zurück (liest in der UI als "Pool leer" — sicheres
  * Degradieren, der Nutzer kann neu laden).
  */
+/** Defensives Sicherheitsventil (Hygiene-Audit 2026-07-01): die Detailseiten
+ *  laden den GANZEN Org-Pool für Panels + Quoten-Zählung — mit dem geplanten
+ *  Klymeo-Master-Panel wächst das. 2000 neueste Profile sind großzügig; greift
+ *  der Deckel je, braucht der Pool-Manager echte Pagination. */
+const LIST_POOL_MEMBERS_LIMIT = 2000;
+
 export async function listPoolMembers(
   orgId: string,
   filter: PoolFilter = {},
@@ -89,7 +95,7 @@ export async function listPoolMembers(
     query = query.overlaps("tags", filter.tags);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query.limit(LIST_POOL_MEMBERS_LIMIT);
   if (error || !data) return [];
   return data.map(toMember);
 }

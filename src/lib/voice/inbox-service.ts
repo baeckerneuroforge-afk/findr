@@ -147,7 +147,10 @@ export async function listVoiceInbox(orgId: string): Promise<VoiceInboxItem[]> {
     .select("*")
     .eq("org_id", orgId)
     .eq("status", "pending")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    // Defensives Sicherheitsventil: eine pending-Inbox jenseits von 200
+    // Einträgen ist in einer Liste ohnehin nicht mehr sinnvoll abarbeitbar.
+    .limit(200);
   if (error || !data) return [];
   return data.map(toItem);
 }
