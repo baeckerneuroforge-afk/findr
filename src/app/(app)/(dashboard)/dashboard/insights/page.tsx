@@ -68,6 +68,7 @@ export default async function InsightsPage({
 
   const t = await getTranslations("missionControl");
   const ta = await getTranslations("crossStudyAgent");
+  const tm = await getTranslations("metaSynthesis");
 
   // P5 persisted threads (flag-gated): the recent-conversation list + a restored
   // thread. All org-scoped server-side (orgId from the session). When the flag is
@@ -102,9 +103,17 @@ export default async function InsightsPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-display text-neutral-900">{t("pageTitle")}</h1>
-        <p className="mt-1 text-body text-neutral-500">{t("pageIntro")}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-display text-neutral-900">{t("pageTitle")}</h1>
+          <p className="mt-1 text-body text-neutral-500">{t("pageIntro")}</p>
+        </div>
+        <Link
+          href="/dashboard/insights/meta-synthesis"
+          className="mt-1 shrink-0 rounded-md border border-neutral-200 bg-card px-3 py-1.5 text-small font-medium text-neutral-700 transition-colors hover:border-primary-300 hover:bg-primary-50"
+        >
+          {tm("navLink")} →
+        </Link>
       </div>
 
       {p5 && recentThreads.length > 0 && (

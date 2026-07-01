@@ -131,6 +131,7 @@ export default async function RootLayout({
               researchAgent: MESSAGES[locale].researchAgent,
               missionControl: MESSAGES[locale].missionControl,
               crossStudyAgent: MESSAGES[locale].crossStudyAgent,
+              metaSynthesis: MESSAGES[locale].metaSynthesis,
               syntheticTest: MESSAGES[locale].syntheticTest,
               // "kalender" wird von der Client-Komponente ScheduleActivationPanel
               // (Deferred Activation) gelesen — wie "heute" oben MUSS der

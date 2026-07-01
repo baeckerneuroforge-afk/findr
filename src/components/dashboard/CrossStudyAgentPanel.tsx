@@ -493,6 +493,11 @@ export function CrossStudyAgentPanel({
                               label={t("interpretationLabel")}
                             />
                           )}
+                        <MetaSynthesisCta
+                          citations={turn.result.citations}
+                          focus={turns[turns.indexOf(turn) - 1]?.content}
+                          label={t("metaSynthesisCta")}
+                        />
                       </>
                     ) : (
                       <RefusalBlock
@@ -681,6 +686,44 @@ function RefusalBlock({
         {answer}
       </p>
     </div>
+  );
+}
+
+/** Chat → artifact bridge. When a GROUNDED cross-study answer cites ≥2 DISTINCT
+ *  studies, offer to deepen it into a full Meta-Synthesis (the exportable
+ *  artifact) with exactly those studies pre-selected and the question carried as
+ *  focus. Just a Link — no fetch here; the creator page owns the POST. Hidden
+ *  when <2 distinct studies (a single-study answer isn't a cross-study compare). */
+function MetaSynthesisCta({
+  citations,
+  focus,
+  label,
+}: {
+  citations: { studyId: string; quote: string }[];
+  focus?: string;
+  label: string;
+}) {
+  const distinct = [...new Set(citations.map((c) => c.studyId))];
+  if (distinct.length < 2) return null;
+  const params = new URLSearchParams({ studies: distinct.join(",") });
+  if (focus && focus.trim() !== "") params.set("focus", focus.trim());
+  return (
+    <Link
+      href={`/dashboard/insights/meta-synthesis?${params.toString()}`}
+      className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-primary-200 bg-primary-50 px-3 py-1.5 text-caption font-medium text-primary-700 transition-colors hover:border-primary-300 hover:bg-primary-100"
+    >
+      <svg
+        className="h-3.5 w-3.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        aria-hidden="true"
+      >
+        <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" />
+      </svg>
+      {label}
+    </Link>
   );
 }
 

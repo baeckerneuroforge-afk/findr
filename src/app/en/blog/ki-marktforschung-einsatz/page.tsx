@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: "How to Use AI for Market Research",
     description:
       "From briefing to evidenced report: how AI combines qualitative depth and automated synthesis in one workflow.",
-    url: PATH,
+    url: `/en${PATH}`,
   },
 };
 
@@ -85,7 +85,7 @@ export default function AiUsageGuide() {
               "A practical guide to using AI in market research — from study design to reporting.",
             author: { "@type": "Organization", name: "Klymeo" },
             publisher: { "@type": "Organization", name: "Klymeo" },
-            mainEntityOfPage: `${SITE_URL}${PATH}`,
+            mainEntityOfPage: `${SITE_URL}/en${PATH}`,
             inLanguage: "en-US",
           }),
         }}
