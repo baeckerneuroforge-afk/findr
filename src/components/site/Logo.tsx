@@ -1,16 +1,26 @@
 import Link from "next/link";
+import type { Locale } from "@/i18n/marketing-locale";
 
 /**
  * Klymeo wordmark + animated mark. The PNG is self-hosted at /site/klymeo-logo.png
  * (downloaded from the design source — nothing loads from Lovable at runtime).
  * No hooks → usable from both the client header and the server footer.
+ *
+ * `lang` points the home link at the locale's homepage (`/en` vs `/`) so
+ * clicking the logo keeps an English visitor in English. Defaults to German.
  */
-export function Logo({ className = "" }: { className?: string }) {
+export function Logo({
+  className = "",
+  lang = "de",
+}: {
+  className?: string;
+  lang?: Locale;
+}) {
   return (
     <Link
-      href="/"
+      href={lang === "en" ? "/en" : "/"}
       className={`group flex items-center gap-2 ${className}`}
-      aria-label="Klymeo Startseite"
+      aria-label={lang === "en" ? "Klymeo home" : "Klymeo Startseite"}
     >
       <span className="relative inline-flex h-9 w-9 items-center justify-center">
         <span

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: "AI Market Research Tools Compared (2026)",
     description:
       "Which AI platform fits which research question? Features, data quality, pricing, and use cases, compared head-to-head.",
-    url: PATH,
+    url: `/en${PATH}`,
   },
 };
 
@@ -104,7 +104,7 @@ export default function ComparisonGuide() {
               "Comparison guide for AI market research tools: features, data quality, pricing, and use cases.",
             author: { "@type": "Organization", name: "Klymeo" },
             publisher: { "@type": "Organization", name: "Klymeo" },
-            mainEntityOfPage: `${SITE_URL}${PATH}`,
+            mainEntityOfPage: `${SITE_URL}/en${PATH}`,
             inLanguage: "en-US",
           }),
         }}

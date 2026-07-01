@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: "System Usability Scale (SUS) — Guide",
     description:
       "Methodology, score calculation, benchmarks, and automated SUS analysis with AI.",
-    url: PATH,
+    url: `/en${PATH}`,
   },
 };
 
@@ -48,7 +48,7 @@ export default function SusGuide() {
               "Methodology, calculation, benchmarks, and AI-powered analysis of the System Usability Scale (SUS).",
             author: { "@type": "Organization", name: "Klymeo" },
             publisher: { "@type": "Organization", name: "Klymeo" },
-            mainEntityOfPage: `${SITE_URL}${PATH}`,
+            mainEntityOfPage: `${SITE_URL}/en${PATH}`,
             inLanguage: "en-US",
           }),
         }}

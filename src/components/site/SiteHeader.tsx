@@ -57,7 +57,7 @@ export function SiteHeader({ lang = "de" }: { lang?: Locale }) {
           scrolled ? "py-2.5" : "py-4"
         }`}
       >
-        <Logo />
+        <Logo lang={lang} />
         <ul
           ref={listRef}
           onMouseLeave={hidePill}

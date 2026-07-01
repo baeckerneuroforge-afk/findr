@@ -90,7 +90,7 @@ export function SiteFooter({ lang = "de" }: { lang?: Locale }) {
     <footer className="border-t border-border bg-secondary/40 py-16">
       <div className="mx-auto grid max-w-7xl gap-12 px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
-          <Logo />
+          <Logo lang={lang} />
           <p className="mt-4 max-w-xs text-sm text-muted-foreground">{chrome.footerTagline}</p>
           <p className="mt-5 text-xs uppercase tracking-[0.18em] text-muted-foreground">
             Always-on · v1

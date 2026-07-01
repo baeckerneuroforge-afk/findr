@@ -19,13 +19,17 @@ export const NAV_LINKS = [
   { to: "/preise", label: "Preise" },
 ] as const;
 
+// English nav targets are /en-prefixed so that navigating via the top menu
+// keeps the visitor in English (they all have real pages under src/app/en/**,
+// all listed in EN_AVAILABLE_PATHS). Labels are English; German NAV_LINKS is
+// left byte-identical.
 const NAV_LINKS_EN = [
-  { to: "/konsoul", label: "Konsoul" },
-  { to: "/plattform", label: "Platform" },
-  { to: "/loesungen", label: "Solutions" },
-  { to: "/branchen", label: "Industries" },
-  { to: "/methoden", label: "Methods" },
-  { to: "/preise", label: "Pricing" },
+  { to: "/en/konsoul", label: "Konsoul" },
+  { to: "/en/plattform", label: "Platform" },
+  { to: "/en/loesungen", label: "Solutions" },
+  { to: "/en/branchen", label: "Industries" },
+  { to: "/en/methoden", label: "Methods" },
+  { to: "/en/preise", label: "Pricing" },
 ] as const;
 
 /** Locale-aware nav selector. German is `NAV_LINKS` verbatim (byte-identical
