@@ -27,7 +27,7 @@ const AdvisoryJudgeSchema = z.object({
       hypothesis_framed: z.boolean(),
       /** Specific to THIS study, not generic textbook/industry best-practice? */
       avoids_generic: z.boolean(),
-      note: z.string().max(300),
+      note: z.string().max(500),
     }),
   ),
 });

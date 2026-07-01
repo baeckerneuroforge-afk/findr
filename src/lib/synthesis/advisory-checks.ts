@@ -35,7 +35,12 @@ export function foldAdvisory(s: string): string {
 }
 
 export interface AdvisorySource {
-  emergent_themes: Pick<EmergentTheme, "title" | "summary" | "quotes">[];
+  emergent_themes: (Pick<EmergentTheme, "title" | "summary" | "quotes"> & {
+    /** Theme frequency IS a grounded server number — citing it („12 Nennungen")
+     *  is honest, so it belongs in the number allowlist. Optional so lean test
+     *  fixtures need not supply it. */
+    frequency?: number;
+  })[];
   tensions: Pick<Tension, "description" | "side_a" | "side_b">[];
   overview: string | null;
 }
@@ -56,6 +61,8 @@ export function buildAdvisoryHaystack(source: AdvisorySource): string {
   if (source.overview) parts.push(source.overview);
   for (const t of source.emergent_themes) {
     parts.push(t.title, t.summary, ...(t.quotes ?? []));
+    // Frequencies are grounded server numbers — allow them in the number scan.
+    if (typeof t.frequency === "number") parts.push(String(t.frequency));
   }
   for (const t of source.tensions) {
     parts.push(t.description, t.side_a.label, t.side_b.label);

@@ -18,7 +18,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 config({ path: ".env" });
 
-import { generateImplicationsFromInputs } from "@/lib/synthesis/advisory";
+import { generateImplications } from "@/lib/synthesis/advisory";
 import {
   filterAnchoredImplications,
   numberFidelityScan,
@@ -57,7 +57,7 @@ async function main(): Promise<void> {
 
     let implications;
     try {
-      const result = await generateImplicationsFromInputs(c.input, MODEL);
+      const result = await generateImplications(c.input, MODEL);
       implications = result.implications;
     } catch (err) {
       bad(`Generierung fehlgeschlagen: ${err instanceof Error ? err.message : err}`);

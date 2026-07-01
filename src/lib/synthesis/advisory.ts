@@ -8,6 +8,7 @@ import { CLAUDE_MODELS } from "@/lib/anthropic/client";
 import type { EmergentTheme, Tension } from "@/lib/schemas/synthesis";
 import {
   SynthesisImplicationsResultSchema,
+  type SynthesisImplication,
   type SynthesisImplicationsResult,
 } from "@/lib/schemas/synthesis-advisory";
 
@@ -55,7 +56,7 @@ HARD RULES (this layer is the only part not verbatim-anchored, so these are stri
 1. DERIVES FROM A REAL FINDING. Every implication must follow from a finding that is actually in the synthesis. In the "basis" field, copy the EXACT theme title OR tension description it derives from, VERBATIM. Do not invent a finding.
 2. HYPOTHESIS, NEVER FACT. Frame every implication as something to validate: „deutet darauf hin", „könnte", „eine Hypothese wäre", „wäre zu prüfen, ob …". NEVER state it as an established fact, a proven cause, or a guaranteed outcome.
 3. NO NEW NUMBERS / ENTITIES. Do not introduce any number, percentage, count, competitor, feature, or fact that is not already in the synthesis. If you reference how widespread something is, use only what the synthesis supports — prefer qualitative wording over numbers.
-4. STAY IN THIS STUDY. No generic best-practice, no textbook advice, no „industry standard" that isn't derivable from THIS study's findings. If the only thing you can say is generic, don't say it.
+4. STAY IN THIS STUDY — the specificity test. Before you keep an implication, apply this test: „Would this still make sense if I deleted THIS study's specific finding?" If the sentence would apply to almost any product regardless of these findings (a UX/HR/marketing principle, a textbook rule, an „industry standard"), it is TOO GENERIC — drop it. A good implication is UNTHINKABLE without the exact finding it derives from: it names the specific mechanism this study surfaced, not a general truth. If the only thing you can say about a finding is generic, say nothing about it.
 5. EMPTY IS CORRECT. If the synthesis is thin, contradictory, or lacks clear findings, return FEW or ZERO implications. Do NOT manufacture advice to fill space — a short honest list beats a padded one.
 6. German. At most 6 implications, ordered by how strongly the finding supports them.
 
@@ -66,7 +67,7 @@ OUTPUT — call the tool exactly once, no markdown:
   ]
 }`;
 
-function formatSynthesisForAdvisory(input: AdvisoryInput): string {
+function synthesisBlock(input: AdvisoryInput): string {
   const lines: string[] = [
     `STUDY: "${input.plan.title}" — ${input.plan.objective}`,
   ];
@@ -92,7 +93,12 @@ function formatSynthesisForAdvisory(input: AdvisoryInput): string {
       "\n(no emergent themes or tensions — the synthesis carries no clear findings)",
     );
   }
-  return `${formatInstruction}\n\n${lines.join("\n")}`;
+  return lines.join("\n");
+}
+
+/** The generation user turn — the instruction + the synthesis block. */
+function formatSynthesisForAdvisory(input: AdvisoryInput): string {
+  return `${formatInstruction}\n\n${synthesisBlock(input)}`;
 }
 
 const formatInstruction =
@@ -133,4 +139,77 @@ export async function generateImplicationsFromInputs(
       err,
     );
   }
+}
+
+const SYNTHESIS_ADVISORY_REFINE_SYSTEM_PROMPT = `You are a strict reviewer of DRAFT implications for a research synthesis (each has a "basis" — the finding it derives from — and a "hypothesis"). You receive the finished synthesis and the draft list. Return a REFINED list, applying these rules ruthlessly — your job is to RAISE THE BAR, not to be nice:
+
+- DROP any implication whose basis is not an actual finding present in the synthesis.
+- DROP any implication that fails the SPECIFICITY test: „would this still make sense if the specific finding were deleted?" If it would apply to almost any product (a UX / HR / marketing principle, a textbook rule, an „industry standard"), it is too generic — drop it. A kept implication must be UNTHINKABLE without the exact finding it derives from.
+- REWRITE a salvageable-but-soft implication so it is SHARPER and more study-specific: name the concrete mechanism THIS study surfaced, keep it framed as a hypothesis to validate (never as fact), and keep the basis verbatim.
+- KEEP a strong, specific, well-framed implication unchanged.
+- Do NOT invent new implications, findings, numbers, competitors, or features. You only tighten, drop, or keep.
+- An EMPTY list is a correct outcome when nothing survives. German prose, best first.
+
+Return the refined implications via the tool — same shape (basis + hypothesis).`;
+
+/**
+ * Refine pass — a second, strict review of the draft implications. It raises the
+ * bar on the specificity test (the main way generic advice slips through),
+ * rewrites soft ones to be study-specific, drops the irreducibly-generic /
+ * untraceable, and invents nothing. This is the „hochfahren, sofern es besser
+ * macht"-Hebel: one extra Opus call that trades a little cost for sharper, less
+ * generic advice.
+ */
+export async function refineImplications(
+  input: AdvisoryInput,
+  draft: SynthesisImplication[],
+  model: string = process.env.SYNTHESIS_MODEL ?? DEFAULT_ADVISORY_MODEL,
+): Promise<SynthesisImplicationsResult> {
+  if (draft.length === 0) return { implications: [] }; // nothing to refine
+  const draftText = draft
+    .map((im, i) => `[${i}] basis="${im.basis}" | hypothesis="${im.hypothesis}"`)
+    .join("\n");
+  try {
+    return await callClaudeStructured({
+      schema: SynthesisImplicationsResultSchema,
+      system: SYNTHESIS_ADVISORY_REFINE_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: `SYNTHESE:\n${synthesisBlock(input)}\n\nENTWURF (zu prüfen):\n${draftText}`,
+        },
+      ],
+      model,
+      maxTokens: 2000,
+      timeoutMs: 120_000,
+      toolName: "emit_refined_implications",
+      toolDescription:
+        "Return the refined implications (basis + hypothesis) — drop generic/untraceable ones, sharpen soft ones, keep strong ones, invent nothing. Empty if none survive.",
+    });
+  } catch (err) {
+    if (err instanceof StructuredOutputError) {
+      throw new SynthesisAdvisoryUnavailableError(
+        "Claude advisory-refine returned invalid output twice",
+        err,
+      );
+    }
+    throw new SynthesisAdvisoryUnavailableError(
+      "Claude advisory-refine call failed",
+      err,
+    );
+  }
+}
+
+/**
+ * Full advisory pipeline (the „richtig gut"-Pfad): generate a draft, then run the
+ * refine pass. Two Opus calls per synthesis, on purpose — the refine pass
+ * measurably sharpens the advice and cuts generic drift. This is what the eval
+ * and (later) the prod stage use.
+ */
+export async function generateImplications(
+  input: AdvisoryInput,
+  model?: string,
+): Promise<SynthesisImplicationsResult> {
+  const draft = await generateImplicationsFromInputs(input, model);
+  return refineImplications(input, draft.implications, model);
 }
