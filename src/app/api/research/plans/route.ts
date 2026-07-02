@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { requireOrgIdOrError } from "@/lib/auth/org";
 import { createResearchPlan } from "@/lib/research/plans-service";
+import { BUSINESS_CONTEXT_MAX_CHARS } from "@/lib/settings/org-settings-shared";
 import { TaskDefinitionSchema } from "@/lib/research/task";
 
 /**
@@ -43,6 +44,15 @@ const CreatePlanBodySchema = z.object({
     .string()
     .trim()
     .max(1000)
+    .nullable()
+    .optional()
+    .transform((v) => (v === "" ? null : v)),
+  // E1 — Unternehmens-/Produkt-Kontext. DIE Cap-Konstante (Guide-Route, UI,
+  // Org-Settings — ein logisches Feld = eine Zahl, s. persona-Lehre).
+  businessContext: z
+    .string()
+    .trim()
+    .max(BUSINESS_CONTEXT_MAX_CHARS)
     .nullable()
     .optional()
     .transform((v) => (v === "" ? null : v)),
@@ -125,6 +135,7 @@ export async function POST(req: NextRequest) {
       objective: parsed.data.objective,
       topics: parsed.data.topics,
       persona: parsed.data.persona ?? null,
+      businessContext: parsed.data.businessContext ?? null,
       sampleTarget: parsed.data.sampleTarget ?? null,
       visualCaptureEnabled: parsed.data.visualCaptureEnabled,
       eventTrackingEnabled: parsed.data.eventTrackingEnabled,

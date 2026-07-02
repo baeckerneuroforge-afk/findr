@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { BUSINESS_CONTEXT_MAX_CHARS } from "@/lib/settings/org-settings-shared";
 
 /**
  * General per-org settings. Mirrors the slack_alert_preferences mechanic (one
@@ -107,6 +108,76 @@ export async function setInterviewRetentionDays(
   if (error) {
     throw new Error(`Failed to save retention setting: ${error.message}`);
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Org-Profil: Unternehmens-/Produkt-Kontext (E3, Leitfaden-Spezifität)
+ *
+ * Einmalig pro Org gepflegter Freitext ("Wir sind X, bieten Y für Z"),
+ * mit dem der Studien-Wizard das Kontextfeld jeder neuen Studie prefillt
+ * (editierbar; die Studie überschreibt die Org). Bewusst ISOLIERT von
+ * getOrgSettings/upsertOrgSettings — gleiche Begründung wie
+ * interview_retention_days: ein Read auf eine noch nicht migrierte
+ * Spalte darf die bestehenden Settings-Selects nicht kippen, und der
+ * Upsert darf keine fremden Felder cross-wipen.
+ *
+ * Cap 2000 Zeichen — EINE Zahl end-to-end mit
+ * research_plans.business_context (UI, API-Zod; persona-Cap-Lehre).
+ * ------------------------------------------------------------------ */
+
+export const OrgBusinessContextSchema = z.object({
+  businessContext: z
+    .string()
+    .trim()
+    .max(BUSINESS_CONTEXT_MAX_CHARS)
+    .nullable()
+    // Leer/Whitespace → null ("unset") — Muster wie OrgBrandingSchema.brandName.
+    .transform((v) => (v && v.length > 0 ? v : null)),
+});
+
+export type OrgBusinessContextInput = z.input<typeof OrgBusinessContextSchema>;
+
+/** Org-weiter Kontext oder null. Fail-open: Fehler/fehlende Zeile → null →
+ *  der Wizard prefillt nichts, nichts bricht. */
+export async function getOrgBusinessContext(
+  orgId: string,
+): Promise<string | null> {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("org_settings")
+    .select("business_context")
+    .eq("org_id", orgId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data.business_context ?? null;
+}
+
+/** Schreibt NUR business_context (+ updated_at) — cross-wiped keine anderen
+ *  Settings-Felder. Null löscht den Kontext. */
+export async function setOrgBusinessContext(
+  orgId: string,
+  input: OrgBusinessContextInput,
+): Promise<string | null> {
+  const parsed = OrgBusinessContextSchema.parse(input);
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("org_settings")
+    .upsert(
+      {
+        org_id: orgId,
+        business_context: parsed.businessContext,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "org_id" },
+    )
+    .select("business_context")
+    .single();
+  if (error || !data) {
+    throw new Error(
+      `Failed to save org business context: ${error?.message ?? "no row returned"}`,
+    );
+  }
+  return data.business_context ?? null;
 }
 
 /* ------------------------------------------------------------------ *

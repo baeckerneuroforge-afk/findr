@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { OrgResolutionError, requireOrgId } from "@/lib/auth/org";
 import { GuidedStudyWizard } from "@/components/dashboard/guided-study/GuidedStudyWizard";
+import { getOrgBusinessContext } from "@/lib/settings/org-settings";
 import { getLiveKitVoiceEnv } from "@/lib/voice-interview/livekit";
 
 /**
@@ -15,8 +16,9 @@ import { getLiveKitVoiceEnv } from "@/lib/voice-interview/livekit";
  * erreichbar (verlinkt oben rechts) — es geht keine Funktion verloren.
  */
 export default async function NewMarketCampaignPage() {
+  let orgId: string;
   try {
-    await requireOrgId();
+    orgId = await requireOrgId();
   } catch (err) {
     if (err instanceof OrgResolutionError) {
       if (err.code === "no_auth") redirect("/sign-in");
@@ -28,6 +30,10 @@ export default async function NewMarketCampaignPage() {
 
   const t = await getTranslations("research.market");
   const tw = await getTranslations("research.wizard");
+  // E3 — Org-Profil-Kontext SERVER-seitig laden und als Initialwert reingeben:
+  // Prefill steht beim ersten Paint, kein Client-Fetch, kein Race mit dem
+  // Tippen/Generieren. Fail-open (null = kein Prefill).
+  const initialBusinessContext = await getOrgBusinessContext(orgId);
 
   return (
     <div className="space-y-8">
@@ -53,7 +59,10 @@ export default async function NewMarketCampaignPage() {
       {/* Server-seitiger Env-Check: ohne LiveKit ist die Voice-Karte im Wizard
           deaktiviert (statt 503 beim Teilnehmer). */}
       <div className="st-rise" style={{ "--st": 1 } as React.CSSProperties}>
-        <GuidedStudyWizard voiceAvailable={getLiveKitVoiceEnv() !== null} />
+        <GuidedStudyWizard
+          voiceAvailable={getLiveKitVoiceEnv() !== null}
+          initialBusinessContext={initialBusinessContext}
+        />
       </div>
     </div>
   );

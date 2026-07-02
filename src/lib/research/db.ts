@@ -239,6 +239,11 @@ export type ResearchPlanRow = {
   // Form lebt im TS-Layer (src/lib/schemas/screening.ts), DB default '[]'.
   screening_questions: Json;
   persona: string | null;
+  // Studien-Kontext (E1, 20260730000000): Unternehmens-/Produkt-/Ideen-Freitext
+  // für die Leitfaden-Generierung. Nullable, kein Backfill. Vor angewandter
+  // Migration liefert select("*") die Spalte nicht; der Lese-Mapper
+  // (coerceNullableString) defaultet undefined→null — byte-identisch.
+  business_context: string | null;
   sample_target: number | null;
   status: ResearchPlanStatus;
   // Visual-Intelligence-Schalter pro Studie. DB: NOT NULL DEFAULT false.
@@ -338,6 +343,9 @@ type ResearchPlanInsert = {
   topic_script?: Json;
   screening_questions?: Json;
   persona?: string | null;
+  // Optional beim Insert — nur gesetzt, wenn ein Kontext angegeben wurde;
+  // sonst weggelassen → NULL (pre-migration-sicher via Spread im Service).
+  business_context?: string | null;
   sample_target?: number | null;
   status?: ResearchPlanStatus;
   visual_capture_enabled?: boolean;
@@ -391,6 +399,7 @@ type ResearchPlanUpdate = {
   topic_script?: Json;
   screening_questions?: Json;
   persona?: string | null;
+  business_context?: string | null;
   sample_target?: number | null;
   status?: ResearchPlanStatus;
   visual_capture_enabled?: boolean;

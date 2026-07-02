@@ -4,6 +4,7 @@ import { zitadelConsoleUrl } from "@/lib/auth/zitadel";
 import { OrganizationSettingsForm } from "@/components/settings/OrganizationSettingsForm";
 import { AutoInterviewSettingForm } from "@/components/settings/AutoInterviewSettingForm";
 import { BrandingSettingsForm } from "@/components/settings/BrandingSettingsForm";
+import { BusinessContextSettingForm } from "@/components/settings/BusinessContextSettingForm";
 
 export default async function OrganizationSettingsPage() {
   const t = await getTranslations("settings");
@@ -22,6 +23,7 @@ export default async function OrganizationSettingsPage() {
         orgId={session?.user?.orgId ?? null}
         consoleUrl={zitadelConsoleUrl()}
       />
+      <BusinessContextSettingForm />
       <AutoInterviewSettingForm />
       <BrandingSettingsForm />
     </div>

@@ -64,6 +64,11 @@ export interface ResearchPlanRecord {
   objective: string;
   topics: ResearchTopic[];
   persona: string | null;
+  /** Studien-Kontext (E1): Unternehmens-/Produkt-/Ideen-Freitext, den der
+   *  Forscher beim Anlegen mitgibt. Hintergrund für die Leitfaden-Generierung
+   *  (KONTEXT-Block); null = kein Kontext → Generierung byte-identisch zum
+   *  Vor-Verhalten. App-Cap 2000 (UI + API-Zod, eine Zahl end-to-end). */
+  businessContext: string | null;
   sampleTarget: number | null;
   status: "draft" | "active" | "completed" | "archived";
   /** Per-study Visual-Intelligence capture switch. Defaults false for legacy
@@ -365,6 +370,9 @@ function toRecord(row: ResearchPlanRow): ResearchPlanRecord {
     objective: row.objective,
     topics: coerceTopics(row.topic_script),
     persona: row.persona,
+    businessContext: coerceNullableString(
+      (row as { business_context?: unknown }).business_context,
+    ),
     sampleTarget: row.sample_target,
     status: row.status,
     visualCaptureEnabled: coerceVisualCaptureEnabled(
@@ -951,6 +959,9 @@ export interface CreateResearchPlanInput {
   objective: string;
   topics: ResearchTopic[];
   persona?: string | null;
+  /** Studien-Kontext (E1). Omitted/null → Spalte bleibt NULL (pre-migration-
+   *  sicherer Spread-Insert, byte-identisch für jeden Kontext-losen Create). */
+  businessContext?: string | null;
   sampleTarget?: number | null;
   visualCaptureEnabled?: boolean;
   /** Per-study event-tracking opt-in (Phase 2b). Omitted/false → no capture. */
@@ -1009,6 +1020,12 @@ export async function createResearchPlan(
       objective: input.objective,
       topic_script: input.topics as unknown as Json,
       persona: input.persona ?? null,
+      // Kontext — nur stempeln, wenn angegeben; sonst weggelassen → Spalte
+      // bleibt NULL → Generierung ohne KONTEXT-Block (pre-migration-sicher
+      // via Spread, Muster wie maxRounds/interviewDepth).
+      ...(input.businessContext != null && input.businessContext !== ""
+        ? { business_context: input.businessContext }
+        : {}),
       sample_target: input.sampleTarget ?? null,
       visual_capture_enabled: input.visualCaptureEnabled ?? false,
       event_tracking_enabled: input.eventTrackingEnabled ?? false,
@@ -1070,6 +1087,9 @@ export interface UpdateResearchPlanInput {
   topics?: ResearchTopic[];
   screeningQuestions?: ScreeningQuestion[];
   persona?: string | null;
+  /** Studien-Kontext (E1). `null` löscht ihn; ein String setzt ihn;
+   *  `undefined` lässt ihn unangetastet. */
+  businessContext?: string | null;
   sampleTarget?: number | null;
   status?: ResearchPlanRecord["status"];
   visualCaptureEnabled?: boolean;
@@ -1126,6 +1146,7 @@ export async function updateResearchPlan(
     topic_script?: Json;
     screening_questions?: Json;
     persona?: string | null;
+    business_context?: string | null;
     sample_target?: number | null;
     status?: ResearchPlanRecord["status"];
     visual_capture_enabled?: boolean;
@@ -1153,6 +1174,8 @@ export async function updateResearchPlan(
   if (input.screeningQuestions !== undefined)
     update.screening_questions = input.screeningQuestions as unknown as Json;
   if (input.persona !== undefined) update.persona = input.persona;
+  if (input.businessContext !== undefined)
+    update.business_context = input.businessContext;
   if (input.sampleTarget !== undefined)
     update.sample_target = input.sampleTarget;
   if (input.status !== undefined) update.status = input.status;

@@ -526,6 +526,18 @@
         "channelIdTooLong": "Die Channel-ID ist zu lang (max. 100 Zeichen).",
         "workspaceNameTooLong": "Der Workspace-Name ist zu lang (max. 200 Zeichen)."
       }
+    },
+    "businessContext": {
+      "title": "Unternehmens-Kontext",
+      "subtitle": "Einmal beschreiben, wofür euer Unternehmen steht — Klymeo füllt damit das Kontextfeld jeder neuen Studie vor.",
+      "label": "Unternehmen / Produkt in 2–4 Sätzen",
+      "placeholder": "z. B. Wir sind Klymeo, eine Plattform für KI-gestützte Interviews. Zielmarkt DACH, Kunden sind Product- und Research-Teams.",
+      "help": "Optional. Wird beim Anlegen einer Studie vorausgefüllt und kann dort pro Studie angepasst werden.",
+      "save": "Speichern",
+      "saving": "Speichert …",
+      "saved": "Gespeichert.",
+      "saveError": "Konnte nicht speichern. Bitte erneut versuchen.",
+      "adminOnly": "Nur Admins können diese Einstellung ändern."
     }
   },
   "common": {
@@ -2364,7 +2376,13 @@
       "launchDesc": "Wähle einen oder mehrere Wege. Alles lässt sich später auf der Studienseite anpassen.",
       "launchToStudy": "Zur Studie",
       "stepDistribution": "Verteilung",
-      "reviewNextHint": "Gleich danach: Teilnehmer:innen gewinnen — Teilnehmerpool, öffentlicher Link und Prolific (mit Kostenschätzung)."
+      "reviewNextHint": "Gleich danach: Teilnehmer:innen gewinnen — Teilnehmerpool, öffentlicher Link und Prolific (mit Kostenschätzung).",
+      "setupContextLabel": "Unternehmen / Produkt / Idee (optional)",
+      "setupContextPh": "z. B. Wir sind Klymeo, ein Shop für Bio-Naturkosmetik (DACH, B2C). Die Studie dreht sich um unseren neuen Express-Checkout ohne Kundenkonto.",
+      "setupContextHint": "Was hier steht, darf die KI in den Fragen konkret verwenden — je genauer, desto spezifischer der Leitfaden.",
+      "setupContextPrefilled": "Aus dem Org-Profil vorausgefüllt — für diese Studie frei anpassbar.",
+      "setupMaterialHint": "Schon jetzt hochladen lohnt sich: Klymeo analysiert das Material und baut den Leitfaden direkt darauf auf.",
+      "setupMaterialNeedsBriefing": "Zuerst kurz das Forschungsziel oben beschreiben — dann kann das Material hochgeladen werden."
     }
   },
   "errors": {

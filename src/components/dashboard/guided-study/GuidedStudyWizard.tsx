@@ -51,14 +51,27 @@ function guideTopicsToDrafts(guide: GeneratedGuide): TopicDraft[] {
 
 export function GuidedStudyWizard({
   voiceAvailable = true,
+  initialBusinessContext = null,
 }: {
   voiceAvailable?: boolean;
+  /** E3 — org-weiter Kontext, SERVER-seitig von der Page geladen (kein
+   *  Client-Fetch, kein Race). Prefillt das Kontextfeld; pro Studie editierbar. */
+  initialBusinessContext?: string | null;
 }) {
   const tw = useTranslations("research.wizard");
   const tp = useTranslations("research.plans");
   const router = useRouter();
 
-  const [state, setState] = useState<WizardState>(initialWizardState);
+  const prefillContext = initialBusinessContext?.trim() ?? "";
+  const [state, setState] = useState<WizardState>(() => ({
+    ...initialWizardState(),
+    businessContext: prefillContext,
+  }));
+  // Abgeleitet statt als eigener State: der Hinweis "aus dem Org-Profil
+  // vorausgefüllt" gilt nur, solange der Text WIRKLICH noch der Org-Prefill
+  // ist — sobald die Person editiert, verschwindet er von selbst.
+  const contextPrefilled =
+    prefillContext !== "" && state.businessContext === prefillContext;
   const [step, setStep] = useState(0);
   const [planId, setPlanId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -90,6 +103,8 @@ export function GuidedStudyWizard({
       objective: state.briefing.trim(),
       topics: [],
       persona: state.persona.trim() === "" ? null : state.persona.trim(),
+      businessContext:
+        state.businessContext.trim() === "" ? null : state.businessContext.trim(),
       sampleTarget: null,
       visualCaptureEnabled: state.visualCaptureEnabled,
       eventTrackingEnabled: state.eventTrackingEnabled,
@@ -152,6 +167,12 @@ export function GuidedStudyWizard({
             goal: state.briefing.trim(),
             audienceType: state.audienceType,
             who: state.persona.trim() === "" ? undefined : state.persona.trim(),
+            // E1 — Kontext in die Generierung. IMMER senden (auch ""): ein
+            // leerer String heißt für die Route "explizit geleert" und
+            // verhindert den Fallback auf den ggf. veralteten Draft-Stand am
+            // Plan. Die Route liest zusätzlich die persistierten Stimulus-
+            // Analysen des Drafts (E2) selbst.
+            businessContext: state.businessContext.trim(),
             language: state.language,
             // Art der Studie + Tiefe fließen jetzt in die Generierung — sie
             // werden im Setup (Schritt 1) VOR diesem Aufruf gewählt, nicht
@@ -286,6 +307,8 @@ export function GuidedStudyWizard({
       objective,
       topics,
       persona: state.persona.trim() === "" ? null : state.persona.trim(),
+      businessContext:
+        state.businessContext.trim() === "" ? null : state.businessContext.trim(),
       sampleTarget,
       visualCaptureEnabled: state.visualCaptureEnabled,
       eventTrackingEnabled: state.eventTrackingEnabled,
@@ -367,6 +390,11 @@ export function GuidedStudyWizard({
           genError={genError}
           onGenerate={generate}
           onManual={manualContinue}
+          planId={planId}
+          ensureDraftPlanId={ensureDraftPlanId}
+          stimuli={stimuli}
+          setStimuli={setStimuli}
+          contextPrefilled={contextPrefilled}
         />
       ) : step === 1 ? (
         <StepGuide

@@ -1,10 +1,11 @@
 /**
- * Guide-Generator Eval Dataset — 10 cases.
+ * Guide-Generator Eval Dataset — 12 cases.
  * ----------------------------------------------
  * 4 B2B klar/normal · 1 B2B vage · 1 B2B Edge-Case (sehr unspezifisches Ziel)
  * · 2 B2C (Endkund:innen, du-Anrede) · 2 mit Art-der-Studie + Tiefe (neuer
  * Signalpfad useCase/interviewDepth: brand_research/flach B2C, concept_test/
- * tief B2B).
+ * tief B2B) · 2 mit Kontext (E1 businessContext bzw. E1+E2 inkl.
+ * stimulusContext — Spezifika erlaubt, Pitch-/Leading-Fragen weiterhin FAIL).
  *
  * Anti-Hallu-Posture: bei sparse/incoherent input darf der Generator
  * keinen "vollständigen" Leitfaden auf Phantasie-Spezifika aufblähen.
@@ -221,5 +222,45 @@ export const GUIDE_EVAL_CASES: GuideEvalCase[] = [
       topicCount: 5,
     },
     expected: { minTopics: 4, maxTopics: 7, minMinutes: 30, maxMinutes: 70 },
+  },
+
+  // ── 11/12 KONTEXT — businessContext (E1) macht spezifisch, ohne Pitch ─────
+  {
+    id: "guide_11_context_b2c",
+    description: "B2C mit Unternehmens-Kontext (Express-Checkout)",
+    rationale:
+      "Neuer Signalpfad businessContext (E1). Der Kontext liefert die Spezifika (Bio-Naturkosmetik-Shop, Express-Checkout ohne Kundenkonto), die der Leitfaden verwenden DARF — die Leading-Heuristik muss trotzdem sauber bleiben: Kontext ist Hintergrund, keine Pitch-Vorlage ('Wie gefällt dir unser innovativer Checkout' wäre ein Leading-Fail). DU-Form durchgängig.",
+    input: {
+      goal: "Warum brechen Käufer:innen mit vollem Warenkorb den Checkout ab?",
+      audienceType: "b2c",
+      who: "Online-Käufer:innen von Naturkosmetik (letzte 3 Monate)",
+      language: "de",
+      topicCount: 5,
+      businessContext:
+        "Wir sind Klymeo, ein Online-Shop für Bio-Naturkosmetik im DACH-Markt (B2C, mobile-first). Neu eingeführt: ein Express-Checkout ohne Kundenkonto (Gast-Kauf, Apple/Google Pay). Die Studie soll klären, ob der Checkout — insbesondere der neue Express-Weg — Kaufabbrüche verursacht oder verhindert.",
+    },
+    expected: { minTopics: 4, maxTopics: 6, minMinutes: 20, maxMinutes: 50 },
+  },
+
+  // ── 12/12 KONTEXT + MATERIAL — concept_test mit Stimulus-Analyse (E2) ─────
+  {
+    id: "guide_12_context_material_concept",
+    description: "B2B Konzepttest mit Kontext + Material-Analyse",
+    rationale:
+      "Kombinierter Signalpfad businessContext + stimulusContext (E1+E2, wie ihn die Guide-Route bei Konzepttests baut). Erwartung: Verständnis-/Relevanz-Topics, die das KONKRETE Konzept aus dem MATERIAL-Block referenzieren (Report-Builder, Drag-and-drop) statt generisch zu bleiben — bei sauberer Posture (keine Leading-Trigger, Sie-Form, keine Kaufzusagen-Fragen).",
+    input: {
+      goal: "Wir wollen testen, ob Fachanwender:innen unser neues Self-Service-Reporting-Konzept verstehen und als relevant empfinden.",
+      audienceType: "b2b",
+      who: "Business Analysts in Mid-Market-Unternehmen",
+      language: "de",
+      useCase: "concept_test",
+      interviewDepth: "mittel",
+      topicCount: 5,
+      businessContext:
+        "Wir sind ein BI-SaaS für Mittelständler (Controlling/Finance). Heute bauen unsere Kunden Reports über ein Ticket an unser Analytics-Team; das neue Konzept verlagert das in Self-Service.",
+      stimulusContext:
+        "— Material 1 (Konzept-Mockup Report-Builder) —\nLayout/Aufbau: dreispaltiger Builder — links Datenquellen, Mitte Drag-and-drop-Canvas, rechts Vorschau.\nText im Bild (wörtlich): \"Report erstellen\", \"Felder hierher ziehen\", \"Als Dashboard teilen\".\nClaim/Botschaft: Reports selbst bauen statt aufs Analytics-Team warten.\nAuffällige Gestaltungsentscheidungen: keine SQL-/Formel-Eingabe sichtbar; Teilen-Aktion prominent.",
+    },
+    expected: { minTopics: 4, maxTopics: 7, minMinutes: 25, maxMinutes: 60 },
   },
 ];
