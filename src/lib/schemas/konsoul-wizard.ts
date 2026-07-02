@@ -76,6 +76,12 @@ export const WizardSnapshotSchema = z.object({
   briefing: z.string().max(8000),
   title: z.string().max(600),
   persona: z.string().max(1000),
+  // E1 (2026-07-02): Unternehmens-/Produkt-Kontext des Setup-Schritts —
+  // Konsoul muss ihn SEHEN, sonst berät er blind daran vorbei (schlägt z. B.
+  // vor, das Produkt im Briefing zu beschreiben, obwohl es im Kontextfeld
+  // steht). default("") hält ältere Client-Snapshots ohne das Feld gültig.
+  // Cap großzügig wie briefing (kein 400; die Engine kürzt selbst).
+  businessContext: z.string().max(8000).default(""),
   audienceType: z.enum(WIZARD_AUDIENCE_TYPES),
   useCase: z.enum(WIZARD_USE_CASES),
   interviewDepth: z.enum(WIZARD_DEPTHS),

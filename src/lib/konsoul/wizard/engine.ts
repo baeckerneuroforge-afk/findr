@@ -114,12 +114,21 @@ export function buildWizardUserPrompt(
     briefing.length > BRIEFING_PROMPT_CAP
       ? `${briefing.slice(0, BRIEFING_PROMPT_CAP).trimEnd()}…`
       : nonEmpty(briefing);
+  // E1 — Unternehmens-Kontext: gleiche Kürzungs-Mechanik wie briefing, damit
+  // Konsoul den Kontext KENNT und nicht vorschlägt, das Produkt (nochmal) ins
+  // Briefing zu schreiben. businessContext hat default("") im Schema.
+  const businessContext = w.businessContext.trim();
+  const businessContextForPrompt =
+    businessContext.length > BRIEFING_PROMPT_CAP
+      ? `${businessContext.slice(0, BRIEFING_PROMPT_CAP).trimEnd()}…`
+      : nonEmpty(businessContext);
 
   const lines = [
     `AKTUELLER SCHRITT: ${stepName(w.step)}.`,
     "",
     "AKTUELLER STAND DES FORMULARS:",
     `- Ziel (briefing): ${briefingForPrompt}`,
+    `- Unternehmens-/Produkt-Kontext (businessContext): ${businessContextForPrompt}`,
     `- Titel (title): ${nonEmpty(w.title)}`,
     `- Zielgruppe (persona): ${nonEmpty(w.persona)}`,
     `- Art der Studie (useCase): ${w.useCase}`,

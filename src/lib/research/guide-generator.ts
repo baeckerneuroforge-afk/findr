@@ -34,9 +34,11 @@ import {
  *
  * NO COST-INTENSIVE INPUTS: der Generator liest WEDER Verdichtungen NOCH
  * Transkripte — er bekommt nur den Research-Ziel-Text + Audience-Typ (B2C/B2B)
- * + optional die Zielgruppen-Beschreibung. Das hält den Token-Verbrauch klein
- * (1-2 kTok pro Run statt 20+ wie bei chat-with-data) und macht den Generator
- * brauchbar für die Plan-Anlage, wo noch keine Interview-Daten existieren.
+ * + optional Zielgruppen-Beschreibung, Unternehmens-Kontext (≤2000 Zeichen,
+ * E1) und die BEREITS persistierte Stimulus-Analyse (bounded textBlocks, E2 —
+ * kein eigener Vision-Call). Das hält den Token-Verbrauch klein (1-4 kTok pro
+ * Run statt 20+ wie bei chat-with-data) und macht den Generator brauchbar für
+ * die Plan-Anlage, wo noch keine Interview-Daten existieren.
  *
  * Modell: Opus default (Output-Qualität ist Onboarding-kritisch — ein
  * schlechter Leitfaden generiert schlechte Interviews generiert schlechte
@@ -116,6 +118,19 @@ export interface GuideGenInput {
    *  "Käufer:innen von Bio-Lebensmitteln" (B2C) or "Admin-User in SMB-SaaS-
    *  Tools" (B2B). */
   who?: string;
+  /** E1 — Unternehmens-/Produkt-/Ideen-Kontext (Freitext, ≤2000 via API-Zod).
+   *  Der LEGITIME Kanal für Spezifika: die Edge-Case-Regel verbietet dem
+   *  Modell erfundene Details, also kann NUR dieser Block den Leitfaden
+   *  konkreter machen. Hintergrundwissen, keine Pitch-Vorlage (der System-
+   *  Prompt erzwingt das). Optional → ohne Kontext bleibt der USER-Prompt
+   *  byte-identisch (der System-Prompt trägt die neuen CONTEXT-USE-Regeln
+   *  für alle Läufe — er ist stabil + prompt-cacheable, nicht input-abhängig). */
+  businessContext?: string;
+  /** E2 — bereits persistierte Stimulus-Analyse(n) des Plans als Text
+   *  (renderStimulusAnalysisTextBlock-Output, nur status 'done'). Wird von
+   *  der Route aus research_plan_stimuli gelesen und HIER nur durchgereicht —
+   *  kein zusätzlicher Vision-Call. Optional → ohne Material byte-identisch. */
+  stimulusContext?: string;
   /** Output language. Default Deutsch (DACH-Markt + bestehender Stack). */
   language?: string;
   /** How many topics the LLM should aim for. Soft target — Zod enforces
@@ -190,8 +205,15 @@ WHAT THE GUIDE IS NOT:
 - NOT a sales script. No demos, no pitching, no positioning the company's product.
 - NOT a list of every question imaginable. 3-10 topics, each with one main + 2-8 probes. Total questions across all topics fits a 30-60 minute conversation.
 
+CONTEXT USE — optional KONTEXT / MATERIAL blocks:
+- The user prompt MAY carry a KONTEXT block (the researcher's own company / product / idea) and/or a MATERIAL block (an analysis of the concept or creative the participants will evaluate). Treat both as BACKGROUND FACTS.
+- Specifics FROM these blocks are welcome and encouraged: name the product, the feature, the market situation in questions where it sharpens them ("Erzähl mir vom letzten Mal, als du [den Express-Checkout] gesehen hast …"). A guide that uses the supplied context is BETTER than a generic one.
+- The context is NOT a sales brief. Never turn context facts into endorsement-seeking or positively-framed questions ("Wie gefällt dir unser innovativer …" is still forbidden). Ask about the participant's experience WITH the thing, never for approval OF the thing. The POSTURE rules above apply unchanged to every context-derived question.
+- Context does NOT lift the minimality rule for vague goals: a thin Research-Ziel still gets a MINIMAL guide even when rich KONTEXT is supplied. Context sharpens the WORDING of questions the goal asks for; it never adds topics the goal doesn't ask for.
+- Everything BEYOND these blocks stays under the invention ban below.
+
 EDGE CASE — vague or thin goal:
-- If the Research-Ziel is very unspecific, you may still produce a guide — but keep it MINIMAL (3 topics, 2 probes each, broader phrasing). Do NOT invent specifics the user didn't supply (a named integration or pricing tier, a specific brand, a concrete past order). Stay at the level of generality the user gave you. A minimal but honest guide > an inflated speculative one.
+- If the Research-Ziel is very unspecific, you may still produce a guide — but keep it MINIMAL (3 topics, 2 probes each, broader phrasing). Do NOT invent specifics the user didn't supply (a named integration or pricing tier, a specific brand, a concrete past order). Specifics supplied via the KONTEXT / MATERIAL blocks count as user-supplied; anything else stays at the level of generality the user gave you. A minimal but honest guide > an inflated speculative one.
 
 OUTPUT — return ONLY this JSON object, no markdown, no preamble:
 
@@ -279,6 +301,25 @@ export function buildGuideUserPrompt(input: GuideGenInput): string {
   if (input.who && input.who.trim() !== "") {
     lines.push(`ZIELGRUPPE (wen wir interviewen): ${input.who.trim()}`);
   }
+  // E1 — Unternehmens-/Produkt-Kontext: Hintergrundwissen, dessen Spezifika in
+  // die Fragen einfließen DÜRFEN (CONTEXT USE im System-Prompt). Nur gehängt,
+  // wenn gesetzt → ohne Kontext Prompt byte-identisch.
+  if (input.businessContext && input.businessContext.trim() !== "") {
+    lines.push(
+      ``,
+      `KONTEXT (Unternehmen/Produkt/Idee — Hintergrundwissen, keine Pitch-Vorlage):`,
+      input.businessContext.trim(),
+    );
+  }
+  // E2 — Stimulus-Analyse(n): was die Teilnehmenden bewerten werden. Nur
+  // gehängt, wenn die Route analysierte Assets fand → sonst byte-identisch.
+  if (input.stimulusContext && input.stimulusContext.trim() !== "") {
+    lines.push(
+      ``,
+      `MATERIAL (Analyse dessen, was die Teilnehmenden bewerten):`,
+      input.stimulusContext.trim(),
+    );
+  }
   // Art der Studie (use_case): schneidet den Themen-Fokus zu. Nur gehängt,
   // wenn gesetzt → ohne useCase Prompt byte-identisch zum Vor-Verhalten.
   if (input.useCase) {
@@ -298,6 +339,50 @@ export function buildGuideUserPrompt(input: GuideGenInput): string {
   );
   lines.push(``, `Liefere den Guide als JSON-Objekt — keine Markdown-Blöcke, kein Vorlauf.`);
   return lines.join("\n");
+}
+
+// ── Stimulus-Analyse → MATERIAL-Block (E2) ─────────────────────────────────
+
+/** Token-Backstop für den MATERIAL-Block: max 5 Assets × bounded textBlock —
+ *  der Cap greift praktisch nie, verhindert aber pathologische Prompts. */
+export const STIMULUS_CONTEXT_MAX_CHARS = 8000;
+
+/** Minimaler struktureller Ausschnitt eines Stimulus-Records — hält den
+ *  Helper von der vollen plans-service-Form entkoppelt (und testbar). */
+export interface StimulusContextSource {
+  label: string | null;
+  analysisStatus: string | null;
+  analysis: { textBlock?: string } | null;
+}
+
+/**
+ * Baut den MATERIAL-Block aus den persistierten Stimulus-Analysen eines Plans
+ * (nur status 'done' mit textBlock — identisches Gating wie stimulusToContext
+ * in plans-service). Lebt HIER neben den anderen Prompt-Bausteinen, damit
+ * Format, Tests und Evals eine Quelle teilen. Cap arbeitet BLOCK-weise: ein
+ * Block, der nicht mehr ganz passt, wird verworfen statt mitten im Satz
+ * abgeschnitten (ein halber Claim wäre Halluzinations-Futter).
+ * undefined = kein analysiertes Material → Prompt ohne MATERIAL-Block.
+ */
+export function buildStimulusContext(
+  stimuli: StimulusContextSource[],
+): string | undefined {
+  const blocks: string[] = [];
+  let total = 0;
+  for (const s of stimuli) {
+    const textBlock =
+      s.analysisStatus === "done" ? s.analysis?.textBlock : undefined;
+    if (!textBlock) continue;
+    const block = [
+      `— Material ${blocks.length + 1}${s.label ? ` (${s.label})` : ""} —`,
+      textBlock,
+    ].join("\n");
+    const cost = block.length + (blocks.length > 0 ? 2 : 0); // + "\n\n"-Joiner
+    if (total + cost > STIMULUS_CONTEXT_MAX_CHARS) break;
+    blocks.push(block);
+    total += cost;
+  }
+  return blocks.length > 0 ? blocks.join("\n\n") : undefined;
 }
 
 // ── Pure-input entry (eval + new-plan UI flow) ─────────────────────────────
@@ -424,6 +509,8 @@ export async function generateInterviewGuide(
       goal: input.goal,
       audienceType: input.audienceType,
       who: input.who,
+      businessContext: input.businessContext,
+      stimulusContext: input.stimulusContext,
       language: input.language,
       topicCount: input.topicCount,
       useCase: input.useCase,

@@ -1,8 +1,8 @@
 /**
  * Guide-Generator Eval Runner
  * ---------------------------
- * Runs generateGuideFromInputs() over GUIDE_EVAL_CASES (10: 6 B2B + 2 B2C + 2
- * mit Art der Studie + Tiefe),
+ * Runs generateGuideFromInputs() over GUIDE_EVAL_CASES (12: 6 B2B + 2 B2C + 2
+ * mit Art der Studie + Tiefe + 2 mit Kontext/Material E1+E2),
  * applies DETERMINISTIC property checks (no LLM-judge — cost-conscious), and
  * prints a results table.
  *

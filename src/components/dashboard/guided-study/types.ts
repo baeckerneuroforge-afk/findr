@@ -24,6 +24,11 @@ export type Language = "de" | "en";
 export interface WizardState {
   /** Schritt 1 — Briefing = Forschungsziel (objective). */
   briefing: string;
+  /** E1 — optionaler Unternehmens-/Produkt-/Ideen-Kontext. Fließt in die
+   *  Leitfaden-Generierung (KONTEXT-Block) und wird am Plan persistiert.
+   *  Wird beim Mount aus dem Org-Profil vorbefüllt (E3), bleibt pro Studie
+   *  editierbar. Leer = kein Kontext → Verhalten wie vorher. */
+  businessContext: string;
 
   /** Schritt 2 — Vorschlag. */
   title: string;
@@ -59,6 +64,7 @@ export interface WizardState {
 export function initialWizardState(): WizardState {
   return {
     briefing: "",
+    businessContext: "",
     title: "",
     persona: "",
     sampleTarget: "",

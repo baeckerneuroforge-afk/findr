@@ -996,6 +996,7 @@ export type Database = {
           accent_color: string | null
           auto_start_post_loss_interview: boolean
           brand_name: string | null
+          business_context: string | null
           created_at: string
           interview_retention_days: number | null
           logo_url: string | null
@@ -1007,6 +1008,7 @@ export type Database = {
           accent_color?: string | null
           auto_start_post_loss_interview?: boolean
           brand_name?: string | null
+          business_context?: string | null
           created_at?: string
           interview_retention_days?: number | null
           logo_url?: string | null
@@ -1018,6 +1020,7 @@ export type Database = {
           accent_color?: string | null
           auto_start_post_loss_interview?: boolean
           brand_name?: string | null
+          business_context?: string | null
           created_at?: string
           interview_retention_days?: number | null
           logo_url?: string | null

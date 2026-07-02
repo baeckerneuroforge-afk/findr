@@ -38,6 +38,7 @@ function plan(overrides: Partial<ResearchPlanRecord>): ResearchPlanRecord {
     objective: "Verständlichkeit prüfen",
     topics: [],
     persona: null,
+    businessContext: null,
     sampleTarget: null,
     status: "draft",
     visualCaptureEnabled: false,

@@ -526,6 +526,18 @@
         "channelIdTooLong": "The channel ID is too long (max. 100 characters).",
         "workspaceNameTooLong": "The workspace name is too long (max. 200 characters)."
       }
+    },
+    "businessContext": {
+      "title": "Company context",
+      "subtitle": "Describe once what your company does — Klymeo prefills the context field of every new study with it.",
+      "label": "Company / product in 2–4 sentences",
+      "placeholder": "e.g. We are Klymeo, a platform for AI-led interviews. Target market DACH, customers are product and research teams.",
+      "help": "Optional. Prefilled when creating a study and adjustable per study.",
+      "save": "Save",
+      "saving": "Saving …",
+      "saved": "Saved.",
+      "saveError": "Could not save. Please try again.",
+      "adminOnly": "Only admins can change this setting."
     }
   },
   "common": {
@@ -2364,7 +2376,13 @@
       "launchDesc": "Pick one or more channels. You can adjust everything later on the study page.",
       "launchToStudy": "Go to study",
       "stepDistribution": "Distribution",
-      "reviewNextHint": "Right after: recruit participants — participant pool, public link and Prolific (with cost estimate)."
+      "reviewNextHint": "Right after: recruit participants — participant pool, public link and Prolific (with cost estimate).",
+      "setupContextLabel": "Company / product / idea (optional)",
+      "setupContextPh": "e.g. We are Klymeo, a shop for organic natural cosmetics (DACH, B2C). This study is about our new express checkout without an account.",
+      "setupContextHint": "The AI may use what you write here verbatim in the questions — the more specific, the sharper the guide.",
+      "setupContextPrefilled": "Prefilled from your organisation profile — adjust freely for this study.",
+      "setupMaterialHint": "Uploading now pays off: Klymeo analyses the material and builds the guide directly on top of it.",
+      "setupMaterialNeedsBriefing": "Describe your research goal above first — then you can upload the material."
     }
   },
   "errors": {

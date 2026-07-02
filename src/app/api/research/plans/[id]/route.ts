@@ -14,6 +14,7 @@ import {
   updateResearchPlan,
 } from "@/lib/research/plans-service";
 import { TaskDefinitionSchema } from "@/lib/research/task";
+import { BUSINESS_CONTEXT_MAX_CHARS } from "@/lib/settings/org-settings-shared";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 /**
@@ -59,6 +60,16 @@ const UpdatePlanBodySchema = z
       .string()
       .trim()
       .max(1000)
+      .nullable()
+      .optional()
+      .transform((v) => (v === "" ? null : v)),
+    // E1 — Unternehmens-/Produkt-Kontext. `null`/"" löscht ihn, ein String
+    // setzt ihn, `undefined` lässt ihn unberührt. DIE Cap-Konstante (Create-
+    // + Guide-Route, UI — ein logisches Feld = eine Zahl, persona-Lehre).
+    businessContext: z
+      .string()
+      .trim()
+      .max(BUSINESS_CONTEXT_MAX_CHARS)
       .nullable()
       .optional()
       .transform((v) => (v === "" ? null : v)),
@@ -119,6 +130,7 @@ const UpdatePlanBodySchema = z
       data.objective !== undefined ||
       data.topics !== undefined ||
       data.persona !== undefined ||
+      data.businessContext !== undefined ||
       data.sampleTarget !== undefined ||
       data.status !== undefined ||
       data.visualCaptureEnabled !== undefined ||
@@ -196,6 +208,7 @@ export async function PATCH(
       objective: parsed.data.objective,
       topics: parsed.data.topics,
       persona: parsed.data.persona,
+      businessContext: parsed.data.businessContext,
       sampleTarget: parsed.data.sampleTarget,
       status: parsed.data.status,
       visualCaptureEnabled: parsed.data.visualCaptureEnabled,

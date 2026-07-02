@@ -1,7 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { BUSINESS_CONTEXT_MAX_CHARS } from "@/lib/settings/org-settings-shared";
 import { DEPTHS, USE_CASES, getUseCaseMeta, type WizardState } from "../types";
+import { MaterialSection } from "../MaterialSection";
+import { type StimulusItem } from "../StimulusUploader";
 import {
   ArrowRightIcon,
   Card,
@@ -38,6 +41,11 @@ export function StepSetup({
   genError,
   onGenerate,
   onManual,
+  planId,
+  ensureDraftPlanId,
+  stimuli,
+  setStimuli,
+  contextPrefilled = false,
 }: {
   state: WizardState;
   patch: (p: Partial<WizardState>) => void;
@@ -46,6 +54,16 @@ export function StepSetup({
   genError: string | null;
   onGenerate: () => void;
   onManual: () => void;
+  /** E2 — Material-Upload schon im Setup (needsStimulus-Use-Cases), damit die
+   *  persistierte Stimulus-Analyse in die ERSTE Generierung einfließt. Gleiche
+   *  server-synchronisierte Props wie in StepGuide; nur ein Schritt rendert
+   *  gleichzeitig, das Set lebt im Wizard. */
+  planId: string | null;
+  ensureDraftPlanId: () => Promise<string>;
+  stimuli: StimulusItem[];
+  setStimuli: React.Dispatch<React.SetStateAction<StimulusItem[]>>;
+  /** E3 — true, wenn das Kontextfeld aus dem Org-Profil vorbefüllt wurde. */
+  contextPrefilled?: boolean;
 }) {
   const tw = useTranslations("research.wizard");
   const meta = getUseCaseMeta(state.useCase);
@@ -95,6 +113,25 @@ export function StepSetup({
           placeholder={tw("s1Placeholder")}
           className="text-body"
         />
+      </section>
+
+      {/* E1 — Unternehmens-/Produkt-Kontext (optional). Der legitime Kanal für
+          Spezifika: was hier steht, DARF die KI in Fragen verwenden; alles
+          darüber hinaus bleibt unter dem Erfindungs-Verbot. */}
+      <section className="mt-6">
+        <label className="mb-1.5 block text-small font-medium text-neutral-700">
+          {tw("setupContextLabel")}
+        </label>
+        <TextArea
+          rows={3}
+          maxLength={BUSINESS_CONTEXT_MAX_CHARS}
+          value={state.businessContext}
+          onChange={(e) => patch({ businessContext: e.target.value })}
+          placeholder={tw("setupContextPh")}
+        />
+        <p className="mt-1 text-caption text-neutral-400">
+          {contextPrefilled ? tw("setupContextPrefilled") : tw("setupContextHint")}
+        </p>
       </section>
 
       {/* Titel (optional — KI schlägt sonst einen vor) */}
@@ -183,6 +220,22 @@ export function StepSetup({
           </div>
         </Card>
       </section>
+
+      {/* E2 — Material schon im Setup (Konzept-/Creative-Test): so fließt die
+          Stimulus-Analyse bereits in die ERSTE Leitfaden-Generierung ein.
+          uploadLocked bis das Briefing steht — der Uploader legt sonst einen
+          Draft mit leerem objective an (POST-Zod min 3 → 400). */}
+      {meta.needsStimulus ? (
+        <MaterialSection
+          title={tw("s2MaterialTitle", { kind: tw(meta.labelKey) })}
+          hint={tw("setupMaterialHint")}
+          planId={planId}
+          ensureDraftPlanId={ensureDraftPlanId}
+          stimuli={stimuli}
+          setStimuli={setStimuli}
+          uploadLocked={!canGo}
+        />
+      ) : null}
 
       {/* Interview-Form — Modus + Tiefe (formen mit den Leitfaden) */}
       <section className="mt-7">

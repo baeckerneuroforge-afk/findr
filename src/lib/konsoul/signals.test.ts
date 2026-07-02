@@ -34,6 +34,7 @@ function makePlan(
     objective: "obj",
     topics: [],
     persona: null,
+    businessContext: null,
     sampleTarget: null,
     visualCaptureEnabled: false,
     eventTrackingEnabled: false,

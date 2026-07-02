@@ -77,6 +77,7 @@ export function KonsoulWizardCompanion({
       briefing: state.briefing,
       title: state.title,
       persona: state.persona,
+      businessContext: state.businessContext,
       audienceType: state.audienceType,
       useCase: state.useCase,
       interviewDepth: state.interviewDepth,

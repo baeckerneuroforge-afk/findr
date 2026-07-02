@@ -3,7 +3,8 @@
 import { useTranslations } from "next-intl";
 import { emptyTopicDraft, type TopicDraft } from "@/components/dashboard/TopicEditor";
 import { getUseCaseMeta, type WizardState } from "../types";
-import { StimulusUploader, type StimulusItem } from "../StimulusUploader";
+import { MaterialSection } from "../MaterialSection";
+import { type StimulusItem } from "../StimulusUploader";
 import { PROTOTYPE_HOSTING } from "@/lib/research/task";
 import {
   ArrowRightIcon,
@@ -92,22 +93,18 @@ export function StepGuide({
         />
       </div>
 
-      {/* Bedingtes Material / Usability-Aufgabe (studientyp-abhängig) */}
+      {/* Bedingtes Material / Usability-Aufgabe (studientyp-abhängig).
+          Hier nie uploadLocked: dieser Schritt ist nur mit gültigem Briefing
+          erreichbar (generate/manualContinue gaten ≥8 Zeichen). */}
       {meta.needsStimulus ? (
-        <div className="mt-6 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-          <p className="text-small font-medium text-neutral-700">
-            {tw("s2MaterialTitle", { kind: tw(meta.labelKey) })}
-          </p>
-          <p className="mt-0.5 text-caption text-neutral-400">
-            {tw("s2MaterialDesc")}
-          </p>
-          <StimulusUploader
-            planId={planId}
-            ensureDraftPlanId={ensureDraftPlanId}
-            stimuli={stimuli}
-            setStimuli={setStimuli}
-          />
-        </div>
+        <MaterialSection
+          title={tw("s2MaterialTitle", { kind: tw(meta.labelKey) })}
+          hint={tw("s2MaterialDesc")}
+          planId={planId}
+          ensureDraftPlanId={ensureDraftPlanId}
+          stimuli={stimuli}
+          setStimuli={setStimuli}
+        />
       ) : null}
       {meta.needsTask ? (
         <div className="mt-6 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
