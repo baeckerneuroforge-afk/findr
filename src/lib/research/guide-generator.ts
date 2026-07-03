@@ -360,8 +360,9 @@ export interface StimulusContextSource {
  * (nur status 'done' mit textBlock — identisches Gating wie stimulusToContext
  * in plans-service). Lebt HIER neben den anderen Prompt-Bausteinen, damit
  * Format, Tests und Evals eine Quelle teilen. Cap arbeitet BLOCK-weise: ein
- * Block, der nicht mehr ganz passt, wird verworfen statt mitten im Satz
- * abgeschnitten (ein halber Claim wäre Halluzinations-Futter).
+ * Block, der nicht mehr ganz passt, wird EINZELN verworfen (spätere, kleinere
+ * Blöcke passen ggf. noch) statt mitten im Satz abgeschnitten (ein halber
+ * Claim wäre Halluzinations-Futter); Verwerfen wird per console.warn sichtbar.
  * undefined = kein analysiertes Material → Prompt ohne MATERIAL-Block.
  */
 export function buildStimulusContext(
@@ -369,18 +370,29 @@ export function buildStimulusContext(
 ): string | undefined {
   const blocks: string[] = [];
   let total = 0;
+  let eligible = 0;
   for (const s of stimuli) {
     const textBlock =
       s.analysisStatus === "done" ? s.analysis?.textBlock : undefined;
     if (!textBlock) continue;
+    eligible += 1;
     const block = [
       `— Material ${blocks.length + 1}${s.label ? ` (${s.label})` : ""} —`,
       textBlock,
     ].join("\n");
     const cost = block.length + (blocks.length > 0 ? 2 : 0); // + "\n\n"-Joiner
-    if (total + cost > STIMULUS_CONTEXT_MAX_CHARS) break;
+    if (total + cost > STIMULUS_CONTEXT_MAX_CHARS) continue;
     blocks.push(block);
     total += cost;
+  }
+  // Der Cap greift praktisch nie (siehe STIMULUS_CONTEXT_MAX_CHARS) — WENN er
+  // greift, darf das nicht still passieren: der Leitfaden würde sonst ohne
+  // erkennbaren Grund Material ignorieren.
+  if (eligible > blocks.length) {
+    console.warn(
+      `[guide-gen] MATERIAL-Block-Cap (${STIMULUS_CONTEXT_MAX_CHARS} chars): ` +
+        `${eligible - blocks.length} von ${eligible} analysierten Stimuli verworfen.`,
+    );
   }
   return blocks.length > 0 ? blocks.join("\n\n") : undefined;
 }

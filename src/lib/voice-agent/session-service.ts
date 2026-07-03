@@ -16,7 +16,10 @@ import {
   type PanelContext,
 } from "@/lib/research/panel";
 import { findInviteByAccessToken } from "@/lib/research/scheduling";
-import { persistResearchTranscriptAndDiscovery } from "@/lib/research/transcript-service";
+import {
+  persistResearchTranscriptAndDiscovery,
+  RESEARCH_INTERVIEW_CALL_TYPE,
+} from "@/lib/research/transcript-service";
 import { runTurnSignalsSidecar } from "@/lib/research/turn-signals";
 import { runTaskSuccessJudgeSidecar } from "@/lib/research/task-success-judge";
 import { invalidateInteractionSummary } from "@/lib/synthesis/interaction";
@@ -1082,7 +1085,9 @@ export async function markSessionVoiceModeById(
  * DSGVO-Selbstwiderruf (G6) — der Teilnehmer löscht seine EIGENE Interview-
  * Session über den unguessbaren access_token. Entfernt die Session-Row samt
  * Gesprächstranskript (conversation), Auswertung (result), Screening-Antworten,
- * Recording-/Visual-Capture-Referenzen, Consent-Stempel und Turn-Signalen.
+ * Recording-/Visual-Capture-Referenzen, Consent-Stempel und Turn-Signalen —
+ * sowie die beim Abschluss angelegte Transkript-Kopie in calls (inkl. der
+ * daraus abgeleiteten product_discovery_insights via FK-Kaskade).
  * Token-scoped (Capability-Auth, kein Login) wie jede öffentliche Interview-
  * Operation. Idempotent: ist keine Session (mehr) vorhanden → deleted=false.
  *
@@ -1095,21 +1100,53 @@ export async function withdrawSessionByToken(
   accessToken: string,
 ): Promise<{ deleted: boolean }> {
   const supabase = createResearchSupabase();
+  // Erst LESEN, dann in fester Reihenfolge löschen: (1) calls-Transkriptkopie,
+  // (2) Session-Row. Schlägt (1) fehl, existiert die Session noch und der
+  // Teilnehmer kann den Widerruf erneut auslösen — umgekehrt (Session zuerst)
+  // wäre die calls-Kopie nach einem Teilfehler unauffindbar verwaist.
   const { data, error } = await supabase
     .from("interview_sessions")
-    .delete()
-    .eq("access_token", accessToken)
     .select("id, org_id, plan_id, kind")
+    .eq("access_token", accessToken)
     .maybeSingle();
   if (error) throw error;
+  if (!data) return { deleted: false };
+
+  // Art. 17 — auch die beim Abschluss persistierte Transkript-KOPIE (calls-Row
+  // aus persistResearchTranscriptAndDiscovery) gehört zur Erasure; die daraus
+  // abgeleiteten product_discovery_insights kaskadieren per FK (ON DELETE
+  // CASCADE auf source_call_id) mit. Match über den participants-Stempel
+  // (session_id), org-gescoped + auf research_interview begrenzt. Alt-Rows aus
+  // der Zeit vor dem session_id-Stempel im Text-Pfad sind hierüber nicht
+  // auffindbar (dokumentierte Legacy-Grenze; org-seitige Erasure deckt sie ab).
+  if (data.kind === "research") {
+    const { error: callsError } = await supabase
+      .from("calls")
+      .delete()
+      .eq("org_id", data.org_id)
+      .eq("call_type", RESEARCH_INTERVIEW_CALL_TYPE)
+      // Gleicher Match wie applyVisualCaptureToCompletedResearchTranscript
+      // (JSONB-Containment auf den participants-Stempel).
+      .contains("participants", { session_id: data.id });
+    if (callsError) throw callsError;
+  }
+
+  const { data: deletedRow, error: deleteError } = await supabase
+    .from("interview_sessions")
+    .delete()
+    .eq("id", data.id)
+    .select("id")
+    .maybeSingle();
+  if (deleteError) throw deleteError;
+
   // Art. 17 — the row delete takes task_result + task_success_judgment with it
   // (research_session_events cascade). Additionally invalidate the study's stored
   // usability aggregate so it can't retain the withdrawn participant's share; the
   // next synthesis recomputes it min-N-gated from the remaining sessions.
-  if (data && data.kind === "research" && data.plan_id) {
+  if (data.kind === "research" && data.plan_id) {
     await invalidateInteractionSummary(data.org_id, data.plan_id);
   }
-  return { deleted: Boolean(data) };
+  return { deleted: Boolean(deletedRow) };
 }
 
 /**
@@ -1373,6 +1410,7 @@ export async function advanceInterview(
         try {
           await persistResearchTranscriptAndDiscovery({
             orgId: session.orgId,
+            sessionId: session.id,
             planId: session.planId,
             inviteId: session.inviteId,
             transcript: conversationToTranscript(history),

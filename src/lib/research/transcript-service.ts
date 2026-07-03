@@ -20,6 +20,13 @@ import { createResearchSupabase } from "./db";
  * dependency graph one-way.
  */
 
+/**
+ * call_type-Stempel der Research-Transkriptkopien in calls — EINE Quelle für
+ * Insert (hier), DSGVO-Withdraw (session-service) und Retention-Sweep (cron),
+ * damit die drei Stellen nie auseinanderlaufen.
+ */
+export const RESEARCH_INTERVIEW_CALL_TYPE = "research_interview";
+
 export interface PersistResearchTranscriptResult {
   callId: string | null;
   discoveryRan: boolean;
@@ -78,7 +85,7 @@ export async function persistResearchTranscriptAndDiscovery(params: {
       account_id: null,
       deal_id: null,
       source: "research",
-      call_type: "research_interview",
+      call_type: RESEARCH_INTERVIEW_CALL_TYPE,
       transcript,
       recorded_at: now,
       participants: {

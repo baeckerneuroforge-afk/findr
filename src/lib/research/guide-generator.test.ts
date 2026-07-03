@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   buildGuideUserPrompt,
@@ -153,6 +153,32 @@ describe("buildGuideUserPrompt — Setup-Signale landen im Prompt", () => {
     // Der zweite Block wird VERWORFEN, nicht angeschnitten.
     expect(ctx).not.toContain("Opfer");
     expect(ctx).not.toContain("Dieser Block");
+  });
+
+  it("buildStimulusContext: Verwerfen ist pro Block (spätere passen noch) und warnt laut", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const big = "B".repeat(STIMULUS_CONTEXT_MAX_CHARS - 50);
+      const ctx = buildStimulusContext([
+        { label: "A", analysisStatus: "done", analysis: { textBlock: big } },
+        {
+          label: "Riese",
+          analysisStatus: "done",
+          analysis: { textBlock: "R".repeat(200) },
+        },
+        { label: "Zwerg", analysisStatus: "done", analysis: { textBlock: "ok" } },
+      ]);
+      // Der Riese passt nicht → einzeln verworfen; der kleine Zwerg danach
+      // passt in den Rest-Budget-Raum noch hinein.
+      expect(ctx).not.toContain("Riese");
+      expect(ctx).toContain("Zwerg");
+      expect(ctx!.length).toBeLessThanOrEqual(STIMULUS_CONTEXT_MAX_CHARS);
+      // Stiller Cutoff ist verboten: genau eine Warnung über 1 verworfenes Asset.
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(String(warnSpy.mock.calls[0][0])).toContain("1 von 3");
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it("kombiniert alle Setup-Signale in einem Prompt", () => {
