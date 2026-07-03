@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAuthorizedCron } from "@/lib/auth/cron";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { createResearchSupabase } from "@/lib/research/db";
+import { RESEARCH_INTERVIEW_CALL_TYPE } from "@/lib/research/transcript-service";
 import { cronHadAnyError } from "@/lib/cron/status";
 import {
   KONSOUL_ACTION_LOG_RETENTION_DAYS,
@@ -13,7 +14,9 @@ import {
  * DSGVO G5 — daily retention sweep. Two scopes:
  *  1. interview_sessions (participant PII/transcript core): for each org that set
  *     a retention period (org_settings.interview_retention_days, null = off),
- *     deletes sessions whose created_at is older than that many days.
+ *     deletes sessions whose created_at is older than that many days — plus the
+ *     research-interview transcript COPIES in calls (call_type =
+ *     'research_interview'), whose product_discovery_insights cascade via FK.
  *  2. konsoul_action_log (Konsoul P3.0 audit METADATA, no participant PII):
  *     global, one fixed deadline from a code constant
  *     (KONSOUL_ACTION_LOG_RETENTION_DAYS) — its own clock, independent of the
@@ -69,6 +72,7 @@ export async function GET(request: Request) {
     orgs_with_retention: orgs?.length ?? 0,
     abandoned: 0,
     deleted: 0,
+    research_calls_deleted: 0,
     konsoul_action_log_deleted: 0,
     konsoul_threads_deleted: 0,
     konsoul_metrics_deleted: 0,
@@ -116,6 +120,14 @@ export async function GET(request: Request) {
         .eq("org_id", row.org_id)
         .lt("created_at", cutoff);
       results.deleted += count ?? 0;
+
+      const { count: callsCount } = await supabase
+        .from("calls")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", row.org_id)
+        .eq("call_type", RESEARCH_INTERVIEW_CALL_TYPE)
+        .lt("created_at", cutoff);
+      results.research_calls_deleted += callsCount ?? 0;
       continue;
     }
 
@@ -129,6 +141,27 @@ export async function GET(request: Request) {
       continue;
     }
     results.deleted += deletedCount ?? 0;
+
+    // Die beim Abschluss persistierte Transkript-KOPIE (calls-Row aus
+    // persistResearchTranscriptAndDiscovery) trägt dasselbe Teilnehmer-
+    // Transkript und fällt unter dieselbe org-konfigurierte Frist. Scope
+    // bewusst NUR call_type='research_interview' — Sales-/CS-Calls haben mit
+    // der Interview-Retention nichts zu tun. Die abgeleiteten
+    // product_discovery_insights (verbatim Verdichtungen = personenbezogen)
+    // kaskadieren per FK (ON DELETE CASCADE auf source_call_id) mit; eine
+    // bereits berechnete Studien-Synthese bleibt als aggregiertes Artefakt
+    // unberührt, ein Re-Run rechnet auf dem verbleibenden Bestand.
+    const { count: callsDeleted, error: callsError } = await supabase
+      .from("calls")
+      .delete({ count: "exact" })
+      .eq("org_id", row.org_id)
+      .eq("call_type", RESEARCH_INTERVIEW_CALL_TYPE)
+      .lt("created_at", cutoff);
+    if (callsError) {
+      results.errors.push(`${row.org_id} (research calls): ${callsError.message}`);
+      continue;
+    }
+    results.research_calls_deleted += callsDeleted ?? 0;
   }
 
   // Konsoul P3.0 — konsoul_action_log retention sweep (Design-Doc §3, Auflage
