@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Konsoul } from "@/components/site/Konsoul";
 import { SiteShell, CtaBlock, DEMO_URL } from "@/components/site/SiteShell";
 import { Stagger } from "@/components/site/Stagger";
+import { TrustedBy } from "@/components/site/TrustedBy";
 import { buildAlternates, ogDefaultsFor } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
@@ -115,9 +116,6 @@ export default function Landing() {
                 </div>
               </div>
 
-              <div className="absolute -left-5 -top-4 hidden rotate-[-3deg] items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs shadow-sm floaty sm:flex">
-                <span className="text-soul">●</span> 312 interviews · 7 studies
-              </div>
               <div className="absolute -bottom-4 right-6 rotate-[2deg] rounded-xl border border-border bg-ink px-3 py-2 text-xs font-medium text-paper shadow-sm drift">
                 Evidenced in the transcript ✓
               </div>
@@ -126,34 +124,9 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* value ticker */}
-        <div className="border-y border-border bg-secondary/40">
-          <div className="mx-auto max-w-7xl overflow-hidden px-6 py-5">
-            <div className="flex items-center gap-6 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              <span className="shrink-0">How Klymeo works</span>
-              <div className="flex flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
-                <div className="flex shrink-0 gap-10 pr-10 marquee">
-                  {[
-                    "Study in hours, not weeks",
-                    "Voice & Text — adaptive",
-                    "Evidenced in the transcript",
-                    "Your own lists or panel",
-                    "EU hosting · Frankfurt",
-                    "Reports as PDF · Slides · Notion",
-                    "Cross-study search",
-                    "Live quotas in recruiting",
-                  ].flatMap((n) => [n, n]).map((n, i) => (
-                    <span key={i} className="flex items-center gap-3">
-                      <span className="font-display text-base normal-case tracking-normal text-ink/80">{n}</span>
-                      <span className="h-1 w-1 rounded-full bg-soul/70" />
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </section>
+
+      <TrustedBy lang="en" />
 
       {/* MEET KONSOUL — softer, photo-led */}
       <section className="relative py-28">
