@@ -17,17 +17,31 @@ export function TrustedBy({ lang = "de" }: { lang?: Locale }) {
   const label = `${copy.eyebrow} ${TRUSTED_BY_CUSTOMER}`;
 
   return (
-    <section
-      aria-label={label}
-      className="border-y border-border bg-secondary/40"
-    >
-      <div className="mx-auto max-w-7xl px-6 py-10 md:py-12">
+    <section aria-label={label} className="relative bg-paper">
+      {/* Soft dissolve into the paper hero above and the next section below —
+          no gray slab, no hard top/bottom rules. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -top-20 h-20 bg-gradient-to-b from-transparent to-paper"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -bottom-20 h-20 bg-gradient-to-t from-transparent to-paper"
+      />
+
+      <div className="relative mx-auto max-w-7xl px-6 py-10 md:py-12">
         <div className="flex items-center gap-4">
-          <span className="h-px flex-1 bg-border" aria-hidden />
+          <span
+            className="h-px flex-1 bg-gradient-to-r from-transparent to-border"
+            aria-hidden
+          />
           <p className="shrink-0 font-mono text-[11px] uppercase tracking-[0.28em] text-soul">
             {copy.eyebrow}
           </p>
-          <span className="h-px flex-1 bg-border" aria-hidden />
+          <span
+            className="h-px flex-1 bg-gradient-to-l from-transparent to-border"
+            aria-hidden
+          />
         </div>
 
         <div className="mt-6 flex flex-col items-center gap-4">
@@ -36,7 +50,7 @@ export function TrustedBy({ lang = "de" }: { lang?: Locale }) {
             target="_blank"
             rel="noreferrer"
             aria-label={label}
-            className="group relative inline-flex items-center rounded-2xl border border-border bg-card px-10 py-5 shadow-[0_18px_40px_-28px_oklch(0.16_0.01_260_/_0.35)] transition duration-500 hover:-translate-y-0.5 hover:border-ink/25 hover:shadow-[0_22px_50px_-24px_oklch(0.72_0.16_55_/_0.35)]"
+            className="group relative inline-flex items-center rounded-2xl border border-border/70 bg-paper px-10 py-5 shadow-[0_18px_40px_-28px_oklch(0.16_0.01_260_/_0.18)] transition duration-500 hover:-translate-y-0.5 hover:border-ink/25 hover:shadow-[0_22px_50px_-24px_oklch(0.72_0.16_55_/_0.28)]"
           >
             <span
               aria-hidden
