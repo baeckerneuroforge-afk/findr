@@ -8,10 +8,13 @@
 
    Fonts are self-hosted via next/font (see (site)/layout.tsx) and wired in
    through the --font-site-* variables — no Google Fonts <link>, no DSGVO
-   regression. tw-animate-css was dropped (0 usages in the ported pages). */
+   regression. tw-animate-css was dropped (0 usages in the ported pages).
+
+   Color follows the OS via prefers-color-scheme. This tree does not share
+   the dashboard ThemeShell, so there is no .dark class and no manual toggle. */
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -38,6 +41,7 @@
   --color-soul: var(--soul);
   --color-border: var(--border);
   --color-ring: var(--ring);
+  --color-on-soul: var(--on-soul);
   --font-display: var(--font-site-serif), ui-serif, Georgia, serif;
   --font-italic: var(--font-site-italic), ui-serif, Georgia, serif;
   --font-sans: var(--font-site-sans), ui-sans-serif, system-ui, sans-serif;
@@ -45,12 +49,16 @@
 }
 
 :root {
+  color-scheme: light;
   --radius: 0.875rem;
   /* Klymeo palette — paper white, deep ink, one warm soul accent */
   --paper: oklch(0.985 0.003 90);
   --ink: oklch(0.16 0.01 260);
   --soul: oklch(0.72 0.16 55);          /* warm amber — the Konsoul accent */
   --line: oklch(0.91 0.005 260);
+  /* Type on an amber fill. Stays the deep ink in both schemes — light text
+     on --soul fails contrast once --ink flips to the night writing color. */
+  --on-soul: oklch(0.16 0.01 260);
 
   --background: var(--paper);
   --foreground: var(--ink);
@@ -63,14 +71,44 @@
   --muted: oklch(0.96 0.004 260);
   --muted-foreground: oklch(0.48 0.01 260);
   --accent: var(--soul);
-  --accent-foreground: var(--ink);
+  --accent-foreground: var(--on-soul);
   --border: var(--line);
   --ring: var(--soul);
 }
 
+/* Night paper. --ink and --paper swap roles so bg-ink slabs and text-ink
+   type invert with the page; --on-soul does not. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: oklch(0.20 0.016 262);
+    --ink: oklch(0.955 0.008 90);
+    --soul: oklch(0.78 0.15 62);
+    --line: oklch(0.36 0.014 262);
+
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: oklch(0.245 0.016 262);
+    --card-foreground: var(--ink);
+    --primary: var(--ink);
+    --primary-foreground: var(--paper);
+    --secondary: oklch(0.275 0.015 262);
+    --secondary-foreground: var(--ink);
+    --muted: oklch(0.275 0.015 262);
+    --muted-foreground: oklch(0.76 0.012 90);
+    --accent: var(--soul);
+    --accent-foreground: var(--on-soul);
+    --border: var(--line);
+    --ring: var(--soul);
+  }
+}
+
 @layer base {
   * { border-color: var(--color-border); }
-  html { scroll-behavior: smooth; }
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--color-background);
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -229,3 +267,54 @@
 .prose-klymeo em { font-style: italic; }
 .prose-klymeo a { text-decoration: underline; text-underline-offset: 3px; }
 .prose-klymeo section + section { margin-top: 1rem; }
+
+/* Glow on the ink CTA slab. Retuned in the dark-scheme block, where that
+   slab is the light sheet. */
+.cta-glow {
+  background-image:
+    radial-gradient(circle at 90% 10%, oklch(0.72 0.16 55 / 0.6), transparent 50%),
+    radial-gradient(circle at 10% 90%, oklch(0.4 0.05 280 / 0.5), transparent 55%);
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Dots were tuned for paper-white. On night paper they need to lift, not glare. */
+  .dotgrid {
+    background-image: radial-gradient(oklch(0.34 0.012 262) 1px, transparent 1px);
+  }
+
+  /* Highlighter sits behind light type. Inside an ink slab (now the light
+     sheet) the original pale marks stay, so dark type keeps its contrast. */
+  .mark-amber { --mc: oklch(0.58 0.14 75 / 0.7); }
+  .mark-pink  { --mc: oklch(0.55 0.13 15 / 0.65); }
+  .mark-mint  { --mc: oklch(0.55 0.11 165 / 0.6); }
+  .mark-sky   { --mc: oklch(0.55 0.1 230 / 0.6); }
+  .mark-lilac { --mc: oklch(0.52 0.12 305 / 0.62); }
+  .bg-ink .mark-amber { --mc: oklch(0.88 0.17 80 / 0.55); }
+  .bg-ink .mark-pink  { --mc: oklch(0.84 0.14 15 / 0.50); }
+  .bg-ink .mark-mint  { --mc: oklch(0.86 0.13 165 / 0.50); }
+  .bg-ink .mark-sky   { --mc: oklch(0.84 0.10 230 / 0.50); }
+  .bg-ink .mark-lilac { --mc: oklch(0.82 0.12 305 / 0.50); }
+
+  /* Ink-colored type inside an ink slab would be light-on-light. Paper is
+     the dark writing color again once the slab has flipped. */
+  .bg-ink.text-ink,
+  .bg-ink .text-ink { color: var(--paper); }
+
+  /* Amber eyebrows on the light slab need the deeper soul, not the night glow. */
+  .bg-ink.text-soul,
+  .bg-ink .text-soul { color: oklch(0.47 0.13 58); }
+
+  /* Single-color wordmarks (yfood) are authored in near-black. */
+  .site-ink-mark { filter: brightness(0) invert(1); }
+
+  .cta-glow {
+    background-image:
+      radial-gradient(circle at 90% 10%, oklch(0.72 0.16 55 / 0.38), transparent 52%),
+      radial-gradient(circle at 10% 90%, oklch(0.82 0.04 280 / 0.65), transparent 56%);
+  }
+
+  ::selection {
+    background: oklch(0.58 0.14 62 / 0.85);
+    color: var(--paper);
+  }
+}

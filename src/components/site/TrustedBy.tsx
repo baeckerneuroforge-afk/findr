@@ -64,7 +64,7 @@ export function TrustedBy({ lang = "de" }: { lang?: Locale }) {
               width={99}
               height={31}
               unoptimized
-              className="h-9 w-auto md:h-11"
+              className="site-ink-mark h-9 w-auto md:h-11"
             />
           </a>
           <p className="text-sm text-muted-foreground">{copy.caption}</p>

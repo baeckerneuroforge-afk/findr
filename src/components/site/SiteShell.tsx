@@ -230,14 +230,7 @@ export function CtaBlock({
     <section className="py-24">
       <div className="mx-auto max-w-5xl px-6">
         <div className="relative overflow-hidden rounded-3xl border border-border bg-ink px-10 py-16 text-paper md:px-16 md:py-20">
-          <div
-            className="absolute inset-0 opacity-30"
-            aria-hidden
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 90% 10%, oklch(0.72 0.16 55 / 0.6), transparent 50%), radial-gradient(circle at 10% 90%, oklch(0.4 0.05 280 / 0.5), transparent 55%)",
-            }}
-          />
+          <div className="cta-glow absolute inset-0 opacity-30" aria-hidden />
           <div className="relative">
             <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-paper/60">
               {chrome.ctaEyebrow}
@@ -251,7 +244,7 @@ export function CtaBlock({
                 href={DEMO_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="group inline-flex items-center gap-2 rounded-full bg-soul px-6 py-3.5 text-sm font-medium text-ink transition hover:scale-[1.02] hover:shadow-[0_12px_40px_-10px_oklch(0.72_0.16_55_/_0.6)]"
+                className="group inline-flex items-center gap-2 rounded-full bg-soul px-6 py-3.5 text-sm font-medium text-on-soul transition hover:scale-[1.02] hover:shadow-[0_12px_40px_-10px_oklch(0.72_0.16_55_/_0.6)]"
               >
                 {primaryLabel} <span aria-hidden className="transition group-hover:translate-x-0.5">→</span>
               </a>

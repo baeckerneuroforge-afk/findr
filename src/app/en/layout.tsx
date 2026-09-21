@@ -58,8 +58,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fbfbf8",
-  colorScheme: "light",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbfbf8" },
+    { media: "(prefers-color-scheme: dark)", color: "#12161d" },
+  ],
+  colorScheme: "light dark",
 };
 
 /** Organization + WebSite JSON-LD — English counterpart of (site)/layout.tsx.
